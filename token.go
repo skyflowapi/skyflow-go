@@ -14,12 +14,12 @@ import (
 	"github.com/golang-jwt/jwt"
 )
 
-type TokenResponse struct {
+type ResponseToken struct {
 	AccessToken string `json:"accessToken"`
-	TokenType string `json:tokenType`
+	TokenType 	string `json:tokenType`
 }
 
-func GetToken(filePath string) (*TokenResponse, error) {
+func GetToken(filePath string) (*ResponseToken, error) {
 	var key map[string]interface{}
 
 	jsonFile, err := os.Open(filePath)
@@ -44,7 +44,7 @@ func GetToken(filePath string) (*TokenResponse, error) {
 
 // GetSATokenFromCredsFile gets bearer token from service account endpoint
 func getSATokenFromCredsFile(
-	key map[string]interface{}) (*TokenResponse, error) {
+	key map[string]interface{}) (*ResponseToken, error) {
 	
 	pvtKey, err := getPrivateKeyFromPem(key["privateKey"].(string))
 	if err != nil {
@@ -87,10 +87,10 @@ func getSATokenFromCredsFile(
 		return nil, err
 	}
 
-	var tokenResponse TokenResponse
-	json.Unmarshal([]byte(body), &tokenResponse)
+	var responseToken ResponseToken
+	json.Unmarshal([]byte(body), &responseToken)
 	
-	return &tokenResponse, nil
+	return &responseToken, nil
 }
 
 func getPrivateKeyFromPem(pemKey string) (*rsa.PrivateKey, error) {
@@ -105,7 +105,7 @@ func getPrivateKeyFromPem(pemKey string) (*rsa.PrivateKey, error) {
 	if parsedKey, err = x509.ParsePKCS1PrivateKey(privPem.Bytes); err != nil {
 		if parsedKey, err = x509.ParsePKCS8PrivateKey(privPem.Bytes); err != nil {
 			return nil,
-				fmt.Errorf("Unable to parse RSA private key. ERR: %v", err)
+				fmt.Errorf("unable to parse RSA private key. ERR: %v", err)
 		}
 	}
 
@@ -114,7 +114,7 @@ func getPrivateKeyFromPem(pemKey string) (*rsa.PrivateKey, error) {
 	privateKey, ok = parsedKey.(*rsa.PrivateKey)
 	if !ok {
 		return nil,
-			fmt.Errorf("Unable to parse RSA private key, generating a temp one, ERR: %v", err)
+			fmt.Errorf("unable to parse RSA private key, generating a temp one, ERR: %v", err)
 	}
 	return privateKey, nil
 }
@@ -134,7 +134,7 @@ func getSignedUserToken(
 	var err error
 	signedToken, err := token.SignedString(pvtKey)
 	if err != nil {
-		return "", fmt.Errorf("Unable to parse jwt payload, err : %v", err)
+		return "", fmt.Errorf("unable to parse jwt payload, err : %v", err)
 	}
 	return signedToken, nil
 }
