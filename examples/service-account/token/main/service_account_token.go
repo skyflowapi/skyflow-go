@@ -7,7 +7,8 @@ import (
 )
 
 func main() {
-	token, err := saUtil.GenerateToken("/Users/bandi/Downloads/sa_credentials.json")
+	filePath := ""
+	token, err := saUtil.GenerateToken(filePath)
 	if err != nil {
 		panic(err)
 	}

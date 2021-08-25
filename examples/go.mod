@@ -7,7 +7,3 @@ require (
 	github.com/skyflowapi/skyflow-go/errors v0.0.1 // indirect
 	github.com/skyflowapi/skyflow-go/service-account v0.0.1
 )
-
-replace github.com/skyflowapi/skyflow-go/service-account => ../service-account/
-
-replace github.com/skyflowapi/skyflow-go/errors => ../errors/
