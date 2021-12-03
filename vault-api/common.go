@@ -64,9 +64,13 @@ type ConnectionConfig struct {
 	requestHeader map[string]interface{}
 }
 
+type Options struct {
+	tokens bool
+}
+
 type Configuration struct {
 	vaultID       string
 	vaultURL      string
 	tokenProvider TokenProvider
-	options       map[string]interface{}
+	options       Options
 }
