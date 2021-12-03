@@ -1,11 +1,9 @@
 package vaultapi
 
-type Callback interface {
-	onSuccess(responseBody interface{})
-	onFailure(exception interface{})
-}
+type token string
+type responseBody map[string]interface{}
 type TokenProvider interface {
-	getBearerToken(callback Callback)
+	getBearerToken() (token, error)
 }
 
 type RequestMethod int
