@@ -49,11 +49,13 @@ func (client *Client) invokeConnection(connectionConfig ConnectionConfig) (respo
 func (client *Client) isValidVaultDetails() error {
 
 	if client.configuration.vaultID == "" {
+		//TODO
 
 	} else if client.configuration.vaultURL == "" {
+		//TODO
 
 	} else if !isValidUrl(client.configuration.vaultURL) {
-
+		//TODO
 	}
 	return nil
 }

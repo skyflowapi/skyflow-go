@@ -10,20 +10,21 @@ type ApiClient struct {
 
 func (client *ApiClient) insert(records map[string]interface{}, options map[string]interface{}) (responseBody, error) {
 
+	//TODO
 	return nil, nil
 }
 
 func (client *ApiClient) detokenize(records map[string]interface{}) (responseBody, error) {
-
+	//TODO
 	return nil, nil
 }
 
 func (client *ApiClient) getById(records map[string]interface{}) (responseBody, error) {
-
+	//TODO
 	return nil, nil
 }
 
 func (client *ApiClient) invokeConnection(connectionConfig ConnectionConfig) (responseBody, error) {
-
+	//TODO
 	return nil, nil
 }
