@@ -38,3 +38,7 @@ func (se *SkyflowError) GetOriginalError() error {
 func (se *SkyflowError) Error() string {
 	return fmt.Sprintf("Message: %s, Original Error (if any): %s", se.message, se.originalError.Error())
 }
+
+func (se *SkyflowError) GetMessage() string {
+	return fmt.Sprintf("Message: %s", se.message)
+}

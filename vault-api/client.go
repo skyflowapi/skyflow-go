@@ -1,61 +1,92 @@
 package vaultapi
 
 import (
+	"encoding/json"
 	"net/url"
+
+	"github.com/skyflowapi/skyflow-go/errors"
 )
 
 type Client struct {
 	configuration Configuration
 }
 
-var apiclient ApiClient = ApiClient{}
+var token = ""
 
-func (client *Client) insert(records map[string]interface{}, options map[string]interface{}) (responseBody, error) {
-	//insert
+func (client *Client) Insert(records map[string]interface{}, options InsertOptions) (responseBody, *errors.SkyflowError) {
+
 	var err = client.isValidVaultDetails()
 	if err != nil {
-		return apiclient.insert(records, options)
+		return nil, err
 	}
+	jsonRecord, _ := json.Marshal(records)
+	var insertRecord InsertRecord
+	if err := json.Unmarshal(jsonRecord, &insertRecord); err != nil {
+		panic(err) //to do
+	}
+	tokenUtils := TokenUtils{token}
+	token = tokenUtils.getBearerToken(client.configuration.TokenProvider)
+	insertApi := insertApi{client.configuration, insertRecord, options, token}
+	return insertApi.post()
+}
+
+func (client *Client) Detokenize(records map[string]interface{}) (responseBody, error) {
+
+	var err = client.isValidVaultDetails()
+	if err != nil {
+		return nil, err
+	}
+
+	jsonRecord, _ := json.Marshal(records)
+	var detokenizeRecord DetokenizeInput
+	if err := json.Unmarshal(jsonRecord, &detokenizeRecord); err != nil {
+		panic(err) //to do
+	}
+	tokenUtils := TokenUtils{token}
+	token = tokenUtils.getBearerToken(client.configuration.TokenProvider)
+	detokenizeApi := detokenizeApi{client.configuration, detokenizeRecord, token}
+	return detokenizeApi.get()
+}
+
+func (client *Client) GetById(records map[string]interface{}) (responseBody, error) {
+
+	var err = client.isValidVaultDetails()
+	if err != nil {
+		return nil, err
+	}
+	jsonRecord, _ := json.Marshal(records)
+	var getByIdRecord GetByIdInput
+	if err := json.Unmarshal(jsonRecord, &getByIdRecord); err != nil {
+		panic(err) //to do
+	}
+	tokenUtils := TokenUtils{token}
+	token = tokenUtils.getBearerToken(client.configuration.TokenProvider)
+	getByIdApi := getByIdApi{client.configuration, getByIdRecord, token}
+	return getByIdApi.get()
+}
+
+func (client *Client) InvokeConnection(connectionConfig ConnectionConfig) (responseBody, error) {
+
+	var err = client.isValidVaultDetails()
+	if err != nil {
+		return nil, err
+	}
+	tokenUtils := TokenUtils{token}
+	token = tokenUtils.getBearerToken(client.configuration.TokenProvider)
 	return nil, nil
 }
 
-func (client *Client) detokenize(records map[string]interface{}) (responseBody, error) {
-	//detokenize
-	var err = client.isValidVaultDetails()
-	if err != nil {
-		return apiclient.detokenize(records)
-	}
-	return nil, nil
-}
+func (client *Client) isValidVaultDetails() *errors.SkyflowError {
 
-func (client *Client) getById(records map[string]interface{}) (responseBody, error) {
-	//getById
-	var err = client.isValidVaultDetails()
-	if err != nil {
-		return apiclient.getById(records)
-	}
-	return nil, nil
-}
+	if client.configuration.VaultID == "" {
+		return errors.NewSkyflowError(errors.ErrorCodesEnum(DEFAULT), errors.EMPTY_VAULT_ID)
 
-func (client *Client) invokeConnection(connectionConfig ConnectionConfig) (responseBody, error) {
-	//invokeConnection
-	var err = client.isValidVaultDetails()
-	if err != nil {
-		return apiclient.invokeConnection(connectionConfig)
-	}
-	return nil, nil
-}
+	} else if client.configuration.VaultURL == "" {
+		return errors.NewSkyflowError(errors.ErrorCodesEnum(DEFAULT), errors.EMPTY_VAULT_URL)
 
-func (client *Client) isValidVaultDetails() error {
+	} else if !isValidUrl(client.configuration.VaultURL) {
+		return errors.NewSkyflowError(errors.ErrorCodesEnum(DEFAULT), errors.INVALID_VAULT_URL)
 
-	if client.configuration.vaultID == "" {
-		//TODO
-
-	} else if client.configuration.vaultURL == "" {
-		//TODO
-
-	} else if !isValidUrl(client.configuration.vaultURL) {
-		//TODO
 	}
 	return nil
 }

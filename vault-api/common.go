@@ -1,10 +1,7 @@
 package vaultapi
 
-type token string
 type responseBody map[string]interface{}
-type TokenProvider interface {
-	getBearerToken() (token, error)
-}
+type TokenProvider func() string
 
 type RequestMethod int
 
@@ -48,12 +45,10 @@ type RedactionType string
 
 const (
 	DEFAULT    RedactionType = "DEFAULT"
-	PLAIN_TEXT               = "PLAIN_TEXT"
-	MASKED                   = "MASKED"
-	REDACTED                 = "REDACTED"
+	PLAIN_TEXT RedactionType = "PLAIN_TEXT"
+	MASKED     RedactionType = "MASKED"
+	REDACTED   RedactionType = "REDACTED"
 )
-
-//
 
 type ConnectionConfig struct {
 	connectionURL string
@@ -65,12 +60,42 @@ type ConnectionConfig struct {
 }
 
 type Options struct {
-	tokens bool
+	LogLevel LogLevel
+}
+type InsertOptions struct {
+	Tokens bool
 }
 
 type Configuration struct {
-	vaultID       string
-	vaultURL      string
-	tokenProvider TokenProvider
-	options       Options
+	VaultID       string
+	VaultURL      string
+	TokenProvider TokenProvider
+	Options       Options
+}
+
+type InsertRecord struct {
+	Records []SingleRecord
+}
+
+type SingleRecord struct {
+	Table  string
+	Fields map[string]interface{}
+}
+
+type DetokenizeInput struct {
+	Records []RevealRecord
+}
+
+type RevealRecord struct {
+	Token string
+}
+
+type GetByIdInput struct {
+	Records []SkyflowIdRecord
+}
+
+type SkyflowIdRecord struct {
+	Ids       []string
+	Redaction RedactionType
+	Table     string
 }
