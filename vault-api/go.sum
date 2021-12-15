@@ -1,3 +1,5 @@
+github.com/golang-jwt/jwt v3.2.2+incompatible h1:IfV12K8xAKAnZqdXVzCZ+TOjboZ2keLg81eXfW3O+oY=
+github.com/golang-jwt/jwt v3.2.2+incompatible/go.mod h1:8pz2t5EyA70fFQQSrl6XZXzqecmYZeUEB8OUGHkxJ+I=
 github.com/skyflowapi/skyflow-go v1.0.0 h1:Z+j9DW4EakvX3Qh22zQBih8CEtt/hVpeH5njgwpvWCM=
 github.com/skyflowapi/skyflow-go/errors v0.0.0-20210830070335-73242cbca8cb h1:ab7aMz/iQJA1opNAjsI/0LMON7Gp/UKlRumj+747Cpw=
 github.com/skyflowapi/skyflow-go/errors v0.0.0-20210830070335-73242cbca8cb/go.mod h1:y7zJWZDvkYxWeQ0kin9VfqoYRM49Uy/CFyjjEU7SUyg=

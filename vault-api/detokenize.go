@@ -53,9 +53,9 @@ func (detokenize *detokenizeApi) sendRequest() (map[string]interface{}, *errors.
 		singleRecord := detokenize.records.Records[i]
 		requestUrl := fmt.Sprintf("%s/v1/vaults/%s/detokenize", detokenize.configuration.VaultURL, detokenize.configuration.VaultID)
 		var detokenizeParameter = []RevealRecord{singleRecord}
-		var r = make(map[string]interface{})
-		r["detokenizationParameters"] = detokenizeParameter
-		requestBody, err := json.Marshal(r)
+		var body = make(map[string]interface{})
+		body["detokenizationParameters"] = detokenizeParameter
+		requestBody, err := json.Marshal(body)
 		if err == nil {
 			request, _ := http.NewRequest(
 				"POST",

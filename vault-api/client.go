@@ -30,7 +30,7 @@ func (client *Client) Insert(records map[string]interface{}, options InsertOptio
 	return insertApi.post()
 }
 
-func (client *Client) Detokenize(records map[string]interface{}) (responseBody, error) {
+func (client *Client) Detokenize(records map[string]interface{}) (responseBody, *errors.SkyflowError) {
 
 	var err = client.isValidVaultDetails()
 	if err != nil {
@@ -42,13 +42,13 @@ func (client *Client) Detokenize(records map[string]interface{}) (responseBody, 
 	if err := json.Unmarshal(jsonRecord, &detokenizeRecord); err != nil {
 		panic(err) //to do
 	}
-	tokenUtils := TokenUtils{token}
-	token = tokenUtils.getBearerToken(client.configuration.TokenProvider)
-	detokenizeApi := detokenizeApi{client.configuration, detokenizeRecord, token}
+	// tokenUtils := TokenUtils{token}
+	// token = tokenUtils.getBearerToken(client.configuration.TokenProvider)
+	detokenizeApi := detokenizeApi{client.configuration, detokenizeRecord, client.configuration.TokenProvider()}
 	return detokenizeApi.get()
 }
 
-func (client *Client) GetById(records map[string]interface{}) (responseBody, error) {
+func (client *Client) GetById(records map[string]interface{}) (responseBody, *errors.SkyflowError) {
 
 	var err = client.isValidVaultDetails()
 	if err != nil {
@@ -65,7 +65,7 @@ func (client *Client) GetById(records map[string]interface{}) (responseBody, err
 	return getByIdApi.get()
 }
 
-func (client *Client) InvokeConnection(connectionConfig ConnectionConfig) (responseBody, error) {
+func (client *Client) InvokeConnection(connectionConfig ConnectionConfig) (responseBody, *errors.SkyflowError) {
 
 	var err = client.isValidVaultDetails()
 	if err != nil {
@@ -73,6 +73,8 @@ func (client *Client) InvokeConnection(connectionConfig ConnectionConfig) (respo
 	}
 	tokenUtils := TokenUtils{token}
 	token = tokenUtils.getBearerToken(client.configuration.TokenProvider)
+
+	//TODO
 	return nil, nil
 }
 
