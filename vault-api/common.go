@@ -53,10 +53,10 @@ const (
 type ConnectionConfig struct {
 	connectionURL string
 	methodName    RequestMethod
-	pathParams    map[string]interface{}
+	pathParams    map[string]string
 	queryParams   map[string]interface{}
 	requestBody   map[string]interface{}
-	requestHeader map[string]interface{}
+	requestHeader map[string]string
 }
 
 type Options struct {

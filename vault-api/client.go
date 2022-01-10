@@ -67,15 +67,13 @@ func (client *Client) GetById(records map[string]interface{}) (responseBody, *er
 
 func (client *Client) InvokeConnection(connectionConfig ConnectionConfig) (responseBody, *errors.SkyflowError) {
 
-	var err = client.isValidVaultDetails()
-	if err != nil {
-		return nil, err
+	if !isValidUrl(connectionConfig.connectionURL) {
+		return nil, nil
 	}
 	tokenUtils := TokenUtils{token}
 	token = tokenUtils.getBearerToken(client.configuration.TokenProvider)
-
-	//TODO
-	return nil, nil
+	invokeConnectionApi := invokeConnectionApi{connectionConfig, token}
+	return invokeConnectionApi.post()
 }
 
 func (client *Client) isValidVaultDetails() *errors.SkyflowError {
