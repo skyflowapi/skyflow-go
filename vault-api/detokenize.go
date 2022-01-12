@@ -18,29 +18,12 @@ type detokenizeApi struct {
 }
 
 func (detokenize *detokenizeApi) get() (map[string]interface{}, *errors.SkyflowError) {
-	err := detokenize.validateRecords(detokenize.records)
-	if err != nil {
-		return nil, err
-	}
+
 	res, err := detokenize.sendRequest()
 	if err != nil {
 		return nil, err
 	}
 	return res, nil
-}
-
-func (detokenize *detokenizeApi) validateRecords(records DetokenizeInput) *errors.SkyflowError {
-	if len(records.Records) == 0 {
-		return errors.NewSkyflowError(errors.ErrorCodesEnum(DEFAULT), errors.EMPTY_RECORDS)
-
-	}
-	for i := 0; i < len(records.Records); i++ {
-		singleRecord := records.Records[0]
-		if singleRecord.Token == "" {
-			return errors.NewSkyflowError(errors.ErrorCodesEnum(DEFAULT), errors.EMPTY_TOKEN_ID)
-		}
-	}
-	return nil
 }
 
 func (detokenize *detokenizeApi) sendRequest() (map[string]interface{}, *errors.SkyflowError) {

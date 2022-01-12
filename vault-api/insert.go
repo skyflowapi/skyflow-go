@@ -20,12 +20,13 @@ type insertApi struct {
 
 func (insertApi *insertApi) post() (map[string]interface{}, *errors.SkyflowError) {
 	record, err := insertApi.constructRequestBody(insertApi.records, insertApi.options)
+	fmt.Println(record)
 	if err != nil {
 		return nil, err
 	}
 	requestBody, err1 := json.Marshal(record)
 	if err1 != nil {
-		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(DEFAULT), fmt.Sprintf(errors.UNKNOWN_ERROR, err1))
+		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(errors.UNKNOWN_ERROR, err1))
 	}
 	requestUrl := fmt.Sprintf("%s/v1/vaults/%s", insertApi.configuration.VaultURL, insertApi.configuration.VaultID)
 	request, _ := http.NewRequest(
@@ -45,7 +46,7 @@ func (insertApi *insertApi) post() (map[string]interface{}, *errors.SkyflowError
 	var result map[string]interface{}
 	err2 = json.Unmarshal(data, &result)
 	if err2 != nil {
-		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(DEFAULT), fmt.Sprintf(errors.UNKNOWN_ERROR, string(data)))
+		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(errors.UNKNOWN_ERROR, string(data)))
 	} else if result["error"] != nil {
 		var generatedError = (result["error"]).(map[string]interface{})
 		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(fmt.Sprintf("%v", generatedError["http_code"])), fmt.Sprintf(errors.SERVER_ERROR, generatedError["message"]))
@@ -57,28 +58,10 @@ func (InsertApi *insertApi) constructRequestBody(record InsertRecord, options In
 	postPayload := []interface{}{}
 	records := record.Records
 
-	if len(records) == 0 {
-		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(DEFAULT), errors.EMPTY_RECORDS)
-	}
 	for index, value := range records {
 		singleRecord := value
 		table := singleRecord.Table
-
-		if table == "" {
-			return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(DEFAULT), errors.EMPTY_TABLE_NAME)
-		}
 		fields := singleRecord.Fields
-
-		if len(fields) == 0 {
-			return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(DEFAULT), errors.EMPTY_FIELDS)
-		}
-
-		for column := range fields {
-			if column == "" {
-				return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(DEFAULT), errors.EMPTY_COLUMN_NAME)
-			}
-		}
-
 		var finalRecord = make(map[string]interface{})
 		finalRecord["tableName"] = table
 		finalRecord["fields"] = fields

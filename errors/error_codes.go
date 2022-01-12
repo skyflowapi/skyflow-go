@@ -9,5 +9,5 @@ const (
 	Server ErrorCodesEnum = "Server"
 	// InvalidInput - Input passed was not invalid format
 	InvalidInput = "InvalidInput"
-	Default      = "400"
+	SdkErrorCode = "400"
 )

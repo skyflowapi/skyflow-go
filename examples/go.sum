@@ -1,3 +1,6 @@
+github.com/cristalhq/jwt/v3 v3.1.0 h1:iLeL9VzB0SCtjCy9Kg53rMwTcrNm+GHyVcz2eUujz6s=
+github.com/cristalhq/jwt/v3 v3.1.0/go.mod h1:XOnIXst8ozq/esy5N1XOlSyQqBd+84fxJ99FK+1jgL8=
+github.com/cristalhq/jwt/v4 v4.0.0-beta/go.mod h1:HnYraSNKDRag1DZP92rYHyrjyQHnVEHPNqesmzs+miQ=
 github.com/golang-jwt/jwt v3.2.2+incompatible h1:IfV12K8xAKAnZqdXVzCZ+TOjboZ2keLg81eXfW3O+oY=
 github.com/golang-jwt/jwt v3.2.2+incompatible/go.mod h1:8pz2t5EyA70fFQQSrl6XZXzqecmYZeUEB8OUGHkxJ+I=
 github.com/skyflowapi/skyflow-go v1.0.0 h1:Z+j9DW4EakvX3Qh22zQBih8CEtt/hVpeH5njgwpvWCM=

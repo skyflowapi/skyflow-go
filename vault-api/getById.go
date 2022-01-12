@@ -19,37 +19,11 @@ type getByIdApi struct {
 }
 
 func (g *getByIdApi) get() (map[string]interface{}, *errors.SkyflowError) {
-	err := g.validateRecords(g.records)
-	if err != nil {
-		return nil, err
-	}
 	res, err := g.doRequest()
 	if err != nil {
 		return nil, err
 	}
 	return res, nil
-}
-
-func (g *getByIdApi) validateRecords(records GetByIdInput) *errors.SkyflowError {
-	if len(records.Records) == 0 {
-		return errors.NewSkyflowError(errors.ErrorCodesEnum(DEFAULT), errors.EMPTY_RECORDS)
-
-	}
-	for i := 0; i < len(records.Records); i++ {
-		singleRecord := records.Records[0]
-		if singleRecord.Table == "" {
-			return errors.NewSkyflowError(errors.ErrorCodesEnum(DEFAULT), errors.EMPTY_TABLE_NAME)
-		} else if len(singleRecord.Ids) == 0 {
-			return errors.NewSkyflowError(errors.ErrorCodesEnum(DEFAULT), errors.EMPTY_RECORD_IDS)
-		}
-		for i := 0; i < len(singleRecord.Ids); i++ {
-			if singleRecord.Ids[i] == "" {
-				return errors.NewSkyflowError(errors.ErrorCodesEnum(DEFAULT), errors.EMPTY_TOKEN_ID)
-			}
-		}
-
-	}
-	return nil
 }
 
 func (g *getByIdApi) doRequest() (map[string]interface{}, *errors.SkyflowError) {
