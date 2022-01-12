@@ -37,13 +37,14 @@ func (g *getByIdApi) validateRecords(records GetByIdInput) *errors.SkyflowError 
 	}
 	for i := 0; i < len(records.Records); i++ {
 		singleRecord := records.Records[0]
+		fmt.Println("s", singleRecord)
 		if singleRecord.Table == "" {
 			return errors.NewSkyflowError(errors.ErrorCodesEnum(DEFAULT), errors.EMPTY_TABLE_NAME)
 		} else if len(singleRecord.Ids) == 0 {
 			return errors.NewSkyflowError(errors.ErrorCodesEnum(DEFAULT), errors.EMPTY_RECORD_IDS)
 		}
 		for i := 0; i < len(singleRecord.Ids); i++ {
-			if singleRecord.Ids[0] == "" {
+			if singleRecord.Ids[i] == "" {
 				return errors.NewSkyflowError(errors.ErrorCodesEnum(DEFAULT), errors.EMPTY_TOKEN_ID)
 			}
 		}
@@ -90,7 +91,7 @@ func (g *getByIdApi) doRequest() (map[string]interface{}, *errors.SkyflowError) 
 			err = json.Unmarshal(data, &result)
 			if err != nil {
 				var error = make(map[string]interface{})
-				error["error"] = fmt.Sprintf(errors.UNKNOWN_ERROR, err)
+				error["error"] = fmt.Sprintf(errors.UNKNOWN_ERROR, string(data))
 				error["ids"] = singleRecord.Ids
 				finalError = append(finalError, error)
 			} else {

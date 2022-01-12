@@ -45,7 +45,10 @@ func (insertApi *insertApi) post() (map[string]interface{}, *errors.SkyflowError
 	var result map[string]interface{}
 	err2 = json.Unmarshal(data, &result)
 	if err2 != nil {
-		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(DEFAULT), fmt.Sprintf(errors.UNKNOWN_ERROR, err2))
+		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(DEFAULT), fmt.Sprintf(errors.UNKNOWN_ERROR, string(data)))
+	} else if result["error"] != nil {
+		var generatedError = (result["error"]).(map[string]interface{})
+		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(fmt.Sprintf("%v", generatedError["http_code"])), fmt.Sprintf(errors.SERVER_ERROR, generatedError["message"]))
 	}
 	return insertApi.buildResponse((result["responses"]).([]interface{})), nil
 }

@@ -30,7 +30,6 @@ func (detokenize *detokenizeApi) get() (map[string]interface{}, *errors.SkyflowE
 }
 
 func (detokenize *detokenizeApi) validateRecords(records DetokenizeInput) *errors.SkyflowError {
-	fmt.Println(records)
 	if len(records.Records) == 0 {
 		return errors.NewSkyflowError(errors.ErrorCodesEnum(DEFAULT), errors.EMPTY_RECORDS)
 
@@ -53,9 +52,13 @@ func (detokenize *detokenizeApi) sendRequest() (map[string]interface{}, *errors.
 		wg.Add(1)
 		singleRecord := detokenize.records.Records[i]
 		requestUrl := fmt.Sprintf("%s/v1/vaults/%s/detokenize", detokenize.configuration.VaultURL, detokenize.configuration.VaultID)
-		var detokenizeParameter = []RevealRecord{singleRecord}
+		var detokenizeParameter = make(map[string]interface{})
+		detokenizeParameter["token"] = singleRecord.Token
 		var body = make(map[string]interface{})
-		body["detokenizationParameters"] = detokenizeParameter
+		var params []map[string]interface{}
+		params = append(params, detokenizeParameter)
+		body["detokenizationParameters"] = params
+		fmt.Println(body)
 		requestBody, err := json.Marshal(body)
 		if err == nil {
 			request, _ := http.NewRequest(
@@ -67,6 +70,7 @@ func (detokenize *detokenizeApi) sendRequest() (map[string]interface{}, *errors.
 			request.Header.Add("Authorization", bearerToken)
 			res, err := http.DefaultClient.Do(request)
 			if err != nil {
+				fmt.Println("server error")
 				var error = make(map[string]interface{})
 				error["error"] = fmt.Sprintf(errors.SERVER_ERROR, err)
 				error["token"] = singleRecord.Token
@@ -79,7 +83,7 @@ func (detokenize *detokenizeApi) sendRequest() (map[string]interface{}, *errors.
 			err = json.Unmarshal(data, &result)
 			if err != nil {
 				var error = make(map[string]interface{})
-				error["error"] = fmt.Sprintf(errors.UNKNOWN_ERROR, err)
+				error["error"] = fmt.Sprintf(errors.UNKNOWN_ERROR, string(data))
 				error["token"] = singleRecord.Token
 				finalError = append(finalError, error)
 			} else {
