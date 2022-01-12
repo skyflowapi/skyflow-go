@@ -25,7 +25,6 @@ func (client *Client) Insert(records map[string]interface{}, options InsertOptio
 	if err := json.Unmarshal(jsonRecord, &insertRecord); err != nil {
 		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.Default), errors.INVALID_RECORDS)
 	}
-	//tokenUtils := TokenUtils{token}
 	token := tokenUtils.getBearerToken(client.configuration.TokenProvider)
 	insertApi := insertApi{client.configuration, insertRecord, options, token}
 	return insertApi.post()
@@ -58,9 +57,8 @@ func (client *Client) GetById(records map[string]interface{}) (responseBody, *er
 	if err := json.Unmarshal(jsonRecord, &getByIdRecord); err != nil {
 		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(DEFAULT), errors.INVALID_RECORDS)
 	}
-	//tokenUtils := TokenUtils{token}
-	//token = tokenUtils.getBearerToken(client.configuration.TokenProvider)
-	getByIdApi := getByIdApi{client.configuration, getByIdRecord, client.configuration.TokenProvider()}
+	token := tokenUtils.getBearerToken(client.configuration.TokenProvider)
+	getByIdApi := getByIdApi{client.configuration, getByIdRecord, token}
 	return getByIdApi.get()
 }
 

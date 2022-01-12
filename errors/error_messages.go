@@ -32,7 +32,7 @@ const (
 
 	INVALID_VAULT_ID                       string = "vault id invalid cannot be found"
 	INVALID_VAULT_URL                      string = "vault url %s is invalid or not secure"
-	EMPTY_VAULT_ID                         string = "vaultid is empty."
+	EMPTY_VAULT_ID                         string = "vault id is empty."
 	EMPTY_VAULT_URL                        string = "vault url is empty."
 	INVALID_BEARER_TOKEN                   string = "bearer token is invalid or expired"
 	INVALID_TABLE_NAME                     string = "Key 'table' doesn't have a value of type String"

@@ -31,16 +31,6 @@ func (logLevel LogLevel) String() string {
 	return [...]string{"WARN", "INFO", "DEBUG", "ERROR", "NONE"}[logLevel]
 }
 
-type MessageType int
-
-const (
-	LOG MessageType = iota
-)
-
-func (messageType MessageType) String() string {
-	return [...]string{"LOG", "WARN", "ERROR"}[messageType]
-}
-
 type RedactionType string
 
 const (

@@ -42,3 +42,7 @@ func (se *SkyflowError) Error() string {
 func (se *SkyflowError) GetMessage() string {
 	return fmt.Sprintf("Message: %s", se.message)
 }
+
+func (se *SkyflowError) GetCode() string {
+	return fmt.Sprintf("Code: %s", se.code)
+}

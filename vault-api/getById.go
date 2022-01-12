@@ -37,7 +37,6 @@ func (g *getByIdApi) validateRecords(records GetByIdInput) *errors.SkyflowError 
 	}
 	for i := 0; i < len(records.Records); i++ {
 		singleRecord := records.Records[0]
-		fmt.Println("s", singleRecord)
 		if singleRecord.Table == "" {
 			return errors.NewSkyflowError(errors.ErrorCodesEnum(DEFAULT), errors.EMPTY_TABLE_NAME)
 		} else if len(singleRecord.Ids) == 0 {
