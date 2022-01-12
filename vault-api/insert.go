@@ -20,7 +20,6 @@ type insertApi struct {
 
 func (insertApi *insertApi) post() (map[string]interface{}, *errors.SkyflowError) {
 	record, err := insertApi.constructRequestBody(insertApi.records, insertApi.options)
-	fmt.Println(record)
 	if err != nil {
 		return nil, err
 	}

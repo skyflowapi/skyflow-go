@@ -4,13 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	vaultapi "github.com/skyflowapi/skyflow-go/vault-api"
+	Skyflow "github.com/skyflowapi/skyflow-go/vault-api"
 )
 
-func getToken() string {
-	return "token"
-}
-func main() {
+func main2() {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -18,11 +15,18 @@ func main() {
 		}
 	}()
 
-	configuration := vaultapi.Configuration{"b359c43f1b84", "https://sb1.area51.vault.skyflowapis.tech", getToken, vaultapi.Options{vaultapi.WARN}}
-	var record = `{"records":[{"token":"342d993c-e83c-4f3c-a98c-de49309af382"},{"token":"e6b6d252-9f99-4c21-b08a-5a62533725f7"},{"token":"xxxx"}]}`
-	var client = vaultapi.Init(configuration)
-	var records map[string]interface{}
-	json.Unmarshal([]byte(record), &records)
+	configuration := Skyflow.Configuration{VaultID: "<vauld_id>", VaultURL: "<vault_url>", TokenProvider: GetToken, Options: Skyflow.Options{LogLevel: Skyflow.WARN}}
+	var client = Skyflow.Init(configuration)
+	var records = make(map[string]interface{})
+	var record1 = make(map[string]interface{})
+	record1["token"] = "<token>"
+	var record2 = make(map[string]interface{})
+	record2["token"] = "<token>"
+
+	var recordsArray []interface{}
+	recordsArray = append(recordsArray, record1)
+	recordsArray = append(recordsArray, record2)
+	records["records"] = recordsArray
 	res, err := client.Detokenize(records)
 	if err == nil {
 		jsonRes, err := json.Marshal(res)
@@ -30,6 +34,6 @@ func main() {
 			fmt.Println("result: ", string(jsonRes))
 		}
 	} else {
-		panic(err.Error())
+		panic(err.GetMessage())
 	}
 }

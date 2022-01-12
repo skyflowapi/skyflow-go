@@ -41,7 +41,6 @@ func (detokenize *detokenizeApi) sendRequest() (map[string]interface{}, *errors.
 		var params []map[string]interface{}
 		params = append(params, detokenizeParameter)
 		body["detokenizationParameters"] = params
-		fmt.Println(body)
 		requestBody, err := json.Marshal(body)
 		if err == nil {
 			request, _ := http.NewRequest(

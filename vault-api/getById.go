@@ -78,8 +78,8 @@ func (g *getByIdApi) doRequest() (map[string]interface{}, *errors.SkyflowError) 
 
 				} else {
 					records := (result["records"]).([]interface{})
-					new := make(map[string]interface{})
 					for k := 0; k < len(records); k++ {
+						new := make(map[string]interface{})
 						single := (records[k]).(map[string]interface{})
 						fields := (single["fields"]).(map[string]interface{})
 						fields["id"] = fields["skyflow_id"]
