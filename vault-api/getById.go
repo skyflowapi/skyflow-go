@@ -32,20 +32,19 @@ func (g *getByIdApi) get() (map[string]interface{}, *errors.SkyflowError) {
 
 func (g *getByIdApi) validateRecords(records GetByIdInput) *errors.SkyflowError {
 	if len(records.Records) == 0 {
-		return nil
+		return errors.NewSkyflowError(errors.ErrorCodesEnum(DEFAULT), errors.EMPTY_RECORDS)
+
 	}
 	for i := 0; i < len(records.Records); i++ {
 		singleRecord := records.Records[0]
 		if singleRecord.Table == "" {
-			return nil
+			return errors.NewSkyflowError(errors.ErrorCodesEnum(DEFAULT), errors.EMPTY_TABLE_NAME)
 		} else if len(singleRecord.Ids) == 0 {
-
-		} else if singleRecord.Redaction != REDACTED || singleRecord.Redaction != MASKED || singleRecord.Redaction != PLAIN_TEXT {
-
+			return errors.NewSkyflowError(errors.ErrorCodesEnum(DEFAULT), errors.EMPTY_RECORD_IDS)
 		}
 		for i := 0; i < len(singleRecord.Ids); i++ {
 			if singleRecord.Ids[0] == "" {
-
+				return errors.NewSkyflowError(errors.ErrorCodesEnum(DEFAULT), errors.EMPTY_TOKEN_ID)
 			}
 		}
 
@@ -79,22 +78,26 @@ func (g *getByIdApi) doRequest() (map[string]interface{}, *errors.SkyflowError) 
 			request.Header.Add("Authorization", bearerToken)
 			res, err := http.DefaultClient.Do(request)
 			if err != nil {
-				fmt.Println("error from server: ", err)
+				var error = make(map[string]interface{})
+				error["error"] = fmt.Sprintf(errors.SERVER_ERROR, err)
+				error["ids"] = singleRecord.Ids
+				finalError = append(finalError, error)
+				continue
 			}
 			data, _ := ioutil.ReadAll(res.Body)
 			res.Body.Close()
 			var result map[string]interface{}
 			err = json.Unmarshal(data, &result)
 			if err != nil {
-				fmt.Println(err)
-				//return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(DEFAULT), errors.INVALID_FIELD)
+				var error = make(map[string]interface{})
+				error["error"] = fmt.Sprintf(errors.UNKNOWN_ERROR, err)
+				error["ids"] = singleRecord.Ids
+				finalError = append(finalError, error)
 			} else {
 				errorResult := result["error"]
 				if errorResult != nil {
 					var generatedError = (errorResult).(map[string]interface{})
-					fmt.Println(generatedError)
 					var error = make(map[string]interface{})
-					//var skyflowError = errors.NewSkyflowError("404", (generatedError["message"]).(string))
 					error["error"] = generatedError["message"]
 					error["ids"] = singleRecord.Ids
 					finalError = append(finalError, error)

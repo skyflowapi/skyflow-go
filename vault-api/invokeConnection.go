@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/skyflowapi/skyflow-go/errors"
@@ -29,7 +30,18 @@ func (invokeConnectionApi *invokeConnectionApi) post() (map[string]interface{}, 
 	)
 	query := request.URL.Query()
 	for index, value := range invokeConnectionApi.Configuration.queryParams {
-		query.Set(index, value.(string))
+		switch v := value.(type) {
+		case int:
+			query.Set(index, strconv.Itoa(v))
+		case float64:
+			query.Set(index, fmt.Sprintf("%f", v))
+		case string:
+			query.Set(index, v)
+		case bool:
+			query.Set(index, strconv.FormatBool(v))
+		default:
+			fmt.Printf("Invalid type, we dont allow these types")
+		}
 	}
 	request.URL.RawQuery = query.Encode()
 	request.Header.Add("X-Skyflow-Authorization", invokeConnectionApi.token)

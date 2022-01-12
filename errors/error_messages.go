@@ -81,4 +81,5 @@ const (
 	MISSING_COLUMN                         string = "column name is missing"
 	EMPTY_FIELDS                           string = "fields is empty"
 	SERVER_ERROR                           string = "Server error %s"
+	INVALID_RECORDS                        string = "Records are not valid"
 )

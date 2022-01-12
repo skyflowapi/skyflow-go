@@ -32,12 +32,13 @@ func (detokenize *detokenizeApi) get() (map[string]interface{}, *errors.SkyflowE
 func (detokenize *detokenizeApi) validateRecords(records DetokenizeInput) *errors.SkyflowError {
 	fmt.Println(records)
 	if len(records.Records) == 0 {
-		return nil
+		return errors.NewSkyflowError(errors.ErrorCodesEnum(DEFAULT), errors.EMPTY_RECORDS)
+
 	}
 	for i := 0; i < len(records.Records); i++ {
 		singleRecord := records.Records[0]
 		if singleRecord.Token == "" {
-			return nil
+			return errors.NewSkyflowError(errors.ErrorCodesEnum(DEFAULT), errors.EMPTY_TOKEN_ID)
 		}
 	}
 	return nil
@@ -66,23 +67,27 @@ func (detokenize *detokenizeApi) sendRequest() (map[string]interface{}, *errors.
 			request.Header.Add("Authorization", bearerToken)
 			res, err := http.DefaultClient.Do(request)
 			if err != nil {
-				fmt.Println("error from server: ", err)
+				var error = make(map[string]interface{})
+				error["error"] = fmt.Sprintf(errors.SERVER_ERROR, err)
+				error["token"] = singleRecord.Token
+				finalError = append(finalError, error)
+				continue
 			}
 			data, _ := ioutil.ReadAll(res.Body)
 			res.Body.Close()
 			var result map[string]interface{}
 			err = json.Unmarshal(data, &result)
 			if err != nil {
-				fmt.Println(err)
-				//return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(DEFAULT), errors.INVALID_FIELD)
+				var error = make(map[string]interface{})
+				error["error"] = fmt.Sprintf(errors.UNKNOWN_ERROR, err)
+				error["token"] = singleRecord.Token
+				finalError = append(finalError, error)
 			} else {
 				errorResult := result["error"]
 				if errorResult != nil {
 					var generatedError = (errorResult).(map[string]interface{})
-					fmt.Println(generatedError)
 					var error = make(map[string]interface{})
-					//var skyflowError = errors.NewSkyflowError("404", (generatedError["message"]).(string))
-					error["error"] = "skyflowError"
+					error["error"] = generatedError["message"]
 					error["token"] = singleRecord.Token
 					finalError = append(finalError, error)
 

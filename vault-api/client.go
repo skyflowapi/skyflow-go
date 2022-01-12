@@ -22,7 +22,7 @@ func (client *Client) Insert(records map[string]interface{}, options InsertOptio
 	jsonRecord, _ := json.Marshal(records)
 	var insertRecord InsertRecord
 	if err := json.Unmarshal(jsonRecord, &insertRecord); err != nil {
-		panic(err) //to do
+		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(DEFAULT), errors.INVALID_RECORDS)
 	}
 	tokenUtils := TokenUtils{token}
 	token = tokenUtils.getBearerToken(client.configuration.TokenProvider)
@@ -40,11 +40,11 @@ func (client *Client) Detokenize(records map[string]interface{}) (responseBody, 
 	jsonRecord, _ := json.Marshal(records)
 	var detokenizeRecord DetokenizeInput
 	if err := json.Unmarshal(jsonRecord, &detokenizeRecord); err != nil {
-		panic(err) //to do
+		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(DEFAULT), errors.INVALID_RECORDS)
 	}
-	// tokenUtils := TokenUtils{token}
-	// token = tokenUtils.getBearerToken(client.configuration.TokenProvider)
-	detokenizeApi := detokenizeApi{client.configuration, detokenizeRecord, client.configuration.TokenProvider()}
+	tokenUtils := TokenUtils{token}
+	token = tokenUtils.getBearerToken(client.configuration.TokenProvider)
+	detokenizeApi := detokenizeApi{client.configuration, detokenizeRecord, token}
 	return detokenizeApi.get()
 }
 
@@ -57,7 +57,7 @@ func (client *Client) GetById(records map[string]interface{}) (responseBody, *er
 	jsonRecord, _ := json.Marshal(records)
 	var getByIdRecord GetByIdInput
 	if err := json.Unmarshal(jsonRecord, &getByIdRecord); err != nil {
-		panic(err) //to do
+		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(DEFAULT), errors.INVALID_RECORDS)
 	}
 	tokenUtils := TokenUtils{token}
 	token = tokenUtils.getBearerToken(client.configuration.TokenProvider)
@@ -67,8 +67,10 @@ func (client *Client) GetById(records map[string]interface{}) (responseBody, *er
 
 func (client *Client) InvokeConnection(connectionConfig ConnectionConfig) (responseBody, *errors.SkyflowError) {
 
-	if !isValidUrl(connectionConfig.connectionURL) {
-		return nil, nil
+	if connectionConfig.connectionURL == "" {
+		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(DEFAULT), errors.EMPTY_CONNECTION_URL)
+	} else if !isValidUrl(connectionConfig.connectionURL) {
+		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(DEFAULT), errors.INVALID_CONNECTION_URL)
 	}
 	tokenUtils := TokenUtils{token}
 	token = tokenUtils.getBearerToken(client.configuration.TokenProvider)
