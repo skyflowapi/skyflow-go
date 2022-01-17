@@ -97,7 +97,11 @@ func (g *getByIdApi) doRequest() (map[string]interface{}, *errors.SkyflowError) 
 
 	wg.Wait()
 	var finalRecord = make(map[string]interface{})
-	finalRecord["success"] = finalSuccess
-	finalRecord["errors"] = finalError
+	if finalSuccess != nil {
+		finalRecord["success"] = finalSuccess
+	}
+	if finalError != nil {
+		finalRecord["errors"] = finalError
+	}
 	return finalRecord, nil
 }

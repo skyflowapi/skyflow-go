@@ -91,7 +91,11 @@ func (detokenize *detokenizeApi) sendRequest() (map[string]interface{}, *errors.
 
 	wg.Wait()
 	var finalRecord = make(map[string]interface{})
-	finalRecord["success"] = finalSuccess
-	finalRecord["errors"] = finalError
+	if finalSuccess != nil {
+		finalRecord["success"] = finalSuccess
+	}
+	if finalError != nil {
+		finalRecord["errors"] = finalError
+	}
 	return finalRecord, nil
 }
