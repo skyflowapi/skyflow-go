@@ -21,7 +21,7 @@ func (InvokeConnectionApi *InvokeConnectionApi) doValidations() *errors.SkyflowE
 	if InvokeConnectionApi.ConnectionConfig.ConnectionURL == "" {
 		return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), errors.EMPTY_CONNECTION_URL)
 	} else if !isValidUrl(InvokeConnectionApi.ConnectionConfig.ConnectionURL) {
-		return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), errors.INVALID_CONNECTION_URL)
+		return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(errors.INVALID_CONNECTION_URL, InvokeConnectionApi.ConnectionConfig.ConnectionURL))
 	}
 	return nil
 }

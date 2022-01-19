@@ -72,7 +72,7 @@ func (g *GetByIdApi) doValidations() *errors.SkyflowError {
 		// }
 		idArray := (ids).([]interface{})
 		if len(idArray) == 0 {
-			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), errors.EMPTY_FIELDS)
+			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), errors.EMPTY_RECORD_IDS)
 		}
 		for index := range idArray {
 			if idArray[index] == "" {

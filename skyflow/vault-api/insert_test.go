@@ -1,0 +1,177 @@
+package vaultapi
+
+import (
+	"fmt"
+	"testing"
+
+	"github.com/skyflowapi/skyflow-go/errors"
+	"github.com/skyflowapi/skyflow-go/skyflow/common"
+)
+
+func GetToken() (string, error) {
+	return "", nil
+}
+func TestEmptyVaultId(t *testing.T) {
+	configuration := common.Configuration{VaultID: "", VaultURL: "https://www.url.com", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	records := make(map[string]interface{})
+	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
+	_, err := insertApi.Post("")
+	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), errors.EMPTY_VAULT_ID)
+	check(err.GetMessage(), skyflowError.GetMessage(), t)
+
+}
+
+func TestEmptyVaultUrl(t *testing.T) {
+	configuration := common.Configuration{VaultID: "123", VaultURL: "", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	records := make(map[string]interface{})
+	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
+	_, err := insertApi.Post("")
+	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), errors.EMPTY_VAULT_URL)
+	check(err.GetMessage(), skyflowError.GetMessage(), t)
+}
+
+func TestInvalidVaultUrl(t *testing.T) {
+	configuration := common.Configuration{VaultID: "123", VaultURL: "url", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	records := make(map[string]interface{})
+	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
+	_, err := insertApi.Post("")
+	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(errors.INVALID_VAULT_URL, configuration.VaultURL))
+	check(err.GetMessage(), skyflowError.GetMessage(), t)
+}
+
+func TestInvalidVaultUrl1(t *testing.T) {
+	configuration := common.Configuration{VaultID: "123", VaultURL: "http://www.url.com", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	records := make(map[string]interface{})
+	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
+	_, err := insertApi.Post("")
+	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(errors.INVALID_VAULT_URL, configuration.VaultURL))
+	check(err.GetMessage(), skyflowError.GetMessage(), t)
+}
+func TestNoRecords(t *testing.T) {
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	records := make(map[string]interface{})
+	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
+	_, err := insertApi.Post("")
+	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), errors.RECORDS_KEY_NOT_FOUND)
+	check(err.GetMessage(), skyflowError.GetMessage(), t)
+}
+func TestEmptyRecords(t *testing.T) {
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	records := make(map[string]interface{})
+	var record []interface{}
+	records["records"] = record
+	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
+	_, err := insertApi.Post("")
+	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), errors.EMPTY_RECORDS)
+	check(err.GetMessage(), skyflowError.GetMessage(), t)
+}
+
+func TestMissingTable(t *testing.T) {
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	records := make(map[string]interface{})
+	var recordsArray []interface{}
+	var record map[string]interface{}
+	recordsArray = append(recordsArray, record)
+	records["records"] = recordsArray
+	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
+	_, err := insertApi.Post("")
+	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), errors.MISSING_TABLE)
+	check(err.GetMessage(), skyflowError.GetMessage(), t)
+}
+
+func TestEmptyTable(t *testing.T) {
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	records := make(map[string]interface{})
+	var recordsArray []interface{}
+	var record = make(map[string]interface{})
+	record["table"] = ""
+	recordsArray = append(recordsArray, record)
+	records["records"] = recordsArray
+	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
+	_, err := insertApi.Post("")
+	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), errors.EMPTY_TABLE_NAME)
+	check(err.GetMessage(), skyflowError.GetMessage(), t)
+}
+
+func TestMissingFields(t *testing.T) {
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	records := make(map[string]interface{})
+	var recordsArray []interface{}
+	var record = make(map[string]interface{})
+	record["table"] = "cards"
+	recordsArray = append(recordsArray, record)
+	records["records"] = recordsArray
+	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
+	_, err := insertApi.Post("")
+	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), errors.FIELDS_KEY_ERROR)
+	check(err.GetMessage(), skyflowError.GetMessage(), t)
+}
+
+func TestEmptyFields(t *testing.T) {
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	records := make(map[string]interface{})
+	var recordsArray []interface{}
+	var record = make(map[string]interface{})
+	record["table"] = "cards"
+	var fields map[string]interface{}
+	record["fields"] = fields
+	recordsArray = append(recordsArray, record)
+	records["records"] = recordsArray
+	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
+	_, err := insertApi.Post("")
+	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), errors.EMPTY_FIELDS)
+	check(err.GetMessage(), skyflowError.GetMessage(), t)
+}
+
+func TestEmptyFields1(t *testing.T) {
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	records := make(map[string]interface{})
+	var recordsArray []interface{}
+	var record = make(map[string]interface{})
+	record["table"] = "cards"
+	record["fields"] = ""
+	recordsArray = append(recordsArray, record)
+	records["records"] = recordsArray
+	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
+	_, err := insertApi.Post("")
+	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), errors.EMPTY_FIELDS)
+	check(err.GetMessage(), skyflowError.GetMessage(), t)
+}
+func TestEmptyColumn(t *testing.T) {
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	records := make(map[string]interface{})
+	var recordsArray []interface{}
+	var record = make(map[string]interface{})
+	var fields = make(map[string]interface{})
+	fields[""] = "1234"
+	record["table"] = "cards"
+	record["fields"] = fields
+	recordsArray = append(recordsArray, record)
+	records["records"] = recordsArray
+	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
+	_, err := insertApi.Post("")
+	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), errors.EMPTY_COLUMN_NAME)
+	check(err.GetMessage(), skyflowError.GetMessage(), t)
+}
+
+func TestValidRequest(t *testing.T) {
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.google.com", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	records := make(map[string]interface{})
+	var recordsArray []interface{}
+	var record = make(map[string]interface{})
+	var fields = make(map[string]interface{})
+	fields["cvv"] = "1234"
+	record["table"] = "cards"
+	record["fields"] = fields
+	recordsArray = append(recordsArray, record)
+	records["records"] = recordsArray
+	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: true}}
+	_, err := insertApi.Post("")
+	check(err.GetCode(), "Code: 400", t)
+}
+
+func check(got string, wanted string, t *testing.T) {
+	if got != wanted {
+		t.Errorf("got  %s, wanted %s", got, wanted)
+	}
+}
