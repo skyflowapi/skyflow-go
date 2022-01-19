@@ -9,32 +9,68 @@ import (
 	"sync"
 
 	"github.com/skyflowapi/skyflow-go/errors"
+	"github.com/skyflowapi/skyflow-go/skyflow/common"
 )
 
-type detokenizeApi struct {
-	configuration Configuration
-	records       DetokenizeInput
-	token         string
+type DetokenizeApi struct {
+	Configuration common.Configuration
+	Records       map[string]interface{}
+	Token         string
 }
 
-func (detokenize *detokenizeApi) get() (map[string]interface{}, *errors.SkyflowError) {
+func (detokenize *DetokenizeApi) Get() (map[string]interface{}, *errors.SkyflowError) {
 
-	res, err := detokenize.sendRequest()
+	err := detokenize.doValidations()
+	if err != nil {
+		return nil, err
+	}
+	jsonRecord, _ := json.Marshal(detokenize.Records)
+	var detokenizeRecord common.DetokenizeInput
+	if err := json.Unmarshal(jsonRecord, &detokenizeRecord); err != nil {
+		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), errors.INVALID_RECORDS)
+	}
+	res, err := detokenize.sendRequest(detokenizeRecord)
 	if err != nil {
 		return nil, err
 	}
 	return res, nil
 }
 
-func (detokenize *detokenizeApi) sendRequest() (map[string]interface{}, *errors.SkyflowError) {
+func (detokenizeApi *DetokenizeApi) doValidations() *errors.SkyflowError {
+	var err = isValidVaultDetails(detokenizeApi.Configuration)
+	if err != nil {
+		return err
+	}
+	var totalRecords = detokenizeApi.Records["records"]
+	if totalRecords == nil {
+		return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), errors.RECORDS_KEY_NOT_FOUND)
+	}
+	var recordsArray = (totalRecords).([]interface{})
+	if len(recordsArray) == 0 {
+		return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), errors.EMPTY_RECORDS)
+	}
+	for _, record := range recordsArray {
+		var singleRecord = (record).(map[string]interface{})
+		var token = singleRecord["token"]
+		if token == nil {
+			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), errors.MISSING_TOKEN)
+		} else if token == "" {
+			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), errors.EMPTY_TOKEN_ID)
+		}
+	}
+	return nil
+
+}
+
+func (detokenize *DetokenizeApi) sendRequest(records common.DetokenizeInput) (map[string]interface{}, *errors.SkyflowError) {
 
 	var wg = sync.WaitGroup{}
 	var finalSuccess []map[string]interface{}
 	var finalError []map[string]interface{}
-	for i := 0; i < len(detokenize.records.Records); i++ {
+	for i := 0; i < len(records.Records); i++ {
 		wg.Add(1)
-		singleRecord := detokenize.records.Records[i]
-		requestUrl := fmt.Sprintf("%s/v1/vaults/%s/detokenize", detokenize.configuration.VaultURL, detokenize.configuration.VaultID)
+		singleRecord := records.Records[i]
+		requestUrl := fmt.Sprintf("%s/v1/vaults/%s/detokenize", detokenize.Configuration.VaultURL, detokenize.Configuration.VaultID)
 		var detokenizeParameter = make(map[string]interface{})
 		detokenizeParameter["token"] = singleRecord.Token
 		var body = make(map[string]interface{})
@@ -48,7 +84,7 @@ func (detokenize *detokenizeApi) sendRequest() (map[string]interface{}, *errors.
 				requestUrl,
 				strings.NewReader(string(requestBody)),
 			)
-			bearerToken := fmt.Sprintf("Bearer %s", detokenize.token)
+			bearerToken := fmt.Sprintf("Bearer %s", detokenize.Token)
 			request.Header.Add("Authorization", bearerToken)
 			res, err := http.DefaultClient.Do(request)
 			if err != nil {

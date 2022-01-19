@@ -4,12 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	Skyflow "github.com/skyflowapi/skyflow-go/vault-api"
+	Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
+	"github.com/skyflowapi/skyflow-go/skyflow/common"
 )
 
-func GetToken() string {
-	return "<token>"
-}
 func main() {
 
 	defer func() {
@@ -17,18 +15,20 @@ func main() {
 			fmt.Println("error: ", r)
 		}
 	}()
-	configuration := Skyflow.Configuration{VaultID: "<vauld_id>", VaultURL: "<vault_url>", TokenProvider: GetToken, Options: Skyflow.Options{LogLevel: Skyflow.WARN}}
+
+	configuration := common.Configuration{VaultID: "<vault_id>", VaultURL: "<vault_url>", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
 	var client = Skyflow.Init(configuration)
 	var records = make(map[string]interface{})
 	var record1 = make(map[string]interface{})
-	record1["ids"] = []interface{}{"<skyflow_id>", "<skyflow_id>"}
-	record1["table"] = "cards"
-	record1["redaction"] = "PLAIN_TEXT"
+	record1["token"] = "<token>"
+	var record2 = make(map[string]interface{})
+	record2["token"] = "<token>"
 
 	var recordsArray []interface{}
 	recordsArray = append(recordsArray, record1)
+	recordsArray = append(recordsArray, record2)
 	records["records"] = recordsArray
-	res, err := client.GetById(records)
+	res, err := client.Detokenize(records)
 	if err == nil {
 		jsonRes, err := json.Marshal(res)
 		if err == nil {

@@ -1,7 +1,7 @@
-package vaultapi
+package common
 
-type responseBody map[string]interface{}
-type TokenProvider func() string
+type ResponseBody map[string]interface{}
+type TokenProvider func() (string, error)
 
 type RequestMethod int
 
@@ -20,15 +20,15 @@ func (requestMethod RequestMethod) String() string {
 type LogLevel int
 
 const (
-	WARN LogLevel = iota
+	ERROR LogLevel = iota
 	INFO
 	DEBUG
-	ERROR
+	WARN
 	NONE
 )
 
 func (logLevel LogLevel) String() string {
-	return [...]string{"WARN", "INFO", "DEBUG", "ERROR", "NONE"}[logLevel]
+	return [...]string{"ERROR", "INFO", "DEBUG", "WARN", "NONE"}[logLevel]
 }
 
 type RedactionType string
@@ -41,12 +41,12 @@ const (
 )
 
 type ConnectionConfig struct {
-	connectionURL string
-	methodName    RequestMethod
-	pathParams    map[string]string
-	queryParams   map[string]interface{}
-	requestBody   map[string]interface{}
-	requestHeader map[string]string
+	ConnectionURL string
+	MethodName    RequestMethod
+	PathParams    map[string]string
+	QueryParams   map[string]interface{}
+	RequestBody   map[string]interface{}
+	RequestHeader map[string]string
 }
 
 type Options struct {

@@ -1,4 +1,4 @@
-package vaultapi
+package client
 
 import (
 	"encoding/json"
@@ -6,19 +6,25 @@ import (
 	"time"
 
 	"github.com/cristalhq/jwt/v3"
+	"github.com/skyflowapi/skyflow-go/errors"
+	"github.com/skyflowapi/skyflow-go/skyflow/common"
 )
 
 type TokenUtils struct {
 	Token string
 }
 
-func (tokenUtils *TokenUtils) getBearerToken(tokenProvider TokenProvider) string {
+func (tokenUtils *TokenUtils) getBearerToken(tokenProvider common.TokenProvider) (string, *errors.SkyflowError) {
 
 	if tokenUtils.Token != "" && !isTokenExpired(tokenUtils.Token) {
-		return tokenUtils.Token
+		return tokenUtils.Token, nil
 	}
-	tokenUtils.Token = tokenProvider()
-	return tokenUtils.Token
+	token, err := tokenProvider()
+	tokenUtils.Token = token
+	if err != nil {
+		return "", errors.NewSkyflowErrorWrap(errors.ErrorCodesEnum(errors.SdkErrorCode), err, errors.INVALID_BEARER_TOKEN)
+	}
+	return tokenUtils.Token, nil
 }
 
 func isTokenExpired(tokenString string) bool {

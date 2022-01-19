@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 
-	Skyflow "github.com/skyflowapi/skyflow-go/vault-api"
+	Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
+	"github.com/skyflowapi/skyflow-go/skyflow/common"
 )
 
-func main3() {
+func main() {
 
 	defer func() {
 		if err := recover(); err != nil {
@@ -15,9 +16,9 @@ func main3() {
 		}
 	}()
 
-	configuration := Skyflow.Configuration{VaultID: "<vauld_id>", VaultURL: "<vault_url>", TokenProvider: GetToken, Options: Skyflow.Options{LogLevel: Skyflow.WARN}}
+	configuration := common.Configuration{VaultID: "<vault_id>", VaultURL: "<vault_url>", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
 	var client = Skyflow.Init(configuration)
-	var options = Skyflow.InsertOptions{Tokens: true}
+	var options = common.InsertOptions{Tokens: false}
 	var records = make(map[string]interface{})
 	var record = make(map[string]interface{})
 	record["table"] = "cards"
