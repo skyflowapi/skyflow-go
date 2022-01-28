@@ -19,9 +19,13 @@ jobs:
       fail-fast: false
       matrix:
         language: [ 'go' ]
+    
+    env:
+      GOPATH: ${{ github.workspace }}
+
     defaults:
       run:
-        working-directory: ./
+        working-directory: ${{ env.GOPATH }}/src/github.com/${{ github.repository }}
 
     steps:
     - name: Checkout repository
@@ -29,7 +33,12 @@ jobs:
       with:
           # Disabling shallow clone is recommended for improving relevancy of reporting
           fetch-depth: 0
-          path: ./
+          path: ${{ env.GOPATH }}/src/github.com/${{ github.repository }}
+
+    - name: Configure git
+      run: |
+        pwd
+        make configure-git
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
