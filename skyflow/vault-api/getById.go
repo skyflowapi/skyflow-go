@@ -86,70 +86,73 @@ func (g *GetByIdApi) doValidations() *errors.SkyflowError {
 func (g *GetByIdApi) doRequest(records common.GetByIdInput) (map[string]interface{}, *errors.SkyflowError) {
 
 	var wg = sync.WaitGroup{}
+	wg.Add(len(records.Records))
 	var finalSuccess []interface{}
 	var finalError []map[string]interface{}
 	for i := 0; i < len(records.Records); i++ {
-		wg.Add(1)
-		singleRecord := records.Records[i]
-		requestUrl := fmt.Sprintf("%s/v1/vaults/%s/%s", g.Configuration.VaultURL, g.Configuration.VaultID, singleRecord.Table)
-		url1, err := url.Parse(requestUrl)
-		v := url.Values{}
-		for j := 0; j < len(singleRecord.Ids); j++ {
-			v.Add("skyflow_ids", singleRecord.Ids[j])
-		}
-		v.Add("redaction", string(singleRecord.Redaction))
-		url1.RawQuery = v.Encode()
-		if err == nil {
-			request, _ := http.NewRequest(
-				"GET",
-				url1.String(),
-				strings.NewReader(""),
-			)
-			bearerToken := fmt.Sprintf("Bearer %s", g.Token)
-			request.Header.Add("Authorization", bearerToken)
-			res, err := http.DefaultClient.Do(request)
-			if err != nil {
-				var error = make(map[string]interface{})
-				error["error"] = fmt.Sprintf(errors.SERVER_ERROR, err)
-				error["ids"] = singleRecord.Ids
-				finalError = append(finalError, error)
-				continue
+		go func(i int) {
+			defer wg.Done()
+			singleRecord := records.Records[i]
+			requestUrl := fmt.Sprintf("%s/v1/vaults/%s/%s", g.Configuration.VaultURL, g.Configuration.VaultID, singleRecord.Table)
+			url1, err := url.Parse(requestUrl)
+			v := url.Values{}
+			for j := 0; j < len(singleRecord.Ids); j++ {
+				v.Add("skyflow_ids", singleRecord.Ids[j])
 			}
-			data, _ := ioutil.ReadAll(res.Body)
-			res.Body.Close()
-			var result map[string]interface{}
-			err = json.Unmarshal(data, &result)
-			if err != nil {
-				var error = make(map[string]interface{})
-				error["error"] = fmt.Sprintf(errors.UNKNOWN_ERROR, string(data))
-				error["ids"] = singleRecord.Ids
-				finalError = append(finalError, error)
-			} else {
-				errorResult := result["error"]
-				if errorResult != nil {
-					var generatedError = (errorResult).(map[string]interface{})
+			v.Add("redaction", string(singleRecord.Redaction))
+			url1.RawQuery = v.Encode()
+			if err == nil {
+				request, _ := http.NewRequest(
+					"GET",
+					url1.String(),
+					strings.NewReader(""),
+				)
+				bearerToken := fmt.Sprintf("Bearer %s", g.Token)
+				request.Header.Add("Authorization", bearerToken)
+				res, err := http.DefaultClient.Do(request)
+				if err != nil {
 					var error = make(map[string]interface{})
-					error["error"] = generatedError["message"]
+					error["error"] = fmt.Sprintf(errors.SERVER_ERROR, err)
 					error["ids"] = singleRecord.Ids
 					finalError = append(finalError, error)
-
-				} else {
-					records := (result["records"]).([]interface{})
-					for k := 0; k < len(records); k++ {
-						new := make(map[string]interface{})
-						single := (records[k]).(map[string]interface{})
-						fields := (single["fields"]).(map[string]interface{})
-						fields["id"] = fields["skyflow_id"]
-						delete(fields, "skyflow_id")
-						new["fields"] = fields
-						new["table"] = singleRecord.Table
-						finalSuccess = append(finalSuccess, new)
-					}
+					//continue
+					return
 				}
+				data, _ := ioutil.ReadAll(res.Body)
+				res.Body.Close()
+				var result map[string]interface{}
+				err = json.Unmarshal(data, &result)
+				if err != nil {
+					var error = make(map[string]interface{})
+					error["error"] = fmt.Sprintf(errors.UNKNOWN_ERROR, string(data))
+					error["ids"] = singleRecord.Ids
+					finalError = append(finalError, error)
+				} else {
+					errorResult := result["error"]
+					if errorResult != nil {
+						var generatedError = (errorResult).(map[string]interface{})
+						var error = make(map[string]interface{})
+						error["error"] = generatedError["message"]
+						error["ids"] = singleRecord.Ids
+						finalError = append(finalError, error)
 
+					} else {
+						records := (result["records"]).([]interface{})
+						for k := 0; k < len(records); k++ {
+							new := make(map[string]interface{})
+							single := (records[k]).(map[string]interface{})
+							fields := (single["fields"]).(map[string]interface{})
+							fields["id"] = fields["skyflow_id"]
+							delete(fields, "skyflow_id")
+							new["fields"] = fields
+							new["table"] = singleRecord.Table
+							finalSuccess = append(finalSuccess, new)
+						}
+					}
+
+				}
 			}
-		}
-		wg.Done()
+		}(i)
 	}
 
 	wg.Wait()
