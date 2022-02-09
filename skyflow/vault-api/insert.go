@@ -18,6 +18,18 @@ type InsertApi struct {
 	Options       common.InsertOptions
 }
 
+type HTTPClient interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
+var (
+	Client HTTPClient
+)
+
+func init() {
+	Client = &http.Client{}
+}
+
 func (insertApi *InsertApi) doValidations() *errors.SkyflowError {
 
 	var err = isValidVaultDetails(insertApi.Configuration)
@@ -85,7 +97,8 @@ func (insertApi *InsertApi) Post(token string) (map[string]interface{}, *errors.
 	)
 	bearerToken := fmt.Sprintf("Bearer %s", token)
 	request.Header.Add("Authorization", bearerToken)
-	res, err2 := http.DefaultClient.Do(request)
+
+	res, err2 := Client.Do(request)
 	if err2 != nil {
 		code := strconv.Itoa(res.StatusCode)
 		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(code), fmt.Sprintf(errors.SERVER_ERROR, err2))

@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
-	"sync"
 
 	"github.com/skyflowapi/skyflow-go/errors"
 	"github.com/skyflowapi/skyflow-go/skyflow/common"
@@ -64,13 +63,13 @@ func (detokenizeApi *DetokenizeApi) doValidations() *errors.SkyflowError {
 
 func (detokenize *DetokenizeApi) sendRequest(records common.DetokenizeInput) (map[string]interface{}, *errors.SkyflowError) {
 
-	var wg = sync.WaitGroup{}
-	wg.Add(len(records.Records))
 	var finalSuccess []map[string]interface{}
 	var finalError []map[string]interface{}
+
+	responseChannel := make(chan map[string]interface{})
+
 	for i := 0; i < len(records.Records); i++ {
-		go func(i int) {
-			defer wg.Done()
+		go func(i int, responseChannel chan map[string]interface{}) {
 			singleRecord := records.Records[i]
 			requestUrl := fmt.Sprintf("%s/v1/vaults/%s/detokenize", detokenize.Configuration.VaultURL, detokenize.Configuration.VaultID)
 			var detokenizeParameter = make(map[string]interface{})
@@ -88,13 +87,15 @@ func (detokenize *DetokenizeApi) sendRequest(records common.DetokenizeInput) (ma
 				)
 				bearerToken := fmt.Sprintf("Bearer %s", detokenize.Token)
 				request.Header.Add("Authorization", bearerToken)
-				res, err := http.DefaultClient.Do(request)
+
+				res, err := Client.Do(request)
+
 				if err != nil {
 					fmt.Println("server error")
 					var error = make(map[string]interface{})
 					error["error"] = fmt.Sprintf(errors.SERVER_ERROR, err)
 					error["token"] = singleRecord.Token
-					finalError = append(finalError, error)
+					responseChannel <- error
 					//continue
 					return
 				}
@@ -106,7 +107,7 @@ func (detokenize *DetokenizeApi) sendRequest(records common.DetokenizeInput) (ma
 					var error = make(map[string]interface{})
 					error["error"] = fmt.Sprintf(errors.UNKNOWN_ERROR, string(data))
 					error["token"] = singleRecord.Token
-					finalError = append(finalError, error)
+					responseChannel <- error
 				} else {
 					errorResult := result["error"]
 					if errorResult != nil {
@@ -114,24 +115,31 @@ func (detokenize *DetokenizeApi) sendRequest(records common.DetokenizeInput) (ma
 						var error = make(map[string]interface{})
 						error["error"] = generatedError["message"]
 						error["token"] = singleRecord.Token
-						finalError = append(finalError, error)
-
+						responseChannel <- error
 					} else {
 						var generatedResult = (result["records"]).([]interface{})
 						var record = (generatedResult[0]).(map[string]interface{})
 						delete(record, "valueType")
-						finalSuccess = append(finalSuccess, record)
+						responseChannel <- record
 					}
 
 				}
 			}
-		}(i)
+		}(i, responseChannel)
 	}
 
-	wg.Wait()
+	for i := 0; i < len(records.Records); i++ {
+		response := <-responseChannel
+		if _, found := response["error"]; found {
+			finalError = append(finalError, response)
+		} else {
+			finalSuccess = append(finalSuccess, response)
+		}
+	}
+
 	var finalRecord = make(map[string]interface{})
 	if finalSuccess != nil {
-		finalRecord["success"] = finalSuccess
+		finalRecord["records"] = finalSuccess
 	}
 	if finalError != nil {
 		finalRecord["errors"] = finalError

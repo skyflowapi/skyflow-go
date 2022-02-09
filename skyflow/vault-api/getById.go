@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"sync"
 
 	"github.com/skyflowapi/skyflow-go/errors"
 	"github.com/skyflowapi/skyflow-go/skyflow/common"
@@ -85,13 +84,13 @@ func (g *GetByIdApi) doValidations() *errors.SkyflowError {
 
 func (g *GetByIdApi) doRequest(records common.GetByIdInput) (map[string]interface{}, *errors.SkyflowError) {
 
-	var wg = sync.WaitGroup{}
-	wg.Add(len(records.Records))
 	var finalSuccess []interface{}
 	var finalError []map[string]interface{}
+
+	responseChannel := make(chan map[string]interface{})
+
 	for i := 0; i < len(records.Records); i++ {
-		go func(i int) {
-			defer wg.Done()
+		go func(i int, responseChannel chan map[string]interface{}) {
 			singleRecord := records.Records[i]
 			requestUrl := fmt.Sprintf("%s/v1/vaults/%s/%s", g.Configuration.VaultURL, g.Configuration.VaultID, singleRecord.Table)
 			url1, err := url.Parse(requestUrl)
@@ -109,12 +108,14 @@ func (g *GetByIdApi) doRequest(records common.GetByIdInput) (map[string]interfac
 				)
 				bearerToken := fmt.Sprintf("Bearer %s", g.Token)
 				request.Header.Add("Authorization", bearerToken)
-				res, err := http.DefaultClient.Do(request)
+
+				res, err := Client.Do(request)
+
 				if err != nil {
 					var error = make(map[string]interface{})
 					error["error"] = fmt.Sprintf(errors.SERVER_ERROR, err)
 					error["ids"] = singleRecord.Ids
-					finalError = append(finalError, error)
+					responseChannel <- error
 					//continue
 					return
 				}
@@ -126,7 +127,7 @@ func (g *GetByIdApi) doRequest(records common.GetByIdInput) (map[string]interfac
 					var error = make(map[string]interface{})
 					error["error"] = fmt.Sprintf(errors.UNKNOWN_ERROR, string(data))
 					error["ids"] = singleRecord.Ids
-					finalError = append(finalError, error)
+					responseChannel <- error
 				} else {
 					errorResult := result["error"]
 					if errorResult != nil {
@@ -134,9 +135,12 @@ func (g *GetByIdApi) doRequest(records common.GetByIdInput) (map[string]interfac
 						var error = make(map[string]interface{})
 						error["error"] = generatedError["message"]
 						error["ids"] = singleRecord.Ids
-						finalError = append(finalError, error)
+						responseChannel <- error
 
 					} else {
+						responseObj := make(map[string]interface{})
+						var responseArr []interface{}
+
 						records := (result["records"]).([]interface{})
 						for k := 0; k < len(records); k++ {
 							new := make(map[string]interface{})
@@ -146,19 +150,29 @@ func (g *GetByIdApi) doRequest(records common.GetByIdInput) (map[string]interfac
 							delete(fields, "skyflow_id")
 							new["fields"] = fields
 							new["table"] = singleRecord.Table
-							finalSuccess = append(finalSuccess, new)
+							responseArr = append(responseArr, new)
 						}
+						responseObj["records"] = responseArr
+						responseChannel <- responseObj
 					}
 
 				}
 			}
-		}(i)
+		}(i, responseChannel)
 	}
 
-	wg.Wait()
+	for i := 0; i < len(records.Records); i++ {
+		response := <-responseChannel
+		if _, found := response["error"]; found {
+			finalError = append(finalError, response)
+		} else {
+			finalSuccess = append(finalSuccess, response["records"].([]interface{})...)
+		}
+	}
+
 	var finalRecord = make(map[string]interface{})
 	if finalSuccess != nil {
-		finalRecord["success"] = finalSuccess
+		finalRecord["records"] = finalSuccess
 	}
 	if finalError != nil {
 		finalRecord["errors"] = finalError

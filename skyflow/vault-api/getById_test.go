@@ -1,10 +1,14 @@
 package vaultapi
 
 import (
+	"bytes"
+	"io/ioutil"
+	"net/http"
 	"testing"
 
 	"github.com/skyflowapi/skyflow-go/errors"
 	"github.com/skyflowapi/skyflow-go/skyflow/common"
+	mocks "github.com/skyflowapi/skyflow-go/skyflow/utils/mocks"
 )
 
 func TestNoRecordsForGetById(t *testing.T) {
@@ -132,6 +136,7 @@ func TestEmptyTokenForGetById(t *testing.T) {
 	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), errors.EMPTY_TOKEN_ID)
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
+
 func TestValidRequestForGetById(t *testing.T) {
 	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.google.com", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
 	records := make(map[string]interface{})
@@ -139,11 +144,30 @@ func TestValidRequestForGetById(t *testing.T) {
 	record1["table"] = "cards"
 	record1["redaction"] = "PLAIN_TEXT"
 	var ids []interface{}
-	ids = append(ids, "token")
+	ids = append(ids, "id1")
 	record1["ids"] = ids
 	var recordsArray []interface{}
 	recordsArray = append(recordsArray, record1)
 	records["records"] = recordsArray
 	getByIdApi := GetByIdApi{Configuration: configuration, Records: records, Token: ""}
+
+	resJson := `{
+		"records": [
+			{
+				"fields": {
+					"first_name": "rach",
+					"middle_name": "green",
+					"skyflow_id": "id1"
+				}
+			}]
+	}`
+	r := ioutil.NopCloser(bytes.NewReader([]byte(resJson)))
+	mocks.GetDoFunc = func(*http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: 200,
+			Body:       r,
+		}, nil
+	}
 	getByIdApi.Get()
+
 }

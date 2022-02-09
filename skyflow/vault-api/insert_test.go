@@ -1,12 +1,20 @@
 package vaultapi
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"testing"
 
 	"github.com/skyflowapi/skyflow-go/errors"
 	"github.com/skyflowapi/skyflow-go/skyflow/common"
+	mocks "github.com/skyflowapi/skyflow-go/skyflow/utils/mocks"
 )
+
+func init() {
+	Client = &mocks.MockClient{}
+}
 
 func GetToken() (string, error) {
 	return "", nil
@@ -166,8 +174,34 @@ func TestValidRequest(t *testing.T) {
 	recordsArray = append(recordsArray, record)
 	records["records"] = recordsArray
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: true}}
-	_, err := insertApi.Post("")
-	check(err.GetCode(), "Code: 400", t)
+	json := `{
+		"vaultID": "123",
+		"responses": [
+			{
+				"records": [
+					{
+						"skyflow_id": "id1"
+					}
+				]
+			},
+			{
+				"fields": {
+					"first_name": "token1",
+					"primary_card": {
+						"card_number": "token2"
+					}
+				}
+			}
+		]
+	}`
+	r := ioutil.NopCloser(bytes.NewReader([]byte(json)))
+	mocks.GetDoFunc = func(*http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: 200,
+			Body:       r,
+		}, nil
+	}
+	insertApi.Post("")
 }
 
 func check(got string, wanted string, t *testing.T) {

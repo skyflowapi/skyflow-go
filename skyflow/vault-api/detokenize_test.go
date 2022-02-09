@@ -1,10 +1,14 @@
 package vaultapi
 
 import (
+	"bytes"
+	"io/ioutil"
+	"net/http"
 	"testing"
 
 	"github.com/skyflowapi/skyflow-go/errors"
 	"github.com/skyflowapi/skyflow-go/skyflow/common"
+	mocks "github.com/skyflowapi/skyflow-go/skyflow/utils/mocks"
 )
 
 func TestNoRecordsForDetokenize(t *testing.T) {
@@ -62,5 +66,21 @@ func TestValidRequestForDetokenize(t *testing.T) {
 	recordsArray = append(recordsArray, record1)
 	records["records"] = recordsArray
 	detokenizeApi := DetokenizeApi{Configuration: configuration, Records: records, Token: ""}
+	resJson := `{
+		"records": [
+			{
+				"token": "1234",
+				"valueType": "STRING",
+				"value": "rach"
+			}
+		]
+	}`
+	r := ioutil.NopCloser(bytes.NewReader([]byte(resJson)))
+	mocks.GetDoFunc = func(*http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: 200,
+			Body:       r,
+		}, nil
+	}
 	detokenizeApi.Get()
 }
