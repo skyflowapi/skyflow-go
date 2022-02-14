@@ -2,10 +2,11 @@ package client
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
-	"github.com/skyflowapi/skyflow-go/commonutils"
 	errors1 "github.com/skyflowapi/skyflow-go/commonutils/errors"
+	"github.com/skyflowapi/skyflow-go/commonutils/messages"
 	"github.com/skyflowapi/skyflow-go/skyflow/common"
 )
 
@@ -20,7 +21,7 @@ func TestInsertInvalidToken(t *testing.T) {
 	var client = Init(configuration)
 	var record = make(map[string]interface{})
 	_, err := client.Insert(record)
-	skyflowError := errors1.NewSkyflowError(errors1.ErrorCodesEnum(errors1.SdkErrorCode), commonutils.INVALID_BEARER_TOKEN)
+	skyflowError := errors1.NewSkyflowError(errors1.ErrorCodesEnum(errors1.SdkErrorCode), fmt.Sprintf(messages.INVALID_BEARER_TOKEN, clientTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 
 }
@@ -29,7 +30,7 @@ func TestDetokenizeInvalidToken(t *testing.T) {
 	var client = Init(configuration)
 	var record = make(map[string]interface{})
 	_, err := client.Detokenize(record)
-	skyflowError := errors1.NewSkyflowError(errors1.ErrorCodesEnum(errors1.SdkErrorCode), commonutils.INVALID_BEARER_TOKEN)
+	skyflowError := errors1.NewSkyflowError(errors1.ErrorCodesEnum(errors1.SdkErrorCode), fmt.Sprintf(messages.INVALID_BEARER_TOKEN, clientTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 
@@ -38,7 +39,7 @@ func TestGetByIdInvalidToken(t *testing.T) {
 	var client = Init(configuration)
 	var record = make(map[string]interface{})
 	_, err := client.GetById(record)
-	skyflowError := errors1.NewSkyflowError(errors1.ErrorCodesEnum(errors1.SdkErrorCode), commonutils.INVALID_BEARER_TOKEN)
+	skyflowError := errors1.NewSkyflowError(errors1.ErrorCodesEnum(errors1.SdkErrorCode), fmt.Sprintf(messages.INVALID_BEARER_TOKEN, clientTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 
@@ -47,7 +48,7 @@ func TestInvokeConnectionInvalidToken(t *testing.T) {
 	var client = Init(configuration)
 	var record = common.ConnectionConfig{}
 	_, err := client.InvokeConnection(record)
-	skyflowError := errors1.NewSkyflowError(errors1.ErrorCodesEnum(errors1.SdkErrorCode), commonutils.INVALID_BEARER_TOKEN)
+	skyflowError := errors1.NewSkyflowError(errors1.ErrorCodesEnum(errors1.SdkErrorCode), fmt.Sprintf(messages.INVALID_BEARER_TOKEN, clientTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 
@@ -56,7 +57,7 @@ func TestInsertValidToken(t *testing.T) {
 	var client = Init(configuration)
 	var record = make(map[string]interface{})
 	_, err := client.Insert(record, common.InsertOptions{Tokens: true})
-	skyflowError := errors1.NewSkyflowError(errors1.ErrorCodesEnum(errors1.SdkErrorCode), commonutils.EMPTY_VAULT_ID)
+	skyflowError := errors1.NewSkyflowError(errors1.ErrorCodesEnum(errors1.SdkErrorCode), fmt.Sprintf(messages.EMPTY_VAULT_ID, clientTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 func TestDetokenizeValidToken(t *testing.T) {
@@ -64,7 +65,7 @@ func TestDetokenizeValidToken(t *testing.T) {
 	var client = Init(configuration)
 	var record = make(map[string]interface{})
 	_, err := client.Detokenize(record)
-	skyflowError := errors1.NewSkyflowError(errors1.ErrorCodesEnum(errors1.SdkErrorCode), commonutils.EMPTY_VAULT_ID)
+	skyflowError := errors1.NewSkyflowError(errors1.ErrorCodesEnum(errors1.SdkErrorCode), fmt.Sprintf(messages.EMPTY_VAULT_ID, clientTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 
@@ -73,7 +74,7 @@ func TestGetByIdValidToken(t *testing.T) {
 	var client = Init(configuration)
 	var record = make(map[string]interface{})
 	_, err := client.GetById(record)
-	skyflowError := errors1.NewSkyflowError(errors1.ErrorCodesEnum(errors1.SdkErrorCode), commonutils.EMPTY_VAULT_ID)
+	skyflowError := errors1.NewSkyflowError(errors1.ErrorCodesEnum(errors1.SdkErrorCode), fmt.Sprintf(messages.EMPTY_VAULT_ID, clientTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 
@@ -82,7 +83,7 @@ func TestInvokeConnectionValidToken(t *testing.T) {
 	var client = Init(configuration)
 	var record = common.ConnectionConfig{}
 	_, err := client.InvokeConnection(record)
-	skyflowError := errors1.NewSkyflowError(errors1.ErrorCodesEnum(errors1.SdkErrorCode), commonutils.EMPTY_CONNECTION_URL)
+	skyflowError := errors1.NewSkyflowError(errors1.ErrorCodesEnum(errors1.SdkErrorCode), fmt.Sprintf(messages.EMPTY_CONNECTION_URL, clientTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 

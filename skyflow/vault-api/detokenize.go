@@ -19,12 +19,10 @@ type DetokenizeApi struct {
 	Token         string
 }
 
+var detokenizeTag = "Detokenize"
+
 func (detokenize *DetokenizeApi) Get() (map[string]interface{}, *errors.SkyflowError) {
 
-	// logger.Debug("Useful debugging information.")
-	// logger.Info("Something noteworthy happened!")
-	// logger.Warn("You should probably take a look at this.")
-	// logger.Error("Something failed but I'm not quitting.")
 	err := detokenize.doValidations()
 	if err != nil {
 		return nil, err
@@ -32,7 +30,8 @@ func (detokenize *DetokenizeApi) Get() (map[string]interface{}, *errors.SkyflowE
 	jsonRecord, _ := json.Marshal(detokenize.Records)
 	var detokenizeRecord common.DetokenizeInput
 	if err := json.Unmarshal(jsonRecord, &detokenizeRecord); err != nil {
-		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), messages.INVALID_RECORDS)
+		logger.Error(fmt.Sprintf(messages.INVALID_RECORDS, detokenizeTag))
+		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.INVALID_RECORDS, detokenizeTag))
 	}
 	res, err := detokenize.sendRequest(detokenizeRecord)
 	if err != nil {
@@ -47,23 +46,27 @@ func (detokenizeApi *DetokenizeApi) doValidations() *errors.SkyflowError {
 		return err
 	}
 
-	logger.Info(messages.VALIDATE_DETOKENIZE_INPUT)
+	logger.Info(fmt.Sprintf(messages.VALIDATE_DETOKENIZE_INPUT, detokenizeTag))
 
 	var totalRecords = detokenizeApi.Records["records"]
 	if totalRecords == nil {
-		return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), messages.RECORDS_KEY_NOT_FOUND)
+		logger.Error(fmt.Sprintf(messages.RECORDS_KEY_NOT_FOUND, detokenizeTag))
+		return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.RECORDS_KEY_NOT_FOUND, detokenizeTag))
 	}
 	var recordsArray = (totalRecords).([]interface{})
 	if len(recordsArray) == 0 {
-		return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), messages.EMPTY_RECORDS)
+		logger.Error(fmt.Sprintf(messages.EMPTY_RECORDS, detokenizeTag))
+		return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_RECORDS, detokenizeTag))
 	}
 	for _, record := range recordsArray {
 		var singleRecord = (record).(map[string]interface{})
 		var token = singleRecord["token"]
 		if token == nil {
-			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), messages.MISSING_TOKEN)
+			logger.Error(fmt.Sprintf(messages.MISSING_TOKEN, detokenizeTag))
+			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.MISSING_TOKEN, detokenizeTag))
 		} else if token == "" {
-			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), messages.EMPTY_TOKEN_ID)
+			logger.Error(fmt.Sprintf(messages.EMPTY_TOKEN_ID, detokenizeTag))
+			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_TOKEN_ID, detokenizeTag))
 		}
 	}
 	return nil
@@ -78,7 +81,7 @@ func (detokenize *DetokenizeApi) sendRequest(records common.DetokenizeInput) (ma
 	responseChannel := make(chan map[string]interface{})
 
 	for i := 0; i < len(records.Records); i++ {
-		logger.Info(fmt.Sprintf(messages.DETOKENIZING_RECORDS, records.Records[i].Token))
+		logger.Info(fmt.Sprintf(messages.DETOKENIZING_RECORDS, detokenizeTag, records.Records[i].Token))
 		go func(i int, responseChannel chan map[string]interface{}) {
 			singleRecord := records.Records[i]
 			requestUrl := fmt.Sprintf("%s/v1/vaults/%s/detokenize", detokenize.Configuration.VaultURL, detokenize.Configuration.VaultID)
@@ -101,9 +104,9 @@ func (detokenize *DetokenizeApi) sendRequest(records common.DetokenizeInput) (ma
 				res, err := Client.Do(request)
 
 				if err != nil {
-					logger.Error(fmt.Sprintf(messages.DETOKENIZING_FAILED, singleRecord.Token))
+					logger.Error(fmt.Sprintf(messages.DETOKENIZING_FAILED, detokenizeTag, singleRecord.Token))
 					var error = make(map[string]interface{})
-					error["error"] = fmt.Sprintf(messages.SERVER_ERROR, err)
+					error["error"] = fmt.Sprintf(messages.SERVER_ERROR, detokenizeTag, err)
 					error["token"] = singleRecord.Token
 					responseChannel <- error
 					//continue
@@ -114,22 +117,22 @@ func (detokenize *DetokenizeApi) sendRequest(records common.DetokenizeInput) (ma
 				var result map[string]interface{}
 				err = json.Unmarshal(data, &result)
 				if err != nil {
-					logger.Error(fmt.Sprintf(messages.DETOKENIZING_FAILED, singleRecord.Token))
+					logger.Error(fmt.Sprintf(messages.DETOKENIZING_FAILED, detokenizeTag, singleRecord.Token))
 					var error = make(map[string]interface{})
-					error["error"] = fmt.Sprintf(messages.UNKNOWN_ERROR, string(data))
+					error["error"] = fmt.Sprintf(messages.UNKNOWN_ERROR, detokenizeTag, string(data))
 					error["token"] = singleRecord.Token
 					responseChannel <- error
 				} else {
 					errorResult := result["error"]
 					if errorResult != nil {
-						logger.Error(fmt.Sprintf(messages.DETOKENIZING_FAILED, singleRecord.Token))
+						logger.Error(fmt.Sprintf(messages.DETOKENIZING_FAILED, detokenizeTag, singleRecord.Token))
 						var generatedError = (errorResult).(map[string]interface{})
 						var error = make(map[string]interface{})
 						error["error"] = generatedError["message"]
 						error["token"] = singleRecord.Token
 						responseChannel <- error
 					} else {
-						logger.Info(fmt.Sprintf(messages.DETOKENIZING_SUCCESS, singleRecord.Token))
+						logger.Info(fmt.Sprintf(messages.DETOKENIZING_SUCCESS, detokenizeTag, singleRecord.Token))
 						var generatedResult = (result["records"]).([]interface{})
 						var record = (generatedResult[0]).(map[string]interface{})
 						delete(record, "valueType")

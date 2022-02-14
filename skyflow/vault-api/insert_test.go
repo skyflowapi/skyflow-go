@@ -26,7 +26,7 @@ func TestEmptyVaultId(t *testing.T) {
 	records := make(map[string]interface{})
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
 	_, err := insertApi.Post("")
-	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), messages.EMPTY_VAULT_ID)
+	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_VAULT_ID, clientTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 
 }
@@ -36,7 +36,7 @@ func TestEmptyVaultUrl(t *testing.T) {
 	records := make(map[string]interface{})
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
 	_, err := insertApi.Post("")
-	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), messages.EMPTY_VAULT_URL)
+	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_VAULT_URL, clientTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 
@@ -45,7 +45,7 @@ func TestInvalidVaultUrl(t *testing.T) {
 	records := make(map[string]interface{})
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
 	_, err := insertApi.Post("")
-	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.INVALID_VAULT_URL, configuration.VaultURL))
+	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.INVALID_VAULT_URL, clientTag, configuration.VaultURL))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 
@@ -54,7 +54,7 @@ func TestInvalidVaultUrl1(t *testing.T) {
 	records := make(map[string]interface{})
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
 	_, err := insertApi.Post("")
-	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.INVALID_VAULT_URL, configuration.VaultURL))
+	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.INVALID_VAULT_URL, clientTag, configuration.VaultURL))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 func TestNoRecords(t *testing.T) {
@@ -62,7 +62,7 @@ func TestNoRecords(t *testing.T) {
 	records := make(map[string]interface{})
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
 	_, err := insertApi.Post("")
-	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), messages.RECORDS_KEY_NOT_FOUND)
+	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.RECORDS_KEY_NOT_FOUND, insertTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 func TestEmptyRecords(t *testing.T) {
@@ -72,7 +72,7 @@ func TestEmptyRecords(t *testing.T) {
 	records["records"] = record
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
 	_, err := insertApi.Post("")
-	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), messages.EMPTY_RECORDS)
+	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_RECORDS, insertTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 
@@ -85,7 +85,7 @@ func TestMissingTable(t *testing.T) {
 	records["records"] = recordsArray
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
 	_, err := insertApi.Post("")
-	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), messages.MISSING_TABLE)
+	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.MISSING_TABLE, insertTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 
@@ -99,7 +99,7 @@ func TestEmptyTable(t *testing.T) {
 	records["records"] = recordsArray
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
 	_, err := insertApi.Post("")
-	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), messages.EMPTY_TABLE_NAME)
+	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_TABLE_NAME, insertTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 
@@ -113,7 +113,7 @@ func TestMissingFields(t *testing.T) {
 	records["records"] = recordsArray
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
 	_, err := insertApi.Post("")
-	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), messages.FIELDS_KEY_ERROR)
+	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.FIELDS_KEY_ERROR, insertTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 
@@ -129,7 +129,7 @@ func TestEmptyFields(t *testing.T) {
 	records["records"] = recordsArray
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
 	_, err := insertApi.Post("")
-	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), messages.EMPTY_FIELDS)
+	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_FIELDS, insertTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 
@@ -144,7 +144,7 @@ func TestEmptyFields1(t *testing.T) {
 	records["records"] = recordsArray
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
 	_, err := insertApi.Post("")
-	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), messages.EMPTY_FIELDS)
+	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_FIELDS, insertTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 func TestEmptyColumn(t *testing.T) {
@@ -160,7 +160,7 @@ func TestEmptyColumn(t *testing.T) {
 	records["records"] = recordsArray
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
 	_, err := insertApi.Post("")
-	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), messages.EMPTY_COLUMN_NAME)
+	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_COLUMN_NAME, insertTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 

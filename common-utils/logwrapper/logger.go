@@ -13,6 +13,14 @@ const (
 
 var log = logrus.New()
 
+func init() {
+	var formatter = &logrus.TextFormatter{
+		FullTimestamp: true,
+	}
+	log.SetFormatter(formatter)
+	log.SetLevel(logrus.ErrorLevel)
+}
+
 func Debug(args ...interface{}) {
 	log.Debug(args...)
 }
@@ -29,6 +37,17 @@ func Error(args ...interface{}) {
 	log.Error(args...)
 }
 
-func SetLogLevel(level logrus.Level) {
-	log.SetLevel(level)
+func SetLogLevel(level LogLevel) {
+	switch level {
+	case INFO:
+		log.SetLevel(logrus.InfoLevel)
+	case DEBUG:
+		log.SetLevel(logrus.DebugLevel)
+	case WARN:
+		log.SetLevel(logrus.WarnLevel)
+	case ERROR:
+		log.SetLevel(logrus.ErrorLevel)
+	default:
+		log.SetLevel(logrus.ErrorLevel)
+	}
 }

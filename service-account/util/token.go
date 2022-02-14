@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt"
+	logger "github.com/skyflowapi/skyflow-go/commonutils/logwrapper"
+	"github.com/skyflowapi/skyflow-go/commonutils/messages"
 	"github.com/skyflowapi/skyflow-go/errors"
 )
 
@@ -21,9 +23,11 @@ type ResponseToken struct {
 	TokenType   string `json:tokenType`
 }
 
+var tag = "GenerateBearerToken"
+
 // Deprecated: Instaed use GenerateBearerToken
 func GenerateToken(filePath string) (*ResponseToken, *errors.SkyflowError) {
-
+	logger.Warn(fmt.Sprintf(messages.DEPRECATED_GENERATE_TOKEN_FUNCTION, tag))
 	return GenerateBearerToken(filePath)
 }
 

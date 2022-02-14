@@ -2,6 +2,7 @@ package vaultapi
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"testing"
@@ -17,7 +18,7 @@ func TestNoRecordsForDetokenize(t *testing.T) {
 	records := make(map[string]interface{})
 	detokenizeApi := DetokenizeApi{Configuration: configuration, Records: records, Token: ""}
 	_, err := detokenizeApi.Get()
-	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), messages.RECORDS_KEY_NOT_FOUND)
+	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.RECORDS_KEY_NOT_FOUND, detokenizeTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 func TestEmptyRecordsForDetokenize(t *testing.T) {
@@ -27,7 +28,7 @@ func TestEmptyRecordsForDetokenize(t *testing.T) {
 	records["records"] = record
 	detokenizeApi := DetokenizeApi{Configuration: configuration, Records: records, Token: ""}
 	_, err := detokenizeApi.Get()
-	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), messages.EMPTY_RECORDS)
+	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_RECORDS, detokenizeTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 
@@ -40,7 +41,7 @@ func TestNoTokenForDetokenize(t *testing.T) {
 	records["records"] = recordsArray
 	detokenizeApi := DetokenizeApi{Configuration: configuration, Records: records, Token: ""}
 	_, err := detokenizeApi.Get()
-	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), messages.MISSING_TOKEN)
+	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.MISSING_TOKEN, detokenizeTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 
@@ -54,7 +55,7 @@ func TestEmptyEmptyTokenForDetokenize(t *testing.T) {
 	records["records"] = recordsArray
 	detokenizeApi := DetokenizeApi{Configuration: configuration, Records: records, Token: ""}
 	_, err := detokenizeApi.Get()
-	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), messages.EMPTY_TOKEN_ID)
+	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_TOKEN_ID, detokenizeTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 

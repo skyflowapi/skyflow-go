@@ -11,6 +11,8 @@ type Client struct {
 	configuration common.Configuration
 }
 
+var clientTag = "Client"
+
 var tokenUtils TokenUtils
 
 func (client *Client) Insert(records map[string]interface{}, options ...common.InsertOptions) (common.ResponseBody, *errors.SkyflowError) {

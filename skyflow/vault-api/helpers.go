@@ -10,19 +10,21 @@ import (
 	"github.com/skyflowapi/skyflow-go/skyflow/common"
 )
 
+var clientTag = "Client"
+
 func isValidVaultDetails(configuration common.Configuration) *errors.SkyflowError {
-	logger.Info(messages.VALIDATE_INIT_CONFIG)
+	logger.Info(fmt.Sprintf(messages.VALIDATE_INIT_CONFIG, clientTag))
 	if configuration.VaultID == "" {
-		logger.Error(messages.EMPTY_VAULT_ID)
-		return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), messages.EMPTY_VAULT_ID)
+		logger.Error(fmt.Sprintf(messages.EMPTY_VAULT_ID, clientTag))
+		return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_VAULT_ID, clientTag))
 
 	} else if configuration.VaultURL == "" {
-		logger.Error(messages.EMPTY_VAULT_URL)
-		return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), messages.EMPTY_VAULT_URL)
+		logger.Error(fmt.Sprintf(messages.EMPTY_VAULT_URL, clientTag))
+		return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_VAULT_URL, clientTag))
 
 	} else if !isValidUrl(configuration.VaultURL) {
-		logger.Error(messages.INVALID_VAULT_URL)
-		return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.INVALID_VAULT_URL, configuration.VaultURL))
+		logger.Error(fmt.Sprintf(messages.INVALID_VAULT_URL, clientTag, configuration.VaultURL))
+		return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.INVALID_VAULT_URL, clientTag, configuration.VaultURL))
 
 	}
 	return nil
