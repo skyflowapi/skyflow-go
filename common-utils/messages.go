@@ -1,4 +1,4 @@
-package errors
+package commonutils
 
 const (
 	INVALID_URL                string = "URL %s is invalid"

@@ -4,10 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 
+	//"github.com/skyflowapi/skyflow-go/commonutils/logger"
 	Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
 	"github.com/skyflowapi/skyflow-go/skyflow/common"
 )
 
+func GetToken() (string, error) {
+	return "", nil
+}
 func main() {
 
 	defer func() {
@@ -16,6 +20,7 @@ func main() {
 		}
 	}()
 
+	//logger.SetLogLevel(logrus.ErrorLevel)
 	configuration := common.Configuration{VaultID: "<vault_id>", VaultURL: "<vault_url>", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
 	var client = Skyflow.Init(configuration)
 	var records = make(map[string]interface{})

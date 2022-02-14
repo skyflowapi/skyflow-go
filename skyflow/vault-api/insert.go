@@ -8,7 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/skyflowapi/skyflow-go/errors"
+	"github.com/skyflowapi/skyflow-go/commonutils"
+	"github.com/skyflowapi/skyflow-go/commonutils/errors"
 	"github.com/skyflowapi/skyflow-go/skyflow/common"
 )
 
@@ -38,32 +39,32 @@ func (insertApi *InsertApi) doValidations() *errors.SkyflowError {
 	}
 	var totalRecords = insertApi.Records["records"]
 	if totalRecords == nil {
-		return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), errors.RECORDS_KEY_NOT_FOUND)
+		return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), commonutils.RECORDS_KEY_NOT_FOUND)
 	}
 	var recordsArray = (totalRecords).([]interface{})
 	if len(recordsArray) == 0 {
-		return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), errors.EMPTY_RECORDS)
+		return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), commonutils.EMPTY_RECORDS)
 	}
 	for _, record := range recordsArray {
 		var singleRecord = (record).(map[string]interface{})
 		var table = singleRecord["table"]
 		var fields = singleRecord["fields"]
 		if table == nil {
-			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), errors.MISSING_TABLE)
+			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), commonutils.MISSING_TABLE)
 		} else if table == "" {
-			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), errors.EMPTY_TABLE_NAME)
+			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), commonutils.EMPTY_TABLE_NAME)
 		} else if fields == nil {
-			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), errors.FIELDS_KEY_ERROR)
+			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), commonutils.FIELDS_KEY_ERROR)
 		} else if fields == "" {
-			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), errors.EMPTY_FIELDS)
+			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), commonutils.EMPTY_FIELDS)
 		}
 		field := (singleRecord["fields"]).(map[string]interface{})
 		if len(field) == 0 {
-			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), errors.EMPTY_FIELDS)
+			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), commonutils.EMPTY_FIELDS)
 		}
 		for index := range field {
 			if index == "" {
-				return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), errors.EMPTY_COLUMN_NAME)
+				return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), commonutils.EMPTY_COLUMN_NAME)
 			}
 		}
 	}
@@ -78,7 +79,7 @@ func (insertApi *InsertApi) Post(token string) (map[string]interface{}, *errors.
 	jsonRecord, _ := json.Marshal(insertApi.Records)
 	var insertRecord common.InsertRecord
 	if err := json.Unmarshal(jsonRecord, &insertRecord); err != nil {
-		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), errors.INVALID_RECORDS)
+		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), commonutils.INVALID_RECORDS)
 	}
 
 	record, err := insertApi.constructRequestBody(insertRecord, insertApi.Options)
@@ -87,7 +88,7 @@ func (insertApi *InsertApi) Post(token string) (map[string]interface{}, *errors.
 	}
 	requestBody, err1 := json.Marshal(record)
 	if err1 != nil {
-		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(errors.UNKNOWN_ERROR, err1))
+		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(commonutils.UNKNOWN_ERROR, err1))
 	}
 	requestUrl := fmt.Sprintf("%s/v1/vaults/%s", insertApi.Configuration.VaultURL, insertApi.Configuration.VaultID)
 	request, _ := http.NewRequest(
@@ -101,17 +102,17 @@ func (insertApi *InsertApi) Post(token string) (map[string]interface{}, *errors.
 	res, err2 := Client.Do(request)
 	if err2 != nil {
 		code := strconv.Itoa(res.StatusCode)
-		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(code), fmt.Sprintf(errors.SERVER_ERROR, err2))
+		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(code), fmt.Sprintf(commonutils.SERVER_ERROR, err2))
 	}
 	data, _ := ioutil.ReadAll(res.Body)
 	res.Body.Close()
 	var result map[string]interface{}
 	err2 = json.Unmarshal(data, &result)
 	if err2 != nil {
-		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(errors.UNKNOWN_ERROR, string(data)))
+		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(commonutils.UNKNOWN_ERROR, string(data)))
 	} else if result["error"] != nil {
 		var generatedError = (result["error"]).(map[string]interface{})
-		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(fmt.Sprintf("%v", generatedError["http_code"])), fmt.Sprintf(errors.SERVER_ERROR, generatedError["message"]))
+		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(fmt.Sprintf("%v", generatedError["http_code"])), fmt.Sprintf(commonutils.SERVER_ERROR, generatedError["message"]))
 	}
 	return insertApi.buildResponse((result["responses"]).([]interface{}), insertRecord), nil
 }

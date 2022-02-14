@@ -6,7 +6,8 @@ import (
 	"time"
 
 	"github.com/cristalhq/jwt/v3"
-	"github.com/skyflowapi/skyflow-go/errors"
+	"github.com/skyflowapi/skyflow-go/commonutils"
+	"github.com/skyflowapi/skyflow-go/commonutils/errors"
 	"github.com/skyflowapi/skyflow-go/skyflow/common"
 )
 
@@ -22,7 +23,7 @@ func (tokenUtils *TokenUtils) getBearerToken(tokenProvider common.TokenProvider)
 	token, err := tokenProvider()
 	tokenUtils.Token = token
 	if err != nil {
-		return "", errors.NewSkyflowErrorWrap(errors.ErrorCodesEnum(errors.SdkErrorCode), err, errors.INVALID_BEARER_TOKEN)
+		return "", errors.NewSkyflowErrorWrap(errors.ErrorCodesEnum(errors.SdkErrorCode), err, commonutils.INVALID_BEARER_TOKEN)
 	}
 	return tokenUtils.Token, nil
 }

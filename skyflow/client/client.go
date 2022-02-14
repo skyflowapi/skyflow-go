@@ -3,7 +3,7 @@ package client
 import (
 	vaultapi "github.com/skyflowapi/skyflow-go/skyflow/vault-api"
 
-	"github.com/skyflowapi/skyflow-go/errors"
+	"github.com/skyflowapi/skyflow-go/commonutils/errors"
 	"github.com/skyflowapi/skyflow-go/skyflow/common"
 )
 

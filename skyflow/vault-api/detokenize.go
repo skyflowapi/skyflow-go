@@ -7,7 +7,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/skyflowapi/skyflow-go/errors"
+	"github.com/skyflowapi/skyflow-go/commonutils"
+	"github.com/skyflowapi/skyflow-go/commonutils/errors"
 	"github.com/skyflowapi/skyflow-go/skyflow/common"
 )
 
@@ -19,6 +20,10 @@ type DetokenizeApi struct {
 
 func (detokenize *DetokenizeApi) Get() (map[string]interface{}, *errors.SkyflowError) {
 
+	// logger.Debug("Useful debugging information.")
+	// logger.Info("Something noteworthy happened!")
+	// logger.Warn("You should probably take a look at this.")
+	// logger.Error("Something failed but I'm not quitting.")
 	err := detokenize.doValidations()
 	if err != nil {
 		return nil, err
@@ -26,7 +31,7 @@ func (detokenize *DetokenizeApi) Get() (map[string]interface{}, *errors.SkyflowE
 	jsonRecord, _ := json.Marshal(detokenize.Records)
 	var detokenizeRecord common.DetokenizeInput
 	if err := json.Unmarshal(jsonRecord, &detokenizeRecord); err != nil {
-		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), errors.INVALID_RECORDS)
+		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), commonutils.INVALID_RECORDS)
 	}
 	res, err := detokenize.sendRequest(detokenizeRecord)
 	if err != nil {
@@ -42,19 +47,19 @@ func (detokenizeApi *DetokenizeApi) doValidations() *errors.SkyflowError {
 	}
 	var totalRecords = detokenizeApi.Records["records"]
 	if totalRecords == nil {
-		return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), errors.RECORDS_KEY_NOT_FOUND)
+		return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), commonutils.RECORDS_KEY_NOT_FOUND)
 	}
 	var recordsArray = (totalRecords).([]interface{})
 	if len(recordsArray) == 0 {
-		return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), errors.EMPTY_RECORDS)
+		return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), commonutils.EMPTY_RECORDS)
 	}
 	for _, record := range recordsArray {
 		var singleRecord = (record).(map[string]interface{})
 		var token = singleRecord["token"]
 		if token == nil {
-			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), errors.MISSING_TOKEN)
+			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), commonutils.MISSING_TOKEN)
 		} else if token == "" {
-			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), errors.EMPTY_TOKEN_ID)
+			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), commonutils.EMPTY_TOKEN_ID)
 		}
 	}
 	return nil
@@ -93,7 +98,7 @@ func (detokenize *DetokenizeApi) sendRequest(records common.DetokenizeInput) (ma
 				if err != nil {
 					fmt.Println("server error")
 					var error = make(map[string]interface{})
-					error["error"] = fmt.Sprintf(errors.SERVER_ERROR, err)
+					error["error"] = fmt.Sprintf(commonutils.SERVER_ERROR, err)
 					error["token"] = singleRecord.Token
 					responseChannel <- error
 					//continue
@@ -105,7 +110,7 @@ func (detokenize *DetokenizeApi) sendRequest(records common.DetokenizeInput) (ma
 				err = json.Unmarshal(data, &result)
 				if err != nil {
 					var error = make(map[string]interface{})
-					error["error"] = fmt.Sprintf(errors.UNKNOWN_ERROR, string(data))
+					error["error"] = fmt.Sprintf(commonutils.UNKNOWN_ERROR, string(data))
 					error["token"] = singleRecord.Token
 					responseChannel <- error
 				} else {

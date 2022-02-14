@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/skyflowapi/skyflow-go/errors"
+	"github.com/skyflowapi/skyflow-go/commonutils"
+	"github.com/skyflowapi/skyflow-go/commonutils/errors"
 	"github.com/skyflowapi/skyflow-go/skyflow/common"
 )
 
@@ -12,14 +13,14 @@ func TestEmptyConnectionUrl(t *testing.T) {
 	configuration := common.ConnectionConfig{ConnectionURL: ""}
 	invokeApi := InvokeConnectionApi{configuration, ""}
 	_, err := invokeApi.Post()
-	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), errors.EMPTY_CONNECTION_URL)
+	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), commonutils.EMPTY_CONNECTION_URL)
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 func TestInvalidConnectionUrl(t *testing.T) {
 	configuration := common.ConnectionConfig{ConnectionURL: "url"}
 	invokeApi := InvokeConnectionApi{configuration, ""}
 	_, err := invokeApi.Post()
-	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(errors.INVALID_CONNECTION_URL, configuration.ConnectionURL))
+	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(commonutils.INVALID_CONNECTION_URL, configuration.ConnectionURL))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 
