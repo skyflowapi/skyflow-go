@@ -84,6 +84,7 @@ func (InvokeConnectionApi *InvokeConnectionApi) Post() (map[string]interface{}, 
 	var result map[string]interface{}
 	err = json.Unmarshal(data, &result)
 	if err != nil {
+		logger.Error(messages.INVOKE_CONNECTION_FAILED)
 		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.UNKNOWN_ERROR, string(data)))
 	}
 	logger.Info(messages.INVOKE_CONNECTION_SUCCESS)

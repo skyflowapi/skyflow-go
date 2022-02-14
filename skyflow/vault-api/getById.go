@@ -118,6 +118,7 @@ func (g *GetByIdApi) doRequest(records common.GetByIdInput) (map[string]interfac
 				res, err := Client.Do(request)
 
 				if err != nil {
+					logger.Error(fmt.Sprintf(messages.GET_RECORDS_BY_ID_FAILED, singleRecord.Table))
 					var error = make(map[string]interface{})
 					error["error"] = fmt.Sprintf(messages.SERVER_ERROR, err)
 					error["ids"] = singleRecord.Ids
@@ -130,6 +131,7 @@ func (g *GetByIdApi) doRequest(records common.GetByIdInput) (map[string]interfac
 				var result map[string]interface{}
 				err = json.Unmarshal(data, &result)
 				if err != nil {
+					logger.Error(fmt.Sprintf(messages.GET_RECORDS_BY_ID_FAILED, singleRecord.Table))
 					var error = make(map[string]interface{})
 					error["error"] = fmt.Sprintf(messages.UNKNOWN_ERROR, string(data))
 					error["ids"] = singleRecord.Ids
@@ -137,6 +139,7 @@ func (g *GetByIdApi) doRequest(records common.GetByIdInput) (map[string]interfac
 				} else {
 					errorResult := result["error"]
 					if errorResult != nil {
+						logger.Error(fmt.Sprintf(messages.GET_RECORDS_BY_ID_FAILED, singleRecord.Table))
 						var generatedError = (errorResult).(map[string]interface{})
 						var error = make(map[string]interface{})
 						error["error"] = generatedError["message"]

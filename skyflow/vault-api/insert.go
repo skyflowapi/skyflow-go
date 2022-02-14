@@ -118,8 +118,10 @@ func (insertApi *InsertApi) Post(token string) (map[string]interface{}, *errors.
 	var result map[string]interface{}
 	err2 = json.Unmarshal(data, &result)
 	if err2 != nil {
+		logger.Error(fmt.Sprintf(messages.INSERTING_RECORDS_FAILED, insertApi.Configuration.VaultID))
 		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.UNKNOWN_ERROR, string(data)))
 	} else if result["error"] != nil {
+		logger.Error(fmt.Sprintf(messages.INSERTING_RECORDS_FAILED, insertApi.Configuration.VaultID))
 		var generatedError = (result["error"]).(map[string]interface{})
 		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(fmt.Sprintf("%v", generatedError["http_code"])), fmt.Sprintf(messages.SERVER_ERROR, generatedError["message"]))
 	}

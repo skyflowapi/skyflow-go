@@ -1,7 +1,25 @@
 # Description
 skyflow-go is the Skyflow SDK for the Go programming language.
 
-## Usage
+## Installation
+
+Make sure your project is using Go Modules (it will have a go.mod file in its root if it already is):
+
+```go
+go mod init
+```
+
+Then, reference skyflow-go in a Go program with import:
+
+```go
+import (
+  saUtil "github.com/skyflowapi/skyflow-go/service-account/util"
+  Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
+  "github.com/skyflowapi/skyflow-go/skyflow/common"
+  "github.com/skyflowapi/skyflow-go/commonutils/logger"
+)
+```
+Alternatively, `go get <package_name>` can also be used to download the required dependencies 
 
 
 ## Table of Contents

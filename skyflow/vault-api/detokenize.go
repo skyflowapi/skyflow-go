@@ -114,6 +114,7 @@ func (detokenize *DetokenizeApi) sendRequest(records common.DetokenizeInput) (ma
 				var result map[string]interface{}
 				err = json.Unmarshal(data, &result)
 				if err != nil {
+					logger.Error(fmt.Sprintf(messages.DETOKENIZING_FAILED, singleRecord.Token))
 					var error = make(map[string]interface{})
 					error["error"] = fmt.Sprintf(messages.UNKNOWN_ERROR, string(data))
 					error["token"] = singleRecord.Token
@@ -121,6 +122,7 @@ func (detokenize *DetokenizeApi) sendRequest(records common.DetokenizeInput) (ma
 				} else {
 					errorResult := result["error"]
 					if errorResult != nil {
+						logger.Error(fmt.Sprintf(messages.DETOKENIZING_FAILED, singleRecord.Token))
 						var generatedError = (errorResult).(map[string]interface{})
 						var error = make(map[string]interface{})
 						error["error"] = generatedError["message"]
