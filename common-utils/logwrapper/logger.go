@@ -2,6 +2,15 @@ package logger
 
 import "github.com/sirupsen/logrus"
 
+type LogLevel int
+
+const (
+	ERROR LogLevel = iota
+	INFO
+	DEBUG
+	WARN
+)
+
 var log = logrus.New()
 
 func Debug(args ...interface{}) {

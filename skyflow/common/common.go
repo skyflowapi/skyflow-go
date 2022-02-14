@@ -17,20 +17,6 @@ func (requestMethod RequestMethod) String() string {
 	return [...]string{"GET", "POST", "PUT", "PATCH", "DELETE"}[requestMethod]
 }
 
-type LogLevel int
-
-const (
-	ERROR LogLevel = iota
-	INFO
-	DEBUG
-	WARN
-	NONE
-)
-
-func (logLevel LogLevel) String() string {
-	return [...]string{"ERROR", "INFO", "DEBUG", "WARN", "NONE"}[logLevel]
-}
-
 type RedactionType string
 
 const (
@@ -49,9 +35,6 @@ type ConnectionConfig struct {
 	RequestHeader map[string]string
 }
 
-type Options struct {
-	LogLevel LogLevel
-}
 type InsertOptions struct {
 	Tokens bool
 }
@@ -60,7 +43,6 @@ type Configuration struct {
 	VaultID       string
 	VaultURL      string
 	TokenProvider TokenProvider
-	Options       Options
 }
 
 type InsertRecord struct {

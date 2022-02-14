@@ -13,7 +13,7 @@ import (
 )
 
 func TestNoRecordsForDetokenize(t *testing.T) {
-	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken}
 	records := make(map[string]interface{})
 	detokenizeApi := DetokenizeApi{Configuration: configuration, Records: records, Token: ""}
 	_, err := detokenizeApi.Get()
@@ -21,7 +21,7 @@ func TestNoRecordsForDetokenize(t *testing.T) {
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 func TestEmptyRecordsForDetokenize(t *testing.T) {
-	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken}
 	records := make(map[string]interface{})
 	var record []interface{}
 	records["records"] = record
@@ -32,7 +32,7 @@ func TestEmptyRecordsForDetokenize(t *testing.T) {
 }
 
 func TestNoTokenForDetokenize(t *testing.T) {
-	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken}
 	records := make(map[string]interface{})
 	var record1 = make(map[string]interface{})
 	var recordsArray []interface{}
@@ -45,7 +45,7 @@ func TestNoTokenForDetokenize(t *testing.T) {
 }
 
 func TestEmptyEmptyTokenForDetokenize(t *testing.T) {
-	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken}
 	records := make(map[string]interface{})
 	var record1 = make(map[string]interface{})
 	record1["token"] = ""
@@ -59,7 +59,7 @@ func TestEmptyEmptyTokenForDetokenize(t *testing.T) {
 }
 
 func TestValidRequestForDetokenize(t *testing.T) {
-	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.google.com", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.google.com", TokenProvider: GetToken}
 	records := make(map[string]interface{})
 	var record1 = make(map[string]interface{})
 	record1["token"] = "1234"

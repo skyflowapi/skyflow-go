@@ -22,7 +22,7 @@ func GetToken() (string, error) {
 	return "", nil
 }
 func TestEmptyVaultId(t *testing.T) {
-	configuration := common.Configuration{VaultID: "", VaultURL: "https://www.url.com", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	configuration := common.Configuration{VaultID: "", VaultURL: "https://www.url.com", TokenProvider: GetToken}
 	records := make(map[string]interface{})
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
 	_, err := insertApi.Post("")
@@ -32,7 +32,7 @@ func TestEmptyVaultId(t *testing.T) {
 }
 
 func TestEmptyVaultUrl(t *testing.T) {
-	configuration := common.Configuration{VaultID: "123", VaultURL: "", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	configuration := common.Configuration{VaultID: "123", VaultURL: "", TokenProvider: GetToken}
 	records := make(map[string]interface{})
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
 	_, err := insertApi.Post("")
@@ -41,7 +41,7 @@ func TestEmptyVaultUrl(t *testing.T) {
 }
 
 func TestInvalidVaultUrl(t *testing.T) {
-	configuration := common.Configuration{VaultID: "123", VaultURL: "url", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	configuration := common.Configuration{VaultID: "123", VaultURL: "url", TokenProvider: GetToken}
 	records := make(map[string]interface{})
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
 	_, err := insertApi.Post("")
@@ -50,7 +50,7 @@ func TestInvalidVaultUrl(t *testing.T) {
 }
 
 func TestInvalidVaultUrl1(t *testing.T) {
-	configuration := common.Configuration{VaultID: "123", VaultURL: "http://www.url.com", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	configuration := common.Configuration{VaultID: "123", VaultURL: "http://www.url.com", TokenProvider: GetToken}
 	records := make(map[string]interface{})
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
 	_, err := insertApi.Post("")
@@ -58,7 +58,7 @@ func TestInvalidVaultUrl1(t *testing.T) {
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 func TestNoRecords(t *testing.T) {
-	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken}
 	records := make(map[string]interface{})
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
 	_, err := insertApi.Post("")
@@ -66,7 +66,7 @@ func TestNoRecords(t *testing.T) {
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 func TestEmptyRecords(t *testing.T) {
-	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken}
 	records := make(map[string]interface{})
 	var record []interface{}
 	records["records"] = record
@@ -77,7 +77,7 @@ func TestEmptyRecords(t *testing.T) {
 }
 
 func TestMissingTable(t *testing.T) {
-	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken}
 	records := make(map[string]interface{})
 	var recordsArray []interface{}
 	var record map[string]interface{}
@@ -90,7 +90,7 @@ func TestMissingTable(t *testing.T) {
 }
 
 func TestEmptyTable(t *testing.T) {
-	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken}
 	records := make(map[string]interface{})
 	var recordsArray []interface{}
 	var record = make(map[string]interface{})
@@ -104,7 +104,7 @@ func TestEmptyTable(t *testing.T) {
 }
 
 func TestMissingFields(t *testing.T) {
-	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken}
 	records := make(map[string]interface{})
 	var recordsArray []interface{}
 	var record = make(map[string]interface{})
@@ -118,7 +118,7 @@ func TestMissingFields(t *testing.T) {
 }
 
 func TestEmptyFields(t *testing.T) {
-	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken}
 	records := make(map[string]interface{})
 	var recordsArray []interface{}
 	var record = make(map[string]interface{})
@@ -134,7 +134,7 @@ func TestEmptyFields(t *testing.T) {
 }
 
 func TestEmptyFields1(t *testing.T) {
-	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken}
 	records := make(map[string]interface{})
 	var recordsArray []interface{}
 	var record = make(map[string]interface{})
@@ -148,7 +148,7 @@ func TestEmptyFields1(t *testing.T) {
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 func TestEmptyColumn(t *testing.T) {
-	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken}
 	records := make(map[string]interface{})
 	var recordsArray []interface{}
 	var record = make(map[string]interface{})
@@ -165,7 +165,7 @@ func TestEmptyColumn(t *testing.T) {
 }
 
 func TestValidRequest(t *testing.T) {
-	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.google.com", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.google.com", TokenProvider: GetToken}
 	records := make(map[string]interface{})
 	var recordsArray []interface{}
 	var record = make(map[string]interface{})

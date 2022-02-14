@@ -16,7 +16,7 @@ func main() {
 		}
 	}()
 
-	configuration := common.Configuration{VaultID: "<vault_id>", VaultURL: "<vault_url>", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	configuration := common.Configuration{VaultID: "<vault_id>", VaultURL: "<vault_url>", TokenProvider: GetToken}
 	var client = Skyflow.Init(configuration)
 	var options = common.InsertOptions{Tokens: false}
 	var records = make(map[string]interface{})

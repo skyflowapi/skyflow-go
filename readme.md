@@ -11,11 +11,13 @@ skyflow-go is the Skyflow SDK for the Go programming language.
   *  [Insert](#insert)
   *  [Detokenize](#detokenize)
   *  [GetById](#get-by-id)
-  *  [InvokeGateway](#invoke-gateway)
+  *  [InvokeConnection](#invoke-connection)
 * [Logging](#logging)
 
 ### Service Account Token Generation
 [This](https://github.com/skyflowapi/skyflow-go/tree/main/service-account) go module is used to generate service account tokens from service account credentials file which is downloaded upon creation of service account. The token generated from this module is valid for 60 minutes and can be used to make API calls to vault services as well as management API(s) based on the permissions of the service account.
+
+The GenerateBearerToken(filepath) function takes the credentials file path for token generation, alternatively, you can also send the entire credentials as string, by using GenerateBearerTokenFromCreds(credentials).
 
 [Example](https://github.com/skyflowapi/skyflow-go/blob/main/examples/service-account/token/main/service_account_token.go):
 
@@ -28,7 +30,8 @@ import (
 )
     
 func main() {
-    token, err := saUtil.GenerateToken("<path_to_sa_credentials_file>")
+    token, err := saUtil.GenerateBearerToken("<path_to_sa_credentials_file>")
+   // or token,err := saUtil.GenerateBearerTokenFromCreds(credentialsString) 
     if err != nil {
         panic(err)
     }
@@ -342,3 +345,117 @@ Sample response:
   ]
 }
 ```
+
+### Invoke-connection
+
+Using  InvokeConnection, end-user applications can integrate checkout/card issuance flow with their apps/systems. To invoke connection, use the invokeConnection(config ConnectionConfig) method of the Skyflow client. The parameter config object must have `connectionURL` and `methodName` are required and remaining are optional. 
+
+```go
+
+    pathParams := make(map[string]interface{})
+    pathParams["<path_param_key>"] = "<path_param_value>"
+
+    queryParams := make(map[string]interface{})
+    queryParams["<query_param_key>"] = "<query_param_value>"
+
+    requestHeader := make(map[string]interface{})
+    requestHeader["<request_header_key>"] = "<request_header_value>"
+
+    requestBody := make(map[string]interface{})
+    requestBody["<request_body_key>"] = "<request_body_value>"
+
+    connectionConfig := common.ConnectionConfig{ConnectionURL : "<your_connection_url>",MethodName : "<Method_Name>",PathParams : pathParams,QueryParams : queryParams, RequestBody : requestBody, RequestHeaders : requestHeader}
+
+    skyflowClient.InvokeConnection(connectionConfig)  
+}
+
+```
+
+`methodName` supports the following methods:
+- GET
+- POST
+- PUT
+- PATCH
+- DELETE
+
+**pathParams, queryParams, requestHeader, requestBody**  objects will be sent through the connection integration url as shown below.
+
+```go
+
+package main
+
+import (
+    "fmt"
+    Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
+    "github.com/skyflowapi/skyflow-go/skyflow/common"
+)
+
+func main() {
+
+    //initialize skyflowClient
+
+    pathParams := make(map[string]interface{})
+    pathParams["card_number"] = "1852-344-234-34251"
+
+    requestHeader := make(map[string]interface{})
+    requestHeaders["Authorization"] = "<YOUR_CONNECTION_AUTH>"
+
+    requestBody := make(map[string]interface{})
+    requestBody["expirationDate"] = "12/2026"
+
+    connectionConfig := common.ConnectionConfig{ConnectionURL : "<Connection_URL>",MethodName : "<Method_Name>",PathParams : pathParams, RequestBody : requestBody, RequestHeaders : requestHeader}
+
+    res, err: = skyflowClient.InvokeConnection(connectionConfig)
+
+    if err == nil {
+          jsonRes, err: = json.Marshal(res)
+          if err == nil {
+                fmt.Println("result: ", string(jsonRes))
+          }
+    }
+}
+```
+
+Sample invokeConnection Response
+```go
+{
+    "receivedTimestamp": "2021-11-05 13:43:12.534",
+    "processingTimeinMs": 12,
+    "resource": {
+        "cvv2": "558"
+    }
+}
+```
+
+### Logging
+
+The skyflow-go SDK provides useful logging using go libray `github.com/sirupsen/logrus`. By default the logging level of the SDK is set to `LogLevel.ERROR`. This can be changed by using `SetLogLevel(LogLevel)` as shown below:
+
+```go
+	import "github.com/skyflowapi/skyflow-go/commonutils/logger"
+
+
+// sets the skyflow-java SDK log level to INFO
+logger.SetLogLevel(logger.LogLevel.INFO);
+```
+
+Current the following 5 log levels are supported:
+
+- `DEBUG`:
+
+   When `LogLevel.DEBUG` is passed, all level of logs will be printed(DEBUG, INFO, WARN, ERROR)
+   
+- `INFO`: 
+
+   When `LogLevel.INFO` is passed, INFO logs for every event that has occurred during the SDK flow execution will be printed along with WARN and ERROR logs
+   
+- `WARN`: 
+
+   When `LogLevel.WARN` is passed, WARN and ERROR logs will be printed
+   
+- `ERROR`:
+
+   When `LogLevel.ERROR` is passed, only ERROR logs will be printed.
+
+`Note`:
+  - The ranking of logging levels is as follows :  `DEBUG` < `INFO` < `WARN` < `ERROR`.

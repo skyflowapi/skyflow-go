@@ -13,7 +13,7 @@ import (
 )
 
 func TestNoRecordsForGetById(t *testing.T) {
-	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken}
 	records := make(map[string]interface{})
 	getByIdApi := GetByIdApi{Configuration: configuration, Records: records, Token: ""}
 	_, err := getByIdApi.Get()
@@ -21,7 +21,7 @@ func TestNoRecordsForGetById(t *testing.T) {
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 func TestEmptyRecordsForGetById(t *testing.T) {
-	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken}
 	records := make(map[string]interface{})
 	var record []interface{}
 	records["records"] = record
@@ -32,7 +32,7 @@ func TestEmptyRecordsForGetById(t *testing.T) {
 }
 
 func TestNoTableForGetById(t *testing.T) {
-	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken}
 	records := make(map[string]interface{})
 	var record1 = make(map[string]interface{})
 	var recordsArray []interface{}
@@ -45,7 +45,7 @@ func TestNoTableForGetById(t *testing.T) {
 }
 
 func TestEmptyTableForGetById(t *testing.T) {
-	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken}
 	records := make(map[string]interface{})
 	var record1 = make(map[string]interface{})
 	record1["table"] = ""
@@ -59,7 +59,7 @@ func TestEmptyTableForGetById(t *testing.T) {
 }
 
 func TestNoRedactionForGetById(t *testing.T) {
-	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken}
 	records := make(map[string]interface{})
 	var record1 = make(map[string]interface{})
 	record1["table"] = "cards"
@@ -75,7 +75,7 @@ func TestNoRedactionForGetById(t *testing.T) {
 }
 
 func TestNoIdsForGetById(t *testing.T) {
-	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken}
 	records := make(map[string]interface{})
 	var record1 = make(map[string]interface{})
 	record1["table"] = "cards"
@@ -89,7 +89,7 @@ func TestNoIdsForGetById(t *testing.T) {
 }
 
 func TestEmptyIdsForGetById(t *testing.T) {
-	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken}
 	records := make(map[string]interface{})
 	var record1 = make(map[string]interface{})
 	record1["table"] = "cards"
@@ -104,7 +104,7 @@ func TestEmptyIdsForGetById(t *testing.T) {
 }
 
 func TestEmptyIdsForGetById1(t *testing.T) {
-	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken}
 	records := make(map[string]interface{})
 	var record1 = make(map[string]interface{})
 	record1["table"] = "cards"
@@ -121,7 +121,7 @@ func TestEmptyIdsForGetById1(t *testing.T) {
 }
 
 func TestEmptyTokenForGetById(t *testing.T) {
-	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken}
 	records := make(map[string]interface{})
 	var record1 = make(map[string]interface{})
 	record1["table"] = "cards"
@@ -139,7 +139,7 @@ func TestEmptyTokenForGetById(t *testing.T) {
 }
 
 func TestValidRequestForGetById(t *testing.T) {
-	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.google.com", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.google.com", TokenProvider: GetToken}
 	records := make(map[string]interface{})
 	var record1 = make(map[string]interface{})
 	record1["table"] = "cards"

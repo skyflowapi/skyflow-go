@@ -21,7 +21,7 @@ func main() {
 	}()
 
 	//logger.SetLogLevel(logrus.ErrorLevel)
-	configuration := common.Configuration{VaultID: "<vault_id>", VaultURL: "<vault_url>", TokenProvider: GetToken, Options: common.Options{LogLevel: common.WARN}}
+	configuration := common.Configuration{VaultID: "<vault_id>", VaultURL: "<vault_url>", TokenProvider: GetToken}
 	var client = Skyflow.Init(configuration)
 	var records = make(map[string]interface{})
 	var record1 = make(map[string]interface{})
