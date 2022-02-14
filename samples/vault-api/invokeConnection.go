@@ -3,12 +3,14 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
-	"strconv"
-	"strings"
+
+	Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
+	"github.com/skyflowapi/skyflow-go/skyflow/common"
 )
 
+func GetToken() (string, error) {
+	return "<token>", nil
+}
 func main() {
 
 	defer func() {
@@ -17,56 +19,36 @@ func main() {
 		}
 	}()
 
-	url := "www.google.com/card/cvv"
+	configuration := common.Configuration{TokenProvider: GetToken}
+	var client = Skyflow.Init(configuration)
 
-	path := make(map[string]interface{})
+	connectionUrl := "<CONNECTION_URL>"
+	pathParams := make(map[string]string)
+	pathParams["card_number"] = "<card_number>"
 
-	path["card"] = "1234"
-	path["cvv"] = "234"
+	//queryParams := make(map[string]interface{})
+	//["cc"] = true
 
-	query := make(map[string]interface{})
+	requestBody := make(map[string]interface{})
+	expiryDate := make(map[string]interface{})
+	expiryDate["mm"] = "06"
+	expiryDate["yy"] = "22"
+	requestBody["expirationDate"] = expiryDate
 
-	query["cvv"] = 456.1
-	query["cc"] = true
+	requestHeader := make(map[string]string)
+	requestHeader["Authorization"] = "<Your-Authorization-Value>"
 
-	for index, value := range path {
-		url = strings.Replace(url, index, value.(string), -1)
-	}
+	var connectionConfig = common.ConnectionConfig{ConnectionURL: connectionUrl, MethodName: common.POST,
+		PathParams: pathParams, RequestBody: requestBody, RequestHeader: requestHeader}
 
-	req := make(map[string]interface{})
-	req["sam"] = 123
-	req["xx"] = 456
-	requestBody, err := json.Marshal(req)
-	if err != nil {
-		panic(err)
-	}
-	request, _ := http.NewRequest(
-		"POST",
-		url,
-		strings.NewReader(string(requestBody)),
-	)
-	query1 := request.URL.Query()
-	for index, value := range query {
-		switch v := value.(type) {
-		case int:
-			query1.Set(index, strconv.Itoa(v))
-		case float64:
-			query1.Set(index, fmt.Sprintf("%f", v))
-		case string:
-			query1.Set(index, v)
-		case bool:
-			query1.Set(index, strconv.FormatBool(v))
-		default:
-			fmt.Printf("Invalid type, we dont allow these types")
+	res, err := client.InvokeConnection(connectionConfig)
+
+	if err == nil {
+		jsonRes, err := json.Marshal(res)
+		if err == nil {
+			fmt.Println("result: ", string(jsonRes))
 		}
+	} else {
+		panic(err.GetMessage())
 	}
-	request.URL.RawQuery = query1.Encode()
-
-	body, err := ioutil.ReadAll(request.Body)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(string(body))
-	fmt.Println(request.URL)
-
 }

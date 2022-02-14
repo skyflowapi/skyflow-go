@@ -352,13 +352,13 @@ Using  InvokeConnection, end-user applications can integrate checkout/card issua
 
 ```go
 
-    pathParams := make(map[string]interface{})
+    pathParams := make(map[string]string)
     pathParams["<path_param_key>"] = "<path_param_value>"
 
     queryParams := make(map[string]interface{})
     queryParams["<query_param_key>"] = "<query_param_value>"
 
-    requestHeader := make(map[string]interface{})
+    requestHeader := make(map[string]string)
     requestHeader["<request_header_key>"] = "<request_header_value>"
 
     requestBody := make(map[string]interface{})
@@ -394,10 +394,10 @@ func main() {
 
     //initialize skyflowClient
 
-    pathParams := make(map[string]interface{})
+    pathParams := make(map[string]string)
     pathParams["card_number"] = "1852-344-234-34251"
 
-    requestHeader := make(map[string]interface{})
+    requestHeader := make(map[string]string)
     requestHeaders["Authorization"] = "<YOUR_CONNECTION_AUTH>"
 
     requestBody := make(map[string]interface{})

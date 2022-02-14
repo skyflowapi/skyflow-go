@@ -35,7 +35,7 @@ func (InvokeConnectionApi *InvokeConnectionApi) Post() (map[string]interface{}, 
 	}
 	requestUrl := InvokeConnectionApi.ConnectionConfig.ConnectionURL
 	for index, value := range InvokeConnectionApi.ConnectionConfig.PathParams {
-		requestUrl = strings.Replace(requestUrl, index, value, -1)
+		requestUrl = strings.Replace(requestUrl, fmt.Sprintf("{%s}", index), value, -1)
 	}
 	requestBody, err := json.Marshal(InvokeConnectionApi.ConnectionConfig.RequestBody)
 	if err != nil {
@@ -57,25 +57,27 @@ func (InvokeConnectionApi *InvokeConnectionApi) Post() (map[string]interface{}, 
 			query.Set(index, v)
 		case bool:
 			query.Set(index, strconv.FormatBool(v))
-		default:
-			fmt.Printf("Invalid type, we dont allow these types")
+			// default:
+			// 	fmt.Printf("Invalid type, we dont allow these types")
 		}
 	}
 	request.URL.RawQuery = query.Encode()
-	request.Header.Add("X-Skyflow-Authorization", InvokeConnectionApi.Token)
+	request.Header.Set("X-Skyflow-Authorization", InvokeConnectionApi.Token)
+	request.Header.Set("Content-Type", "application/json")
 	for index, value := range InvokeConnectionApi.ConnectionConfig.RequestHeader {
-		request.Header.Add(index, value)
+		request.Header.Set(index, value)
 	}
+	fmt.Println((request.URL))
 	res, err := http.DefaultClient.Do(request)
 	if err != nil {
-		fmt.Println("error from server: ", err)
+		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(commonutils.SERVER_ERROR, err))
 	}
 	data, _ := ioutil.ReadAll(res.Body)
 	res.Body.Close()
 	var result map[string]interface{}
 	err = json.Unmarshal(data, &result)
 	if err != nil {
-		return nil, nil
+		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(commonutils.UNKNOWN_ERROR, string(data)))
 	}
-	return nil, nil
+	return result, nil
 }
