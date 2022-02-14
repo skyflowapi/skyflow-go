@@ -8,8 +8,9 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/skyflowapi/skyflow-go/commonutils"
 	"github.com/skyflowapi/skyflow-go/commonutils/errors"
+	logger "github.com/skyflowapi/skyflow-go/commonutils/logwrapper"
+	"github.com/skyflowapi/skyflow-go/commonutils/messages"
 	"github.com/skyflowapi/skyflow-go/skyflow/common"
 )
 
@@ -28,7 +29,7 @@ func (g *GetByIdApi) Get() (map[string]interface{}, *errors.SkyflowError) {
 	jsonRecord, _ := json.Marshal(g.Records)
 	var getByIdRecord common.GetByIdInput
 	if err := json.Unmarshal(jsonRecord, &getByIdRecord); err != nil {
-		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), commonutils.INVALID_RECORDS)
+		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), messages.INVALID_RECORDS)
 	}
 	res, err := g.doRequest(getByIdRecord)
 	if err != nil {
@@ -42,13 +43,16 @@ func (g *GetByIdApi) doValidations() *errors.SkyflowError {
 	if err != nil {
 		return err
 	}
+
+	logger.Info(messages.VALIDATE_GET_BY_ID_INPUT)
+
 	var totalRecords = g.Records["records"]
 	if totalRecords == nil {
-		return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), commonutils.RECORDS_KEY_NOT_FOUND)
+		return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), messages.RECORDS_KEY_NOT_FOUND)
 	}
 	var recordsArray = (totalRecords).([]interface{})
 	if len(recordsArray) == 0 {
-		return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), commonutils.EMPTY_RECORDS)
+		return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), messages.EMPTY_RECORDS)
 	}
 	for _, record := range recordsArray {
 		var singleRecord = (record).(map[string]interface{})
@@ -57,26 +61,26 @@ func (g *GetByIdApi) doValidations() *errors.SkyflowError {
 		var redaction = singleRecord["redaction"]
 		//var redactionInRecord = (redaction).(string)
 		if table == nil {
-			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), commonutils.MISSING_TABLE)
+			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), messages.MISSING_TABLE)
 		} else if table == "" {
-			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), commonutils.EMPTY_TABLE_NAME)
+			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), messages.EMPTY_TABLE_NAME)
 		} else if ids == nil {
-			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), commonutils.MISSING_KEY_IDS)
+			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), messages.MISSING_KEY_IDS)
 		} else if ids == "" {
-			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), commonutils.EMPTY_RECORD_IDS)
+			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), messages.EMPTY_RECORD_IDS)
 		} else if redaction == nil {
-			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), commonutils.MISSING_REDACTION)
+			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), messages.MISSING_REDACTION)
 		}
 		// else if redactionInRecord != RedactionType.PLAIN_TEXT || redactionInRecord != DEFAULT || redactionInRecord != REDACTED || redactionInRecord != MASKED {
 		// 	return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.Default), errors.INVALID_REDACTION_TYPE)
 		// }
 		idArray := (ids).([]interface{})
 		if len(idArray) == 0 {
-			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), commonutils.EMPTY_RECORD_IDS)
+			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), messages.EMPTY_RECORD_IDS)
 		}
 		for index := range idArray {
 			if idArray[index] == "" {
-				return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), commonutils.EMPTY_TOKEN_ID)
+				return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), messages.EMPTY_TOKEN_ID)
 			}
 		}
 	}
@@ -91,6 +95,7 @@ func (g *GetByIdApi) doRequest(records common.GetByIdInput) (map[string]interfac
 	responseChannel := make(chan map[string]interface{})
 
 	for i := 0; i < len(records.Records); i++ {
+		logger.Info(fmt.Sprintf(messages.GETTING_RECORDS_BY_ID, records.Records[i].Table))
 		go func(i int, responseChannel chan map[string]interface{}) {
 			singleRecord := records.Records[i]
 			requestUrl := fmt.Sprintf("%s/v1/vaults/%s/%s", g.Configuration.VaultURL, g.Configuration.VaultID, singleRecord.Table)
@@ -114,7 +119,7 @@ func (g *GetByIdApi) doRequest(records common.GetByIdInput) (map[string]interfac
 
 				if err != nil {
 					var error = make(map[string]interface{})
-					error["error"] = fmt.Sprintf(commonutils.SERVER_ERROR, err)
+					error["error"] = fmt.Sprintf(messages.SERVER_ERROR, err)
 					error["ids"] = singleRecord.Ids
 					responseChannel <- error
 					//continue
@@ -126,7 +131,7 @@ func (g *GetByIdApi) doRequest(records common.GetByIdInput) (map[string]interfac
 				err = json.Unmarshal(data, &result)
 				if err != nil {
 					var error = make(map[string]interface{})
-					error["error"] = fmt.Sprintf(commonutils.UNKNOWN_ERROR, string(data))
+					error["error"] = fmt.Sprintf(messages.UNKNOWN_ERROR, string(data))
 					error["ids"] = singleRecord.Ids
 					responseChannel <- error
 				} else {
@@ -139,6 +144,7 @@ func (g *GetByIdApi) doRequest(records common.GetByIdInput) (map[string]interfac
 						responseChannel <- error
 
 					} else {
+						logger.Info(fmt.Sprintf(messages.GET_RECORDS_BY_ID_SUCCESS, singleRecord.Table))
 						responseObj := make(map[string]interface{})
 						var responseArr []interface{}
 

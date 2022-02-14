@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/skyflowapi/skyflow-go/commonutils"
 	"github.com/skyflowapi/skyflow-go/commonutils/errors"
+	"github.com/skyflowapi/skyflow-go/commonutils/messages"
 	"github.com/skyflowapi/skyflow-go/commonutils/mocks"
 	"github.com/skyflowapi/skyflow-go/skyflow/common"
 )
@@ -17,7 +17,7 @@ func TestNoRecordsForDetokenize(t *testing.T) {
 	records := make(map[string]interface{})
 	detokenizeApi := DetokenizeApi{Configuration: configuration, Records: records, Token: ""}
 	_, err := detokenizeApi.Get()
-	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), commonutils.RECORDS_KEY_NOT_FOUND)
+	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), messages.RECORDS_KEY_NOT_FOUND)
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 func TestEmptyRecordsForDetokenize(t *testing.T) {
@@ -27,7 +27,7 @@ func TestEmptyRecordsForDetokenize(t *testing.T) {
 	records["records"] = record
 	detokenizeApi := DetokenizeApi{Configuration: configuration, Records: records, Token: ""}
 	_, err := detokenizeApi.Get()
-	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), commonutils.EMPTY_RECORDS)
+	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), messages.EMPTY_RECORDS)
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 
@@ -40,7 +40,7 @@ func TestNoTokenForDetokenize(t *testing.T) {
 	records["records"] = recordsArray
 	detokenizeApi := DetokenizeApi{Configuration: configuration, Records: records, Token: ""}
 	_, err := detokenizeApi.Get()
-	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), commonutils.MISSING_TOKEN)
+	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), messages.MISSING_TOKEN)
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 
@@ -54,7 +54,7 @@ func TestEmptyEmptyTokenForDetokenize(t *testing.T) {
 	records["records"] = recordsArray
 	detokenizeApi := DetokenizeApi{Configuration: configuration, Records: records, Token: ""}
 	_, err := detokenizeApi.Get()
-	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), commonutils.EMPTY_TOKEN_ID)
+	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), messages.EMPTY_TOKEN_ID)
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 

@@ -8,8 +8,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/skyflowapi/skyflow-go/commonutils"
 	"github.com/skyflowapi/skyflow-go/commonutils/errors"
+	logger "github.com/skyflowapi/skyflow-go/commonutils/logwrapper"
+	"github.com/skyflowapi/skyflow-go/commonutils/messages"
 	"github.com/skyflowapi/skyflow-go/skyflow/common"
 )
 
@@ -19,10 +20,13 @@ type InvokeConnectionApi struct {
 }
 
 func (InvokeConnectionApi *InvokeConnectionApi) doValidations() *errors.SkyflowError {
+
+	logger.Info(messages.VALIDATE_CONNECTION_CONFIG)
+
 	if InvokeConnectionApi.ConnectionConfig.ConnectionURL == "" {
-		return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), commonutils.EMPTY_CONNECTION_URL)
+		return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), messages.EMPTY_CONNECTION_URL)
 	} else if !isValidUrl(InvokeConnectionApi.ConnectionConfig.ConnectionURL) {
-		return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(commonutils.INVALID_CONNECTION_URL, InvokeConnectionApi.ConnectionConfig.ConnectionURL))
+		return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.INVALID_CONNECTION_URL, InvokeConnectionApi.ConnectionConfig.ConnectionURL))
 	}
 	return nil
 }
@@ -39,7 +43,7 @@ func (InvokeConnectionApi *InvokeConnectionApi) Post() (map[string]interface{}, 
 	}
 	requestBody, err := json.Marshal(InvokeConnectionApi.ConnectionConfig.RequestBody)
 	if err != nil {
-		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(commonutils.UNKNOWN_ERROR, err))
+		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.UNKNOWN_ERROR, err))
 	}
 	request, _ := http.NewRequest(
 		InvokeConnectionApi.ConnectionConfig.MethodName.String(),
@@ -67,17 +71,21 @@ func (InvokeConnectionApi *InvokeConnectionApi) Post() (map[string]interface{}, 
 	for index, value := range InvokeConnectionApi.ConnectionConfig.RequestHeader {
 		request.Header.Set(index, value)
 	}
-	fmt.Println((request.URL))
+
+	logger.Info(messages.INVOKE_CONNECTION_CALLED)
+
 	res, err := http.DefaultClient.Do(request)
 	if err != nil {
-		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(commonutils.SERVER_ERROR, err))
+		logger.Error(messages.INVOKE_CONNECTION_FAILED)
+		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.SERVER_ERROR, err))
 	}
 	data, _ := ioutil.ReadAll(res.Body)
 	res.Body.Close()
 	var result map[string]interface{}
 	err = json.Unmarshal(data, &result)
 	if err != nil {
-		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(commonutils.UNKNOWN_ERROR, string(data)))
+		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.UNKNOWN_ERROR, string(data)))
 	}
+	logger.Info(messages.INVOKE_CONNECTION_SUCCESS)
 	return result, nil
 }

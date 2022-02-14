@@ -7,8 +7,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/skyflowapi/skyflow-go/commonutils"
 	"github.com/skyflowapi/skyflow-go/commonutils/errors"
+	logger "github.com/skyflowapi/skyflow-go/commonutils/logwrapper"
+	"github.com/skyflowapi/skyflow-go/commonutils/messages"
 	"github.com/skyflowapi/skyflow-go/skyflow/common"
 )
 
@@ -31,7 +32,7 @@ func (detokenize *DetokenizeApi) Get() (map[string]interface{}, *errors.SkyflowE
 	jsonRecord, _ := json.Marshal(detokenize.Records)
 	var detokenizeRecord common.DetokenizeInput
 	if err := json.Unmarshal(jsonRecord, &detokenizeRecord); err != nil {
-		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), commonutils.INVALID_RECORDS)
+		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), messages.INVALID_RECORDS)
 	}
 	res, err := detokenize.sendRequest(detokenizeRecord)
 	if err != nil {
@@ -45,21 +46,24 @@ func (detokenizeApi *DetokenizeApi) doValidations() *errors.SkyflowError {
 	if err != nil {
 		return err
 	}
+
+	logger.Info(messages.VALIDATE_DETOKENIZE_INPUT)
+
 	var totalRecords = detokenizeApi.Records["records"]
 	if totalRecords == nil {
-		return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), commonutils.RECORDS_KEY_NOT_FOUND)
+		return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), messages.RECORDS_KEY_NOT_FOUND)
 	}
 	var recordsArray = (totalRecords).([]interface{})
 	if len(recordsArray) == 0 {
-		return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), commonutils.EMPTY_RECORDS)
+		return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), messages.EMPTY_RECORDS)
 	}
 	for _, record := range recordsArray {
 		var singleRecord = (record).(map[string]interface{})
 		var token = singleRecord["token"]
 		if token == nil {
-			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), commonutils.MISSING_TOKEN)
+			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), messages.MISSING_TOKEN)
 		} else if token == "" {
-			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), commonutils.EMPTY_TOKEN_ID)
+			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), messages.EMPTY_TOKEN_ID)
 		}
 	}
 	return nil
@@ -74,6 +78,7 @@ func (detokenize *DetokenizeApi) sendRequest(records common.DetokenizeInput) (ma
 	responseChannel := make(chan map[string]interface{})
 
 	for i := 0; i < len(records.Records); i++ {
+		logger.Info(fmt.Sprintf(messages.DETOKENIZING_RECORDS, records.Records[i].Token))
 		go func(i int, responseChannel chan map[string]interface{}) {
 			singleRecord := records.Records[i]
 			requestUrl := fmt.Sprintf("%s/v1/vaults/%s/detokenize", detokenize.Configuration.VaultURL, detokenize.Configuration.VaultID)
@@ -96,9 +101,9 @@ func (detokenize *DetokenizeApi) sendRequest(records common.DetokenizeInput) (ma
 				res, err := Client.Do(request)
 
 				if err != nil {
-					fmt.Println("server error")
+					logger.Error(fmt.Sprintf(messages.DETOKENIZING_FAILED, singleRecord.Token))
 					var error = make(map[string]interface{})
-					error["error"] = fmt.Sprintf(commonutils.SERVER_ERROR, err)
+					error["error"] = fmt.Sprintf(messages.SERVER_ERROR, err)
 					error["token"] = singleRecord.Token
 					responseChannel <- error
 					//continue
@@ -110,7 +115,7 @@ func (detokenize *DetokenizeApi) sendRequest(records common.DetokenizeInput) (ma
 				err = json.Unmarshal(data, &result)
 				if err != nil {
 					var error = make(map[string]interface{})
-					error["error"] = fmt.Sprintf(commonutils.UNKNOWN_ERROR, string(data))
+					error["error"] = fmt.Sprintf(messages.UNKNOWN_ERROR, string(data))
 					error["token"] = singleRecord.Token
 					responseChannel <- error
 				} else {
@@ -122,6 +127,7 @@ func (detokenize *DetokenizeApi) sendRequest(records common.DetokenizeInput) (ma
 						error["token"] = singleRecord.Token
 						responseChannel <- error
 					} else {
+						logger.Info(fmt.Sprintf(messages.DETOKENIZING_SUCCESS, singleRecord.Token))
 						var generatedResult = (result["records"]).([]interface{})
 						var record = (generatedResult[0]).(map[string]interface{})
 						delete(record, "valueType")
