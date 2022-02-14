@@ -8,8 +8,8 @@ import (
 
 	"github.com/skyflowapi/skyflow-go/commonutils"
 	"github.com/skyflowapi/skyflow-go/commonutils/errors"
+	"github.com/skyflowapi/skyflow-go/commonutils/mocks"
 	"github.com/skyflowapi/skyflow-go/skyflow/common"
-	mocks "github.com/skyflowapi/skyflow-go/skyflow/utils/mocks"
 )
 
 func TestNoRecordsForDetokenize(t *testing.T) {
