@@ -56,7 +56,6 @@ func (client *Client) Detokenize(records map[string]interface{}) (common.Detoken
 	}
 	detokenizeApi := vaultapi.DetokenizeApi{Configuration: client.configuration, Records: records, Token: token}
 
-	//return detokenizeApi.Get()
 	res, err := detokenizeApi.Get()
 
 	if err != nil {
