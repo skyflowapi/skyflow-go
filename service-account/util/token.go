@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt"
+	logger "github.com/skyflowapi/skyflow-go/commonutils/logwrapper"
+	"github.com/skyflowapi/skyflow-go/commonutils/messages"
 	"github.com/skyflowapi/skyflow-go/errors"
 )
 
@@ -21,8 +23,16 @@ type ResponseToken struct {
 	TokenType   string `json:tokenType`
 }
 
-// GenerateToken - Generates a Service Account Token from the given Service Account Credential file with a default timeout of 60minutes.
+var tag = "GenerateBearerToken"
+
+// Deprecated: Instaed use GenerateBearerToken
 func GenerateToken(filePath string) (*ResponseToken, *errors.SkyflowError) {
+	logger.Warn(fmt.Sprintf(messages.DEPRECATED_GENERATE_TOKEN_FUNCTION, tag))
+	return GenerateBearerToken(filePath)
+}
+
+// GenerateBearerToken - Generates a Service Account Token from the given Service Account Credential file with a default timeout of 60minutes.
+func GenerateBearerToken(filePath string) (*ResponseToken, *errors.SkyflowError) {
 	var key map[string]interface{}
 
 	jsonFile, err := os.Open(filePath)
@@ -42,6 +52,22 @@ func GenerateToken(filePath string) (*ResponseToken, *errors.SkyflowError) {
 	}
 
 	token, skyflowError := getSATokenFromCredsFile(key)
+	if err != nil {
+		return nil, skyflowError
+	}
+	return token, nil
+}
+
+func GenerateBearerTokenFromCreds(credentials string) (*ResponseToken, *errors.SkyflowError) {
+
+	credsMap := make(map[string]interface{})
+
+	err := json.Unmarshal([]byte(credentials), &credsMap)
+	if err != nil {
+		return nil, errors.NewSkyflowErrorf(errors.InvalidInput, "credentials string is not a valid json string format")
+	}
+
+	token, skyflowError := getSATokenFromCredsFile(credsMap)
 	if err != nil {
 		return nil, skyflowError
 	}
