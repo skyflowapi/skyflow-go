@@ -45,11 +45,11 @@ type Configuration struct {
 	TokenProvider TokenProvider
 }
 
-type InsertRecord struct {
-	Records []SingleRecord
+type InsertRecords struct {
+	Records []InsertRecord
 }
 
-type SingleRecord struct {
+type InsertRecord struct {
 	Table  string
 	Fields map[string]interface{}
 }
@@ -62,10 +62,44 @@ type RevealRecord struct {
 	Token string
 }
 
+type DetokenizeRecords struct {
+	Records []DetokenizeRecord
+	Errors  []DetokenizeError
+}
+
+type DetokenizeRecord struct {
+	Token string
+	Value string
+}
+
+type DetokenizeError struct {
+	Token string
+	Error ResponseError
+}
+
+type ResponseError struct {
+	Code        string
+	Description string
+}
+
 type GetByIdInput struct {
 	Records []SkyflowIdRecord
 }
 
+type GetByIdRecords struct {
+	Records []GetByIdRecord
+	Errors  []GetByIdError
+}
+
+type GetByIdRecord struct {
+	Fields map[string]interface{}
+	Table  string
+}
+
+type GetByIdError struct {
+	Ids   []string
+	Error ResponseError
+}
 type SkyflowIdRecord struct {
 	Ids       []string
 	Redaction RedactionType

@@ -148,10 +148,7 @@ func main() {
 	res, err := skyflowClient.Insert(records, options)
 
 	if err == nil {
-		result, jsonErr := json.Marshal(res)
-		if jsonErr == nil {
-			fmt.Println("result", string(result))
-		}
+			fmt.Println(res.Records)
 	} 
 }	
 ```
@@ -231,10 +228,8 @@ func main() {
     res, err: = skyflowClient.Detokenize(records)
 
     if err == nil {
-        jsonRes, err: = json.Marshal(res)
-        if err == nil {
-            fmt.Println("result: ", string(jsonRes))
-        }
+        fmt.Println("Records:",res.Records)
+        fmt.Println("Errors:",res.Errors)
     }
 }  
 ```
@@ -281,7 +276,7 @@ record1["ids"] = [] string {} {     // List of SkyflowID's of the records to be 
     "<skyflow_id1>", "<skyflow_id2>"
 }
 record1["table"] = "<table_name>"   // name of table holding the above skyflow_id's
-record1["redaction"] =  Skyflow.RedactionType   // redaction to be applied to retrieved data
+record1["redaction"] =  common.PLAIN_TEXT   // redaction to be applied to retrieved data
 
 var recordsArray[] interface {}
 recordsArray = append(recordsArray, record1)
@@ -320,7 +315,7 @@ func main() {
         "f8d8a622-b557-4c6b-a12c-c5ebe0b0bfd9", "da26de53-95d5-4bdb-99db-8d8c66a35ff9"
     }
     record1["table"] = "cards"
-    record1["redaction"] = "PLAIN_TEXT"
+    record1["redaction"] = common.PLAIN_TEXT
 
     var recordsArray[] interface {}
     recordsArray = append(recordsArray, record1)
@@ -329,10 +324,8 @@ func main() {
     res, err: = skyflowClient.GetById(records)
 
     if err == nil {
-        jsonRes, err: = json.Marshal(res)
-        if err == nil {
-            fmt.Println("result: ", string(jsonRes))
-        }
+      fmt.Println("Records:",res.Records)
+      fmt.Println("Errors:",res.Errors)
     }
 }
 ```

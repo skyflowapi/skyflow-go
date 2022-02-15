@@ -42,7 +42,7 @@ const (
 	INVALID_REDACTION_TYPE                 string = "[skyflow] Interface: %s - provided redaction type value doesn’t match with one of : 'plain_text' 'redacted' 'default' or 'masked'"
 	INVALID_FIELD                          string = "[skyflow] Interface: %s - invalid field %s"
 	MISSING_TOKEN                          string = "[skyflow] Interface: %s - missing token property"
-	MISSING_KEY_IDS                        string = "[skyflow] Interface: %s - Key 'ids' is not present in the JSON object passed."
+	MISSING_KEY_IDS                        string = "[skyflow] Interface: %s - Key 'ids' is missing in the payload provided"
 	EMPTY_RECORD_IDS                       string = "[skyflow] Interface: %s - record ids cannot be empty"
 	INVALID_RECORD_ID_TYPE                 string = "[skyflow] Interface: %s - invalid type of records id"
 	MISSING_TABLE                          string = "[skyflow] Interface: %s - missing table property"

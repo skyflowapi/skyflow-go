@@ -64,7 +64,6 @@ func (g *GetByIdApi) doValidations() *errors.SkyflowError {
 		var table = singleRecord["table"]
 		var ids = singleRecord["ids"]
 		var redaction = singleRecord["redaction"]
-		//var redactionInRecord = (redaction).(string)
 		if table == nil {
 			logger.Error(fmt.Sprintf(messages.MISSING_TABLE, getByIdTag))
 			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.MISSING_TABLE, getByIdTag))
@@ -80,10 +79,10 @@ func (g *GetByIdApi) doValidations() *errors.SkyflowError {
 		} else if redaction == nil {
 			logger.Error(fmt.Sprintf(messages.MISSING_REDACTION, getByIdTag))
 			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.MISSING_REDACTION, getByIdTag))
+		} else if redaction != common.PLAIN_TEXT && redaction != common.DEFAULT && redaction != common.REDACTED && redaction != common.MASKED {
+			logger.Error(fmt.Sprintf(messages.INVALID_REDACTION_TYPE, getByIdTag))
+			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.INVALID_REDACTION_TYPE, getByIdTag))
 		}
-		// else if redactionInRecord != RedactionType.PLAIN_TEXT || redactionInRecord != DEFAULT || redactionInRecord != REDACTED || redactionInRecord != MASKED {
-		// 	return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.Default), errors.INVALID_REDACTION_TYPE)
-		// }
 		idArray := (ids).([]interface{})
 		if len(idArray) == 0 {
 			logger.Error(fmt.Sprintf(messages.EMPTY_RECORD_IDS, getByIdTag))
@@ -132,10 +131,12 @@ func (g *GetByIdApi) doRequest(records common.GetByIdInput) (map[string]interfac
 				if err != nil {
 					logger.Error(fmt.Sprintf(messages.GET_RECORDS_BY_ID_FAILED, getByIdTag, singleRecord.Table))
 					var error = make(map[string]interface{})
-					error["error"] = fmt.Sprintf(messages.SERVER_ERROR, getByIdTag, err)
+					var errorObj = make(map[string]interface{})
+					errorObj["code"] = "500"
+					errorObj["description"] = fmt.Sprintf(messages.SERVER_ERROR, getByIdTag, err)
+					error["error"] = errorObj
 					error["ids"] = singleRecord.Ids
 					responseChannel <- error
-					//continue
 					return
 				}
 				data, _ := ioutil.ReadAll(res.Body)
@@ -145,7 +146,10 @@ func (g *GetByIdApi) doRequest(records common.GetByIdInput) (map[string]interfac
 				if err != nil {
 					logger.Error(fmt.Sprintf(messages.GET_RECORDS_BY_ID_FAILED, getByIdTag, singleRecord.Table))
 					var error = make(map[string]interface{})
-					error["error"] = fmt.Sprintf(messages.UNKNOWN_ERROR, getByIdTag, string(data))
+					var errorObj = make(map[string]interface{})
+					errorObj["code"] = "500"
+					errorObj["description"] = fmt.Sprintf(messages.UNKNOWN_ERROR, getByIdTag, string(data))
+					error["error"] = errorObj
 					error["ids"] = singleRecord.Ids
 					responseChannel <- error
 				} else {
@@ -154,7 +158,10 @@ func (g *GetByIdApi) doRequest(records common.GetByIdInput) (map[string]interfac
 						logger.Error(fmt.Sprintf(messages.GET_RECORDS_BY_ID_FAILED, getByIdTag, singleRecord.Table))
 						var generatedError = (errorResult).(map[string]interface{})
 						var error = make(map[string]interface{})
-						error["error"] = generatedError["message"]
+						var errorObj = make(map[string]interface{})
+						errorObj["code"] = fmt.Sprintf("%v", (errorResult.(map[string]interface{}))["http_code"])
+						errorObj["description"] = generatedError["message"]
+						error["error"] = errorObj
 						error["ids"] = singleRecord.Ids
 						responseChannel <- error
 

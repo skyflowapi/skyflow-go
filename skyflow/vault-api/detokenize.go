@@ -102,14 +102,15 @@ func (detokenize *DetokenizeApi) sendRequest(records common.DetokenizeInput) (ma
 				request.Header.Add("Authorization", bearerToken)
 
 				res, err := Client.Do(request)
-
 				if err != nil {
 					logger.Error(fmt.Sprintf(messages.DETOKENIZING_FAILED, detokenizeTag, singleRecord.Token))
 					var error = make(map[string]interface{})
-					error["error"] = fmt.Sprintf(messages.SERVER_ERROR, detokenizeTag, err)
+					var errorObj = make(map[string]interface{})
+					errorObj["code"] = "500"
+					errorObj["description"] = fmt.Sprintf(messages.SERVER_ERROR, detokenizeTag, err)
+					error["error"] = errorObj
 					error["token"] = singleRecord.Token
 					responseChannel <- error
-					//continue
 					return
 				}
 				data, _ := ioutil.ReadAll(res.Body)
@@ -119,7 +120,10 @@ func (detokenize *DetokenizeApi) sendRequest(records common.DetokenizeInput) (ma
 				if err != nil {
 					logger.Error(fmt.Sprintf(messages.DETOKENIZING_FAILED, detokenizeTag, singleRecord.Token))
 					var error = make(map[string]interface{})
-					error["error"] = fmt.Sprintf(messages.UNKNOWN_ERROR, detokenizeTag, string(data))
+					var errorObj = make(map[string]interface{})
+					errorObj["code"] = "500"
+					errorObj["description"] = fmt.Sprintf(messages.UNKNOWN_ERROR, detokenizeTag, string(data))
+					error["error"] = errorObj
 					error["token"] = singleRecord.Token
 					responseChannel <- error
 				} else {
@@ -128,7 +132,10 @@ func (detokenize *DetokenizeApi) sendRequest(records common.DetokenizeInput) (ma
 						logger.Error(fmt.Sprintf(messages.DETOKENIZING_FAILED, detokenizeTag, singleRecord.Token))
 						var generatedError = (errorResult).(map[string]interface{})
 						var error = make(map[string]interface{})
-						error["error"] = generatedError["message"]
+						var errorObj = make(map[string]interface{})
+						errorObj["code"] = fmt.Sprintf("%v", (errorResult.(map[string]interface{}))["http_code"])
+						errorObj["description"] = generatedError["message"]
+						error["error"] = errorObj
 						error["token"] = singleRecord.Token
 						responseChannel <- error
 					} else {
