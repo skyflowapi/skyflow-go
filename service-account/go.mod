@@ -7,5 +7,3 @@ require (
 	github.com/skyflowapi/skyflow-go v1.0.0 // indirect
 	github.com/skyflowapi/skyflow-go/commonutils v0.0.0-20210825143343-33e8f537e3df
 )
-
-// replace github.com/skyflowapi/skyflow-go/errors => ../errors/

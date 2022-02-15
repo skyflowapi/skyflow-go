@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 
 	logger "github.com/skyflowapi/skyflow-go/commonutils/logwrapper"
@@ -53,10 +52,7 @@ func main() {
 	res, err := client.InvokeConnection(connectionConfig)
 
 	if err == nil {
-		jsonRes, err := json.Marshal(res)
-		if err == nil {
-			fmt.Println("result: ", string(jsonRes))
-		}
+		fmt.Println(res)
 	} else {
 		panic(err.GetMessage())
 	}

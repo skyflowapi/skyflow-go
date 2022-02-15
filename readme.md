@@ -132,25 +132,27 @@ func main() {
 
     //initialize skyflowClient
 
-    var records = make(map[string]interface{})
-    var record = make(map[string]interface{})
-	record["table"] = "cards"
-    var fields = make(map[string]interface{})
-	fields["cardNumber"] = "411111111111"
-	fields["fullname"] = "name"
-	record["fields"] = fields
-    var recordsArray []interface{}
-	recordsArray = append(recordsArray, record)
-	records["records"] = recordsArray
+    var records = make(map[string] interface {})
+    var record = make(map[string] interface {})
+    record["table"] = "cards"
+    var fields = make(map[string] interface {})
+    fields["cardNumber"] = "411111111111"
+    fields["fullname"] = "name"
+    record["fields"] = fields
+    var recordsArray[] interface {}
+    recordsArray = append(recordsArray, record)
+    records["records"] = recordsArray
 
-    var options = common.InsertOptions{Tokens: true}
+    var options = common.InsertOptions {
+        Tokens: true
+    }
 
-	res, err := skyflowClient.Insert(records, options)
+    res, err: = skyflowClient.Insert(records, options)
 
-	if err == nil {
-			fmt.Println(res.Records)
-	} 
-}	
+    if err == nil {
+        fmt.Println(res.Records)
+    }
+}
 ```
 
 Sample response :
@@ -363,22 +365,22 @@ Using  InvokeConnection, end-user applications can integrate checkout/card issua
 
 ```go
 
-    pathParams := make(map[string]string)
-    pathParams["<path_param_key>"] = "<path_param_value>"
+  pathParams := make(map[string]string)
+  pathParams["<path_param_key>"] = "<path_param_value>"
 
-    queryParams := make(map[string]interface{})
-    queryParams["<query_param_key>"] = "<query_param_value>"
+  queryParams := make(map[string]interface{})
+  queryParams["<query_param_key>"] = "<query_param_value>"
 
-    requestHeader := make(map[string]string)
-    requestHeader["<request_header_key>"] = "<request_header_value>"
+  requestHeader := make(map[string]string)
+  requestHeader["<request_header_key>"] = "<request_header_value>"
 
-    requestBody := make(map[string]interface{})
-    requestBody["<request_body_key>"] = "<request_body_value>"
+  requestBody := make(map[string]interface{})
+  requestBody["<request_body_key>"] = "<request_body_value>"
 
-    connectionConfig := common.ConnectionConfig{ConnectionURL : "<your_connection_url>",MethodName : "<Method_Name>",PathParams : pathParams,QueryParams : queryParams, RequestBody : requestBody, RequestHeaders : requestHeader}
+  connectionConfig := common.ConnectionConfig{ConnectionURL : "<your_connection_url>",MethodName : "<Method_Name>",PathParams : pathParams,QueryParams : queryParams, RequestBody : requestBody, RequestHeaders : requestHeader}
 
-    skyflowClient.InvokeConnection(connectionConfig)  
-}
+  skyflowClient.InvokeConnection(connectionConfig)  
+
 
 ```
 
