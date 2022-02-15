@@ -67,7 +67,7 @@ func (client *Client) Detokenize(records map[string]interface{}) (common.Detoken
 	var response common.DetokenizeRecords
 	err1 := json.Unmarshal(jsonResponse, &response)
 	if err1 != nil {
-		return common.DetokenizeRecords{}, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.UNKNOWN_ERROR, "Insert", err1))
+		return common.DetokenizeRecords{}, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.UNKNOWN_ERROR, "Detokenize", err1))
 	}
 	return response, nil
 }
@@ -90,7 +90,7 @@ func (client *Client) GetById(records map[string]interface{}) (common.GetByIdRec
 	var response common.GetByIdRecords
 	err1 := json.Unmarshal(jsonResponse, &response)
 	if err1 != nil {
-		return common.GetByIdRecords{}, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.UNKNOWN_ERROR, "Insert", err1))
+		return common.GetByIdRecords{}, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.UNKNOWN_ERROR, "GetById", err1))
 	}
 	return response, nil
 }

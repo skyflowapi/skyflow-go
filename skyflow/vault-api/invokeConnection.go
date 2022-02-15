@@ -78,11 +78,11 @@ func (InvokeConnectionApi *InvokeConnectionApi) Post() (map[string]interface{}, 
 		request.Header.Set(index, value)
 	}
 
-	logger.Info(messages.INVOKE_CONNECTION_CALLED)
+	logger.Info(fmt.Sprintf(messages.INVOKE_CONNECTION_CALLED, connectionTag))
 
 	res, err := http.DefaultClient.Do(request)
 	if err != nil {
-		logger.Error(messages.INVOKE_CONNECTION_FAILED)
+		logger.Error(fmt.Sprintf(messages.INVOKE_CONNECTION_FAILED, connectionTag))
 		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.SERVER_ERROR, connectionTag, err))
 	}
 	data, _ := ioutil.ReadAll(res.Body)
@@ -90,9 +90,9 @@ func (InvokeConnectionApi *InvokeConnectionApi) Post() (map[string]interface{}, 
 	var result map[string]interface{}
 	err = json.Unmarshal(data, &result)
 	if err != nil {
-		logger.Error(messages.INVOKE_CONNECTION_FAILED)
+		logger.Error(fmt.Sprintf(messages.INVOKE_CONNECTION_FAILED, connectionTag))
 		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.UNKNOWN_ERROR, connectionTag, string(data)))
 	}
-	logger.Info(messages.INVOKE_CONNECTION_SUCCESS)
+	logger.Info(fmt.Sprintf(messages.INVOKE_CONNECTION_SUCCESS, connectionTag))
 	return result, nil
 }

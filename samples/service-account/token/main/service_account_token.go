@@ -9,6 +9,7 @@ import (
 func main() {
 	filePath := ""
 	token, err := saUtil.GenerateBearerToken(filePath)
+	// token, err := saUtil.GenerateBearerTokenFromCreds("<creds_as_String>")
 	if err != nil {
 		panic(err)
 	}
