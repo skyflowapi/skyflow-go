@@ -8,7 +8,7 @@ import (
 
 func main() {
 	filePath := ""
-	token, err := saUtil.GenerateToken(filePath)
+	token, err := saUtil.GenerateBearerToken(filePath)
 	if err != nil {
 		panic(err)
 	}

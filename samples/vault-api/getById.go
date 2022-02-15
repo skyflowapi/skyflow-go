@@ -1,15 +1,22 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 
+	logger "github.com/skyflowapi/skyflow-go/commonutils/logwrapper"
+	saUtil "github.com/skyflowapi/skyflow-go/service-account/util"
 	Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
 	"github.com/skyflowapi/skyflow-go/skyflow/common"
 )
 
 func GetToken() (string, error) {
-	return "<token>", nil
+	filePath := "<file_path>"
+	token, err := saUtil.GenerateBearerToken(filePath)
+	if err != nil {
+		return "", err
+	}
+
+	return token.AccessToken, nil
 }
 
 func main() {
@@ -19,6 +26,7 @@ func main() {
 			fmt.Println("error: ", r)
 		}
 	}()
+	logger.SetLogLevel(logger.INFO) //set loglevel to INFO
 	configuration := common.Configuration{VaultID: "<vault_id>", VaultURL: "<vault_url>", TokenProvider: GetToken}
 	var client = Skyflow.Init(configuration)
 	var records = make(map[string]interface{})
@@ -32,10 +40,7 @@ func main() {
 	records["records"] = recordsArray
 	res, err := client.GetById(records)
 	if err == nil {
-		jsonRes, err := json.Marshal(res)
-		if err == nil {
-			fmt.Println("result: ", string(jsonRes))
-		}
+		fmt.Println("Records : ", res.Records)
 	} else {
 		panic(err.GetMessage())
 	}

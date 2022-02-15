@@ -4,12 +4,20 @@ import (
 	"encoding/json"
 	"fmt"
 
+	logger "github.com/skyflowapi/skyflow-go/commonutils/logwrapper"
+	saUtil "github.com/skyflowapi/skyflow-go/service-account/util"
 	Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
 	"github.com/skyflowapi/skyflow-go/skyflow/common"
 )
 
 func GetToken() (string, error) {
-	return "<token>", nil
+	filePath := "<file_path>"
+	token, err := saUtil.GenerateBearerToken(filePath)
+	if err != nil {
+		return "", err
+	}
+
+	return token.AccessToken, nil
 }
 func main() {
 
@@ -19,6 +27,7 @@ func main() {
 		}
 	}()
 
+	logger.SetLogLevel(logger.INFO) //set loglevel to INFO
 	configuration := common.Configuration{TokenProvider: GetToken}
 	var client = Skyflow.Init(configuration)
 
