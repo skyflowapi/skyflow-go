@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	sErrors "github.com/skyflowapi/skyflow-go/errors"
+	sErrors "github.com/skyflowapi/skyflow-go/commonutils/errors"
 )
 
 func TestGetToken(t *testing.T) {
