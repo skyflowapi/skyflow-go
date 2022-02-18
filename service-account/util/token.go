@@ -51,9 +51,9 @@ func GenerateBearerToken(filePath string) (*ResponseToken, *errors.SkyflowError)
 		return nil, errors.NewSkyflowErrorWrap(errors.InvalidInput, err, fmt.Sprintf("Provided json file is in wrong format - file %s", filePath))
 	}
 
-	token, skyflowError := getSATokenFromCredsFile(key)
+	token, err := getSATokenFromCredsFile(key)
 	if err != nil {
-		return nil, skyflowError
+		return nil, err
 	}
 	return token, nil
 }
@@ -118,6 +118,11 @@ func getSATokenFromCredsFile(key map[string]interface{}) (*ResponseToken, *error
 	if err != nil {
 		return nil, errors.NewSkyflowErrorWrap(errors.Server, err, "Internal server error")
 	}
+
+	if res.StatusCode != 200 {
+		return "", fmt.Errorf("Err!! %v", string(body)) 
+	}
+	
 	defer res.Body.Close()
 
 	body, err := ioutil.ReadAll(res.Body)
