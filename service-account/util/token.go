@@ -52,7 +52,7 @@ func GenerateBearerToken(filePath string) (*ResponseToken, *errors.SkyflowError)
 	}
 
 	token, skyflowError := getSATokenFromCredsFile(key)
-	if err != nil {
+	if skyflowError != nil {
 		return nil, skyflowError
 	}
 	return token, nil
@@ -123,6 +123,16 @@ func getSATokenFromCredsFile(key map[string]interface{}) (*ResponseToken, *error
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		return nil, errors.NewSkyflowErrorWrap(errors.Server, err, "Unable to read response payload")
+	}
+
+	if res.StatusCode != 200 {
+		return nil, errors.NewSkyflowErrorWrap(errors.Server,
+			fmt.Errorf("%v", string(body)),
+			"Error Occured")
+	}
+
+	if len(body) == 0 {
+		return nil, errors.NewSkyflowError(errors.Server, "Empty body")
 	}
 
 	var responseToken ResponseToken
