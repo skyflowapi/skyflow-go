@@ -1,13 +1,16 @@
 package messages
 
 const (
-	INVALID_URL                 string = "[skyflow] Interface: %s - URL %s is invalid"
-	INITIALIZING_SKYFLOW_CLIENT string = "[skyflow] Interface: %s - Initializing skyflow client"
-	VALIDATE_INIT_CONFIG        string = "[skyflow] Interface: %s - Validating init config"
-	VALIDATE_RECORDS            string = "[skyflow] Interface: %s - Validating insert records"
-	VALIDATE_DETOKENIZE_INPUT   string = "[skyflow] Interface: %s - Validating detokenize input"
-	VALIDATE_GET_BY_ID_INPUT    string = "[skyflow] Interface: %s - Validating getByID input"
-	VALIDATE_CONNECTION_CONFIG  string = "[skyflow] Interface: %s - Validating connection config"
+	GENERATE_BEARER_TOKEN_TRIGGERED string = "[skyflow] Interface: %s - Generate bearer token triggered"
+	GENERATE_BEARER_TOKEN_SUCCESS   string = "[skyflow] Interface: %s - Generate bearer token returned successfully"
+	INVALID_INPUT                   string = "[skyflow] Interface: %s - %s"
+	INVALID_URL                     string = "[skyflow] Interface: %s - URL %s is invalid"
+	INITIALIZING_SKYFLOW_CLIENT     string = "[skyflow] Interface: %s - Initializing skyflow client"
+	VALIDATE_INIT_CONFIG            string = "[skyflow] Interface: %s - Validating init config"
+	VALIDATE_RECORDS                string = "[skyflow] Interface: %s - Validating insert records"
+	VALIDATE_DETOKENIZE_INPUT       string = "[skyflow] Interface: %s - Validating detokenize input"
+	VALIDATE_GET_BY_ID_INPUT        string = "[skyflow] Interface: %s - Validating getByID input"
+	VALIDATE_CONNECTION_CONFIG      string = "[skyflow] Interface: %s - Validating connection config"
 
 	INSERTING_RECORDS         string = "[skyflow] Interface: %s - Inserting records into vault with id %s"
 	INSERTING_RECORDS_SUCCESS string = "[skyflow] Interface: %s - Successfully inserted records into vault with id %s"

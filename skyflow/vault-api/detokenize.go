@@ -102,12 +102,13 @@ func (detokenize *DetokenizeApi) sendRequest(records common.DetokenizeInput) (ma
 				request.Header.Add("Authorization", bearerToken)
 
 				res, err := Client.Do(request)
+				var requestId = res.Header.Get("x-request-id")
 				if err != nil {
-					logger.Error(fmt.Sprintf(messages.DETOKENIZING_FAILED, detokenizeTag, singleRecord.Token))
+					logger.Error(fmt.Sprintf(messages.DETOKENIZING_FAILED, detokenizeTag, appendRequestId(singleRecord.Token, requestId)))
 					var error = make(map[string]interface{})
 					var errorObj = make(map[string]interface{})
 					errorObj["code"] = "500"
-					errorObj["description"] = fmt.Sprintf(messages.SERVER_ERROR, detokenizeTag, err)
+					errorObj["description"] = appendRequestId(fmt.Sprintf(messages.SERVER_ERROR, detokenizeTag, err), requestId)
 					error["error"] = errorObj
 					error["token"] = singleRecord.Token
 					responseChannel <- error
@@ -118,23 +119,23 @@ func (detokenize *DetokenizeApi) sendRequest(records common.DetokenizeInput) (ma
 				var result map[string]interface{}
 				err = json.Unmarshal(data, &result)
 				if err != nil {
-					logger.Error(fmt.Sprintf(messages.DETOKENIZING_FAILED, detokenizeTag, singleRecord.Token))
+					logger.Error(fmt.Sprintf(messages.DETOKENIZING_FAILED, detokenizeTag, appendRequestId(singleRecord.Token, requestId)))
 					var error = make(map[string]interface{})
 					var errorObj = make(map[string]interface{})
 					errorObj["code"] = "500"
-					errorObj["description"] = fmt.Sprintf(messages.UNKNOWN_ERROR, detokenizeTag, string(data))
+					errorObj["description"] = fmt.Sprintf(messages.UNKNOWN_ERROR, detokenizeTag, appendRequestId(string(data), requestId))
 					error["error"] = errorObj
 					error["token"] = singleRecord.Token
 					responseChannel <- error
 				} else {
 					errorResult := result["error"]
 					if errorResult != nil {
-						logger.Error(fmt.Sprintf(messages.DETOKENIZING_FAILED, detokenizeTag, singleRecord.Token))
+						logger.Error(fmt.Sprintf(messages.DETOKENIZING_FAILED, detokenizeTag, appendRequestId(singleRecord.Token, requestId)))
 						var generatedError = (errorResult).(map[string]interface{})
 						var error = make(map[string]interface{})
 						var errorObj = make(map[string]interface{})
 						errorObj["code"] = fmt.Sprintf("%v", (errorResult.(map[string]interface{}))["http_code"])
-						errorObj["description"] = generatedError["message"]
+						errorObj["description"] = appendRequestId((generatedError["message"]).(string), requestId)
 						error["error"] = errorObj
 						error["token"] = singleRecord.Token
 						responseChannel <- error
@@ -168,4 +169,12 @@ func (detokenize *DetokenizeApi) sendRequest(records common.DetokenizeInput) (ma
 		finalRecord["errors"] = finalError
 	}
 	return finalRecord, nil
+}
+
+func appendRequestId(message string, requestId string) string {
+	if requestId == "" {
+		return message
+	}
+
+	return message + " - requestId : " + requestId
 }
