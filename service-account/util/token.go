@@ -73,7 +73,7 @@ func GenerateBearerTokenFromCreds(credentials string) (*ResponseToken, *errors.S
 	}
 
 	token, skyflowError := getSATokenFromCredsFile(credsMap)
-	if err != nil {
+	if skyflowError != nil {
 		return nil, skyflowError
 	}
 	return token, nil
