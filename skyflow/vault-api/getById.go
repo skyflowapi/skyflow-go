@@ -143,7 +143,7 @@ func (g *GetByIdApi) doRequest(records common.GetByIdInput) (map[string]interfac
 					return
 				}
 				data, _ := ioutil.ReadAll(res.Body)
-				res.Body.Close()
+				defer res.Body.Close()
 				var result map[string]interface{}
 				err = json.Unmarshal(data, &result)
 				if err != nil {
