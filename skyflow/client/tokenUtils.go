@@ -42,8 +42,6 @@ func isTokenExpired(tokenString string) bool {
 	}
 	var expiryTime = claims.ExpiresAt
 	currentTime := time.Now()
-	fmt.Println(currentTime)
-	fmt.Println(expiryTime)
-
+	currentTime = currentTime.Add(time.Duration(-5) * time.Minute)
 	return expiryTime.Before(currentTime)
 }

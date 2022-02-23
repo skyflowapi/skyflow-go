@@ -123,9 +123,9 @@ func (insertApi *InsertApi) Post(token string) (common.ResponseBody, *errors.Sky
 		requestId = res.Header.Get("x-request-id")
 	}
 	if err2 != nil {
-		logger.Error(fmt.Sprintf(messages.INSERTING_RECORDS_FAILED, insertTag, appendRequestId(insertApi.Configuration.VaultID, requestId)))
+		logger.Error(fmt.Sprintf(messages.INSERTING_RECORDS_FAILED, insertTag, common.AppendRequestId(insertApi.Configuration.VaultID, requestId)))
 		code := strconv.Itoa(res.StatusCode)
-		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(code), appendRequestId(fmt.Sprintf(messages.SERVER_ERROR, insertTag, err2), requestId))
+		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(code), common.AppendRequestId(fmt.Sprintf(messages.SERVER_ERROR, insertTag, err2), requestId))
 	}
 
 	data, _ := ioutil.ReadAll(res.Body)
@@ -133,12 +133,12 @@ func (insertApi *InsertApi) Post(token string) (common.ResponseBody, *errors.Sky
 	var result map[string]interface{}
 	err2 = json.Unmarshal(data, &result)
 	if err2 != nil {
-		logger.Error(fmt.Sprintf(messages.INSERTING_RECORDS_FAILED, insertTag, appendRequestId(insertApi.Configuration.VaultID, requestId)))
-		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.UNKNOWN_ERROR, insertTag, appendRequestId(string(data), requestId)))
+		logger.Error(fmt.Sprintf(messages.INSERTING_RECORDS_FAILED, insertTag, common.AppendRequestId(insertApi.Configuration.VaultID, requestId)))
+		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.UNKNOWN_ERROR, insertTag, common.AppendRequestId(string(data), requestId)))
 	} else if result["error"] != nil {
-		logger.Error(fmt.Sprintf(messages.INSERTING_RECORDS_FAILED, insertTag, appendRequestId(insertApi.Configuration.VaultID, requestId)))
+		logger.Error(fmt.Sprintf(messages.INSERTING_RECORDS_FAILED, insertTag, common.AppendRequestId(insertApi.Configuration.VaultID, requestId)))
 		var generatedError = (result["error"]).(map[string]interface{})
-		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(fmt.Sprintf("%v", generatedError["http_code"])), fmt.Sprintf(messages.SERVER_ERROR, insertTag, appendRequestId(generatedError["message"].(string), requestId)))
+		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(fmt.Sprintf("%v", generatedError["http_code"])), fmt.Sprintf(messages.SERVER_ERROR, insertTag, common.AppendRequestId(generatedError["message"].(string), requestId)))
 	}
 	logger.Info(fmt.Sprintf(messages.INSERTING_RECORDS_SUCCESS, insertTag, insertApi.Configuration.VaultID))
 
