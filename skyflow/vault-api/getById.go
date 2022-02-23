@@ -127,13 +127,16 @@ func (g *GetByIdApi) doRequest(records common.GetByIdInput) (map[string]interfac
 				request.Header.Add("Authorization", bearerToken)
 
 				res, err := Client.Do(request)
-
+				var requestId = ""
+				if res != nil {
+					requestId = res.Header.Get("x-request-id")
+				}
 				if err != nil {
-					logger.Error(fmt.Sprintf(messages.GET_RECORDS_BY_ID_FAILED, getByIdTag, singleRecord.Table))
+					logger.Error(fmt.Sprintf(messages.GET_RECORDS_BY_ID_FAILED, getByIdTag, common.AppendRequestId(singleRecord.Table, requestId)))
 					var error = make(map[string]interface{})
 					var errorObj = make(map[string]interface{})
 					errorObj["code"] = "500"
-					errorObj["description"] = fmt.Sprintf(messages.SERVER_ERROR, getByIdTag, err)
+					errorObj["description"] = common.AppendRequestId(fmt.Sprintf(messages.SERVER_ERROR, getByIdTag, err), requestId)
 					error["error"] = errorObj
 					error["ids"] = singleRecord.Ids
 					responseChannel <- error
@@ -144,23 +147,23 @@ func (g *GetByIdApi) doRequest(records common.GetByIdInput) (map[string]interfac
 				var result map[string]interface{}
 				err = json.Unmarshal(data, &result)
 				if err != nil {
-					logger.Error(fmt.Sprintf(messages.GET_RECORDS_BY_ID_FAILED, getByIdTag, singleRecord.Table))
+					logger.Error(fmt.Sprintf(messages.GET_RECORDS_BY_ID_FAILED, getByIdTag, common.AppendRequestId(singleRecord.Table, requestId)))
 					var error = make(map[string]interface{})
 					var errorObj = make(map[string]interface{})
 					errorObj["code"] = "500"
-					errorObj["description"] = fmt.Sprintf(messages.UNKNOWN_ERROR, getByIdTag, string(data))
+					errorObj["description"] = fmt.Sprintf(messages.UNKNOWN_ERROR, getByIdTag, common.AppendRequestId(string(data), requestId))
 					error["error"] = errorObj
 					error["ids"] = singleRecord.Ids
 					responseChannel <- error
 				} else {
 					errorResult := result["error"]
 					if errorResult != nil {
-						logger.Error(fmt.Sprintf(messages.GET_RECORDS_BY_ID_FAILED, getByIdTag, singleRecord.Table))
+						logger.Error(fmt.Sprintf(messages.GET_RECORDS_BY_ID_FAILED, getByIdTag, common.AppendRequestId(singleRecord.Table, requestId)))
 						var generatedError = (errorResult).(map[string]interface{})
 						var error = make(map[string]interface{})
 						var errorObj = make(map[string]interface{})
 						errorObj["code"] = fmt.Sprintf("%v", (errorResult.(map[string]interface{}))["http_code"])
-						errorObj["description"] = generatedError["message"]
+						errorObj["description"] = common.AppendRequestId(generatedError["message"].(string), requestId)
 						error["error"] = errorObj
 						error["ids"] = singleRecord.Ids
 						responseChannel <- error
