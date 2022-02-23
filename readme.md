@@ -47,14 +47,21 @@ import (
     saUtil "github.com/skyflowapi/skyflow-go/service-account/util"
 )
     
-func main() {
-    token, err := saUtil.GenerateBearerToken("<path_to_sa_credentials_file>")
-   // or token,err := saUtil.GenerateBearerTokenFromCreds("<credentials_file_as_tring>") 
-    if err != nil {
-        panic(err)
-    }
-    
-    fmt.Printf("token %v", *token)
+var bearerToken = ""
+
+func GetBearerToken() (string, error) {
+
+	filePath := "<file_path>"
+	if !saUtil.IsTokenValid(bearerToken) {
+		newToken, err := saUtil.GenerateBearerToken(filePath)
+		if err != nil {
+			return "", err
+		} else {
+			bearerToken = newToken.AccessToken
+			return bearerToken, nil
+		}
+	}
+	return bearerToken, nil
 }
 ```
 

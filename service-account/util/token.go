@@ -216,3 +216,33 @@ func appendRequestId(message string, requestId string) string {
 
 	return message + " - requestId : " + requestId
 }
+
+func IsTokenValid(tokenString string) bool {
+
+	if tokenString == "" {
+		logger.Error(fmt.Sprintf(messages.EMPTY_BEARER_TOKEN, "ServiceAccountUtil"))
+		return false
+	}
+	token, _, err := new(jwt.Parser).ParseUnverified(tokenString, jwt.MapClaims{})
+	if err != nil {
+		return false
+	}
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return false
+	}
+	var expiryTime time.Time
+	switch exp := claims["exp"].(type) {
+	case float64:
+		expiryTime = time.Unix(int64(exp), 0)
+	case json.Number:
+		v, _ := exp.Int64()
+		expiryTime = time.Unix(v, 0)
+	}
+	currentTime := time.Now()
+	currentTime = currentTime.Add(time.Duration(-5) * time.Minute)
+	if expiryTime.Before(currentTime) {
+		logger.Error(fmt.Sprintf(messages.EXPIRE_BEARER_TOKEN, "ServiceAccountUtil"))
+	}
+	return currentTime.Before(expiryTime)
+}
