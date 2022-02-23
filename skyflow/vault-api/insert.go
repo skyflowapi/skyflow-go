@@ -119,17 +119,18 @@ func (insertApi *InsertApi) Post(token string) (common.ResponseBody, *errors.Sky
 	logger.Info(fmt.Sprintf(messages.INSERTING_RECORDS, insertTag, insertApi.Configuration.VaultID))
 	res, err2 := Client.Do(request)
 	var requestId = ""
+	var code = "500"
 	if res != nil {
 		requestId = res.Header.Get("x-request-id")
+		code = strconv.Itoa(res.StatusCode)
 	}
 	if err2 != nil {
 		logger.Error(fmt.Sprintf(messages.INSERTING_RECORDS_FAILED, insertTag, common.AppendRequestId(insertApi.Configuration.VaultID, requestId)))
-		code := strconv.Itoa(res.StatusCode)
 		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(code), common.AppendRequestId(fmt.Sprintf(messages.SERVER_ERROR, insertTag, err2), requestId))
 	}
 
 	data, _ := ioutil.ReadAll(res.Body)
-	res.Body.Close()
+	defer res.Body.Close()
 	var result map[string]interface{}
 	err2 = json.Unmarshal(data, &result)
 	if err2 != nil {

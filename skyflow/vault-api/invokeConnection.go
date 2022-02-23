@@ -90,7 +90,7 @@ func (InvokeConnectionApi *InvokeConnectionApi) Post() (map[string]interface{}, 
 		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), common.AppendRequestId(fmt.Sprintf(messages.SERVER_ERROR, connectionTag, err), requestId))
 	}
 	data, _ := ioutil.ReadAll(res.Body)
-	res.Body.Close()
+	defer res.Body.Close()
 	var result map[string]interface{}
 	err = json.Unmarshal(data, &result)
 	if err != nil {
