@@ -118,7 +118,10 @@ func (insertApi *InsertApi) Post(token string) (common.ResponseBody, *errors.Sky
 
 	logger.Info(fmt.Sprintf(messages.INSERTING_RECORDS, insertTag, insertApi.Configuration.VaultID))
 	res, err2 := Client.Do(request)
-	var requestId = res.Header.Get("x-request-id")
+	var requestId = ""
+	if res != nil {
+		requestId = res.Header.Get("x-request-id")
+	}
 	if err2 != nil {
 		logger.Error(fmt.Sprintf(messages.INSERTING_RECORDS_FAILED, insertTag, appendRequestId(insertApi.Configuration.VaultID, requestId)))
 		code := strconv.Itoa(res.StatusCode)

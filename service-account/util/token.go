@@ -69,7 +69,7 @@ func GenerateBearerTokenFromCreds(credentials string) (*ResponseToken, *errors.S
 	err := json.Unmarshal([]byte(credentials), &credsMap)
 	if err != nil {
 		logger.Error(fmt.Sprintf(messages.INVALID_INPUT, tag, "credentials string is not a valid json string format"))
-		return nil, errors.NewSkyflowErrorf(errors.InvalidInput, "credentials string is not a valid json string format")
+		return nil, errors.NewSkyflowError(errors.InvalidInput, "credentials string is not a valid json string format")
 	}
 
 	token, skyflowError := getSATokenFromCredsFile(credsMap)
@@ -89,17 +89,17 @@ func getSATokenFromCredsFile(key map[string]interface{}) (*ResponseToken, *error
 	clientID, ok := key["clientID"].(string)
 	if !ok {
 		logger.Error(fmt.Sprintf(messages.INVALID_INPUT, tag, "Unable to read clientID"))
-		return nil, errors.NewSkyflowErrorf(errors.InvalidInput, "Unable to read clientID")
+		return nil, errors.NewSkyflowError(errors.InvalidInput, "Unable to read clientID")
 	}
 	keyID, ok := key["keyID"].(string)
 	if !ok {
 		logger.Error(fmt.Sprintf(messages.INVALID_INPUT, tag, "Unable to read keyID"))
-		return nil, errors.NewSkyflowErrorf(errors.InvalidInput, "Unable to read keyID")
+		return nil, errors.NewSkyflowError(errors.InvalidInput, "Unable to read keyID")
 	}
 	tokenURI, ok := key["tokenURI"].(string)
 	if !ok {
 		logger.Error(fmt.Sprintf(messages.INVALID_INPUT, tag, "Unable to read tokenURI"))
-		return nil, errors.NewSkyflowErrorf(errors.InvalidInput, "Unable to read tokenURI")
+		return nil, errors.NewSkyflowError(errors.InvalidInput, "Unable to read tokenURI")
 	}
 
 	signedUserJWT, skyflowError := getSignedUserToken(clientID, keyID, tokenURI, pvtKey)
@@ -125,28 +125,32 @@ func getSATokenFromCredsFile(key map[string]interface{}) (*ResponseToken, *error
 	req.Header.Add("Content-Type", "application/json")
 
 	res, err := client.Do(req)
+	var requestId = ""
+	if res != nil {
+		requestId = res.Header.Get("x-request-id")
+	}
 	if err != nil {
-		logger.Error(fmt.Sprintf(messages.SERVER_ERROR, tag, "Internal server error"))
-		return nil, errors.NewSkyflowErrorWrap(errors.Server, err, "Internal server error")
+		logger.Error(appendRequestId(fmt.Sprintf(messages.SERVER_ERROR, tag, "Internal server error"), requestId))
+		return nil, errors.NewSkyflowErrorWrap(errors.Server, err, appendRequestId("Internal server error", requestId))
 	}
 	defer res.Body.Close()
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		logger.Error(fmt.Sprintf(messages.SERVER_ERROR, tag, "Unable to read response payload"))
-		return nil, errors.NewSkyflowErrorWrap(errors.Server, err, "Unable to read response payload")
+		logger.Error(fmt.Sprintf(messages.SERVER_ERROR, tag, appendRequestId("Unable to read response payload", requestId)))
+		return nil, errors.NewSkyflowErrorWrap(errors.Server, err, appendRequestId("Unable to read response payload", requestId))
 	}
 
 	if res.StatusCode != 200 {
-		logger.Error(fmt.Sprintf(messages.SERVER_ERROR, tag, fmt.Sprintf("%v", string(body))))
+		logger.Error(fmt.Sprintf(messages.SERVER_ERROR, tag, appendRequestId(fmt.Sprintf("%v", string(body)), requestId)))
 		return nil, errors.NewSkyflowErrorWrap(errors.Server,
 			fmt.Errorf("%v", string(body)),
-			"Error Occured")
+			appendRequestId("Error Occured", requestId))
 	}
 
 	if len(body) == 0 {
-		logger.Error(fmt.Sprintf(messages.SERVER_ERROR, tag, "Empty body"))
-		return nil, errors.NewSkyflowError(errors.Server, "Empty body")
+		logger.Error(fmt.Sprintf(messages.SERVER_ERROR, tag, appendRequestId("Empty body", requestId)))
+		return nil, errors.NewSkyflowError(errors.Server, appendRequestId("Empty body", requestId))
 	}
 
 	var responseToken ResponseToken
@@ -160,7 +164,7 @@ func getPrivateKeyFromPem(pemKey string) (*rsa.PrivateKey, *errors.SkyflowError)
 	privPem, _ := pem.Decode([]byte(pemKey))
 	if privPem == nil {
 		logger.Error(fmt.Sprintf(messages.INVALID_INPUT, tag, "Unable to decode the RSA private PEM"))
-		return nil, errors.NewSkyflowErrorWrap(errors.InvalidInput, err, "Unable to decode the RSA private PEM")
+		return nil, errors.NewSkyflowError(errors.InvalidInput, "Unable to decode the RSA private PEM")
 	}
 
 	if privPem.Type != "PRIVATE KEY" {
@@ -181,7 +185,7 @@ func getPrivateKeyFromPem(pemKey string) (*rsa.PrivateKey, *errors.SkyflowError)
 	privateKey, ok = parsedKey.(*rsa.PrivateKey)
 	if !ok {
 		logger.Error(fmt.Sprintf(messages.INVALID_INPUT, tag, "Unable to retrieve RSA private key"))
-		return nil, errors.NewSkyflowErrorf(errors.InvalidInput, "Unable to retrieve RSA private key")
+		return nil, errors.NewSkyflowError(errors.InvalidInput, "Unable to retrieve RSA private key")
 	}
 	return privateKey, nil
 }
@@ -203,4 +207,12 @@ func getSignedUserToken(clientID, keyID, tokenURI string, pvtKey *rsa.PrivateKey
 		return "", errors.NewSkyflowErrorWrap(errors.InvalidInput, err, "unable to parse jwt payload")
 	}
 	return signedToken, nil
+}
+
+func appendRequestId(message string, requestId string) string {
+	if requestId == "" {
+		return message
+	}
+
+	return message + " - requestId : " + requestId
 }

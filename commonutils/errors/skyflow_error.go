@@ -1,6 +1,7 @@
 package errors
 
 import (
+	"errors"
 	"fmt"
 )
 
@@ -21,7 +22,7 @@ func NewSkyflowErrorf(code ErrorCodesEnum, format string, a ...interface{}) *Sky
 
 // NewSkyflowError - Creates a new Skyflow Error Object with given message
 func NewSkyflowError(code ErrorCodesEnum, message string) *SkyflowError {
-	return &SkyflowError{code: code, message: message}
+	return &SkyflowError{code: code, message: message, originalError: errors.New("<nil>")}
 }
 
 // NewSkyflowErrorWrap - Creates a new Skyflow Error Object using the given error

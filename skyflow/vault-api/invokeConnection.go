@@ -81,17 +81,21 @@ func (InvokeConnectionApi *InvokeConnectionApi) Post() (map[string]interface{}, 
 	logger.Info(fmt.Sprintf(messages.INVOKE_CONNECTION_CALLED, connectionTag))
 
 	res, err := http.DefaultClient.Do(request)
+	var requestId = ""
+	if res != nil {
+		requestId = res.Header.Get("x-request-id")
+	}
 	if err != nil {
-		logger.Error(fmt.Sprintf(messages.INVOKE_CONNECTION_FAILED, connectionTag))
-		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.SERVER_ERROR, connectionTag, err))
+		logger.Error(appendRequestId(fmt.Sprintf(messages.INVOKE_CONNECTION_FAILED, connectionTag), requestId))
+		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), appendRequestId(fmt.Sprintf(messages.SERVER_ERROR, connectionTag, err), requestId))
 	}
 	data, _ := ioutil.ReadAll(res.Body)
 	res.Body.Close()
 	var result map[string]interface{}
 	err = json.Unmarshal(data, &result)
 	if err != nil {
-		logger.Error(fmt.Sprintf(messages.INVOKE_CONNECTION_FAILED, connectionTag))
-		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.UNKNOWN_ERROR, connectionTag, string(data)))
+		logger.Error(appendRequestId(fmt.Sprintf(messages.INVOKE_CONNECTION_FAILED, connectionTag), requestId))
+		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), appendRequestId(fmt.Sprintf(messages.UNKNOWN_ERROR, connectionTag, string(data)), requestId))
 	}
 	logger.Info(fmt.Sprintf(messages.INVOKE_CONNECTION_SUCCESS, connectionTag))
 	return result, nil

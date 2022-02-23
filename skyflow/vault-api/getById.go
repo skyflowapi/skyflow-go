@@ -127,7 +127,10 @@ func (g *GetByIdApi) doRequest(records common.GetByIdInput) (map[string]interfac
 				request.Header.Add("Authorization", bearerToken)
 
 				res, err := Client.Do(request)
-				var requestId = res.Header.Get("x-request-id")
+				var requestId = ""
+				if res != nil {
+					requestId = res.Header.Get("x-request-id")
+				}
 				if err != nil {
 					logger.Error(fmt.Sprintf(messages.GET_RECORDS_BY_ID_FAILED, getByIdTag, appendRequestId(singleRecord.Table, requestId)))
 					var error = make(map[string]interface{})

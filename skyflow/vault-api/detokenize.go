@@ -102,7 +102,10 @@ func (detokenize *DetokenizeApi) sendRequest(records common.DetokenizeInput) (ma
 				request.Header.Add("Authorization", bearerToken)
 
 				res, err := Client.Do(request)
-				var requestId = res.Header.Get("x-request-id")
+				var requestId = ""
+				if res != nil {
+					requestId = res.Header.Get("x-request-id")
+				}
 				if err != nil {
 					logger.Error(fmt.Sprintf(messages.DETOKENIZING_FAILED, detokenizeTag, appendRequestId(singleRecord.Token, requestId)))
 					var error = make(map[string]interface{})
