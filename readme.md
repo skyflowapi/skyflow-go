@@ -49,7 +49,7 @@ import (
     
 var bearerToken = ""
 
-func GetBearerToken() (string, error) {
+func GetSkyflowBearerToken() (string, error) {
 
 	filePath := "<file_path>"
 	if !saUtil.IsValid(bearerToken) {

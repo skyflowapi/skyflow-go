@@ -220,7 +220,7 @@ func appendRequestId(message string, requestId string) string {
 func IsValid(tokenString string) bool {
 
 	if tokenString == "" {
-		logger.Error(fmt.Sprintf(messages.EMPTY_BEARER_TOKEN, "ServiceAccountUtil"))
+		logger.Info(fmt.Sprintf(messages.EMPTY_BEARER_TOKEN, "ServiceAccountUtil"))
 		return false
 	}
 	token, _, err := new(jwt.Parser).ParseUnverified(tokenString, jwt.MapClaims{})
@@ -240,9 +240,8 @@ func IsValid(tokenString string) bool {
 		expiryTime = time.Unix(v, 0)
 	}
 	currentTime := time.Now()
-	currentTime = currentTime.Add(time.Duration(-5) * time.Minute)
 	if expiryTime.Before(currentTime) {
-		logger.Error(fmt.Sprintf(messages.EXPIRE_BEARER_TOKEN, "ServiceAccountUtil"))
+		logger.Info(fmt.Sprintf(messages.EXPIRE_BEARER_TOKEN, "ServiceAccountUtil"))
 	}
 	return currentTime.Before(expiryTime)
 }
