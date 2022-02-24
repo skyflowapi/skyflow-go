@@ -217,7 +217,7 @@ func appendRequestId(message string, requestId string) string {
 	return message + " - requestId : " + requestId
 }
 
-func IsTokenValid(tokenString string) bool {
+func IsValid(tokenString string) bool {
 
 	if tokenString == "" {
 		logger.Error(fmt.Sprintf(messages.EMPTY_BEARER_TOKEN, "ServiceAccountUtil"))

@@ -14,7 +14,7 @@ var bearerToken = ""
 func GetToken() (string, error) {
 
 	filePath := "<file_path>"
-	if !saUtil.IsTokenValid(bearerToken) {
+	if !saUtil.IsValid(bearerToken) {
 		newToken, err := saUtil.GenerateBearerToken(filePath)
 		if err != nil {
 			return "", err
