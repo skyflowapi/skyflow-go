@@ -9,15 +9,21 @@ import (
 	"github.com/skyflowapi/skyflow-go/skyflow/common"
 )
 
+var bearerToken = ""
+
 func GetToken() (string, error) {
 
 	filePath := "<file_path>"
-	token, err := saUtil.GenerateBearerToken(filePath)
-	if err != nil {
-		return "", err
+	if !saUtil.IsValid(bearerToken) {
+		newToken, err := saUtil.GenerateBearerToken(filePath)
+		if err != nil {
+			return "", err
+		} else {
+			bearerToken = newToken.AccessToken
+			return bearerToken, nil
+		}
 	}
-
-	return token.AccessToken, nil
+	return bearerToken, nil
 }
 func main() {
 

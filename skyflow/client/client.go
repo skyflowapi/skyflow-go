@@ -30,7 +30,6 @@ func (client *Client) Insert(records map[string]interface{}, options ...common.I
 	if err != nil {
 		return common.InsertRecords{}, err
 	}
-
 	insertApi := vaultapi.InsertApi{Configuration: client.configuration, Records: records, Options: tempOptions}
 
 	res, err := insertApi.Post(token)

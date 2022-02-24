@@ -3,16 +3,28 @@ package main
 import (
 	"fmt"
 
+	logger "github.com/skyflowapi/skyflow-go/commonutils/logwrapper"
 	saUtil "github.com/skyflowapi/skyflow-go/service-account/util"
 )
 
-func main() {
-	filePath := ""
-	token, err := saUtil.GenerateBearerToken(filePath)
-	// token, err := saUtil.GenerateBearerTokenFromCreds("<creds_as_String>")
-	if err != nil {
-		panic(err)
-	}
+var token = ""
 
-	fmt.Printf("token %v", token)
+func main() {
+
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Println("error : ", err)
+		}
+	}()
+	logger.SetLogLevel(logger.INFO) //set loglevel to INFO
+	filePath := "<file_path>"
+	if !saUtil.IsValid(token) {
+		newToken, err := saUtil.GenerateBearerToken(filePath)
+		if err != nil {
+			panic(err)
+		} else {
+			token = newToken.AccessToken
+		}
+		fmt.Println("%v", token)
+	}
 }

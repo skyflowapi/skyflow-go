@@ -1,6 +1,8 @@
 package messages
 
 const (
+	EMPTY_BEARER_TOKEN              string = "[skyflow] Interface: %s - bearerToken is empty"
+	EXPIRE_BEARER_TOKEN             string = "[skyflow] Interface: %s - bearerToken is expired"
 	GENERATE_BEARER_TOKEN_TRIGGERED string = "[skyflow] Interface: %s - Generate bearer token triggered"
 	GENERATE_BEARER_TOKEN_SUCCESS   string = "[skyflow] Interface: %s - Generate bearer token returned successfully"
 	INVALID_INPUT                   string = "[skyflow] Interface: %s - %s"
