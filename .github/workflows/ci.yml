@@ -1,0 +1,45 @@
+name: CI Checks
+
+on: [pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.15
+
+    - name: create-json
+      id: create-json
+      uses: jsdaniell/create-json@1.1.2
+      with:
+        name: "credentials.json"
+        json: ${{ secrets.CREDENTIALS_FILE_STR }}
+
+    - name: 'Setup .env'
+      run: |
+        touch .env
+        echo CREDENTIALS_FILE_PATH=./credentials.json >> .env
+        echo EXPIRED_TOKEN=${{secrets.EXPIRED_TOKEN}} >> .env
+        echo VALID_CREDS_PVT_KEY=${{secrets.VALID_CREDS_PVT_KEY}} >> .env
+
+    - name: Build
+      run: |
+        cd commonutils
+        go build -v ./...
+        cd ../service-account
+        go build -v ./...
+        cd ../skyflow
+        go build -v ./...
+
+
+    - name: 'Run Tests'
+      run: |
+        cd service-account
+        go test -v ./...
+        cd ../skyflow
+        go test -v ./...

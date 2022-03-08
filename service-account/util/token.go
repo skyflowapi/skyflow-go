@@ -81,6 +81,12 @@ func GenerateBearerTokenFromCreds(credentials string) (*ResponseToken, *errors.S
 
 // getSATokenFromCredsFile gets bearer token from service account endpoint
 func getSATokenFromCredsFile(key map[string]interface{}) (*ResponseToken, *errors.SkyflowError) {
+
+	privateKey := key["privateKey"]
+	if privateKey == nil {
+		logger.Error(fmt.Sprintf(messages.INVALID_INPUT, tag, "Unable to read privateKey"))
+		return nil, errors.NewSkyflowError(errors.InvalidInput, "Unable to read privateKey")
+	}
 	pvtKey, skyflowError := getPrivateKeyFromPem(key["privateKey"].(string))
 	if skyflowError != nil {
 		return nil, skyflowError
