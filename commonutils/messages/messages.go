@@ -67,4 +67,5 @@ const (
 	INVALID_RECORDS                        string = "[skyflow] Interface: %s - Records are not valid"
 	DEPRECATED_GENERATE_TOKEN_FUNCTION     string = "[skyflow] Interface: %s - GenerateToken method is deprecated, will be removed in future, use GenerateBearerToken()"
 	DEPRECATED_ISVALID_FUNCTION            string = "[skyflow] Interface: %s - IsValid method is deprecated, will be removed in future, use IsExpired()"
+	MISSING_TOKENPROVIDER                  string = "[skyflow] Interface: %s - TokenProvider is missing"
 )
