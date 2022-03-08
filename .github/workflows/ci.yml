@@ -23,7 +23,7 @@ jobs:
     - name: 'Setup .env'
       run: |
         touch .env
-        echo CREDENTIALS_FILE_PATH=./credentials.json >> .env
+        echo CREDENTIALS_FILE_PATH=../credentials.json >> .env
         echo EXPIRED_TOKEN=${{secrets.EXPIRED_TOKEN}} >> .env
         echo VALID_CREDS_PVT_KEY=${{secrets.VALID_CREDS_PVT_KEY}} >> .env
 
