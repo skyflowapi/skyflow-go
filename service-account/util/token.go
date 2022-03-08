@@ -217,8 +217,12 @@ func appendRequestId(message string, requestId string) string {
 	return message + " - requestId : " + requestId
 }
 
+// Deprecated: Instaed use IsExpired
 func IsValid(tokenString string) bool {
+	return !IsExpired(tokenString)
+}
 
+func IsExpired(tokenString string) bool {
 	if tokenString == "" {
 		logger.Info(fmt.Sprintf(messages.EMPTY_BEARER_TOKEN, "ServiceAccountUtil"))
 		return false
@@ -243,5 +247,5 @@ func IsValid(tokenString string) bool {
 	if expiryTime.Before(currentTime) {
 		logger.Info(fmt.Sprintf(messages.EXPIRE_BEARER_TOKEN, "ServiceAccountUtil"))
 	}
-	return currentTime.Before(expiryTime)
+	return expiryTime.Before(currentTime)
 }

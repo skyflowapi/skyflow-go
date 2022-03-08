@@ -18,7 +18,7 @@ func main() {
 	}()
 	logger.SetLogLevel(logger.INFO) //set loglevel to INFO
 	filePath := "<file_path>"
-	if !saUtil.IsValid(token) {
+	if saUtil.IsExpired(token) {
 		newToken, err := saUtil.GenerateBearerToken(filePath)
 		if err != nil {
 			panic(err)
