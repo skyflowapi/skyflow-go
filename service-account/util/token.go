@@ -68,6 +68,7 @@ func GenerateBearerTokenFromCreds(credentials string) (*ResponseToken, *errors.S
 	logger.Info(fmt.Sprintf(messages.GENERATE_BEARER_TOKEN_TRIGGERED, tag))
 	err := json.Unmarshal([]byte(credentials), &credsMap)
 	if err != nil {
+		fmt.Println(err)
 		logger.Error(fmt.Sprintf(messages.INVALID_INPUT, tag, "credentials string is not a valid json string format"))
 		return nil, errors.NewSkyflowError(errors.InvalidInput, "credentials string is not a valid json string format")
 	}

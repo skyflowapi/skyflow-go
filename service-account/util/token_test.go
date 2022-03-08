@@ -65,9 +65,11 @@ type generateBearerTokenFromCredsTest struct {
 
 func setUpGenerateBearerTokenFromCredsTests() []generateBearerTokenFromCredsTest {
 
-	invalidClientIdCreds := fmt.Sprintf("{\"privateKey\" : \"%s\"}", os.Getenv("VALID_CREDS_PVT_KEY"))
-	invalidKeyIdCreds := fmt.Sprintf("{\"privateKey\" : \"%s\", \"clientID\": \"cId\"}", os.Getenv("VALID_CREDS_PVT_KEY"))
-	invalidtokenURICreds := fmt.Sprintf("{\"privateKey\" : \"%s\", \"clientID\": \"cId\", \"keyID\": \"kId\"}", os.Getenv("VALID_CREDS_PVT_KEY"))
+	pvtKey := os.Getenv("VALID_CREDS_PVT_KEY")
+
+	invalidClientIdCreds := fmt.Sprintf("{\"privateKey\" : \"%s\"}", pvtKey)
+	invalidKeyIdCreds := fmt.Sprintf("{\"privateKey\" : \"%s\", \"clientID\": \"cId\"}", pvtKey)
+	invalidtokenURICreds := fmt.Sprintf("{\"privateKey\" : \"%s\", \"clientID\": \"cId\", \"keyID\": \"kId\"}", pvtKey)
 	generateBearerTokenFromCredsTests := []generateBearerTokenFromCredsTest{
 		{"", "credentials string is not a valid json string format"},
 		{"{}", "Unable to read privateKey"},
