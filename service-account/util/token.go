@@ -25,7 +25,7 @@ type ResponseToken struct {
 
 var tag = "GenerateBearerToken"
 
-// Deprecated: Instaed use GenerateBearerToken
+// Deprecated: Instead use GenerateBearerToken
 func GenerateToken(filePath string) (*ResponseToken, *errors.SkyflowError) {
 	logger.Warn(fmt.Sprintf(messages.DEPRECATED_GENERATE_TOKEN_FUNCTION, tag))
 	return GenerateBearerToken(filePath)
