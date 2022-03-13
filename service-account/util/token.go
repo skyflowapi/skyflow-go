@@ -226,15 +226,15 @@ func IsValid(tokenString string) bool {
 func IsExpired(tokenString string) bool {
 	if tokenString == "" {
 		logger.Info(fmt.Sprintf(messages.EMPTY_BEARER_TOKEN, "ServiceAccountUtil"))
-		return false
+		return true
 	}
 	token, _, err := new(jwt.Parser).ParseUnverified(tokenString, jwt.MapClaims{})
 	if err != nil {
-		return false
+		return true
 	}
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		return false
+		return true
 	}
 	var expiryTime time.Time
 	switch exp := claims["exp"].(type) {
