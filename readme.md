@@ -1,5 +1,11 @@
 # Description
-skyflow-go is the Skyflow SDK for the Go programming language.
+This go SDK is designed to help developers easily implement Skyflow into their go backend. 
+
+#### Features
+
+- Authentication with a Skyflow Service Account and generation of a bearer token
+- Vault API operations to insert, retrieve and tokenize sensitive data
+- Invoking connections to call downstream third party APIs without directly handling sensitive data
 
 ## Installation
 
@@ -91,8 +97,7 @@ All Vault APIs must be invoked using a skyflowClient instance.
 
 #### Insert
 
-To insert data into the vault from the integrated application, use the insert(records map[string]interface{}, options common.InsertOptions) method of the Skyflow client. The first parameter records is a map that has a `records` key and takes an array of records to be inserted into the vault as value. The second parameter options is optional, which takes struct as shown below:
-
+To insert data into your vault, use the **insert(records map[string]interface{}, options common.InsertOptions)** method of the Skyflow client. The first parameter insertInput must have a `records` key and takes an array of records to be inserted into the vault as a value. The second parameter `options` is a InsertOptions object that provides further options for your insert call, as shown below.
 ```go
 import (
     Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
@@ -182,7 +187,9 @@ Sample response :
   
 #### Detokenize
 
-For retrieving data using tokens, use the detokenize(records map[string]interface{}) method. The records parameter takes a map that contains records to be fetched as shown below.
+In order to retrieve data from your vault using tokens that you have previously generated for that data, you can use the **detokenize(records map[string]interface{})** method. The first parameter must have a `records` key that takes an array of tokens to be fetched from the vault, as shown below.
+
+
 
 
 ```go
@@ -266,9 +273,8 @@ Sample response:
 ```
 
 #### Get By Id
-
-For retrieving data using SkyflowID's, use the getById(records map[string]interface{}) method. The records parameter takes a map that contains records to be fetched as shown below:
-  
+ 
+In order to retrieve data from your vault using SkyflowIDs, use the **getById(records map[string]interface{})** method. The `records` parameter takes a map that should contain an array of SkyflowIDs to be fetched, as shown below:
 
 ```go
 import (
@@ -369,6 +375,8 @@ Sample response:
 ### Invoke-connection
 
 Using  InvokeConnection, end-user applications can integrate checkout/card issuance flow with their apps/systems. To invoke connection, use the invokeConnection(config ConnectionConfig) method of the Skyflow client. The config object must have `connectionURL`,`methodName` and remaining are optional. 
+
+Using the InvokeConnection method, you can integrate their server-side application with third party APIs and services without directly handling sensitive data. Prior to invoking the `InvokeConnection` method, you must have created a connection and have a connectionURL already generated. Once you have the connectionURL, you can invoke a connection by using the **invokeConnection(config ConnectionConfig)** method. The config parameter must include a `connectionURL` and `methodName`. The other fields are optional.
 
 ```go
 
