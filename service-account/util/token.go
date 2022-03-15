@@ -25,7 +25,7 @@ type ResponseToken struct {
 
 var tag = "GenerateBearerToken"
 
-// Deprecated: Instaed use GenerateBearerToken
+// Deprecated: Instead use GenerateBearerToken
 func GenerateToken(filePath string) (*ResponseToken, *errors.SkyflowError) {
 	logger.Warn(fmt.Sprintf(messages.DEPRECATED_GENERATE_TOKEN_FUNCTION, tag))
 	return GenerateBearerToken(filePath)
@@ -81,6 +81,12 @@ func GenerateBearerTokenFromCreds(credentials string) (*ResponseToken, *errors.S
 
 // getSATokenFromCredsFile gets bearer token from service account endpoint
 func getSATokenFromCredsFile(key map[string]interface{}) (*ResponseToken, *errors.SkyflowError) {
+
+	privateKey := key["privateKey"]
+	if privateKey == nil {
+		logger.Error(fmt.Sprintf(messages.INVALID_INPUT, tag, "Unable to read privateKey"))
+		return nil, errors.NewSkyflowError(errors.InvalidInput, "Unable to read privateKey")
+	}
 	pvtKey, skyflowError := getPrivateKeyFromPem(key["privateKey"].(string))
 	if skyflowError != nil {
 		return nil, skyflowError
@@ -217,19 +223,24 @@ func appendRequestId(message string, requestId string) string {
 	return message + " - requestId : " + requestId
 }
 
+// Deprecated: Instead use IsExpired
 func IsValid(tokenString string) bool {
+	logger.Warn(fmt.Sprintf(messages.DEPRECATED_ISVALID_FUNCTION, "ServiceAccountUtil"))
+	return !IsExpired(tokenString)
+}
 
+func IsExpired(tokenString string) bool {
 	if tokenString == "" {
 		logger.Info(fmt.Sprintf(messages.EMPTY_BEARER_TOKEN, "ServiceAccountUtil"))
-		return false
+		return true
 	}
 	token, _, err := new(jwt.Parser).ParseUnverified(tokenString, jwt.MapClaims{})
 	if err != nil {
-		return false
+		return true
 	}
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		return false
+		return true
 	}
 	var expiryTime time.Time
 	switch exp := claims["exp"].(type) {
@@ -243,5 +254,5 @@ func IsValid(tokenString string) bool {
 	if expiryTime.Before(currentTime) {
 		logger.Info(fmt.Sprintf(messages.EXPIRE_BEARER_TOKEN, "ServiceAccountUtil"))
 	}
-	return currentTime.Before(expiryTime)
+	return expiryTime.Before(currentTime)
 }

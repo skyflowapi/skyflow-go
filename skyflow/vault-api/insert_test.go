@@ -2,6 +2,7 @@ package vaultapi
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -166,17 +167,13 @@ func TestEmptyColumn(t *testing.T) {
 
 func TestValidRequest(t *testing.T) {
 	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.google.com", TokenProvider: GetToken}
-	records := make(map[string]interface{})
-	var recordsArray []interface{}
-	var record = make(map[string]interface{})
-	var fields = make(map[string]interface{})
-	fields["cvv"] = "1234"
-	record["table"] = "cards"
-	record["fields"] = fields
-	recordsArray = append(recordsArray, record)
-	records["records"] = recordsArray
+	records := constructInsertRecords()
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: true}}
 	json := `{
+		"Header" : {
+			"x-request-id": "reqId-123"
+		},
+		"StatusCode": "200",
 		"vaultID": "123",
 		"responses": [
 			{
@@ -204,6 +201,86 @@ func TestValidRequest(t *testing.T) {
 		}, nil
 	}
 	insertApi.Post("")
+}
+
+func TestValidRequestWithTokensFalse(t *testing.T) {
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.google.com", TokenProvider: GetToken}
+	records := constructInsertRecords()
+	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
+	jsonResp := `{
+		"Header" : {
+			"x-request-id": "reqId-123"
+		},
+		"StatusCode": "200",
+		"vaultID": "123",
+		"responses": [
+			{
+				"records": [
+					{
+						"skyflow_id": "id1"
+					}
+				]
+			}
+		]
+	}`
+	r := ioutil.NopCloser(bytes.NewReader([]byte(jsonResp)))
+	mocks.GetDoFunc = func(*http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: 200,
+			Body:       r,
+		}, nil
+	}
+	res, _ := insertApi.Post("")
+	jsonResponse, _ := json.Marshal(res)
+	var response common.InsertRecords
+	err1 := json.Unmarshal(jsonResponse, &response)
+	if err1 != nil {
+		check(response.Records[0].Table, "cards", t)
+	}
+}
+
+func TestInsertFailure(t *testing.T) {
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.google.com", TokenProvider: GetToken}
+	records := constructInsertRecords()
+	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
+	jsonResp := `{
+		"Header" : {
+			"x-request-id": "reqId-123"
+		},
+		"StatusCode": "400",
+		"vaultID": "123",
+		"error": {
+			"grpc_code": "3",
+			"http_code": "400",
+			"http_status": "Bad Request",
+			"message": "Object Name cards was not found for Vault 123"
+		}
+	}`
+	r := ioutil.NopCloser(bytes.NewReader([]byte(jsonResp)))
+	mocks.GetDoFunc = func(*http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: 200,
+			Body:       r,
+		}, nil
+	}
+	_, err := insertApi.Post("")
+	if err == nil {
+		t.Errorf("got nil, wanted skyflow error")
+	}
+}
+
+func constructInsertRecords() map[string]interface{} {
+	records := make(map[string]interface{})
+	var recordsArray []interface{}
+	var record = make(map[string]interface{})
+	var fields = make(map[string]interface{})
+	fields["cvv"] = "1234"
+	record["table"] = "cards"
+	record["fields"] = fields
+	recordsArray = append(recordsArray, record)
+	records["records"] = recordsArray
+
+	return records
 }
 
 func check(got string, wanted string, t *testing.T) {

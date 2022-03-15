@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 
-	vaultapi "github.com/skyflowapi/skyflow-go/skyflow/vault-api"
-
 	"github.com/skyflowapi/skyflow-go/commonutils/errors"
+	logger "github.com/skyflowapi/skyflow-go/commonutils/logwrapper"
 	"github.com/skyflowapi/skyflow-go/commonutils/messages"
 	"github.com/skyflowapi/skyflow-go/skyflow/common"
+	vaultapi "github.com/skyflowapi/skyflow-go/skyflow/vault-api"
 )
 
 type Client struct {
@@ -25,6 +25,10 @@ func (client *Client) Insert(records map[string]interface{}, options ...common.I
 		tempOptions = common.InsertOptions{Tokens: true}
 	} else {
 		tempOptions = options[0]
+	}
+	if client.configuration.TokenProvider == nil {
+		logger.Error(fmt.Sprintf(messages.MISSING_TOKENPROVIDER, clientTag))
+		return common.InsertRecords{}, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.MISSING_TOKENPROVIDER, clientTag))
 	}
 	token, err := tokenUtils.getBearerToken(client.configuration.TokenProvider)
 	if err != nil {
@@ -49,6 +53,10 @@ func (client *Client) Insert(records map[string]interface{}, options ...common.I
 
 func (client *Client) Detokenize(records map[string]interface{}) (common.DetokenizeRecords, *errors.SkyflowError) {
 
+	if client.configuration.TokenProvider == nil {
+		logger.Error(fmt.Sprintf(messages.MISSING_TOKENPROVIDER, clientTag))
+		return common.DetokenizeRecords{}, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.MISSING_TOKENPROVIDER, clientTag))
+	}
 	token, err := tokenUtils.getBearerToken(client.configuration.TokenProvider)
 	if err != nil {
 		return common.DetokenizeRecords{}, err
@@ -72,6 +80,10 @@ func (client *Client) Detokenize(records map[string]interface{}) (common.Detoken
 
 func (client *Client) GetById(records map[string]interface{}) (common.GetByIdRecords, *errors.SkyflowError) {
 
+	if client.configuration.TokenProvider == nil {
+		logger.Error(fmt.Sprintf(messages.MISSING_TOKENPROVIDER, clientTag))
+		return common.GetByIdRecords{}, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.MISSING_TOKENPROVIDER, clientTag))
+	}
 	token, err := tokenUtils.getBearerToken(client.configuration.TokenProvider)
 	if err != nil {
 		return common.GetByIdRecords{}, err
@@ -95,6 +107,10 @@ func (client *Client) GetById(records map[string]interface{}) (common.GetByIdRec
 
 func (client *Client) InvokeConnection(connectionConfig common.ConnectionConfig) (common.ResponseBody, *errors.SkyflowError) {
 
+	if client.configuration.TokenProvider == nil {
+		logger.Error(fmt.Sprintf(messages.MISSING_TOKENPROVIDER, clientTag))
+		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.MISSING_TOKENPROVIDER, clientTag))
+	}
 	token, err := tokenUtils.getBearerToken(client.configuration.TokenProvider)
 	if err != nil {
 		return nil, err
