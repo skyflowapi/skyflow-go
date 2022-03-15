@@ -83,7 +83,7 @@ func TestInvokeConnectionValidToken(t *testing.T) {
 	var client = Init(configuration)
 	var record = common.ConnectionConfig{}
 	_, err := client.InvokeConnection(record)
-	skyflowError := errors1.NewSkyflowError(errors1.ErrorCodesEnum(errors1.SdkErrorCode), fmt.Sprintf(messages.EMPTY_CONNECTION_URL, clientTag))
+	skyflowError := errors1.NewSkyflowError(errors1.ErrorCodesEnum(errors1.SdkErrorCode), fmt.Sprintf(messages.EMPTY_CONNECTION_URL, "InvokeConnection"))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 
