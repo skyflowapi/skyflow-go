@@ -109,7 +109,7 @@ func TestEmptyIdsForGetById1(t *testing.T) {
 	records := make(map[string]interface{})
 	var record1 = make(map[string]interface{})
 	record1["table"] = "cards"
-	record1["redaction"] = "PLAIN_TEXT"
+	record1["redaction"] = common.PLAIN_TEXT
 	var ids []interface{}
 	record1["ids"] = ids
 	var recordsArray []interface{}
@@ -126,7 +126,7 @@ func TestEmptyTokenForGetById(t *testing.T) {
 	records := make(map[string]interface{})
 	var record1 = make(map[string]interface{})
 	record1["table"] = "cards"
-	record1["redaction"] = "PLAIN_TEXT"
+	record1["redaction"] = common.PLAIN_TEXT
 	var ids []interface{}
 	ids = append(ids, "")
 	record1["ids"] = ids
@@ -144,7 +144,7 @@ func TestValidRequestForGetById(t *testing.T) {
 	records := make(map[string]interface{})
 	var record1 = make(map[string]interface{})
 	record1["table"] = "cards"
-	record1["redaction"] = "PLAIN_TEXT"
+	record1["redaction"] = common.PLAIN_TEXT
 	var ids []interface{}
 	ids = append(ids, "id1")
 	record1["ids"] = ids
