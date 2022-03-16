@@ -7,6 +7,9 @@ This go SDK is designed to help developers easily implement Skyflow into their g
 - Vault API operations to insert, retrieve and tokenize sensitive data
 - Invoking connections to call downstream third party APIs without directly handling sensitive data
 
+## Requirements
+- go 1.15 and above
+
 ## Installation
 
 Make sure your project is using Go Modules (it will have a go.mod file in its root if it already is):
