@@ -1,4 +1,4 @@
-name: main
+name: "main"
 
 on:
   push:
@@ -39,9 +39,9 @@ jobs:
         go test ./... -coverprofile=coverage.out
 
     - name: Codecov
-        uses: codecov/codecov-action@v2.1.0
-        with:
-          token: ${{ secrets.CODECOV_REPO_UPLOAD_TOKEN }}
-          files: service-account/coverage.out, skyflow/coverage.out
-          name: codecov-skyflow-go
-          verbose: true
+      uses: codecov/codecov-action@v2.1.0
+      with:
+        token: ${{ secrets.CODECOV_REPO_UPLOAD_TOKEN }}
+        files: service-account/coverage.out, skyflow/coverage.out
+        name: codecov-skyflow-go
+        verbose: true
