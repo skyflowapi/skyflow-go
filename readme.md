@@ -5,13 +5,34 @@ This go SDK is designed to help developers easily implement Skyflow into their g
 [![GitHub release](https://img.shields.io/github/v/release/skyflowapi/skyflow-go.svg)](https://github.com/skyflowapi/skyflow-go/releases)
 [![License](https://img.shields.io/github/license/skyflowapi/skyflow-go)](https://github.com/skyflowapi/skyflow-go/blob/main/LICENSE)
 
-#### Features
+
+# Table of Contents
+
+* [Features](#features)
+* [Installation](#installation)
+  * [Requirements](#requirements)
+  * [Configuration](#configuration)
+*  [Service Account Token Generation](#service-account-token-generation)
+* [Vault APIs](#vault-apis)
+  *  [Insert](#insert)
+  *  [Detokenize](#detokenize)
+  *  [GetById](#get-by-id)
+  *  [InvokeConnection](#invoke-connection)
+* [Logging](#logging)
+
+
+## Features
 
 - Authentication with a Skyflow Service Account and generation of a bearer token
 - Vault API operations to insert, retrieve and tokenize sensitive data
 - Invoking connections to call downstream third party APIs without directly handling sensitive data
 
 ## Installation
+
+### Requirements
+- go 1.15 and above
+
+### Configuration
 
 Make sure your project is using Go Modules (it will have a go.mod file in its root if it already is):
 
@@ -30,17 +51,6 @@ import (
 )
 ```
 Alternatively, `go get <package_name>` can also be used to download the required dependencies 
-
-
-## Table of Contents
-
-*  [Service Account Token Generation](#service-account-token-generation)
-* [Vault APIs](#vault-apis)
-  *  [Insert](#insert)
-  *  [Detokenize](#detokenize)
-  *  [GetById](#get-by-id)
-  *  [InvokeConnection](#invoke-connection)
-* [Logging](#logging)
 
 ### Service Account Token Generation
 [This](https://github.com/skyflowapi/skyflow-go/tree/main/service-account) go module is used to generate service account tokens from service account credentials file which is downloaded upon creation of service account. The token generated from this module is valid for 60 minutes and can be used to make API calls to vault services as well as management API(s) based on the permissions of the service account.
