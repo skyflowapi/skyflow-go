@@ -54,7 +54,7 @@ Alternatively, `go get <package_name>` can also be used to download the required
 
 The **GenerateBearerToken(filepath)** function takes the credentials file path for token generation, alternatively, you can also send the entire credentials as string, by using **GenerateBearerTokenFromCreds(credentials)**.
 
-[Example](https://github.com/skyflowapi/skyflow-go/blob/main/examples/service-account/token/main/service_account_token.go):
+[Example](https://github.com/skyflowapi/skyflow-go/blob/main/samples/service-account/token/main/service_account_token.go):
 
 ```go
 package main
@@ -138,7 +138,7 @@ options = common.InsertOptions {
 res, err: = skyflowClient.Insert(records, options)
 ```
 
-An example of an insert call is given below:
+An [example](https://github.com/skyflowapi/skyflow-go/blob/main/samples/vault-api/insert.go) of an Insert call is given below:
 
 
 ```go
@@ -227,7 +227,7 @@ records["records"] = recordsArray
 res, err := skyflowClient.Detokenize(records)
 ```
 
-An example of a detokenize call:
+An [example](https://github.com/skyflowapi/skyflow-go/blob/main/samples/vault-api/detokenize.go) of a Detokenize call:
 
 ```go
 package main
@@ -320,7 +320,7 @@ There are 4 accepted values in Skyflow.RedactionTypes:
 
   
 
-An example of getById call:
+An [example](https://github.com/skyflowapi/skyflow-go/blob/main/samples/vault-api/getById.go) of GetById call:
 
 ```go
 package main
@@ -418,6 +418,8 @@ Using the InvokeConnection method, you can integrate their server-side applicati
 - DELETE
 
 **pathParams, queryParams, requestHeader, requestBody**  objects will be sent through the connection integration url as shown below.
+
+An [example](https://github.com/skyflowapi/skyflow-go/blob/main/samples/vault-api/invokeConnection.go) of InvokeConnection call:
 
 ```go
 

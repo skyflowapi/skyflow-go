@@ -25,6 +25,9 @@ func (tokenUtils *TokenUtils) getBearerToken(tokenProvider common.TokenProvider)
 	if err != nil {
 		return "", errors.NewSkyflowErrorWrap(errors.ErrorCodesEnum(errors.SdkErrorCode), err, fmt.Sprintf(messages.INVALID_BEARER_TOKEN, clientTag))
 	}
+	if tokenUtils.Token == "" || isTokenExpired(tokenUtils.Token) {
+		return "", errors.NewSkyflowErrorWrap(errors.ErrorCodesEnum(errors.SdkErrorCode), err, fmt.Sprintf(messages.INVALID_BEARER_TOKEN, clientTag))
+	}
 	return tokenUtils.Token, nil
 }
 
