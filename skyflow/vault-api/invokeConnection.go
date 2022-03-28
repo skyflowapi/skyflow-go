@@ -72,10 +72,10 @@ func (InvokeConnectionApi *InvokeConnectionApi) Post() (map[string]interface{}, 
 		}
 	}
 	request.URL.RawQuery = query.Encode()
-	request.Header.Set("X-Skyflow-Authorization", InvokeConnectionApi.Token)
-	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("x-skyflow-authorization", InvokeConnectionApi.Token)
+	request.Header.Set("content-type", "application/json")
 	for index, value := range InvokeConnectionApi.ConnectionConfig.RequestHeader {
-		request.Header.Set(index, value)
+		request.Header.Set(strings.ToLower(index), value)
 	}
 
 	logger.Info(fmt.Sprintf(messages.INVOKE_CONNECTION_CALLED, connectionTag))
