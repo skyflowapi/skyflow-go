@@ -3,18 +3,38 @@ package client
 import (
 	"errors"
 	"fmt"
+	"os"
 	"testing"
 
+	"github.com/joho/godotenv"
 	errors1 "github.com/skyflowapi/skyflow-go/commonutils/errors"
 	"github.com/skyflowapi/skyflow-go/commonutils/messages"
+	saUtil "github.com/skyflowapi/skyflow-go/service-account/util"
 	"github.com/skyflowapi/skyflow-go/skyflow/common"
 )
+
+func init() {
+	err := godotenv.Load("../../.env")
+
+	if err != nil {
+		fmt.Println("Error loading .env file")
+	}
+
+}
 
 func invalidToken() (string, error) {
 	return "nil", errors.New("Not Valid")
 }
 func validToken() (string, error) {
-	return "token", nil
+
+	validFilePath := os.Getenv("CREDENTIALS_FILE_PATH")
+
+	token, err := saUtil.GenerateBearerToken(validFilePath)
+	if err != nil {
+		return "", err
+	} else {
+		return token.AccessToken, nil
+	}
 }
 func TestInsertInvalidToken(t *testing.T) {
 	configuration := common.Configuration{VaultID: "", VaultURL: "https://www.url.com", TokenProvider: invalidToken}
