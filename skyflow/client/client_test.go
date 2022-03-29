@@ -1,6 +1,7 @@
 package client
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"testing"
@@ -22,6 +23,10 @@ func init() {
 }
 
 func invalidToken() (string, error) {
+	return "nil", errors.New("Not Valid")
+}
+func validToken() (string, error) {
+
 	validFilePath := os.Getenv("CREDENTIALS_FILE_PATH")
 
 	token, err := saUtil.GenerateBearerToken(validFilePath)
@@ -30,10 +35,6 @@ func invalidToken() (string, error) {
 	} else {
 		return token.AccessToken, nil
 	}
-}
-func validToken() (string, error) {
-
-	return "token", nil
 }
 func TestInsertInvalidToken(t *testing.T) {
 	configuration := common.Configuration{VaultID: "", VaultURL: "https://www.url.com", TokenProvider: invalidToken}
