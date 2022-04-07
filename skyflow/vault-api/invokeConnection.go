@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hetiansu5/urlquery"
 	"github.com/skyflowapi/skyflow-go/commonutils/errors"
 	logger "github.com/skyflowapi/skyflow-go/commonutils/logwrapper"
 	"github.com/skyflowapi/skyflow-go/commonutils/messages"
@@ -45,7 +46,14 @@ func (InvokeConnectionApi *InvokeConnectionApi) Post() (map[string]interface{}, 
 	for index, value := range InvokeConnectionApi.ConnectionConfig.PathParams {
 		requestUrl = strings.Replace(requestUrl, fmt.Sprintf("{%s}", index), value, -1)
 	}
-	requestBody, err := json.Marshal(InvokeConnectionApi.ConnectionConfig.RequestBody)
+	var requestBody []byte
+	var err error
+	if InvokeConnectionApi.ConnectionConfig.RequestHeader["content-type"] == "application/x-www-form-urlencoded" {
+		requestBody, err = urlquery.Marshal(InvokeConnectionApi.ConnectionConfig.RequestBody)
+	} else {
+		requestBody, err = json.Marshal(InvokeConnectionApi.ConnectionConfig.RequestBody)
+	}
+
 	if err != nil {
 		logger.Error(fmt.Sprintf(messages.UNKNOWN_ERROR, connectionTag, err))
 		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.UNKNOWN_ERROR, connectionTag, err))
