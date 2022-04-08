@@ -70,8 +70,8 @@ func (InvokeConnectionApi *InvokeConnectionApi) Post() (map[string]interface{}, 
 	} else if contentType == "multipart/form-data" {
 		body := new(bytes.Buffer)
 		writer = multipart.NewWriter(body)
-		for key, val := range InvokeConnectionApi.ConnectionConfig.RequestBody {
-			_ = writer.WriteField(key, val.(string))
+		for key, val := range r_urlEncode(make([]interface{}, 0), make(map[string]string), InvokeConnectionApi.ConnectionConfig.RequestBody) {
+			_ = writer.WriteField(key, val)
 		}
 		err = writer.Close()
 		if err != nil {

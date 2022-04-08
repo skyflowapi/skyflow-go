@@ -61,8 +61,16 @@ func TestValidRequestUrlEncodedForConnections(t *testing.T) {
 func TestValidRequestFormDataForConnections(t *testing.T) {
 
 	requestBody := make(map[string]interface{})
-	requestBody["sam"] = "123"
-	requestBody["xx"] = "456"
+	requestBody["type"] = "card"
+	card := make(map[string]interface{})
+	card["number"] = 23.4
+	card["exp_month"] = 12
+	card["exp_year"] = "2024"
+	card["valid"] = true
+	x := make(map[string]interface{})
+	x["sample"] = "sample"
+	requestBody["x"] = x
+	requestBody["card"] = card
 
 	requestHeader := make(map[string]string)
 	requestHeader["content-type"] = "application/x-www-form-urlencoded"
