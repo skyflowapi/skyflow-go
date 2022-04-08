@@ -69,7 +69,7 @@ func TestValidRequestFormDataForConnections(t *testing.T) {
 	card["valid"] = true
 	x := make(map[string]interface{})
 	x["sample"] = "sample"
-	requestBody["x"] = x
+	card["x"] = x
 	requestBody["card"] = card
 
 	requestHeader := make(map[string]string)
@@ -79,4 +79,23 @@ func TestValidRequestFormDataForConnections(t *testing.T) {
 	invokeApi := InvokeConnectionApi{configuration, ""}
 	invokeApi.Post()
 
+}
+
+func TestUrlEncodeFunction(t *testing.T) {
+	requestBody := make(map[string]interface{})
+	requestBody["type"] = "card"
+	card := make(map[string]interface{})
+	card["number"] = 23.4
+	card["exp_month"] = 12
+	card["exp_year"] = "2024"
+	card["valid"] = true
+	x := make(map[string]interface{})
+	x["sample"] = "sample"
+	card["x"] = x
+	requestBody["card"] = card
+	var got = r_urlEncode(make([]interface{}, 0), make(map[string]string), requestBody)
+	var wanted = "map[card[exp_month]:12 card[exp_year]:2024 card[number]:23.400000 card[valid]:true card[x][sample]:sample type:card]"
+	if fmt.Sprintf("%s", got) != wanted {
+		t.Errorf("got  %s, wanted %s", got, wanted)
+	}
 }
