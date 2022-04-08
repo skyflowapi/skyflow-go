@@ -26,18 +26,48 @@ func TestInvalidConnectionUrl(t *testing.T) {
 
 func TestValidRequestForConnections(t *testing.T) {
 
-	path := make(map[string]string)
-	path["card"] = "1234"
-	query := make(map[string]interface{})
-	query["cvv"] = 456
-	query["a"] = "23"
-	query["s"] = true
-	query["float"] = 4.345
-	req := make(map[string]interface{})
-	req["sam"] = 123
-	req["xx"] = 456
+	pathParams := make(map[string]string)
+	pathParams["card"] = "1234"
+	queryParams := make(map[string]interface{})
+	queryParams["cvv"] = 456
+	queryParams["a"] = "23"
+	queryParams["s"] = true
+	queryParams["float"] = 4.345
+	requestBody := make(map[string]interface{})
+	requestBody["sam"] = 123
+	requestBody["xx"] = 456
 
-	configuration := common.ConnectionConfig{ConnectionURL: "https://www.google.com/card", MethodName: common.POST, PathParams: path, QueryParams: query, RequestBody: req}
+	configuration := common.ConnectionConfig{ConnectionURL: "https://www.google.com/card", MethodName: common.POST, PathParams: pathParams, QueryParams: queryParams, RequestBody: requestBody}
+	invokeApi := InvokeConnectionApi{configuration, ""}
+	invokeApi.Post()
+
+}
+
+func TestValidRequestUrlEncodedForConnections(t *testing.T) {
+
+	requestBody := make(map[string]interface{})
+	requestBody["sam"] = "123"
+	requestBody["xx"] = "456"
+
+	requestHeader := make(map[string]string)
+	requestHeader["content-type"] = "multipart/form-data"
+
+	configuration := common.ConnectionConfig{ConnectionURL: "https://www.google.com/card", MethodName: common.POST, RequestBody: requestBody, RequestHeader: requestHeader}
+	invokeApi := InvokeConnectionApi{configuration, ""}
+	invokeApi.Post()
+
+}
+
+func TestValidRequestFormDataForConnections(t *testing.T) {
+
+	requestBody := make(map[string]interface{})
+	requestBody["sam"] = "123"
+	requestBody["xx"] = "456"
+
+	requestHeader := make(map[string]string)
+	requestHeader["content-type"] = "application/x-www-form-urlencoded"
+
+	configuration := common.ConnectionConfig{ConnectionURL: "https://www.google.com/card", MethodName: common.POST, RequestBody: requestBody, RequestHeader: requestHeader}
 	invokeApi := InvokeConnectionApi{configuration, ""}
 	invokeApi.Post()
 
