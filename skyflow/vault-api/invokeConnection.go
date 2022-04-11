@@ -52,7 +52,7 @@ func (InvokeConnectionApi *InvokeConnectionApi) Post() (map[string]interface{}, 
 	var err error
 	var request *http.Request
 	var writer *multipart.Writer
-	var contentType = "application/json"
+	var contentType = string(common.APPLICATIONORJSON)
 	for index, value := range InvokeConnectionApi.ConnectionConfig.RequestHeader {
 		var key = strings.ToLower(index)
 		if key == "content-type" {
@@ -60,14 +60,14 @@ func (InvokeConnectionApi *InvokeConnectionApi) Post() (map[string]interface{}, 
 			break
 		}
 	}
-	if contentType == "application/x-www-form-urlencoded" {
+	if contentType == string(common.FORMURLENCODED) {
 		requestBody, err = urlquery.Marshal(InvokeConnectionApi.ConnectionConfig.RequestBody)
 		request, _ = http.NewRequest(
 			InvokeConnectionApi.ConnectionConfig.MethodName.String(),
 			requestUrl,
 			strings.NewReader(string(requestBody)),
 		)
-	} else if contentType == "multipart/form-data" {
+	} else if contentType == string(common.FORMDATA) {
 		body := new(bytes.Buffer)
 		writer = multipart.NewWriter(body)
 		for key, val := range r_urlEncode(make([]interface{}, 0), make(map[string]string), InvokeConnectionApi.ConnectionConfig.RequestBody) {
