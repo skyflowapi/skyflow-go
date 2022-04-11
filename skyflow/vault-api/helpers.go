@@ -52,8 +52,6 @@ func r_urlEncode(parents []interface{}, pairs map[string]string, data interface{
 		pairs[renderKey(parents)] = fmt.Sprintf("%d", data)
 	case reflect.Float32:
 		pairs[renderKey(parents)] = fmt.Sprintf("%f", data)
-	case reflect.String:
-		pairs[renderKey(parents)] = data.(string)
 	case reflect.Float64:
 		pairs[renderKey(parents)] = fmt.Sprintf("%f", data)
 	case reflect.Bool:
@@ -68,6 +66,7 @@ func r_urlEncode(parents []interface{}, pairs map[string]string, data interface{
 	default:
 		pairs[renderKey(parents)] = fmt.Sprintf("%s", data)
 	}
+	fmt.Println(pairs)
 	return pairs
 }
 
