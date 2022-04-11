@@ -66,7 +66,6 @@ func r_urlEncode(parents []interface{}, pairs map[string]string, data interface{
 	default:
 		pairs[renderKey(parents)] = fmt.Sprintf("%s", data)
 	}
-	fmt.Println(pairs)
 	return pairs
 }
 
