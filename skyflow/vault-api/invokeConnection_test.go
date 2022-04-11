@@ -95,7 +95,25 @@ func TestUrlEncodeFunction(t *testing.T) {
 	requestBody["card"] = card
 	var got = r_urlEncode(make([]interface{}, 0), make(map[string]string), requestBody)
 	var wanted = "map[card[exp_month]:12 card[exp_year]:2024 card[number]:23.400000 card[valid]:true card[x][sample]:sample type:card]"
-	if fmt.Sprintf("%s", got) != wanted {
-		t.Errorf("got  %s, wanted %s", got, wanted)
-	}
+	check(fmt.Sprintf("%s", got), wanted, t)
+}
+
+func TestUrlEncodeFunctionForOtherDataTypes(t *testing.T) {
+	var got = r_urlEncode(make([]interface{}, 0), make(map[string]string), 2.14)
+	var wanted = "map[:2.140000]"
+	check(fmt.Sprintf("%s", got), wanted, t)
+
+	got = r_urlEncode(make([]interface{}, 0), make(map[string]string), 2)
+	wanted = "map[:2]"
+	check(fmt.Sprintf("%s", got), wanted, t)
+
+	got = r_urlEncode(make([]interface{}, 0), make(map[string]string), true)
+	wanted = "map[:true]"
+	check(fmt.Sprintf("%s", got), wanted, t)
+
+	var x float32 = 2.1
+	got = r_urlEncode(make([]interface{}, 0), make(map[string]string), x)
+	wanted = "map[:2.100000]"
+	check(fmt.Sprintf("%s", got), wanted, t)
+
 }
