@@ -26,19 +26,94 @@ func TestInvalidConnectionUrl(t *testing.T) {
 
 func TestValidRequestForConnections(t *testing.T) {
 
-	path := make(map[string]string)
-	path["card"] = "1234"
-	query := make(map[string]interface{})
-	query["cvv"] = 456
-	query["a"] = "23"
-	query["s"] = true
-	query["float"] = 4.345
-	req := make(map[string]interface{})
-	req["sam"] = 123
-	req["xx"] = 456
+	pathParams := make(map[string]string)
+	pathParams["card"] = "1234"
+	queryParams := make(map[string]interface{})
+	queryParams["cvv"] = 456
+	queryParams["a"] = "23"
+	queryParams["s"] = true
+	queryParams["float"] = 4.345
+	requestBody := make(map[string]interface{})
+	requestBody["sam"] = 123
+	requestBody["xx"] = 456
 
-	configuration := common.ConnectionConfig{ConnectionURL: "https://www.google.com/card", MethodName: common.POST, PathParams: path, QueryParams: query, RequestBody: req}
+	configuration := common.ConnectionConfig{ConnectionURL: "https://www.google.com/card", MethodName: common.POST, PathParams: pathParams, QueryParams: queryParams, RequestBody: requestBody}
 	invokeApi := InvokeConnectionApi{configuration, ""}
 	invokeApi.Post()
+
+}
+
+func TestValidRequestUrlEncodedForConnections(t *testing.T) {
+
+	requestBody := make(map[string]interface{})
+	requestBody["sam"] = "123"
+	requestBody["xx"] = "456"
+
+	requestHeader := make(map[string]string)
+	requestHeader["content-type"] = "multipart/form-data"
+
+	configuration := common.ConnectionConfig{ConnectionURL: "https://www.google.com/card", MethodName: common.POST, RequestBody: requestBody, RequestHeader: requestHeader}
+	invokeApi := InvokeConnectionApi{configuration, ""}
+	invokeApi.Post()
+
+}
+
+func TestValidRequestFormDataForConnections(t *testing.T) {
+
+	requestBody := make(map[string]interface{})
+	requestBody["type"] = "card"
+	card := make(map[string]interface{})
+	card["number"] = 23.4
+	card["exp_month"] = 12
+	card["exp_year"] = "2024"
+	card["valid"] = true
+	x := make(map[string]interface{})
+	x["sample"] = "sample"
+	card["x"] = x
+	requestBody["card"] = card
+
+	requestHeader := make(map[string]string)
+	requestHeader["content-type"] = "application/x-www-form-urlencoded"
+
+	configuration := common.ConnectionConfig{ConnectionURL: "https://www.google.com/card", MethodName: common.POST, RequestBody: requestBody, RequestHeader: requestHeader}
+	invokeApi := InvokeConnectionApi{configuration, ""}
+	invokeApi.Post()
+
+}
+
+func TestUrlEncodeFunction(t *testing.T) {
+	requestBody := make(map[string]interface{})
+	requestBody["type"] = "card"
+	card := make(map[string]interface{})
+	card["number"] = 23.4
+	card["exp_month"] = 12
+	card["exp_year"] = "2024"
+	card["valid"] = true
+	x := make(map[string]interface{})
+	x["sample"] = "sample"
+	card["x"] = x
+	requestBody["card"] = card
+	var got = r_urlEncode(make([]interface{}, 0), make(map[string]string), requestBody)
+	var wanted = "map[card[exp_month]:12 card[exp_year]:2024 card[number]:23.400000 card[valid]:true card[x][sample]:sample type:card]"
+	check(fmt.Sprintf("%s", got), wanted, t)
+}
+
+func TestUrlEncodeFunctionForOtherDataTypes(t *testing.T) {
+	var got = r_urlEncode(make([]interface{}, 0), make(map[string]string), 2.14)
+	var wanted = "map[:2.140000]"
+	check(fmt.Sprintf("%s", got), wanted, t)
+
+	got = r_urlEncode(make([]interface{}, 0), make(map[string]string), 2)
+	wanted = "map[:2]"
+	check(fmt.Sprintf("%s", got), wanted, t)
+
+	got = r_urlEncode(make([]interface{}, 0), make(map[string]string), true)
+	wanted = "map[:true]"
+	check(fmt.Sprintf("%s", got), wanted, t)
+
+	var x float32 = 2.1
+	got = r_urlEncode(make([]interface{}, 0), make(map[string]string), x)
+	wanted = "map[:2.100000]"
+	check(fmt.Sprintf("%s", got), wanted, t)
 
 }

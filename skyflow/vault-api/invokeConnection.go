@@ -1,13 +1,16 @@
 package vaultapi
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"mime/multipart"
 	"net/http"
 	"strconv"
 	"strings"
 
+	"github.com/hetiansu5/urlquery"
 	"github.com/skyflowapi/skyflow-go/commonutils/errors"
 	logger "github.com/skyflowapi/skyflow-go/commonutils/logwrapper"
 	"github.com/skyflowapi/skyflow-go/commonutils/messages"
@@ -45,16 +48,52 @@ func (InvokeConnectionApi *InvokeConnectionApi) Post() (map[string]interface{}, 
 	for index, value := range InvokeConnectionApi.ConnectionConfig.PathParams {
 		requestUrl = strings.Replace(requestUrl, fmt.Sprintf("{%s}", index), value, -1)
 	}
-	requestBody, err := json.Marshal(InvokeConnectionApi.ConnectionConfig.RequestBody)
+	var requestBody []byte
+	var err error
+	var request *http.Request
+	var writer *multipart.Writer
+	var contentType = string(common.APPLICATIONORJSON)
+	for index, value := range InvokeConnectionApi.ConnectionConfig.RequestHeader {
+		var key = strings.ToLower(index)
+		if key == "content-type" {
+			contentType = value
+			break
+		}
+	}
+	if contentType == string(common.FORMURLENCODED) {
+		requestBody, err = urlquery.Marshal(InvokeConnectionApi.ConnectionConfig.RequestBody)
+		request, _ = http.NewRequest(
+			InvokeConnectionApi.ConnectionConfig.MethodName.String(),
+			requestUrl,
+			strings.NewReader(string(requestBody)),
+		)
+	} else if contentType == string(common.FORMDATA) {
+		body := new(bytes.Buffer)
+		writer = multipart.NewWriter(body)
+		for key, val := range r_urlEncode(make([]interface{}, 0), make(map[string]string), InvokeConnectionApi.ConnectionConfig.RequestBody) {
+			_ = writer.WriteField(key, val)
+		}
+		err = writer.Close()
+		if err != nil {
+			return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.UNKNOWN_ERROR, connectionTag, err))
+		}
+		request, _ = http.NewRequest(
+			InvokeConnectionApi.ConnectionConfig.MethodName.String(),
+			requestUrl,
+			body,
+		)
+	} else {
+		requestBody, err = json.Marshal(InvokeConnectionApi.ConnectionConfig.RequestBody)
+		request, _ = http.NewRequest(
+			InvokeConnectionApi.ConnectionConfig.MethodName.String(),
+			requestUrl,
+			strings.NewReader(string(requestBody)),
+		)
+	}
 	if err != nil {
 		logger.Error(fmt.Sprintf(messages.UNKNOWN_ERROR, connectionTag, err))
 		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.UNKNOWN_ERROR, connectionTag, err))
 	}
-	request, _ := http.NewRequest(
-		InvokeConnectionApi.ConnectionConfig.MethodName.String(),
-		requestUrl,
-		strings.NewReader(string(requestBody)),
-	)
 	query := request.URL.Query()
 	for index, value := range InvokeConnectionApi.ConnectionConfig.QueryParams {
 		switch v := value.(type) {
@@ -75,11 +114,14 @@ func (InvokeConnectionApi *InvokeConnectionApi) Post() (map[string]interface{}, 
 	request.Header.Set("x-skyflow-authorization", InvokeConnectionApi.Token)
 	request.Header.Set("content-type", "application/json")
 	for index, value := range InvokeConnectionApi.ConnectionConfig.RequestHeader {
-		request.Header.Set(strings.ToLower(index), value)
+		var key = strings.ToLower(index)
+		if key == "content-type" && value == "multipart/form-data" {
+			request.Header.Set(key, writer.FormDataContentType())
+		} else {
+			request.Header.Set(key, value)
+		}
 	}
-
 	logger.Info(fmt.Sprintf(messages.INVOKE_CONNECTION_CALLED, connectionTag))
-
 	res, err := http.DefaultClient.Do(request)
 	var requestId = ""
 	if res != nil {
