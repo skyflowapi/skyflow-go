@@ -14,7 +14,7 @@ jobs:
         flags: 'gm'
         excludeDescription: 'true'
         checkAllCommitMessages: 'true'
-        accessToken: ${{ secrets.ACCESS_TOKEN }}
+        accessToken: ${{ secrets.PAT_ACTIONS }}
         error: 'One of your your commit messages is not matching the format with JIRA ID Ex: ( SDK-123 commit message )'
   build:
     runs-on: ubuntu-latest
