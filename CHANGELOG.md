@@ -7,6 +7,13 @@ All notable changes to this project will be documented in this file.
 ### Added
 - support for application/x-www-form-urlencoded and multipart/form-data content-type's in connections.
 
+## [1.3.1] - 2022-03-29
+
+### Changed
+- Added validation to token from TokenProvider
+
+### Fixed 
+-  requestHeaders are not case insensitive
 
 ## [1.3.0] - 2022-03-15
 
