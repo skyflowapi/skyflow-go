@@ -3,6 +3,19 @@ name: "CI Checks"
 on: [pull_request]
 
 jobs:
+  check-commit-message:
+    name: Check Commit Message
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check JIRA ID
+      uses: gsactions/commit-message-checker@v1
+      with:
+        pattern: '\[?[A-Z]{1,5}-[1-9][0-9]*.+$'
+        flags: 'gm'
+        excludeDescription: 'true'
+        checkAllCommitMessages: 'true'
+        accessToken: ${{ secrets.ACCESS_TOKEN }}
+        error: 'One of your your commit messages is not matching the format with JIRA ID Ex: ( SDK-123 commit message )'
   build:
     runs-on: ubuntu-latest
     steps:
