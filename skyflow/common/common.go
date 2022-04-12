@@ -105,3 +105,13 @@ type SkyflowIdRecord struct {
 	Redaction RedactionType
 	Table     string
 }
+
+type ContentType string
+
+const (
+	APPLICATIONORJSON ContentType = "application/json"
+	TEXTORPLAIN       ContentType = "text/plain"
+	FORMURLENCODED    ContentType = "application/x-www-form-urlencoded"
+	FORMDATA          ContentType = "multipart/form-data"
+	TEXTORXML         ContentType = "text/xml"
+)

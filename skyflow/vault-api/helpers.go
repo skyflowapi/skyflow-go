@@ -3,6 +3,7 @@ package vaultapi
 import (
 	"fmt"
 	"net/url"
+	"reflect"
 
 	"github.com/skyflowapi/skyflow-go/commonutils/errors"
 	logger "github.com/skyflowapi/skyflow-go/commonutils/logwrapper"
@@ -42,4 +43,43 @@ func isValidUrl(toTest string) bool {
 	}
 
 	return true
+}
+
+func r_urlEncode(parents []interface{}, pairs map[string]string, data interface{}) map[string]string {
+
+	switch reflect.TypeOf(data).Kind() {
+	case reflect.Int:
+		pairs[renderKey(parents)] = fmt.Sprintf("%d", data)
+	case reflect.Float32:
+		pairs[renderKey(parents)] = fmt.Sprintf("%f", data)
+	case reflect.Float64:
+		pairs[renderKey(parents)] = fmt.Sprintf("%f", data)
+	case reflect.Bool:
+		pairs[renderKey(parents)] = fmt.Sprintf("%t", data)
+	case reflect.Map:
+		var mapOfdata = (data).(map[string]interface{})
+		for index, value := range mapOfdata {
+			parents = append(parents, index)
+			r_urlEncode(parents, pairs, value)
+			parents = parents[:len(parents)-1]
+		}
+	default:
+		pairs[renderKey(parents)] = fmt.Sprintf("%s", data)
+	}
+	return pairs
+}
+
+func renderKey(parents []interface{}) string {
+	var depth = 0
+	var outputString = ""
+	for index := range parents {
+		var typeOfindex = reflect.TypeOf(parents[index]).Kind()
+		if depth > 0 || typeOfindex == reflect.Int {
+			outputString = outputString + fmt.Sprintf("[%v]", parents[index])
+		} else {
+			outputString = outputString + (parents[index]).(string)
+		}
+		depth = depth + 1
+	}
+	return outputString
 }
