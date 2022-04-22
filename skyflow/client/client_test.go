@@ -45,6 +45,14 @@ func TestInsertInvalidToken(t *testing.T) {
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 
 }
+func TestInsertNilTokenProvider(t *testing.T) {
+	configuration := common.Configuration{VaultID: "", VaultURL: "https://www.url.com"}
+	var client = Init(configuration)
+	var record = make(map[string]interface{})
+	_, err := client.Insert(record)
+	skyflowError := errors1.NewSkyflowError(errors1.ErrorCodesEnum(errors1.SdkErrorCode), fmt.Sprintf(messages.MISSING_TOKENPROVIDER, clientTag))
+	check(err.GetMessage(), skyflowError.GetMessage(), t)
+}
 func TestDetokenizeInvalidToken(t *testing.T) {
 	configuration := common.Configuration{VaultID: "", VaultURL: "https://www.url.com", TokenProvider: invalidToken}
 	var client = Init(configuration)
@@ -54,12 +62,28 @@ func TestDetokenizeInvalidToken(t *testing.T) {
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 
+func TestDetokenizeNilTokenProvider(t *testing.T) {
+	configuration := common.Configuration{VaultID: "", VaultURL: "https://www.url.com"}
+	var client = Init(configuration)
+	var record = make(map[string]interface{})
+	_, err := client.Detokenize(record)
+	skyflowError := errors1.NewSkyflowError(errors1.ErrorCodesEnum(errors1.SdkErrorCode), fmt.Sprintf(messages.MISSING_TOKENPROVIDER, clientTag))
+	check(err.GetMessage(), skyflowError.GetMessage(), t)
+}
 func TestGetByIdInvalidToken(t *testing.T) {
 	configuration := common.Configuration{VaultID: "", VaultURL: "https://www.url.com", TokenProvider: invalidToken}
 	var client = Init(configuration)
 	var record = make(map[string]interface{})
 	_, err := client.GetById(record)
 	skyflowError := errors1.NewSkyflowError(errors1.ErrorCodesEnum(errors1.SdkErrorCode), fmt.Sprintf(messages.INVALID_BEARER_TOKEN, clientTag))
+	check(err.GetMessage(), skyflowError.GetMessage(), t)
+}
+func TestGetByIdNilTokenProvider(t *testing.T) {
+	configuration := common.Configuration{VaultID: "", VaultURL: "https://www.url.com"}
+	var client = Init(configuration)
+	var record = make(map[string]interface{})
+	_, err := client.GetById(record)
+	skyflowError := errors1.NewSkyflowError(errors1.ErrorCodesEnum(errors1.SdkErrorCode), fmt.Sprintf(messages.MISSING_TOKENPROVIDER, clientTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 
@@ -69,6 +93,14 @@ func TestInvokeConnectionInvalidToken(t *testing.T) {
 	var record = common.ConnectionConfig{}
 	_, err := client.InvokeConnection(record)
 	skyflowError := errors1.NewSkyflowError(errors1.ErrorCodesEnum(errors1.SdkErrorCode), fmt.Sprintf(messages.INVALID_BEARER_TOKEN, clientTag))
+	check(err.GetMessage(), skyflowError.GetMessage(), t)
+}
+func TestInvokeConnectionNilTokenProvider(t *testing.T) {
+	configuration := common.Configuration{VaultID: "", VaultURL: "https://www.url.com"}
+	var client = Init(configuration)
+	var record = common.ConnectionConfig{}
+	_, err := client.InvokeConnection(record)
+	skyflowError := errors1.NewSkyflowError(errors1.ErrorCodesEnum(errors1.SdkErrorCode), fmt.Sprintf(messages.MISSING_TOKENPROVIDER, clientTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 

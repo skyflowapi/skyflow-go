@@ -26,9 +26,9 @@ func (client *Client) Insert(records map[string]interface{}, options ...common.I
 	} else {
 		tempOptions = options[0]
 	}
-	if client.configuration.TokenProvider == nil {
-		logger.Error(fmt.Sprintf(messages.MISSING_TOKENPROVIDER, clientTag))
-		return common.InsertRecords{}, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.MISSING_TOKENPROVIDER, clientTag))
+	err := client.checkTokenProvider()
+	if err != nil {
+		return common.InsertRecords{}, err
 	}
 	token, err := tokenUtils.getBearerToken(client.configuration.TokenProvider)
 	if err != nil {
@@ -53,9 +53,9 @@ func (client *Client) Insert(records map[string]interface{}, options ...common.I
 
 func (client *Client) Detokenize(records map[string]interface{}) (common.DetokenizeRecords, *errors.SkyflowError) {
 
-	if client.configuration.TokenProvider == nil {
-		logger.Error(fmt.Sprintf(messages.MISSING_TOKENPROVIDER, clientTag))
-		return common.DetokenizeRecords{}, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.MISSING_TOKENPROVIDER, clientTag))
+	err := client.checkTokenProvider()
+	if err != nil {
+		return common.DetokenizeRecords{}, err
 	}
 	token, err := tokenUtils.getBearerToken(client.configuration.TokenProvider)
 	if err != nil {
@@ -80,9 +80,9 @@ func (client *Client) Detokenize(records map[string]interface{}) (common.Detoken
 
 func (client *Client) GetById(records map[string]interface{}) (common.GetByIdRecords, *errors.SkyflowError) {
 
-	if client.configuration.TokenProvider == nil {
-		logger.Error(fmt.Sprintf(messages.MISSING_TOKENPROVIDER, clientTag))
-		return common.GetByIdRecords{}, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.MISSING_TOKENPROVIDER, clientTag))
+	err := client.checkTokenProvider()
+	if err != nil {
+		return common.GetByIdRecords{}, err
 	}
 	token, err := tokenUtils.getBearerToken(client.configuration.TokenProvider)
 	if err != nil {
@@ -107,9 +107,9 @@ func (client *Client) GetById(records map[string]interface{}) (common.GetByIdRec
 
 func (client *Client) InvokeConnection(connectionConfig common.ConnectionConfig) (common.ResponseBody, *errors.SkyflowError) {
 
-	if client.configuration.TokenProvider == nil {
-		logger.Error(fmt.Sprintf(messages.MISSING_TOKENPROVIDER, clientTag))
-		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.MISSING_TOKENPROVIDER, clientTag))
+	err := client.checkTokenProvider()
+	if err != nil {
+		return nil, err
 	}
 	token, err := tokenUtils.getBearerToken(client.configuration.TokenProvider)
 	if err != nil {
@@ -117,4 +117,12 @@ func (client *Client) InvokeConnection(connectionConfig common.ConnectionConfig)
 	}
 	invokeConnectionApi := vaultapi.InvokeConnectionApi{ConnectionConfig: connectionConfig, Token: token}
 	return invokeConnectionApi.Post()
+}
+
+func (client *Client) checkTokenProvider() *errors.SkyflowError {
+	if client.configuration.TokenProvider == nil {
+		logger.Error(fmt.Sprintf(messages.MISSING_TOKENPROVIDER, clientTag))
+		return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.MISSING_TOKENPROVIDER, clientTag))
+	}
+	return nil
 }
