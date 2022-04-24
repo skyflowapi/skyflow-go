@@ -148,12 +148,8 @@ func check(resp *ResponseToken, err *sErrors.SkyflowError, expected string, t *t
 
 func mockApi() {
 	resJson := `{
-		"error": {
-				"grpc_code": 5,
-				"http_code": 404,
-				"http_status": "Not Found",
-				"message": "Token not found for 1234"
-			}
+		"AccessToken":"token",
+		"TokenType":"string"
 
 	}`
 	r := ioutil.NopCloser(bytes.NewReader([]byte(resJson)))
