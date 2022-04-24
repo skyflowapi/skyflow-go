@@ -1,8 +1,11 @@
 package util
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"strings"
 	"testing"
@@ -10,6 +13,7 @@ import (
 	"github.com/joho/godotenv"
 
 	sErrors "github.com/skyflowapi/skyflow-go/commonutils/errors"
+	"github.com/skyflowapi/skyflow-go/commonutils/mocks"
 )
 
 func init() {
@@ -98,6 +102,7 @@ func setUpIsValidTests() []isValidTokenTest {
 
 func TestGenerateBearerToken(t *testing.T) {
 
+	mockApi()
 	generateBearerTokenFromCredsTests := setUpGenerateBearerTokenTests()
 
 	for _, test := range generateBearerTokenFromCredsTests {
@@ -108,6 +113,7 @@ func TestGenerateBearerToken(t *testing.T) {
 
 func TestGenerateBearerTokenFromCreds(t *testing.T) {
 
+	mockApi()
 	generateBearerTokenFromCredsTests := setUpGenerateBearerTokenFromCredsTests()
 
 	for _, test := range generateBearerTokenFromCredsTests {
@@ -137,5 +143,24 @@ func check(resp *ResponseToken, err *sErrors.SkyflowError, expected string, t *t
 		if !strings.Contains(err.GetMessage(), expected) {
 			t.Errorf("Output %s not equal to expected %s", err.GetMessage(), expected)
 		}
+	}
+}
+
+func mockApi() {
+	resJson := `{
+		"error": {
+				"grpc_code": 5,
+				"http_code": 404,
+				"http_status": "Not Found",
+				"message": "Token not found for 1234"
+			}
+
+	}`
+	r := ioutil.NopCloser(bytes.NewReader([]byte(resJson)))
+	mocks.GetDoFunc = func(*http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: 200,
+			Body:       r,
+		}, nil
 	}
 }
