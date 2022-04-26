@@ -43,12 +43,7 @@ func GenerateBearerToken(filePath string) (*ResponseToken, *errors.SkyflowError)
 	}
 	defer jsonFile.Close()
 
-	byteValue, err := ioutil.ReadAll(jsonFile)
-	if err != nil {
-		logger.Error(fmt.Sprintf(messages.INVALID_INPUT, tag, fmt.Sprintf("Unable to read credentials - file %s", filePath)))
-		return nil, errors.NewSkyflowErrorWrap(errors.InvalidInput, err, fmt.Sprintf("Unable to read credentials - file %s", filePath))
-	}
-
+	byteValue, _ := ioutil.ReadAll(jsonFile)
 	err = json.Unmarshal(byteValue, &key)
 	if err != nil {
 		logger.Error(fmt.Sprintf(messages.INVALID_INPUT, tag, fmt.Sprintf("Provided json file is in wrong format - file %s", filePath)))
@@ -113,21 +108,13 @@ func getSATokenFromCredsFile(key map[string]interface{}) (*ResponseToken, *error
 		return nil, skyflowError
 	}
 
-	reqBody, err := json.Marshal(map[string]string{
+	reqBody, _ := json.Marshal(map[string]string{
 		"grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
 		"assertion":  signedUserJWT,
 	})
-	if err != nil {
-		logger.Error(fmt.Sprintf(messages.INVALID_INPUT, tag, "Unable to construct request payload"))
-		return nil, errors.NewSkyflowErrorWrap(errors.InvalidInput, err, "Unable to construct request payload")
-	}
 	payload := strings.NewReader(string(reqBody))
 	client := &http.Client{}
-	req, err := http.NewRequest("POST", tokenURI, payload)
-	if err != nil {
-		logger.Error(fmt.Sprintf(messages.INVALID_INPUT, tag, "Unable to create new request with tokenURI and payload"))
-		return nil, errors.NewSkyflowErrorWrap(errors.InvalidInput, err, "Unable to create new request with tokenURI and payload")
-	}
+	req, _ := http.NewRequest("POST", tokenURI, payload)
 	req.Header.Add("Content-Type", "application/json")
 
 	res, err := client.Do(req)
@@ -141,12 +128,7 @@ func getSATokenFromCredsFile(key map[string]interface{}) (*ResponseToken, *error
 	}
 	defer res.Body.Close()
 
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		logger.Error(fmt.Sprintf(messages.SERVER_ERROR, tag, appendRequestId("Unable to read response payload", requestId)))
-		return nil, errors.NewSkyflowErrorWrap(errors.Server, err, appendRequestId("Unable to read response payload", requestId))
-	}
-
+	body, _ := ioutil.ReadAll(res.Body)
 	if res.StatusCode != 200 {
 		logger.Error(fmt.Sprintf(messages.SERVER_ERROR, tag, appendRequestId(fmt.Sprintf("%v", string(body)), requestId)))
 		return nil, errors.NewSkyflowErrorWrap(errors.Server,
@@ -158,7 +140,6 @@ func getSATokenFromCredsFile(key map[string]interface{}) (*ResponseToken, *error
 		logger.Error(fmt.Sprintf(messages.SERVER_ERROR, tag, appendRequestId("Empty body", requestId)))
 		return nil, errors.NewSkyflowError(errors.Server, appendRequestId("Empty body", requestId))
 	}
-
 	var responseToken ResponseToken
 	json.Unmarshal([]byte(body), &responseToken)
 	logger.Info(fmt.Sprintf(messages.GENERATE_BEARER_TOKEN_SUCCESS, tag))
@@ -205,13 +186,7 @@ func getSignedUserToken(clientID, keyID, tokenURI string, pvtKey *rsa.PrivateKey
 		"sub": clientID,
 		"exp": time.Now().Add(60 * time.Minute).Unix(),
 	})
-
-	var err error
-	signedToken, err := token.SignedString(pvtKey)
-	if err != nil {
-		logger.Error(fmt.Sprintf(messages.INVALID_INPUT, tag, "unable to parse jwt payload"))
-		return "", errors.NewSkyflowErrorWrap(errors.InvalidInput, err, "unable to parse jwt payload")
-	}
+	signedToken, _ := token.SignedString(pvtKey)
 	return signedToken, nil
 }
 
