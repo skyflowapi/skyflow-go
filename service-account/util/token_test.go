@@ -3,7 +3,7 @@ package util
 import (
 	"bytes"
 	"errors"
-	"fmt"
+	fmt "fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -145,9 +145,27 @@ func check(resp *ResponseToken, err *sErrors.SkyflowError, expected string, t *t
 		}
 	}
 }
+func TestAppendRequestId(t *testing.T) {
+	var message = appendRequestId("message", "1234")
+	checkErrorMessage(message, "message - requestId : 1234", t)
+}
+func TestAppendRequestIdWithEmpty(t *testing.T) {
+	var message = appendRequestId("message", "")
+	checkErrorMessage(message, "message", t)
+}
+
+func checkErrorMessage(got string, wanted string, t *testing.T) {
+	if got != wanted {
+		t.Errorf("got  %s, wanted %s", got, wanted)
+	}
+}
 
 func mockApi() {
 	resJson := `{
+		"Header" : {
+			"x-request-id": "reqId-123"
+		},
+		"StatusCode": "400",
 		"AccessToken":"token",
 		"TokenType":"string"
 
