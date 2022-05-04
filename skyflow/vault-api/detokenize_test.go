@@ -2,6 +2,7 @@ package vaultapi
 
 import (
 	"bytes"
+	errors1 "errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -103,6 +104,38 @@ func TestInValidRequestForDetokenize(t *testing.T) {
 				"http_status": "Not Found",
 				"message": "Token not found for 1234"
 			}
+
+	}`
+	r := ioutil.NopCloser(bytes.NewReader([]byte(resJson)))
+	mocks.GetDoFunc = func(*http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: 200,
+			Body:       r,
+		}, nil
+	}
+	resp, _ := detokenizeApi.Get()
+	if resp["errors"] == nil {
+		t.Errorf("got nil, wanted skyflow error")
+	}
+}
+
+func TestInValidRequestForDetokenizeWithErrors(t *testing.T) {
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.google.com", TokenProvider: GetToken}
+	records := make(map[string]interface{})
+	var record1 = make(map[string]interface{})
+	record1["token"] = "1234"
+	var recordsArray []interface{}
+	recordsArray = append(recordsArray, record1)
+	records["records"] = recordsArray
+	detokenizeApi := DetokenizeApi{Configuration: configuration, Records: records, Token: ""}
+	resJson := `{
+		"errors":[
+		"error": {
+				"grpc_code": 5,
+				"http_code": 404,
+				"http_status": "Not Found",
+				"message": "Token not found for 1234"
+			}
 		]
 	}`
 	r := ioutil.NopCloser(bytes.NewReader([]byte(resJson)))
@@ -111,6 +144,24 @@ func TestInValidRequestForDetokenize(t *testing.T) {
 			StatusCode: 200,
 			Body:       r,
 		}, nil
+	}
+	resp, _ := detokenizeApi.Get()
+	if resp["errors"] == nil {
+		t.Errorf("got nil, wanted skyflow error")
+	}
+}
+
+func TestInValidRequestForDetokenizeWithErr(t *testing.T) {
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.google.com", TokenProvider: GetToken}
+	records := make(map[string]interface{})
+	var record1 = make(map[string]interface{})
+	record1["token"] = "1234"
+	var recordsArray []interface{}
+	recordsArray = append(recordsArray, record1)
+	records["records"] = recordsArray
+	detokenizeApi := DetokenizeApi{Configuration: configuration, Records: records, Token: ""}
+	mocks.GetDoFunc = func(*http.Request) (*http.Response, error) {
+		return nil, errors1.New("unathorized")
 	}
 	resp, _ := detokenizeApi.Get()
 	if resp["errors"] == nil {

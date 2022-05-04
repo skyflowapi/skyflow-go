@@ -5,7 +5,6 @@ This go SDK is designed to help developers easily implement Skyflow into their g
 [![GitHub release](https://img.shields.io/github/v/release/skyflowapi/skyflow-go.svg)](https://github.com/skyflowapi/skyflow-go/releases)
 [![License](https://img.shields.io/github/license/skyflowapi/skyflow-go)](https://github.com/skyflowapi/skyflow-go/blob/main/LICENSE)
 
-
 # Table of Contents
 
 * [Features](#features)
@@ -20,9 +19,7 @@ This go SDK is designed to help developers easily implement Skyflow into their g
   *  [InvokeConnection](#invoke-connection)
 * [Logging](#logging)
 
-
-## Features
-
+#### Features
 - Authentication with a Skyflow Service Account and generation of a bearer token
 - Vault API operations to insert, retrieve and tokenize sensitive data
 - Invoking connections to call downstream third party APIs without directly handling sensitive data

@@ -1,8 +1,11 @@
 package util
 
 import (
+	"bytes"
 	"errors"
-	"fmt"
+	fmt "fmt"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"strings"
 	"testing"
@@ -10,6 +13,7 @@ import (
 	"github.com/joho/godotenv"
 
 	sErrors "github.com/skyflowapi/skyflow-go/commonutils/errors"
+	"github.com/skyflowapi/skyflow-go/commonutils/mocks"
 )
 
 func init() {
@@ -98,6 +102,7 @@ func setUpIsValidTests() []isValidTokenTest {
 
 func TestGenerateBearerToken(t *testing.T) {
 
+	mockApi()
 	generateBearerTokenFromCredsTests := setUpGenerateBearerTokenTests()
 
 	for _, test := range generateBearerTokenFromCredsTests {
@@ -108,6 +113,7 @@ func TestGenerateBearerToken(t *testing.T) {
 
 func TestGenerateBearerTokenFromCreds(t *testing.T) {
 
+	mockApi()
 	generateBearerTokenFromCredsTests := setUpGenerateBearerTokenFromCredsTests()
 
 	for _, test := range generateBearerTokenFromCredsTests {
@@ -137,5 +143,38 @@ func check(resp *ResponseToken, err *sErrors.SkyflowError, expected string, t *t
 		if !strings.Contains(err.GetMessage(), expected) {
 			t.Errorf("Output %s not equal to expected %s", err.GetMessage(), expected)
 		}
+	}
+}
+func TestAppendRequestId(t *testing.T) {
+	var message = appendRequestId("message", "1234")
+	checkErrorMessage(message, "message - requestId : 1234", t)
+}
+func TestAppendRequestIdWithEmpty(t *testing.T) {
+	var message = appendRequestId("message", "")
+	checkErrorMessage(message, "message", t)
+}
+
+func checkErrorMessage(got string, wanted string, t *testing.T) {
+	if got != wanted {
+		t.Errorf("got  %s, wanted %s", got, wanted)
+	}
+}
+
+func mockApi() {
+	resJson := `{
+		"Header" : {
+			"x-request-id": "reqId-123"
+		},
+		"StatusCode": "400",
+		"AccessToken":"token",
+		"TokenType":"string"
+
+	}`
+	r := ioutil.NopCloser(bytes.NewReader([]byte(resJson)))
+	mocks.GetDoFunc = func(*http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: 200,
+			Body:       r,
+		}, nil
 	}
 }
