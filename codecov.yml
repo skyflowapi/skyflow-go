@@ -1,1 +1,4 @@
 comment: false
+parsers:
+  go:
+    partials_as_hits: true #false by default
