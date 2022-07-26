@@ -1,3 +1,6 @@
+/*
+	Copyright (c) 2022 Skyflow, Inc. 
+*/
 package common
 
 type ResponseBody map[string]interface{}

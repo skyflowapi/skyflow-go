@@ -1,3 +1,6 @@
+/*
+	Copyright (c) 2022 Skyflow, Inc. 
+*/
 package common
 
 func AppendRequestId(message string, requestId string) string {

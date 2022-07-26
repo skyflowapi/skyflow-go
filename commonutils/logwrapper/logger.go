@@ -1,3 +1,6 @@
+/*
+	Copyright (c) 2022 Skyflow, Inc. 
+*/
 package logger
 
 import "github.com/sirupsen/logrus"

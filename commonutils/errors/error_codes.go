@@ -1,3 +1,6 @@
+/*
+	Copyright (c) 2022 Skyflow, Inc. 
+*/
 package errors
 
 // ErrorCodesEnum - Enum defines the list of error codes/categorization of errors in Skyflow.
