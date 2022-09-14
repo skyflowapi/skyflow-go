@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2022 Skyflow, Inc. 
+Copyright (c) 2022 Skyflow, Inc.
 */
 package main
 
@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	logger "github.com/skyflowapi/skyflow-go/commonutils/logwrapper"
-	saUtil "github.com/skyflowapi/skyflow-go/service-account/util"
+	saUtil "github.com/skyflowapi/skyflow-go/serviceaccount/util"
 	Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
 	"github.com/skyflowapi/skyflow-go/skyflow/common"
 )
@@ -28,6 +28,7 @@ func GetToken() (string, error) {
 	}
 	return bearerToken, nil
 }
+
 func main() {
 
 	defer func() {
@@ -35,21 +36,19 @@ func main() {
 			fmt.Println("error: ", r)
 		}
 	}()
-
 	logger.SetLogLevel(logger.INFO) //set loglevel to INFO
 	configuration := common.Configuration{VaultID: "<vault_id>", VaultURL: "<vault_url>", TokenProvider: GetToken}
 	var client = Skyflow.Init(configuration)
 	var records = make(map[string]interface{})
 	var record1 = make(map[string]interface{})
-	record1["token"] = "<token>"
-	var record2 = make(map[string]interface{})
-	record2["token"] = "<token>"
+	record1["ids"] = []interface{}{"<id1>", "<id2>"}
+	record1["table"] = "cards"
+	record1["redaction"] = "PLAIN_TEXT"
 
 	var recordsArray []interface{}
 	recordsArray = append(recordsArray, record1)
-	recordsArray = append(recordsArray, record2)
 	records["records"] = recordsArray
-	res, err := client.Detokenize(records)
+	res, err := client.GetById(records)
 	if err == nil {
 		fmt.Println("Records : ", res.Records)
 	} else {

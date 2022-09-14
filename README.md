@@ -8,17 +8,20 @@ This go SDK is designed to help developers easily implement Skyflow into their g
 
 # Table of Contents
 
-* [Features](#features)
-* [Installation](#installation)
-  * [Requirements](#requirements)
-  * [Configuration](#configuration)
-*  [Service Account Token Generation](#service-account-token-generation)
-* [Vault APIs](#vault-apis)
-  *  [Insert](#insert)
-  *  [Detokenize](#detokenize)
-  *  [GetById](#get-by-id)
-  *  [InvokeConnection](#invoke-connection)
-* [Logging](#logging)
+- [Description](#description)
+- [Table of Contents](#table-of-contents)
+  - [Features](#features)
+  - [Installation](#installation)
+    - [Requirements](#requirements)
+    - [Configuration](#configuration)
+    - [Service Account Token Generation](#service-account-token-generation)
+    - [Vault APIs](#vault-apis)
+      - [Insert](#insert)
+      - [Detokenize](#detokenize)
+      - [Get By Id](#get-by-id)
+    - [Invoke-connection](#invoke-connection)
+    - [Logging](#logging)
+  - [Reporting a Vulnerability](#reporting-a-vulnerability)
 
 
 ## Features
@@ -44,7 +47,7 @@ Then, reference skyflow-go in a Go program with import:
 
 ```go
 import (
-  saUtil "github.com/skyflowapi/skyflow-go/service-account/util"
+  saUtil "github.com/skyflowapi/skyflow-go/serviceaccount/util"
   Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
   "github.com/skyflowapi/skyflow-go/skyflow/common"
   "github.com/skyflowapi/skyflow-go/commonutils/logger"
@@ -53,18 +56,18 @@ import (
 Alternatively, `go get <package_name>` can also be used to download the required dependencies 
 
 ### Service Account Token Generation
-[This](https://github.com/skyflowapi/skyflow-go/tree/main/service-account) go module is used to generate service account tokens from service account credentials file which is downloaded upon creation of service account. The token generated from this module is valid for 60 minutes and can be used to make API calls to vault services as well as management API(s) based on the permissions of the service account.
+[This](https://github.com/skyflowapi/skyflow-go/tree/main/serviceaccount) go module is used to generate service account tokens from service account credentials file which is downloaded upon creation of service account. The token generated from this module is valid for 60 minutes and can be used to make API calls to vault services as well as management API(s) based on the permissions of the service account.
 
 The **GenerateBearerToken(filepath)** function takes the credentials file path for token generation, alternatively, you can also send the entire credentials as string, by using **GenerateBearerTokenFromCreds(credentials)**.
 
-[Example](https://github.com/skyflowapi/skyflow-go/blob/main/samples/service-account/token/main/service_account_token.go):
+[Example](https://github.com/skyflowapi/skyflow-go/blob/main/samples/serviceaccount/token/main/service_account_token.go):
 
 ```go
 package main
     
 import (
     "fmt"
-    saUtil "github.com/skyflowapi/skyflow-go/service-account/util"
+    saUtil "github.com/skyflowapi/skyflow-go/serviceaccount/util"
 )
     
 var bearerToken = ""
