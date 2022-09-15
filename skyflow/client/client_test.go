@@ -12,7 +12,7 @@ import (
 	"github.com/joho/godotenv"
 	errors1 "github.com/skyflowapi/skyflow-go/commonutils/errors"
 	"github.com/skyflowapi/skyflow-go/commonutils/messages"
-	saUtil "github.com/skyflowapi/skyflow-go/serviceaccount/util"
+	saUtil "github.com/skyflowapi/skyflow-go/service-account/util"
 	"github.com/skyflowapi/skyflow-go/skyflow/common"
 )
 
