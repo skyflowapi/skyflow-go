@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2022 Skyflow, Inc. 
+Copyright (c) 2022 Skyflow, Inc.
 */
 package main
 
@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	logger "github.com/skyflowapi/skyflow-go/commonutils/logwrapper"
-	saUtil "github.com/skyflowapi/skyflow-go/service-account/util"
+	saUtil "github.com/skyflowapi/skyflow-go/serviceaccount/util"
 	Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
 	"github.com/skyflowapi/skyflow-go/skyflow/common"
 )

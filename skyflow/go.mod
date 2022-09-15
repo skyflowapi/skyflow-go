@@ -4,5 +4,8 @@ go 1.13
 
 require (
 	github.com/cristalhq/jwt/v3 v3.1.0
-	github.com/skyflowapi/skyflow-go/commonutils v0.0.0-20220315112934-3c8113d9d693 // indirect
+	github.com/hetiansu5/urlquery v1.2.7
+	github.com/joho/godotenv v1.4.0
+	github.com/skyflowapi/skyflow-go/commonutils v0.0.0-20220315112934-3c8113d9d693
+	github.com/skyflowapi/skyflow-go/service-account v0.0.0-20220726093601-000409040f22
 )

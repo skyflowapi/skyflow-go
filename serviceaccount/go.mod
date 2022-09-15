@@ -1,4 +1,4 @@
-module github.com/skyflowapi/skyflow-go/service-account
+module github.com/skyflowapi/skyflow-go/serviceaccount
 
 go 1.15
 

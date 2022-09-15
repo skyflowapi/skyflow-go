@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2022 Skyflow, Inc. 
+	Copyright (c) 2022 Skyflow, Inc.
 */
 package client
 
@@ -11,7 +11,7 @@ import (
 	logger "github.com/skyflowapi/skyflow-go/commonutils/logwrapper"
 	"github.com/skyflowapi/skyflow-go/commonutils/messages"
 	"github.com/skyflowapi/skyflow-go/skyflow/common"
-	vaultapi "github.com/skyflowapi/skyflow-go/skyflow/vault-api"
+	vaultapi "github.com/skyflowapi/skyflow-go/skyflow/vaultapi"
 )
 
 type Client struct {

@@ -33,7 +33,7 @@ jobs:
 
     - name: 'Run Tests'
       run: |
-        cd service-account
+        cd serviceaccount
         go test ./... -coverprofile=coverage.out
         cd ../skyflow
         go test ./... -coverprofile=coverage.out
@@ -42,6 +42,6 @@ jobs:
       uses: codecov/codecov-action@v2.1.0
       with:
         token: ${{ secrets.CODECOV_REPO_UPLOAD_TOKEN }}
-        files: service-account/coverage.out, skyflow/coverage.out
+        files: serviceaccount/coverage.out, skyflow/coverage.out
         name: codecov-skyflow-go
         verbose: true
