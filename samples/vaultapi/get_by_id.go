@@ -42,8 +42,8 @@ func main() {
 	var records = make(map[string]interface{})
 	var record1 = make(map[string]interface{})
 	record1["ids"] = []interface{}{"<id1>", "<id2>"}
-	record1["table"] = "cards"
-	record1["redaction"] = "PLAIN_TEXT"
+	record1["table"] = "credit_cards"
+	record1["redaction"] = common.PLAIN_TEXT
 
 	var recordsArray []interface{}
 	recordsArray = append(recordsArray, record1)
@@ -55,3 +55,5 @@ func main() {
 		panic(err.GetMessage())
 	}
 }
+
+
