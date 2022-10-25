@@ -1,88 +1,91 @@
-# GO-SDK sample templates
-Use this folder to test the functionalities of GO-SDK just by adding `VAULT-ID` `VAULT-URL` and `SERVICE-ACCOUNT` details at the required place.
+# Go SDK samples
+Test the SDK by adding your `VAULT_ID`, `VAULT_URL`, and `SERVICE-ACCOUNT `details as the corresponding values in each sample.
 
 ## Prerequisites
-- A Skylow account. If you don't have one, you can register for one on the [Try Skyflow](https://skyflow.com/try-skyflow) page.
-- go 1.15 and above
+- Sign in to your Skyflow account:
+    * For trial environments, use https://try.skyflow.com/ .
+    * For sandbox and production environments, use your dedicated sign-in URL.
+  If you don't have an account,  [sign up for a free trial account](https://skyflow.com/try-skyflow).
+- go 1.15 or higher
 
-## Configure
-- Before you can run the sample app, create a vault
+## Get started
 - Navigate to `samples/vaultapi` and run the following command :
 
         go get
         
 
-### Create the vault
-1. In a browser, navigate to Skyflow Studio and log in.
-2. Create a vault by clicking **Create Vault** > **Start With a Template** > **Quickstart vault**.
-3. Once the vault is created, click the gear icon and select **Edit Vault** Details.
-4. Note your Vault URL and Vault ID values, then click Cancel. You'll need these later.
+### Create a vault
+1. Sign in to Skyflow Studio.
+2. Click Create Vault > Start With a Template. 
+3. Under Quickstart, click Create.
 
+To run the following commands, you'll need to retrieve your vault-specific values, <VAULT_URL> and <VAULT_ID>. From your vault page, click the gear icon and select Edit Vault Details. Create a service account
 
 ### Create a service account
-1. In the side navigation click, **IAM** > **Service Accounts** > **New Service Account**.
-2. For Name, enter **Test-Go-Sdk-Sample**. For Roles, choose Roles corresponding to the action.
-3. Click **Create**. Your browser downloads a **credentials.json** file. Keep this file secure, as you'll need it in the next steps.
+1. In Studio, click **Settings** in the upper navigation.
+2. In the side navigation, click **Vault**, then choose the **Quickstart** vault from the dropdown menu.
+3. Under **IAM**, click  **Service Accounts > New Service Account**.
+4. For **Name**, enter "SDK Sample". For **Roles**, choose **Vault Editor**.
+5. Click **Create**. 
+6. Your browser downloads a credentials.json file. Keep this file secure. You'll need it to generate bearer tokens.
 
-### Different types of functionalities of Go-Sdk
-- [**detokenize**](vaultapi/detokenize.go)
-    - Detokenize the data token from the vault. 
-    - Make sure the token is of the data which exists in the Vault. If not so please make use of [insert.go](insert.go) to insert the data in the data and use this token for detokenization.
-    - Configure
-        - Replace **<vault_id>** with **VAULT ID**
-        - Replace **<vault_url>** with **VAULT URL**.
-        - Replace **<token>** with data token of the data present in the vault.
-        - Replace **<file_path>** with relative  path of **SERVICE ACCOUNT CREDENTIAL FILE**.
-    - Execution
+## SDK samples
+### [Detokenize data](https://github.com/skyflowapi/skyflow-go/blob/main/samples/vaultapi/detokenize.go)
+This sample demonstrates how to detokenize a data token from the vault. Make sure the token you specify exists in the vault. If you need a valid token for detokenization, use insert.go to insert the records and return a data token.
+
+1. Replace **<vault_id>** and **<vault_url>** with your vault-specific values. 
+2. Replace **<token>** with the data token you want to detokenize..
+3. Replace **<file_path>** with the relative path for your service account credentials file downloaded while #Create a service account . 
+
+#### Run the following command:
             
-            go run detokenize.go
-- [**get_by_id**](vaultapi/get_by_id.go)
-    - Get data using skyflow id. 
-    - Configure
-        - Replace **<vault_id>** with **VAULT ID**
-        - Replace **<vault_url>** with **VAULT URL**.
-        - Replace **<id1>** with **Skyflow Id 1**.
-        - Replace **<id2>** with **Skyflow Id 2**.
-        - Replace **<file_path>** with relative  path of **SERVICE ACCOUNT CREDENTIAL FILE**.
-    - Execution
+        go run detokenize.go
+
+### [Get a record by ID](https://github.com/skyflowapi/skyflow-go/tree/main/samples/vaultapi)
+
+Get data using skyflow id. 
+#### Configure
+1. Replace **<vault_id>** and **<vault_url>** with your vault-specific values. 
+2. Replace **<skyflow_id1>** and **<skyflow_id2>** with the Skyflow IDs you want to retrieve.
+3. Replace **<file_path>** with the relative path for your service account credentials file downloaded while #Create a service account . 
+#### Run the following command:
         
-            go run get_by_id.go
-- [**insert**](vaultapi/insert.go)
-    - Insert data in the vault.
-    - Configure
-        - Replace **<vault_id>** with **VAULT ID**.
-        - Replace **<vault_url>** with **VAULT URL**.
-        - Replace **<file_path>** with relative  path of **SERVICE ACCOUNT CREDENTIAL FILE**.
-        - Execution
-                
-                go run insert.go
-- [**invoke_connection**](vaultapi/invoke_connection.go)
-    - Invoke connection
-    - Configure
-        - Replace **<vault_id>** with **VAULT ID**.
-        - Replace **<vault_url>** with **VAULT URL**.
-        - Replace **<file_path>** with relative  path of **SERVICE ACCOUNT CREDENTIAL FILE**.
-        - Replace **pathParams** data with required params by the connection url.
-        - Replace **<connection_url>** with **Connection url**.
-        - Give **<Your-Authorization-Value>** value as the tokens.
-        - Replace key and value pair of **requestBody** with your's request body content.
+        go run get_by_id.go
+### [Insert data into a vault](https://github.com/skyflowapi/skyflow-go/blob/main/samples/vaultapi/insert.go)
+Insert data in the vault.
+1. Replace **<vault_id>** and **<vault_url>** with your vault-specific values. 
+3. Replace **<file_path>** with the relative path for your service account credentials file downloaded while #Create a service account . 
 
-        - Execution
-            
-                go run invoke_connection.go
-- [**service_account_token**](serviceaccount/token/main/service_account_token.go)
-    - generates SA Token using path of credentials file.
-    - Configure
-        - Replace **<file_path>** with relative  path of **SERVICE ACCOUNT CREDENTIAL FILE**.
-
-        - Execution
+#### Run the following command:
                 
-                go run service_account_token.go
-- [**service_account_token_using_cred_string**](serviceaccount/token/main/service_account_token_using_cred_String.go)
-    - generates SA Token using path of credentials file.
-    - Configure
-        - Replace **<credentials_in_string_format>** with relative  path of **SERVICE ACCOUNT CREDENTIAL IN STRING FORMAT**.
+        go run insert.go
+### [Invoke a connection](https://github.com/skyflowapi/skyflow-go/blob/main/samples/vaultapi/invoke_connection.go)
+Skyflow Connections is a gateway service that uses Skyflow's underlying tokenization capabilities to securely connect to first-party and third-party services. This way, you never expose your infrastructure to sensitive records, and you offload security and compliance requirements to Skyflow.
+1. Replace **<vault_id>** and **<vault_url>** with your vault-specific values.
+2. Replace **<file_path>** with the relative path for your service account credentials.
+3. Replace `pathParams` data with the connection URL params.
+4. Replace **<your_connection_url>** with the Connection URL value.
+5. Enter the token values.
+6. Replace the requestBody key and value pair with your request body content.
 
-        - Execution
-                
-                go run service_account_token_using_cred_string.go
+#### Run the following command:
+    
+        go run invoke_connection.go
+
+### [Generate a service account bearer token from a file](https://github.com/skyflowapi/skyflow-go/blob/main/samples/serviceaccount/token/main/service_account_token.go)
+Generates a service account bearer token using the path of a credentials file.
+1. Replace **<file_path>** with the relative path for your service account credentials file downloaded while #Create a service account.
+
+
+#### Run the following command:
+
+        go run service_account_token.go
+
+### [Generate a service account bearer token from a credentials string](https://github.com/skyflowapi/skyflow-go/blob/main/samples/serviceaccount/token/main/service_account_token.go) 
+Generates service account bearer token using the JSON content of a credentials file.
+#### Configure
+1. Replace **<file_path>** with the relative path for your service account credentials file downloaded while #Create a service account.
+
+#### Run the following command:
+        
+       go run service_account_token_using_cred_string.go
