@@ -1,4 +1,4 @@
-# Description
+# Skyflow Go SDK
 This go SDK is designed to help developers easily implement Skyflow into their go backend. 
 
 [![CI](https://img.shields.io/static/v1?label=CI&message=passing&color=green?style=plastic&logo=github)](https://github.com/skyflowapi/skyflow-go/actions)
@@ -8,7 +8,6 @@ This go SDK is designed to help developers easily implement Skyflow into their g
 
 # Table of Contents
 
-- [Description](#description)
 - [Table of Contents](#table-of-contents)
   - [Features](#features)
   - [Installation](#installation)
@@ -77,6 +76,7 @@ func GetSkyflowBearerToken() (string, error) {
 	filePath := "<file_path>"
 	if saUtil.IsExpired(bearerToken) {
 		newToken, err := saUtil.GenerateBearerToken(filePath)
+    //or saUtil.getSATokenFromCredsFile(credsMap) to generate token using cred json as a string format
 		if err != nil {
 			return "", err
 		} else {
