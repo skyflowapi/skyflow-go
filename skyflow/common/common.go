@@ -39,7 +39,12 @@ type ConnectionConfig struct {
 }
 
 type InsertOptions struct {
-	Tokens bool
+	Tokens bool 
+	Upsert []UpsertOptions 
+}
+type UpsertOptions struct {
+	Table string
+	Column string
 }
 
 type Configuration struct {
