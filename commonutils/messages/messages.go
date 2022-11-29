@@ -71,4 +71,8 @@ const (
 	DEPRECATED_GENERATE_TOKEN_FUNCTION     string = "[skyflow] Interface: %s - GenerateToken method is deprecated, will be removed in future, use GenerateBearerToken()"
 	DEPRECATED_ISVALID_FUNCTION            string = "[skyflow] Interface: %s - IsValid method is deprecated, will be removed in future, use IsExpired()"
 	MISSING_TOKENPROVIDER                  string = "[skyflow] Interface: %s - TokenProvider is missing"
+
+	EMPTY_TABLE_IN_UPSERT_OPTIONS          string = "[skyflow] Interface: %s - Table name is missing in upsert options"
+	EMPTY_COLUMN_IN_UPSERT_OPTIONS         string = "[skyflow] Interface: %s - Column name is missing in upsert options"
+
 )
