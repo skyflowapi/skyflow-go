@@ -112,16 +112,19 @@ skyflowClient := Skyflow.Init(configuration)
 
 All Vault APIs must be invoked using a skyflowClient instance.
 
-#### Insert
+### Insert data into the vault
 
-To insert data into your vault, use the **insert(records map[string]interface{}, options common.InsertOptions)** method of the Skyflow client. The first parameter insertInput must have a `records` key and takes an array of records to be inserted into the vault as a value. The second parameter `options` is a InsertOptions object that provides further options for your insert call, as shown below.
+To insert data into your vault, use the **Insert(records map[string]interface{}, options common.InsertOptions)** method of the Skyflow client. The **insertInput** parameter requires a `records` key and takes an array of records to insert as a value into the vault. The `options` parameter is a InsertOptions object that provides further options, including Upsert operations, for your insert call, as shown below.
+
+Insert call schema:
+
 ```go
 import (
     Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
     "github.com/skyflowapi/skyflow-go/skyflow/common"
 )
 
-//initialize skyflowClient
+//Initialize the  SkyflowClient.
 
 var records = make(map[string] interface {})
 
@@ -136,30 +139,32 @@ recordsArray = append(recordsArray, record)
 
 records["records"] = recordsArray
 
-// Indicates whether or not tokens should be returned for the inserted data. Defaults to 'true'
+var upsertArray []common.UpsertOptions
+var upsertOption = common.UpsertOptions{Table:"<table_name>",Column:"<column_name>"}
+upsertArray = append(upsertArray,upsertOption)
+
 options = common.InsertOptions {
-        Tokens: true
+        Tokens: true //Optional, indicates whether tokens should be returned for the inserted data. This value defaults to "true".
+        Upsert: upsertArray //Optional, upsert support.
 }
 
 res, err: = skyflowClient.Insert(records, options)
 ```
 
-An [example](https://github.com/skyflowapi/skyflow-go/blob/main/samples/vault-api/insert.go) of an Insert call is given below:
-
+[Insert call example](https://github.com/skyflowapi/skyflow-go/blob/main/samples/vault-api/insert.go):
 
 ```go
 package main
 
 import (
     "fmt"
-
     Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
     "github.com/skyflowapi/skyflow-go/skyflow/common"
 )
 
 func main() {
 
-    //initialize skyflowClient
+    //Initialize the SkyflowClient.
 
     var records = make(map[string] interface {})
     var record = make(map[string] interface {})
@@ -201,13 +206,69 @@ Sample response :
 
 ```
 
-  
+[Upsert call example](https://github.com/skyflowapi/skyflow-go/blob/main/samples/vault-api/upsert.go):
+
+```go
+package main
+
+import (
+    "fmt"
+    Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
+    "github.com/skyflowapi/skyflow-go/skyflow/common"
+)
+
+func main() {
+
+    //Initialize the SkyflowClient.
+
+    var records = make(map[string] interface {})
+    var record = make(map[string] interface {})
+    record["table"] = "cards"
+    var fields = make(map[string] interface {})
+    fields["cardNumber"] = "411111111111"
+    fields["fullname"] = "name"
+    record["fields"] = fields
+    var recordsArray[] interface {}
+    recordsArray = append(recordsArray, record)
+    records["records"] = recordsArray
+
+    //Create an upsert array.
+
+    var upsertArray []common.UpsertOptions
+    var upsertOption = common.UpsertOptions{Table:"cards",Column:"cardNumber"}
+    upsertArray = append(upsertArray,upsertOption)
+
+    var options = common.InsertOptions {
+        Tokens: true
+        Upsert: upsertArray
+    }
+
+    res, err: = skyflowClient.Insert(records, options)
+
+    if err == nil {
+        fmt.Println(res.Records)
+    }
+}
+```
+
+Sample response :
+
+```json
+{
+  "records": [
+    {
+      "table": "cards",
+      "fields": {
+        "cardNumber": "f37186-e7e2-466f-91e5-48e2bcbc1",
+        "fullname": "1989cb56-63a-4482-adf-1f74cd1a5"
+      }
+    }
+  ]
+}
+```
+
 #### Detokenize
-
-In order to retrieve data from your vault using tokens that you have previously generated for that data, you can use the **detokenize(records map[string]interface{})** method. The first parameter must have a `records` key that takes an array of tokens to be fetched from the vault, as shown below.
-
-
-
+To retrieve tokens from your vault, you can use the **Detokenize(records map[string]interface{})** method.The `records` parameter takes an array of SkyflowIDs to return, as shown below:
 
 ```go
 import (
@@ -289,9 +350,9 @@ Sample response:
 }
 ```
 
-#### Get By Id
+#### GetById
  
-In order to retrieve data from your vault using SkyflowIDs, use the **getById(records map[string]interface{})** method. The `records` parameter takes a map that should contain an array of SkyflowIDs to be fetched, as shown below:
+In order to retrieve data from your vault using SkyflowIDs, use the **GetById(records map[string]interface{})** method. The `records` parameter takes a map that has an array of SkyflowIDs to return, as shown below:
 
 ```go
 import (
@@ -389,11 +450,11 @@ Sample response:
 }
 ```
 
-### Invoke-connection
+### InvokeConnection
 
-Using  InvokeConnection, end-user applications can integrate checkout/card issuance flow with their apps/systems. To invoke connection, use the invokeConnection(config ConnectionConfig) method of the Skyflow client. The config object must have `connectionURL`,`methodName` and remaining are optional. 
+End-user apps can use InvokeConnection to integrate checkout and card issuance flows with their apps and systems. To invoke a connection, use the invokeConnection(config ConnectionConfig) method of the Skyflow client. The config object must have `connectionURL`,`methodName` and the remaining are optional. 
 
-Using the InvokeConnection method, you can integrate their server-side application with third party APIs and services without directly handling sensitive data. Prior to invoking the `InvokeConnection` method, you must have created a connection and have a connectionURL already generated. Once you have the connectionURL, you can invoke a connection by using the **invokeConnection(config ConnectionConfig)** method. The config parameter must include a `connectionURL` and `methodName`. The other fields are optional.
+The InvokeConnection method lets you bypass handling sensitive data by integrating third-party server-side application using APIs. Before invoking the `InvokeConnection` method, you must create a connection and generate a connectionURL. Once you have the connectionURL, you can invoke a connection by using the **InvokeConnection(config ConnectionConfig)** method. The config parameter must include a `connectionURL` and `methodName`. The other fields are optional.
 
 ```go
 
