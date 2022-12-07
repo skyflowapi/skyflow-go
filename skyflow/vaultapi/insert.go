@@ -57,6 +57,22 @@ func (insertApi *InsertApi) doValidations() *errors.SkyflowError {
 		logger.Error(fmt.Sprintf(messages.EMPTY_RECORDS, insertTag))
 		return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_RECORDS, insertTag))
 	}
+
+	for _,upsertOption := range insertApi.Options.Upsert {
+		fmt.Println(upsertOption)
+		var table = upsertOption.Table
+		var column = upsertOption.Column
+
+		 if table == "" {
+			logger.Error(fmt.Sprintf(messages.EMPTY_TABLE_IN_UPSERT_OPTIONS, insertTag))
+			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_TABLE_IN_UPSERT_OPTIONS, insertTag))
+		} 
+		if column == "" {
+			logger.Error(fmt.Sprintf(messages.EMPTY_COLUMN_IN_UPSERT_OPTIONS, insertTag))
+			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_COLUMN_IN_UPSERT_OPTIONS, insertTag))
+		}
+	}
+
 	for _, record := range recordsArray {
 		var singleRecord = (record).(map[string]interface{})
 		var table = singleRecord["table"]
@@ -157,11 +173,15 @@ func (InsertApi *InsertApi) constructRequestBody(record common.InsertRecords, op
 		singleRecord := value
 		table := singleRecord.Table
 		fields := singleRecord.Fields
+		var UniqueColumn = getUniqueColumn(singleRecord.Table, options.Upsert)
 		var finalRecord = make(map[string]interface{})
 		finalRecord["tableName"] = table
 		finalRecord["fields"] = fields
 		finalRecord["method"] = "POST"
 		finalRecord["quorum"] = true
+		if(options.Upsert !=nil){
+			finalRecord["upsert"] = UniqueColumn
+		}
 		postPayload = append(postPayload, finalRecord)
 		if options.Tokens {
 			temp2 := make(map[string]interface{})
@@ -210,4 +230,14 @@ func (insertApi *InsertApi) buildResponse(responseJson []interface{}, requestRec
 	responseObject["records"] = recordsArray
 
 	return responseObject
+}
+
+func getUniqueColumn(table string, upsertArray []common.UpsertOptions) string{
+	var UniqueColumn string
+	for _,eachOption := range upsertArray {
+        if eachOption.Table == table {
+			UniqueColumn = eachOption.Column
+        }
+    }
+	return UniqueColumn
 }
