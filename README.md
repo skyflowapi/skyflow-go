@@ -114,7 +114,7 @@ All Vault APIs must be invoked using a skyflowClient instance.
 
 ### Insert data into the vault
 
-To insert data into your vault, use the **Insert(records map[string]interface{}, options common.InsertOptions)** method of the Skyflow client. The **insertInput** parameter requires a `records` key and takes an array of records to be inserted into the vault as a value. The `options` parameter is a InsertOptions object that provides further options, including Upsert operations, for your insert call, as shown below.
+To insert data into your vault, use the **Insert(records map[string]interface{}, options common.InsertOptions)** method of the Skyflow client. The **insertInput** parameter requires a `records` key and takes an array of records to insert as a value into the vault. The `options` parameter is a InsertOptions object that provides further options, including Upsert operations, for your insert call, as shown below.
 
 Insert call schema:
 
@@ -268,7 +268,7 @@ Sample response :
 ```
 
 #### Detokenize
-In order to retrieve data from your vault using tokens that you have previously generated for that data, you can use the **Detokenize(records map[string]interface{})** method. The first parameter must have a `records` key that takes an array of tokens to be fetched from the vault, as shown below.
+To retrieve tokens from your vault, you can use the **Detokenize(records map[string]interface{})** method.The `records` parameter takes an array of SkyflowIDs to return, as shown below:
 
 ```go
 import (
@@ -352,7 +352,7 @@ Sample response:
 
 #### GetById
  
-In order to retrieve data from your vault using SkyflowIDs, use the **GetById(records map[string]interface{})** method. The `records` parameter takes a map that should contain an array of SkyflowIDs to be fetched, as shown below:
+In order to retrieve data from your vault using SkyflowIDs, use the **GetById(records map[string]interface{})** method. The `records` parameter takes a map that has an array of SkyflowIDs to return, as shown below:
 
 ```go
 import (
@@ -452,9 +452,9 @@ Sample response:
 
 ### InvokeConnection
 
-Using  InvokeConnection, end-user applications can integrate checkout/card issuance flow with their apps/systems. To invoke connection, use the invokeConnection(config ConnectionConfig) method of the Skyflow client. The config object must have `connectionURL`,`methodName` and remaining are optional. 
+End-user apps can use InvokeConnection to integrate checkout and card issuance flows with their apps and systems. To invoke a connection, use the invokeConnection(config ConnectionConfig) method of the Skyflow client. The config object must have `connectionURL`,`methodName` and the remaining are optional. 
 
-Using the InvokeConnection method, you can integrate their server-side application with third party APIs and services without directly handling sensitive data. Prior to invoking the `InvokeConnection` method, you must have created a connection and have a connectionURL already generated. Once you have the connectionURL, you can invoke a connection by using the **InvokeConnection(config ConnectionConfig)** method. The config parameter must include a `connectionURL` and `methodName`. The other fields are optional.
+The InvokeConnection method lets you bypass handling sensitive data by integrating third-party server-side application using APIs. Before invoking the `InvokeConnection` method, you must create a connection and generate a connectionURL. Once you have the connectionURL, you can invoke a connection by using the **InvokeConnection(config ConnectionConfig)** method. The config parameter must include a `connectionURL` and `methodName`. The other fields are optional.
 
 ```go
 

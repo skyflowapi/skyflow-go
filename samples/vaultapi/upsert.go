@@ -36,7 +36,7 @@ func main() {
 			fmt.Println("error : ", err)
 		}
 	}()
-	logger.SetLogLevel(logger.INFO) //set loglevel to INFO
+	logger.SetLogLevel(logger.INFO) // Set loglevel to INFO
 	configuration := common.Configuration{VaultID: "<vault_id>", VaultURL: "<vault_url>", TokenProvider: GetToken}
 	var client = Skyflow.Init(configuration)
 
