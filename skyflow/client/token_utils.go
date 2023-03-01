@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2022 Skyflow, Inc. 
+	Copyright (c) 2022 Skyflow, Inc.
 */
 package client
 
@@ -48,6 +48,6 @@ func isTokenExpired(tokenString string) bool {
 	}
 	var expiryTime = claims.ExpiresAt
 	currentTime := time.Now()
-	currentTime = currentTime.Add(time.Duration(-5) * time.Minute)
+	currentTime = currentTime.Add(time.Duration(+5) * time.Minute)
 	return expiryTime.Before(currentTime)
 }
