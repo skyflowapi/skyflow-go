@@ -12,11 +12,6 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/sirupsen/logrus v1.8.1 h1:dJKuHgqk1NNQlqoA6BTlM1Wf9DOH3NBjQyu0h9+AZZE=
 github.com/sirupsen/logrus v1.8.1/go.mod h1:yWOB1SBYBC5VeMP7gHvWumXLIWorT60ONWic61uBYv0=
-github.com/skyflowapi/skyflow-go v1.2.0 h1:qXgAejgMnLh6tvzlQldkcdyX9kPk/NVa9FUjt4lY0/Q=
-github.com/skyflowapi/skyflow-go v1.4.0 h1:JaJ5LAnHEg7s1nWUkOnvEq+/LGHI3EXXht8DKixSHgw=
-github.com/skyflowapi/skyflow-go/commonutils v0.0.0-20220215124034-b85809bb67f1 h1:l/SJtXU9Z2AhWOTvQ6b4TaLyjyh2OVAPOMAvbnNvweA=
-github.com/skyflowapi/skyflow-go/commonutils v0.0.0-20220215124034-b85809bb67f1/go.mod h1:C9IH9lBmu32OoVAFtwEUw9aN3bXG8lSVNy8K1fw69UY=
-github.com/skyflowapi/skyflow-go/commonutils v0.0.0-20220315112934-3c8113d9d693 h1:tQcNzCMKTDRL463bxhqpRrwjfICeM1BsLq3S4rkulCw=
 github.com/skyflowapi/skyflow-go/commonutils v0.0.0-20220315112934-3c8113d9d693/go.mod h1:C9IH9lBmu32OoVAFtwEUw9aN3bXG8lSVNy8K1fw69UY=
 github.com/skyflowapi/skyflow-go/commonutils v0.0.0-20221207083805-e502fc29f175 h1:xjLrgk3iJnfb44dBDP2xVUeGTePDeqxe5Ql1SU6HSYY=
 github.com/skyflowapi/skyflow-go/commonutils v0.0.0-20221207083805-e502fc29f175/go.mod h1:C9IH9lBmu32OoVAFtwEUw9aN3bXG8lSVNy8K1fw69UY=
