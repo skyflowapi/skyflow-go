@@ -2,6 +2,6 @@ module github.com/skyflowapi/skyflow-go/commonutils
 
 go 1.20
 
-require github.com/sirupsen/logrus v1.8.1
+require github.com/sirupsen/logrus v1.9.0
 
-require golang.org/x/sys v0.0.0-20191026070338-33540a1f6037 // indirect
+require golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8 // indirect
