@@ -1,6 +1,6 @@
 module github.com/skyflowapi/skyflow-go/serviceaccount
 
-go 1.13
+go 1.15
 
 require (
 	github.com/golang-jwt/jwt v3.2.2+incompatible
