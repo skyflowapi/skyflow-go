@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.1] - 2023-03-01
+### Added
+- Fix token expiry time and removal of grace period.
+
 ## [1.5.0] - 2022-12-07
 ### Added
 - Upsert support for `insert` method.
