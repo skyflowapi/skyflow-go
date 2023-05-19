@@ -116,6 +116,11 @@ func (InvokeConnectionApi *InvokeConnectionApi) Post() (map[string]interface{}, 
 	request.URL.RawQuery = query.Encode()
 	request.Header.Set("x-skyflow-authorization", InvokeConnectionApi.Token)
 	request.Header.Set("content-type", "application/json")
+	skyMetadata,err:=common.CreateJsonMetadata()
+	if err !=nil {
+		logger.Error("failed to collect SDK metrics")
+	}
+	request.Header.Add("sky-metadata",skyMetadata)
 	for index, value := range InvokeConnectionApi.ConnectionConfig.RequestHeader {
 		var key = strings.ToLower(index)
 		if key == "content-type" && value == "multipart/form-data" {

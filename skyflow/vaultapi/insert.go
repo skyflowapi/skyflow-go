@@ -134,7 +134,11 @@ func (insertApi *InsertApi) Post(token string) (common.ResponseBody, *errors.Sky
 	)
 	bearerToken := fmt.Sprintf("Bearer %s", token)
 	request.Header.Add("Authorization", bearerToken)
-
+	skyMetadata,err:=common.CreateJsonMetadata()
+	if err !=nil {
+		logger.Error("failed to collect SDK metrics")
+	}
+	request.Header.Add("sky-metadata",skyMetadata)
 	logger.Info(fmt.Sprintf(messages.INSERTING_RECORDS, insertTag, insertApi.Configuration.VaultID))
 	res, err2 := Client.Do(request)
 	var requestId = ""

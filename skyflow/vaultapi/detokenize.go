@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2022 Skyflow, Inc. 
+	Copyright (c) 2022 Skyflow, Inc.
 */
 package vaultapi
 
@@ -103,7 +103,11 @@ func (detokenize *DetokenizeApi) sendRequest(records common.DetokenizeInput) (ma
 				)
 				bearerToken := fmt.Sprintf("Bearer %s", detokenize.Token)
 				request.Header.Add("Authorization", bearerToken)
-
+				skyMetadata, err := common.CreateJsonMetadata()
+				if err != nil {
+					logger.Error("failed to collect SDK metrics")
+				}
+				request.Header.Add("sky-metadata", skyMetadata)
 				res, err := Client.Do(request)
 				var requestId = ""
 				if res != nil {

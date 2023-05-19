@@ -8,4 +8,5 @@ require (
 	github.com/joho/godotenv v1.4.0
 	github.com/skyflowapi/skyflow-go/commonutils v0.0.0-20221207083805-e502fc29f175
 	github.com/skyflowapi/skyflow-go/service-account v0.0.0-20220726093601-000409040f22
+	gopkg.in/yaml.v2 v2.4.0
 )
