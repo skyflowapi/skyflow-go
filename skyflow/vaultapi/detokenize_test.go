@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2022 Skyflow, Inc. 
+Copyright (c) 2022 Skyflow, Inc.
 */
 package vaultapi
 
@@ -14,6 +14,7 @@ import (
 	"github.com/skyflowapi/skyflow-go/commonutils/messages"
 	"github.com/skyflowapi/skyflow-go/commonutils/mocks"
 	"github.com/skyflowapi/skyflow-go/skyflow/common"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNoRecordsForDetokenize(t *testing.T) {
@@ -87,8 +88,73 @@ func TestValidRequestForDetokenize(t *testing.T) {
 			Body:       r,
 		}, nil
 	}
-	detokenizeApi.Get()
+	_,err:=detokenizeApi.Get()
+	if err!=nil{
+		t.Errorf("failed after detokenize api")
+	}
 }
+
+func TestValidRequestForDetokenizeRedaction(t *testing.T) {
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.google.com", TokenProvider: GetToken}
+	records := make(map[string]interface{})
+	var record1 = make(map[string]interface{})
+	record1["token"] = "1234"
+	record1["redaction"] = common.PLAIN_TEXT
+	var recordsArray []interface{}
+	recordsArray = append(recordsArray, record1)
+	records["records"] = recordsArray
+	detokenizeApi := DetokenizeApi{Configuration: configuration, Records: records, Token: ""}
+	resJson := `{
+		"records": [
+			{
+				"token": "1234",
+				"valueType": "STRING",
+				"value": "rach"
+			}
+		]
+	}`
+	r := ioutil.NopCloser(bytes.NewReader([]byte(resJson)))
+	mocks.GetDoFunc = func(*http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: 200,
+			Body:       r,
+		}, nil
+	}
+	_,err:=detokenizeApi.Get()
+	if err!=nil{
+		t.Errorf("failed after detokenize api")
+	}
+}
+
+func TestInvalidRequestForDetokenizeRedaction(t *testing.T) {
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.google.com", TokenProvider: GetToken}
+	records := make(map[string]interface{})
+	var record1 = make(map[string]interface{})
+	record1["token"] = "1234"
+	record1["redaction"] = "invalid"
+	var recordsArray []interface{}
+	recordsArray = append(recordsArray, record1)
+	records["records"] = recordsArray
+	detokenizeApi := DetokenizeApi{Configuration: configuration, Records: records, Token: ""}
+	resJson := `{
+		"records": [
+			{
+				"token": "1234",
+				"valueType": "STRING",
+				"value": "rach"
+			}
+		]
+	}`
+	r := ioutil.NopCloser(bytes.NewReader([]byte(resJson)))
+	mocks.GetDoFunc = func(*http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: 200,
+			Body:       r,
+		}, nil
+	}
+	_,err:=detokenizeApi.Get()
+	assert.NotNil(t,err)
+}	
 
 func TestInValidRequestForDetokenize(t *testing.T) {
 	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.google.com", TokenProvider: GetToken}

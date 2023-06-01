@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2022 Skyflow, Inc. 
+Copyright (c) 2022 Skyflow, Inc.
 */
 package vaultapi
 
@@ -71,6 +71,13 @@ func (detokenizeApi *DetokenizeApi) doValidations() *errors.SkyflowError {
 			logger.Error(fmt.Sprintf(messages.EMPTY_TOKEN_ID, detokenizeTag))
 			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_TOKEN_ID, detokenizeTag))
 		}
+		if singleRecord["redaction"] != nil {
+			var redactionType = singleRecord["redaction"]
+			if redactionType != common.DEFAULT && redactionType != common.MASKED && redactionType != common.REDACTED && redactionType != common.PLAIN_TEXT {
+				logger.Error(fmt.Sprintf(messages.INVALID_REDACTION_TYPE, detokenizeTag))
+				return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.INVALID_REDACTION_TYPE, detokenizeTag))
+			}
+		}
 	}
 	return nil
 
@@ -90,6 +97,11 @@ func (detokenize *DetokenizeApi) sendRequest(records common.DetokenizeInput) (ma
 			requestUrl := fmt.Sprintf("%s/v1/vaults/%s/detokenize", detokenize.Configuration.VaultURL, detokenize.Configuration.VaultID)
 			var detokenizeParameter = make(map[string]interface{})
 			detokenizeParameter["token"] = singleRecord.Token
+			if singleRecord.Redaction == "" {
+				detokenizeParameter["redaction"] = common.PLAIN_TEXT
+			} else {
+				detokenizeParameter["redaction"] = singleRecord.Redaction
+			}
 			var body = make(map[string]interface{})
 			var params []map[string]interface{}
 			params = append(params, detokenizeParameter)
