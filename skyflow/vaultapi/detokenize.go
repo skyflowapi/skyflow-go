@@ -115,7 +115,8 @@ func (detokenize *DetokenizeApi) sendRequest(records common.DetokenizeInput) (ma
 				)
 				bearerToken := fmt.Sprintf("Bearer %s", detokenize.Token)
 				request.Header.Add("Authorization", bearerToken)
-
+				skyMetadata := common.CreateJsonMetadata()
+				request.Header.Add("sky-metadata", skyMetadata)
 				res, err := Client.Do(request)
 				var requestId = ""
 				if res != nil {

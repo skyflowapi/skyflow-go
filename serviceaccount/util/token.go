@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2022 Skyflow, Inc. 
+Copyright (c) 2022 Skyflow, Inc.
 */
 package util
 
@@ -19,6 +19,7 @@ import (
 	"github.com/skyflowapi/skyflow-go/commonutils/errors"
 	logger "github.com/skyflowapi/skyflow-go/commonutils/logwrapper"
 	"github.com/skyflowapi/skyflow-go/commonutils/messages"
+	"github.com/skyflowapi/skyflow-go/skyflow/common"
 )
 
 type ResponseToken struct {
@@ -132,7 +133,8 @@ func getSATokenFromCredsFile(key map[string]interface{}) (*ResponseToken, *error
 		return nil, errors.NewSkyflowErrorWrap(errors.InvalidInput, err, "Unable to create new request with tokenURI and payload")
 	}
 	req.Header.Add("Content-Type", "application/json")
-
+	skyMetadata := common.CreateJsonMetadata()
+	req.Header.Add("sky-metadata", skyMetadata)
 	res, err := client.Do(req)
 	var requestId = ""
 	if res != nil {
