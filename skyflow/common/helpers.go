@@ -33,5 +33,6 @@ func CreateJsonMetadata() string {
 		logger.Debug("failed for marshalling json data in createJSONMetadata()")
 		return ""
 	}
+	logger.Debug("populated metrics data is: ", data)
 	return string(jsonData)
 }
