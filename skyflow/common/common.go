@@ -125,4 +125,4 @@ const (
 )
 
 const sdk_name="Go-SDK"
-const sdk_version="1.5.1"
+const sdk_version="1.6.0"
