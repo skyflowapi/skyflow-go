@@ -123,3 +123,6 @@ const (
 	FORMDATA          ContentType = "multipart/form-data"
 	TEXTORXML         ContentType = "text/xml"
 )
+
+const sdk_name="Go-SDK"
+const sdk_version="1.5.1"
