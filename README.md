@@ -294,7 +294,7 @@ records["records"] = recordsArray
 
 res, err := skyflowClient.Detokenize(records)
 
-Note: If you do not provide a redaction type, RedactionType.PLAIN_TEXT is the default.
+Note: `redaction` defaults to `common.PLAIN_TEXT`
 ```
 
 An [example](https://github.com/skyflowapi/skyflow-go/blob/main/samples/vault-api/detokenize.go) of a Detokenize call:

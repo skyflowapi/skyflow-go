@@ -125,5 +125,5 @@ const (
 	TEXTORXML         ContentType = "text/xml"
 )
 
-const sdk_name="Go-SDK"
+const sdk_name="skyflow-go"
 const sdk_version="1.6.0"
