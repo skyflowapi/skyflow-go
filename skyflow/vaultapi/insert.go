@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2022 Skyflow, Inc. 
+Copyright (c) 2022 Skyflow, Inc.
 */
 package vaultapi
 
@@ -58,15 +58,15 @@ func (insertApi *InsertApi) doValidations() *errors.SkyflowError {
 		return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_RECORDS, insertTag))
 	}
 
-	for _,upsertOption := range insertApi.Options.Upsert {
+	for _, upsertOption := range insertApi.Options.Upsert {
 		fmt.Println(upsertOption)
 		var table = upsertOption.Table
 		var column = upsertOption.Column
 
-		 if table == "" {
+		if table == "" {
 			logger.Error(fmt.Sprintf(messages.EMPTY_TABLE_IN_UPSERT_OPTIONS, insertTag))
 			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_TABLE_IN_UPSERT_OPTIONS, insertTag))
-		} 
+		}
 		if column == "" {
 			logger.Error(fmt.Sprintf(messages.EMPTY_COLUMN_IN_UPSERT_OPTIONS, insertTag))
 			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_COLUMN_IN_UPSERT_OPTIONS, insertTag))
@@ -134,7 +134,8 @@ func (insertApi *InsertApi) Post(token string) (common.ResponseBody, *errors.Sky
 	)
 	bearerToken := fmt.Sprintf("Bearer %s", token)
 	request.Header.Add("Authorization", bearerToken)
-
+	skyMetadata := common.CreateJsonMetadata()
+	request.Header.Add("sky-metadata", skyMetadata)
 	logger.Info(fmt.Sprintf(messages.INSERTING_RECORDS, insertTag, insertApi.Configuration.VaultID))
 	res, err2 := Client.Do(request)
 	var requestId = ""
@@ -179,7 +180,7 @@ func (InsertApi *InsertApi) constructRequestBody(record common.InsertRecords, op
 		finalRecord["fields"] = fields
 		finalRecord["method"] = "POST"
 		finalRecord["quorum"] = true
-		if(options.Upsert !=nil){
+		if options.Upsert != nil {
 			finalRecord["upsert"] = UniqueColumn
 		}
 		postPayload = append(postPayload, finalRecord)
@@ -232,12 +233,12 @@ func (insertApi *InsertApi) buildResponse(responseJson []interface{}, requestRec
 	return responseObject
 }
 
-func getUniqueColumn(table string, upsertArray []common.UpsertOptions) string{
+func getUniqueColumn(table string, upsertArray []common.UpsertOptions) string {
 	var UniqueColumn string
-	for _,eachOption := range upsertArray {
-        if eachOption.Table == table {
+	for _, eachOption := range upsertArray {
+		if eachOption.Table == table {
 			UniqueColumn = eachOption.Column
-        }
-    }
+		}
+	}
 	return UniqueColumn
 }

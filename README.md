@@ -284,6 +284,7 @@ var record1 = make(map[string] interface {})
 record1["token"] = "<token>"    // token for the record to be fetched
 var record2 = make(map[string] interface {})
 record2["token"] = "<token>"
+record2["redaction"] = "<RedactionType>" // Optional. Redaction to be applied for retrieved data.
 
 var recordsArray[] interface {}
 recordsArray = append(recordsArray, record1)
@@ -292,6 +293,8 @@ recordsArray = append(recordsArray, record2)
 records["records"] = recordsArray
 
 res, err := skyflowClient.Detokenize(records)
+
+Note: If you do not provide a redaction type, RedactionType.PLAIN_TEXT is the default.
 ```
 
 An [example](https://github.com/skyflowapi/skyflow-go/blob/main/samples/vault-api/detokenize.go) of a Detokenize call:

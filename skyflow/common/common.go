@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2022 Skyflow, Inc. 
+Copyright (c) 2022 Skyflow, Inc.
 */
 package common
 
@@ -39,11 +39,11 @@ type ConnectionConfig struct {
 }
 
 type InsertOptions struct {
-	Tokens bool 
-	Upsert []UpsertOptions 
+	Tokens bool
+	Upsert []UpsertOptions
 }
 type UpsertOptions struct {
-	Table string
+	Table  string
 	Column string
 }
 
@@ -67,7 +67,8 @@ type DetokenizeInput struct {
 }
 
 type RevealRecord struct {
-	Token string
+	Token     string
+	Redaction string
 }
 
 type DetokenizeRecords struct {
@@ -123,3 +124,6 @@ const (
 	FORMDATA          ContentType = "multipart/form-data"
 	TEXTORXML         ContentType = "text/xml"
 )
+
+const sdk_name="Go-SDK"
+const sdk_version="1.6.0"
