@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.0] - 2023-06-09
+### Added
+- `redaction` key for detokenize method for column group support.
+
 ## [1.5.1] - 2023-03-01
 ### Added
 - Fix token expiry time and removal of grace period.
