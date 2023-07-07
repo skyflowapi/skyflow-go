@@ -42,6 +42,9 @@ type InsertOptions struct {
 	Tokens bool
 	Upsert []UpsertOptions
 }
+type GetOptions struct {
+	Tokens bool
+}
 type UpsertOptions struct {
 	Table  string
 	Column string
@@ -114,6 +117,32 @@ type SkyflowIdRecord struct {
 	Redaction RedactionType
 	Table     string
 }
+type GetInput struct {
+	Records []SkyflowIdColumnRecordRecord
+}
+type SkyflowIdColumnRecordRecord struct {
+	Ids          []string
+	Redaction    RedactionType
+	Table        string
+	ColumnValues []string
+	ColumnName   string
+}
+type GetRecords struct {
+	Records []GetRecord
+	Errors  []GetError
+}
+
+type GetRecord struct {
+	Fields map[string]interface{}
+	Table  string
+}
+
+type GetError struct {
+	Ids          []string
+	ColumnValues []string
+	ColumnName    string
+	Error        ResponseError
+}
 
 type ContentType string
 
@@ -125,5 +154,5 @@ const (
 	TEXTORXML         ContentType = "text/xml"
 )
 
-const sdk_name="skyflow-go"
-const sdk_version="1.6.0"
+const sdk_name = "skyflow-go"
+const sdk_version = "1.6.0"

@@ -15,6 +15,8 @@ github.com/sirupsen/logrus v1.8.1/go.mod h1:yWOB1SBYBC5VeMP7gHvWumXLIWorT60ONWic
 github.com/skyflowapi/skyflow-go/commonutils v0.0.0-20220315112934-3c8113d9d693/go.mod h1:C9IH9lBmu32OoVAFtwEUw9aN3bXG8lSVNy8K1fw69UY=
 github.com/skyflowapi/skyflow-go/commonutils v0.0.0-20221207083805-e502fc29f175 h1:xjLrgk3iJnfb44dBDP2xVUeGTePDeqxe5Ql1SU6HSYY=
 github.com/skyflowapi/skyflow-go/commonutils v0.0.0-20221207083805-e502fc29f175/go.mod h1:C9IH9lBmu32OoVAFtwEUw9aN3bXG8lSVNy8K1fw69UY=
+github.com/skyflowapi/skyflow-go/commonutils v0.0.0-20230707052528-1ae06bff6e83 h1:K3cLq3OL3wDM21e9XoETaTLofvWsybn7RAf+tJkW914=
+github.com/skyflowapi/skyflow-go/commonutils v0.0.0-20230707052528-1ae06bff6e83/go.mod h1:C9IH9lBmu32OoVAFtwEUw9aN3bXG8lSVNy8K1fw69UY=
 github.com/skyflowapi/skyflow-go/service-account v0.0.0-20220726093601-000409040f22 h1:u98LCqDLTdTH8+fAr+jeRa0NMZzhglmYrG/aUSF7YcI=
 github.com/skyflowapi/skyflow-go/service-account v0.0.0-20220726093601-000409040f22/go.mod h1:LBNohJDFCg7v1hg+F563rowtQSwQozD80HevGQ536wE=
 github.com/stretchr/testify v1.2.2 h1:bSDNvY7ZPG5RlJ8otE/7V6gMiyenm9RtJ7IUVIAoJ1w=

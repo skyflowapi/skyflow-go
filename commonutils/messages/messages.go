@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2022 Skyflow, Inc. 
+Copyright (c) 2022 Skyflow, Inc.
 */
 package messages
 
@@ -15,7 +15,9 @@ const (
 	VALIDATE_RECORDS                string = "[skyflow] Interface: %s - Validating insert records"
 	VALIDATE_DETOKENIZE_INPUT       string = "[skyflow] Interface: %s - Validating detokenize input"
 	VALIDATE_GET_BY_ID_INPUT        string = "[skyflow] Interface: %s - Validating getByID input"
+	VALIDATE_GET_INPUT              string = "[skyflow] Interface: %s - Validating get input"
 	VALIDATE_CONNECTION_CONFIG      string = "[skyflow] Interface: %s - Validating connection config"
+	TOKENS_GET_COLUMN_NOT_SUPPORTED string = "[skyflow] Interface: %s - column_name or column_values cannot be used with tokens in options."
 
 	INSERTING_RECORDS         string = "[skyflow] Interface: %s - Inserting records into vault with id %s"
 	INSERTING_RECORDS_SUCCESS string = "[skyflow] Interface: %s - Successfully inserted records into vault with id %s"
@@ -25,11 +27,14 @@ const (
 	DETOKENIZING_FAILED       string = "[skyflow] Interface: %s - Detokenization failed for the token %s"
 	GETTING_RECORDS_BY_ID     string = "[skyflow] Interface: %s - Revealing records using skyflow ids for table %s"
 	GET_RECORDS_BY_ID_FAILED  string = "[skyflow] Interface: %s - Failed Revealing records using skyflow ids for table %s"
+	GET_RECORDS_FAILED        string = "[skyflow] Interface: %s - Failed Revealing records for table %s"
 	GET_RECORDS_BY_ID_SUCCESS string = "[skyflow] Interface: %s - Successfully revealed records using skyflow ids for table %s"
+	GET_RECORDS_SUCCESS       string = "[skyflow] Interface: %s - Successfully revealed records for table %s"
 	INVOKE_CONNECTION_CALLED  string = "[skyflow] Interface: %s - Invoking connection"
 	INVOKE_CONNECTION_SUCCESS string = "[skyflow] Interface: %s - Invoke connection success"
 	INVOKE_CONNECTION_FAILED  string = "[skyflow] Interface: %s - Failed invoking connection"
 
+	REDACTION_WITH_TOKEN_NOT_SUPPORTED     string = "[skyflow] Interface: %s - Redaction cannot be used when tokens are true in options."
 	INVALID_VAULT_URL                      string = "[skyflow] Interface: %s - vaultURL %s is invalid or not secure"
 	EMPTY_VAULT_ID                         string = "[skyflow] Interface: %s - vaultID is empty."
 	EMPTY_VAULT_URL                        string = "[skyflow] Interface: %s - vaultURL is empty."
@@ -72,7 +77,16 @@ const (
 	DEPRECATED_ISVALID_FUNCTION            string = "[skyflow] Interface: %s - IsValid method is deprecated, will be removed in future, use IsExpired()"
 	MISSING_TOKENPROVIDER                  string = "[skyflow] Interface: %s - TokenProvider is missing"
 
-	EMPTY_TABLE_IN_UPSERT_OPTIONS          string = "[skyflow] Interface: %s - Table name is missing in upsert options"
-	EMPTY_COLUMN_IN_UPSERT_OPTIONS         string = "[skyflow] Interface: %s - Column name is missing in upsert options"
-
+	EMPTY_TABLE_IN_UPSERT_OPTIONS              string = "[skyflow] Interface: %s - Table name is missing in upsert options"
+	EMPTY_COLUMN_IN_UPSERT_OPTIONS             string = "[skyflow] Interface: %s - Column name is missing in upsert options"
+	MISSING_IDS_OR_COLUMN_VALUES_IN_GET        string = "[skyflow] Interface: %s - ids' key  or 'columnValues' key is missing."
+	MISSING_RECORD_COLUMN_VALUE                string = "[skyflow] Interface: %s - Column Values is required when Column Name is specified."
+	SKYFLOW_IDS_AND_COLUMN_NAME_BOTH_SPECIFIED string = "[skyflow] Interface: %s - ids and columnName can not be specified together."	
+	EMPTY_RECORD_COLUMN_VALUES string = "[skyflow] Interface: %s - Record column values cannot be empty."
+	EMPTY_COLUMN_VALUE string = "[skyflow] Interface: %s - Record column value cannot be empty."
+	MISSING_COLUMN_NAME string = "[skyflow] Interface: %s - Column Name is required when Column Values are specified."
+	INVALID_IDS_TYPE string = "[skyflow] Interface: %s - Invalid type in 'ids'"
+	INVALID_TABLE_NAME_TYPE string = "[skyflow] Interface: %s - Key 'table' is of invalid type."
+	INVALID_COLUMN_VALUES_IN_GET string = "[skyflow] Interface: %s - Invalid column values. column values object should be an array."
+	INVALID_COLUMN_NAME string = "[skyflow] Interface: %s - Invalid column name."
 )
