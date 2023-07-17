@@ -10,6 +10,7 @@ import (
 	logger "github.com/skyflowapi/skyflow-go/commonutils/logwrapper"
 )
 
+// Internal
 func AppendRequestId(message string, requestId string) string {
 	if requestId == "" {
 		return message
@@ -18,6 +19,7 @@ func AppendRequestId(message string, requestId string) string {
 	return message + " - requestId : " + requestId
 }
 
+// Internal
 func CreateJsonMetadata() string {
 	// Create a map to hold the key-value pairs
 	data := map[string]string{

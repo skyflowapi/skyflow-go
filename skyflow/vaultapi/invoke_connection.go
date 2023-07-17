@@ -20,6 +20,7 @@ import (
 	"github.com/skyflowapi/skyflow-go/skyflow/common"
 )
 
+// This is the description for InvokeConnectionApi struct
 type InvokeConnectionApi struct {
 	ConnectionConfig common.ConnectionConfig
 	Token            string
@@ -41,6 +42,7 @@ func (InvokeConnectionApi *InvokeConnectionApi) doValidations() *errors.SkyflowE
 	return nil
 }
 
+// This is the description for Post function
 func (InvokeConnectionApi *InvokeConnectionApi) Post() (map[string]interface{}, *errors.SkyflowError) {
 
 	validationError := InvokeConnectionApi.doValidations()

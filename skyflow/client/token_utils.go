@@ -14,6 +14,7 @@ import (
 	"github.com/skyflowapi/skyflow-go/skyflow/common"
 )
 
+// This is the description for TokenUtils struct
 type TokenUtils struct {
 	Token string
 }

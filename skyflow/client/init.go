@@ -11,6 +11,7 @@ import (
 	"github.com/skyflowapi/skyflow-go/skyflow/common"
 )
 
+// This is the description for Init function
 func Init(configuration common.Configuration) Client {
 	logger.Info(fmt.Sprintf(messages.INITIALIZING_SKYFLOW_CLIENT, clientTag))
 	return Client{configuration}

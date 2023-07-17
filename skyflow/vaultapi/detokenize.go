@@ -16,6 +16,7 @@ import (
 	"github.com/skyflowapi/skyflow-go/skyflow/common"
 )
 
+// This is the description for DetokenizeApi struct
 type DetokenizeApi struct {
 	Configuration common.Configuration
 	Records       map[string]interface{}
@@ -24,6 +25,7 @@ type DetokenizeApi struct {
 
 var detokenizeTag = "Detokenize"
 
+// This is the description for Get function
 func (detokenize *DetokenizeApi) Get() (map[string]interface{}, *errors.SkyflowError) {
 
 	err := detokenize.doValidations()

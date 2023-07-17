@@ -22,6 +22,7 @@ import (
 	"github.com/skyflowapi/skyflow-go/skyflow/common"
 )
 
+// This is the description for ResponseToken struct
 type ResponseToken struct {
 	AccessToken string `json:"accessToken"`
 	TokenType   string `json:tokenType`
@@ -66,6 +67,7 @@ func GenerateBearerToken(filePath string) (*ResponseToken, *errors.SkyflowError)
 	return token, nil
 }
 
+// This is the description for GenerateBearerTokenFromCreds function
 func GenerateBearerTokenFromCreds(credentials string) (*ResponseToken, *errors.SkyflowError) {
 
 	credsMap := make(map[string]interface{})
@@ -234,6 +236,7 @@ func IsValid(tokenString string) bool {
 	return !IsExpired(tokenString)
 }
 
+// This is the description for IsExpired function
 func IsExpired(tokenString string) bool {
 	if tokenString == "" {
 		logger.Info(fmt.Sprintf(messages.EMPTY_BEARER_TOKEN, "ServiceAccountUtil"))

@@ -5,6 +5,7 @@ package logger
 
 import "github.com/sirupsen/logrus"
 
+// This is the description for LogLevel enum
 type LogLevel int
 
 const (
@@ -24,22 +25,27 @@ func init() {
 	log.SetLevel(logrus.ErrorLevel)
 }
 
+// Internal
 func Debug(args ...interface{}) {
 	log.Debug(args...)
 }
 
+// Internal
 func Info(args ...interface{}) {
 	log.Info(args...)
 }
 
+// Internal
 func Warn(args ...interface{}) {
 	log.Warn(args...)
 }
 
+// Internal
 func Error(args ...interface{}) {
 	log.Error(args...)
 }
 
+// This is the description for SetLogLevel function
 func SetLogLevel(level LogLevel) {
 	switch level {
 	case INFO:
