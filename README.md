@@ -16,10 +16,10 @@ This go SDK is designed to help developers easily implement Skyflow into their g
     - [Configuration](#configuration)
     - [Service Account Token Generation](#service-account-token-generation)
     - [Vault APIs](#vault-apis)
-      - [Insert](#insert)
+      - [Insert data into the vault](#insert-data-into-the-vault)
       - [Detokenize](#detokenize)
-      - [Get By Id](#get-by-id)
-    - [Invoke-connection](#invoke-connection)
+      - [GetById](#getbyid)
+      - [InvokeConnection](#invokeconnection)
     - [Logging](#logging)
   - [Reporting a Vulnerability](#reporting-a-vulnerability)
 
@@ -112,7 +112,7 @@ skyflowClient := Skyflow.Init(configuration)
 
 All Vault APIs must be invoked using a skyflowClient instance.
 
-### Insert data into the vault
+#### Insert data into the vault
 
 To insert data into your vault, use the **Insert(records map[string]interface{}, options common.InsertOptions)** method of the Skyflow client. The **insertInput** parameter requires a `records` key and takes an array of records to insert as a value into the vault. The `options` parameter is a InsertOptions object that provides further options, including Upsert operations, for your insert call, as shown below.
 
@@ -453,7 +453,7 @@ Sample response:
 }
 ```
 
-### InvokeConnection
+#### InvokeConnection
 
 End-user apps can use InvokeConnection to integrate checkout and card issuance flows with their apps and systems. To invoke a connection, use the invokeConnection(config ConnectionConfig) method of the Skyflow client. The config object must have `connectionURL`,`methodName` and the remaining are optional. 
 
