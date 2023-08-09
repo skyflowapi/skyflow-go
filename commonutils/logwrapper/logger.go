@@ -5,7 +5,7 @@ package logger
 
 import "github.com/sirupsen/logrus"
 
-// This is the description for LogLevel enum
+// Supported log levels.
 type LogLevel int
 
 const (
@@ -45,7 +45,7 @@ func Error(args ...interface{}) {
 	log.Error(args...)
 }
 
-// This is the description for SetLogLevel function
+// Sets the logging level for the application. Defaults to `ERROR`.
 func SetLogLevel(level LogLevel) {
 	switch level {
 	case INFO:

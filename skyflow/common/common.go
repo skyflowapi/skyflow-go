@@ -6,10 +6,10 @@ package common
 // Internal
 type ResponseBody map[string]interface{}
 
-// This is the description for TokenProvider type
+// Helper function that retrieves a Skyflow bearer token from your backend.
 type TokenProvider func() (string, error)
 
-// This is the description for RequestMethod type
+// Supported request methods.
 type RequestMethod int
 
 const (
@@ -20,12 +20,12 @@ const (
 	DELETE
 )
 
-// This is the description for RequestMethod function
+// Returns the string representation of the RequestMethod.
 func (requestMethod RequestMethod) String() string {
 	return [...]string{"GET", "POST", "PUT", "PATCH", "DELETE"}[requestMethod]
 }
 
-// This is the description for RedactionType enum
+// Supported redaction types.
 type RedactionType string
 
 const (
@@ -35,7 +35,7 @@ const (
 	REDACTED   RedactionType = "REDACTED"
 )
 
-// This is the description for ConnectionConfig struct
+// Supported connection configurations.
 type ConnectionConfig struct {
 	ConnectionURL string
 	MethodName    RequestMethod
@@ -45,19 +45,19 @@ type ConnectionConfig struct {
 	RequestHeader map[string]string
 }
 
-// This is the description for InsertOptions struct
+// Wrapper for parameters required by insert options.
 type InsertOptions struct {
 	Tokens bool
 	Upsert []UpsertOptions
 }
 
-// This is the description for UpsertOptions struct
+// Wrapper for parameters required by upsert options.
 type UpsertOptions struct {
 	Table  string
 	Column string
 }
 
-// This is the description for Configuration struct
+// Contains the parameters required for Skyflow client initialisation.
 type Configuration struct {
 	VaultID       string
 	VaultURL      string
@@ -140,7 +140,7 @@ type SkyflowIdRecord struct {
 	Table     string
 }
 
-// This is the description for ContentType enum
+// Supported content types.
 type ContentType string
 
 const (

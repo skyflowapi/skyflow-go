@@ -18,7 +18,7 @@ import (
 	"github.com/skyflowapi/skyflow-go/skyflow/common"
 )
 
-// This is the description for InsertApi struct
+// Inserts data into the vault.
 type InsertApi struct {
 	Configuration common.Configuration
 	Records       map[string]interface{}
@@ -27,7 +27,7 @@ type InsertApi struct {
 
 var insertTag = "Insert"
 
-// This is the description for HTTPClient interface
+// An interface for performing HTTP requests.
 type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
@@ -107,7 +107,7 @@ func (insertApi *InsertApi) doValidations() *errors.SkyflowError {
 	return nil
 }
 
-// This is the description for Post function
+// Internal
 func (insertApi *InsertApi) Post(token string) (common.ResponseBody, *errors.SkyflowError) {
 	err := insertApi.doValidations()
 	if err != nil {
