@@ -14,7 +14,7 @@ import (
 	vaultapi "github.com/skyflowapi/skyflow-go/skyflow/vaultapi"
 )
 
-// Represents a client instance to interact with Skyflow's vault API.
+// Represents a client instance that interacts with Skyflow's APIs.
 type Client struct {
 	configuration common.Configuration
 }

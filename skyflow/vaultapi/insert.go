@@ -27,7 +27,7 @@ type InsertApi struct {
 
 var insertTag = "Insert"
 
-// An interface for performing HTTP requests.
+// Interface for performing HTTP requests.
 type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }

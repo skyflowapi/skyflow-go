@@ -17,7 +17,7 @@ import (
 	"github.com/skyflowapi/skyflow-go/skyflow/common"
 )
 
-// Retrieves records using SkyflowID's.
+// Retrieves records using SkyflowIDs.
 type GetByIdApi struct {
 	Configuration common.Configuration
 	Records       map[string]interface{}
