@@ -5,6 +5,7 @@ package logger
 
 import "github.com/sirupsen/logrus"
 
+// Supported log levels.
 type LogLevel int
 
 const (
@@ -24,22 +25,27 @@ func init() {
 	log.SetLevel(logrus.ErrorLevel)
 }
 
+// Internal
 func Debug(args ...interface{}) {
 	log.Debug(args...)
 }
 
+// Internal
 func Info(args ...interface{}) {
 	log.Info(args...)
 }
 
+// Internal
 func Warn(args ...interface{}) {
 	log.Warn(args...)
 }
 
+// Internal
 func Error(args ...interface{}) {
 	log.Error(args...)
 }
 
+// Sets the logging level for the application. Defaults to `ERROR`.
 func SetLogLevel(level LogLevel) {
 	switch level {
 	case INFO:

@@ -17,6 +17,7 @@ import (
 	"github.com/skyflowapi/skyflow-go/skyflow/common"
 )
 
+// Retrieves records using SkyflowIDs.
 type GetByIdApi struct {
 	Configuration common.Configuration
 	Records       map[string]interface{}
@@ -25,6 +26,7 @@ type GetByIdApi struct {
 
 var getByIdTag = "GetById"
 
+// Retrieves records by ID from the Skyflow vault.
 func (g *GetByIdApi) Get() (map[string]interface{}, *errors.SkyflowError) {
 
 	err := g.doValidations()

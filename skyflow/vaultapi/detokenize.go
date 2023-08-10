@@ -16,6 +16,7 @@ import (
 	"github.com/skyflowapi/skyflow-go/skyflow/common"
 )
 
+// Represents the configuration and data required for performing detokenization.
 type DetokenizeApi struct {
 	Configuration common.Configuration
 	Records       map[string]interface{}
@@ -24,6 +25,7 @@ type DetokenizeApi struct {
 
 var detokenizeTag = "Detokenize"
 
+// Reveals detokenized data using the Detokenize API.
 func (detokenize *DetokenizeApi) Get() (map[string]interface{}, *errors.SkyflowError) {
 
 	err := detokenize.doValidations()

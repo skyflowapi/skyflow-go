@@ -22,6 +22,7 @@ import (
 	"github.com/skyflowapi/skyflow-go/skyflow/common"
 )
 
+// Represents the structure for a response containing an access token and its type.
 type ResponseToken struct {
 	AccessToken string `json:"accessToken"`
 	TokenType   string `json:tokenType`
@@ -35,7 +36,7 @@ func GenerateToken(filePath string) (*ResponseToken, *errors.SkyflowError) {
 	return GenerateBearerToken(filePath)
 }
 
-// GenerateBearerToken - Generates a Service Account Token from the given Service Account Credential file with a default timeout of 60minutes.
+// Generates a service account token from the given service account credential file with a default timeout of 60 minutes.
 func GenerateBearerToken(filePath string) (*ResponseToken, *errors.SkyflowError) {
 	var key map[string]interface{}
 
@@ -66,6 +67,7 @@ func GenerateBearerToken(filePath string) (*ResponseToken, *errors.SkyflowError)
 	return token, nil
 }
 
+// Generates a service account token from the given service account credential JSON string.
 func GenerateBearerTokenFromCreds(credentials string) (*ResponseToken, *errors.SkyflowError) {
 
 	credsMap := make(map[string]interface{})
@@ -83,7 +85,7 @@ func GenerateBearerTokenFromCreds(credentials string) (*ResponseToken, *errors.S
 	return token, nil
 }
 
-// getSATokenFromCredsFile gets bearer token from service account endpoint
+// Gets bearer token from service account credentials file.
 func getSATokenFromCredsFile(key map[string]interface{}) (*ResponseToken, *errors.SkyflowError) {
 
 	privateKey := key["privateKey"]
@@ -234,6 +236,7 @@ func IsValid(tokenString string) bool {
 	return !IsExpired(tokenString)
 }
 
+// Checks if the provided service account token has expired.
 func IsExpired(tokenString string) bool {
 	if tokenString == "" {
 		logger.Info(fmt.Sprintf(messages.EMPTY_BEARER_TOKEN, "ServiceAccountUtil"))

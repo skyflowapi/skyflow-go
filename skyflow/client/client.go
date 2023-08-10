@@ -14,6 +14,7 @@ import (
 	vaultapi "github.com/skyflowapi/skyflow-go/skyflow/vaultapi"
 )
 
+// Represents a client instance that interacts with Skyflow's APIs.
 type Client struct {
 	configuration common.Configuration
 }
@@ -22,6 +23,7 @@ var clientTag = "Client"
 
 var tokenUtils TokenUtils
 
+// Inserts data into the vault.
 func (client *Client) Insert(records map[string]interface{}, options ...common.InsertOptions) (common.InsertRecords, *errors.SkyflowError) {
 	var tempOptions common.InsertOptions
 	if len(options) == 0 {
@@ -54,6 +56,7 @@ func (client *Client) Insert(records map[string]interface{}, options ...common.I
 	return response, nil
 }
 
+// Returns values that correspond to the specified tokens.
 func (client *Client) Detokenize(records map[string]interface{}) (common.DetokenizeRecords, *errors.SkyflowError) {
 
 	if client.configuration.TokenProvider == nil {
@@ -81,6 +84,7 @@ func (client *Client) Detokenize(records map[string]interface{}) (common.Detoken
 	return response, nil
 }
 
+// Reveals records by Skyflow ID.
 func (client *Client) GetById(records map[string]interface{}) (common.GetByIdRecords, *errors.SkyflowError) {
 
 	if client.configuration.TokenProvider == nil {
@@ -108,6 +112,7 @@ func (client *Client) GetById(records map[string]interface{}) (common.GetByIdRec
 	return response, nil
 }
 
+// Invokes a connection to an external service using the provided connection configuration.
 func (client *Client) InvokeConnection(connectionConfig common.ConnectionConfig) (common.ResponseBody, *errors.SkyflowError) {
 
 	if client.configuration.TokenProvider == nil {
