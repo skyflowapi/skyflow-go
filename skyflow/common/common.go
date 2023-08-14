@@ -60,6 +60,7 @@ type InsertRecords struct {
 type InsertRecord struct {
 	Table  string
 	Fields map[string]interface{}
+	Tokens map[string]interface{}
 }
 
 type DetokenizeInput struct {
@@ -125,5 +126,5 @@ const (
 	TEXTORXML         ContentType = "text/xml"
 )
 
-const sdk_name="skyflow-go"
-const sdk_version="1.6.0"
+const sdk_name = "skyflow-go"
+const sdk_version = "1.6.0"
