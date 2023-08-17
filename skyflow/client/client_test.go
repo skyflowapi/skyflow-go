@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"os"
 	"testing"
-
+	"context"
 	"github.com/joho/godotenv"
 	errors1 "github.com/skyflowapi/skyflow-go/commonutils/errors"
 	"github.com/skyflowapi/skyflow-go/commonutils/messages"
@@ -83,6 +83,18 @@ func TestInsertValidToken(t *testing.T) {
 	skyflowError := errors1.NewSkyflowError(errors1.ErrorCodesEnum(errors1.SdkErrorCode), fmt.Sprintf(messages.EMPTY_VAULT_ID, clientTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
+
+func TestInsertValidTokenWithContext(t *testing.T) {
+	configuration := common.Configuration{VaultID: "", VaultURL: "https://www.url.com", TokenProvider: validToken}
+	var client = Init(configuration)
+	var record = make(map[string]interface{})
+	ctx:= context.Background()
+	ctx = context.WithValue(ctx, "key", "Value")
+	_, err := client.Insert(record, common.InsertOptions{Tokens: true,Context: ctx})
+	skyflowError := errors1.NewSkyflowError(errors1.ErrorCodesEnum(errors1.SdkErrorCode), fmt.Sprintf(messages.EMPTY_VAULT_ID, clientTag))
+	check(err.GetMessage(), skyflowError.GetMessage(), t)
+}
+
 func TestDetokenizeValidToken(t *testing.T) {
 	configuration := common.Configuration{VaultID: "", VaultURL: "https://www.url.com", TokenProvider: validToken}
 	var client = Init(configuration)

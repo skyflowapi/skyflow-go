@@ -3,6 +3,8 @@ Copyright (c) 2022 Skyflow, Inc.
 */
 package common
 
+import "context"
+
 type ResponseBody map[string]interface{}
 type TokenProvider func() (string, error)
 
@@ -41,6 +43,7 @@ type ConnectionConfig struct {
 type InsertOptions struct {
 	Tokens bool
 	Upsert []UpsertOptions
+	Context context.Context
 }
 type UpsertOptions struct {
 	Table  string
@@ -55,6 +58,7 @@ type Configuration struct {
 
 type InsertRecords struct {
 	Records []InsertRecord
+	Context map[string]interface{}
 }
 
 type InsertRecord struct {

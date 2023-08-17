@@ -23,6 +23,16 @@ var clientTag = "Client"
 var tokenUtils TokenUtils
 
 func (client *Client) Insert(records map[string]interface{}, options ...common.InsertOptions) (common.InsertRecords, *errors.SkyflowError) {
+	contextData := make(map[string]interface{})
+	errInsertRecords := common.InsertRecords{}
+	if options[0].Context != nil {
+		contextData = common.CreateContextData(options[0].Context)
+		if len(contextData) != 0 {
+			errInsertRecords = common.InsertRecords{
+				Context: contextData,
+			}
+		}
+	}
 	var tempOptions common.InsertOptions
 	if len(options) == 0 {
 		tempOptions = common.InsertOptions{Tokens: true}
@@ -31,25 +41,29 @@ func (client *Client) Insert(records map[string]interface{}, options ...common.I
 	}
 	if client.configuration.TokenProvider == nil {
 		logger.Error(fmt.Sprintf(messages.MISSING_TOKENPROVIDER, clientTag))
-		return common.InsertRecords{}, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.MISSING_TOKENPROVIDER, clientTag))
+		return errInsertRecords, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.MISSING_TOKENPROVIDER, clientTag))
 	}
 	token, err := tokenUtils.getBearerToken(client.configuration.TokenProvider)
 	if err != nil {
-		return common.InsertRecords{}, err
+		return errInsertRecords, err
 	}
 	insertApi := vaultapi.InsertApi{Configuration: client.configuration, Records: records, Options: tempOptions}
 
 	res, err := insertApi.Post(token)
 
 	if err != nil {
-		return common.InsertRecords{}, err
+		return errInsertRecords, err
 	}
 
+	if  len(contextData) != 0 {
+		res["context"] = contextData
+	}
 	jsonResponse, _ := json.Marshal(res)
+	fmt.Println(string(jsonResponse))
 	var response common.InsertRecords
 	err1 := json.Unmarshal(jsonResponse, &response)
 	if err1 != nil {
-		return common.InsertRecords{}, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.UNKNOWN_ERROR, "Insert", err1))
+		return errInsertRecords, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.UNKNOWN_ERROR, "Insert", err1))
 	}
 	return response, nil
 }
