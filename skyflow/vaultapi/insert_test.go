@@ -195,7 +195,8 @@ func TestTokensAndFieldMismatch(t *testing.T) {
 	recordsArray = append(recordsArray, record)
 	records["records"] = recordsArray
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
-	_, err := insertApi.Post("token")
+	ctx := context.TODO()
+	_, err := insertApi.Post(ctx, "token")
 	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.MISMATCH_OF_FIELDS_AND_TOKENS, insertTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
@@ -213,7 +214,8 @@ func TestTokensInvalidType(t *testing.T) {
 	recordsArray = append(recordsArray, record)
 	records["records"] = recordsArray
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
-	_, err := insertApi.Post("token")
+	ctx := context.TODO()
+	_, err := insertApi.Post(ctx, "token")
 	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.INVALID_TOKENS_IN_INSERT_RECORD, insertTag, reflect.TypeOf(tokens)))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
@@ -231,7 +233,8 @@ func TestEmptyTokens(t *testing.T) {
 	recordsArray = append(recordsArray, record)
 	records["records"] = recordsArray
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
-	_, err := insertApi.Post("token")
+	ctx := context.TODO()
+	_, err := insertApi.Post(ctx, "token")
 	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_TOKENS_IN_INSERT, insertTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
@@ -270,7 +273,8 @@ func TestValidRequestWithTokens(t *testing.T) {
 			Body:       r,
 		}, nil
 	}
-	insertApi.Post("")
+	ctx := context.TODO()
+	insertApi.Post(ctx, "")
 }
 
 func TestEmptyColumnInUpsertOptions(t *testing.T) {
