@@ -4,11 +4,13 @@ Copyright (c) 2022 Skyflow, Inc.
 package vaultapi
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math"
 	"net/http"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -59,7 +61,6 @@ func (insertApi *InsertApi) doValidations() *errors.SkyflowError {
 	}
 
 	for _, upsertOption := range insertApi.Options.Upsert {
-		fmt.Println(upsertOption)
 		var table = upsertOption.Table
 		var column = upsertOption.Column
 
@@ -101,11 +102,35 @@ func (insertApi *InsertApi) doValidations() *errors.SkyflowError {
 				return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_COLUMN_NAME, insertTag))
 			}
 		}
+		if tokens, ok := singleRecord["tokens"]; !ok {
+		} else if tokens == nil {
+			logger.Error(fmt.Sprintf(messages.EMPTY_TOKENS_IN_INSERT, insertTag))
+			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_TOKENS_IN_INSERT, insertTag))
+		} else if _, isString := tokens.(string); isString {
+			logger.Error(fmt.Sprintf(messages.INVALID_TOKENS_IN_INSERT_RECORD, insertTag, reflect.TypeOf(tokens)))
+			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.INVALID_TOKENS_IN_INSERT_RECORD, insertTag, reflect.TypeOf(tokens)))
+		} else if _, isMap := tokens.(map[string]interface{}); !isMap {
+			logger.Error(fmt.Sprintf(messages.INVALID_TOKENS_IN_INSERT_RECORD, insertTag, reflect.TypeOf(tokens)))
+			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.INVALID_TOKENS_IN_INSERT_RECORD, insertTag, reflect.TypeOf(tokens)))
+		} else {
+			tokensMap, _ := tokens.(map[string]interface{})
+			fieldsMap, _ := fields.(map[string]interface{})
+			if len(tokensMap) == 0 {
+				logger.Error(fmt.Sprintf(messages.EMPTY_TOKENS_IN_INSERT, insertTag))
+				return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_TOKENS_IN_INSERT, insertTag))
+			}
+			for tokenKey := range tokensMap {
+				if _, exists := fieldsMap[tokenKey]; !exists {
+					logger.Error(fmt.Sprintf(messages.MISMATCH_OF_FIELDS_AND_TOKENS, insertTag))
+					return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.MISMATCH_OF_FIELDS_AND_TOKENS, insertTag))
+				}
+			}
+		}
 	}
 	return nil
 }
 
-func (insertApi *InsertApi) Post(token string) (common.ResponseBody, *errors.SkyflowError) {
+func (insertApi *InsertApi) Post(ctx context.Context,token string) (common.ResponseBody, *errors.SkyflowError) {
 	err := insertApi.doValidations()
 	if err != nil {
 		return nil, err
@@ -127,11 +152,21 @@ func (insertApi *InsertApi) Post(token string) (common.ResponseBody, *errors.Sky
 		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.UNKNOWN_ERROR, insertTag, err1))
 	}
 	requestUrl := fmt.Sprintf("%s/v1/vaults/%s", insertApi.Configuration.VaultURL, insertApi.Configuration.VaultID)
-	request, _ := http.NewRequest(
-		"POST",
-		requestUrl,
-		strings.NewReader(string(requestBody)),
-	)
+	var request *http.Request
+	if ctx != nil {
+		request, _ = http.NewRequestWithContext(
+			ctx,
+			"POST",
+			requestUrl,
+			strings.NewReader(string(requestBody)),
+		)
+	} else {
+		request, _ = http.NewRequest(
+			"POST",
+			requestUrl,
+			strings.NewReader(string(requestBody)),
+		)
+	}
 	bearerToken := fmt.Sprintf("Bearer %s", token)
 	request.Header.Add("Authorization", bearerToken)
 	skyMetadata := common.CreateJsonMetadata()
@@ -174,10 +209,12 @@ func (InsertApi *InsertApi) constructRequestBody(record common.InsertRecords, op
 		singleRecord := value
 		table := singleRecord.Table
 		fields := singleRecord.Fields
+		tokens := singleRecord.Tokens
 		var UniqueColumn = getUniqueColumn(singleRecord.Table, options.Upsert)
 		var finalRecord = make(map[string]interface{})
 		finalRecord["tableName"] = table
 		finalRecord["fields"] = fields
+		finalRecord["tokens"] = tokens
 		finalRecord["method"] = "POST"
 		finalRecord["quorum"] = true
 		if options.Upsert != nil {
