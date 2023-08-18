@@ -45,6 +45,15 @@ type InsertOptions struct {
 	Upsert []UpsertOptions
 	Context context.Context
 }
+
+type DetokenizeOptions struct {
+	Context context.Context
+}
+
+type GetByIdOptions struct {
+	Context context.Context
+}
+
 type UpsertOptions struct {
 	Table  string
 	Column string
@@ -58,7 +67,6 @@ type Configuration struct {
 
 type InsertRecords struct {
 	Records []InsertRecord
-	Context map[string]interface{}
 }
 
 type InsertRecord struct {
@@ -130,4 +138,4 @@ const (
 )
 
 const sdk_name="skyflow-go"
-const sdk_version="1.6.0"
+const sdk_version="1.7.0"

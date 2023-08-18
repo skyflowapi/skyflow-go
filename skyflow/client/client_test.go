@@ -88,8 +88,7 @@ func TestInsertValidTokenWithContext(t *testing.T) {
 	configuration := common.Configuration{VaultID: "", VaultURL: "https://www.url.com", TokenProvider: validToken}
 	var client = Init(configuration)
 	var record = make(map[string]interface{})
-	ctx:= context.Background()
-	ctx = context.WithValue(ctx, "key", "Value")
+	ctx:= context.TODO()
 	_, err := client.Insert(record, common.InsertOptions{Tokens: true,Context: ctx})
 	skyflowError := errors1.NewSkyflowError(errors1.ErrorCodesEnum(errors1.SdkErrorCode), fmt.Sprintf(messages.EMPTY_VAULT_ID, clientTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
@@ -104,11 +103,31 @@ func TestDetokenizeValidToken(t *testing.T) {
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 
+func TestDetokenizeValidTokenWithContetx(t *testing.T) {
+	configuration := common.Configuration{VaultID: "", VaultURL: "https://www.url.com", TokenProvider: validToken}
+	var client = Init(configuration)
+	var record = make(map[string]interface{})
+	ctx:= context.TODO()
+	_, err := client.Detokenize(record,common.DetokenizeOptions{Context: ctx})
+	skyflowError := errors1.NewSkyflowError(errors1.ErrorCodesEnum(errors1.SdkErrorCode), fmt.Sprintf(messages.EMPTY_VAULT_ID, clientTag))
+	check(err.GetMessage(), skyflowError.GetMessage(), t)
+}
+
 func TestGetByIdValidToken(t *testing.T) {
 	configuration := common.Configuration{VaultID: "", VaultURL: "https://www.url.com", TokenProvider: validToken}
 	var client = Init(configuration)
 	var record = make(map[string]interface{})
 	_, err := client.GetById(record)
+	skyflowError := errors1.NewSkyflowError(errors1.ErrorCodesEnum(errors1.SdkErrorCode), fmt.Sprintf(messages.EMPTY_VAULT_ID, clientTag))
+	check(err.GetMessage(), skyflowError.GetMessage(), t)
+}
+
+func TestGetByIdValidTokenWithContext(t *testing.T) {
+	configuration := common.Configuration{VaultID: "", VaultURL: "https://www.url.com", TokenProvider: validToken}
+	var client = Init(configuration)
+	var record = make(map[string]interface{})
+	ctx:= context.TODO()
+	_, err := client.GetById(record,common.GetByIdOptions{Context: ctx})
 	skyflowError := errors1.NewSkyflowError(errors1.ErrorCodesEnum(errors1.SdkErrorCode), fmt.Sprintf(messages.EMPTY_VAULT_ID, clientTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
