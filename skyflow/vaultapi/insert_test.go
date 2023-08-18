@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2022 Skyflow, Inc. 
+Copyright (c) 2022 Skyflow, Inc.
 */
 package vaultapi
 
@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"reflect"
 	"testing"
 	"context"
 	"github.com/skyflowapi/skyflow-go/commonutils/errors"
@@ -179,6 +180,98 @@ func TestEmptyColumn(t *testing.T) {
 	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_COLUMN_NAME, insertTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
+func TestTokensAndFieldMismatch(t *testing.T) {
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken}
+	records := make(map[string]interface{})
+	var recordsArray []interface{}
+	var record = make(map[string]interface{})
+	var fields = make(map[string]interface{})
+	fields["columnName"] = "1234"
+	record["table"] = "cards"
+	record["fields"] = fields
+	var tokens = make(map[string]interface{})
+	tokens["card_number"] = "3388-5335-5239-3794"
+	record["tokens"] = tokens
+	recordsArray = append(recordsArray, record)
+	records["records"] = recordsArray
+	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
+	_, err := insertApi.Post("token")
+	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.MISMATCH_OF_FIELDS_AND_TOKENS, insertTag))
+	check(err.GetMessage(), skyflowError.GetMessage(), t)
+}
+func TestTokensInvalidType(t *testing.T) {
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken}
+	records := make(map[string]interface{})
+	var recordsArray []interface{}
+	var record = make(map[string]interface{})
+	var fields = make(map[string]interface{})
+	fields["columnName"] = "1234"
+	record["table"] = "cards"
+	record["fields"] = fields
+	var tokens = "DEMO"
+	record["tokens"] = tokens
+	recordsArray = append(recordsArray, record)
+	records["records"] = recordsArray
+	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
+	_, err := insertApi.Post("token")
+	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.INVALID_TOKENS_IN_INSERT_RECORD, insertTag, reflect.TypeOf(tokens)))
+	check(err.GetMessage(), skyflowError.GetMessage(), t)
+}
+func TestEmptyTokens(t *testing.T) {
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken}
+	records := make(map[string]interface{})
+	var recordsArray []interface{}
+	var record = make(map[string]interface{})
+	var fields = make(map[string]interface{})
+	fields["columnName"] = "1234"
+	record["table"] = "cards"
+	record["fields"] = fields
+	var tokens = make(map[string]interface{})
+	record["tokens"] = tokens
+	recordsArray = append(recordsArray, record)
+	records["records"] = recordsArray
+	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
+	_, err := insertApi.Post("token")
+	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_TOKENS_IN_INSERT, insertTag))
+	check(err.GetMessage(), skyflowError.GetMessage(), t)
+}
+func TestValidRequestWithTokens(t *testing.T) {
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.google.com", TokenProvider: GetToken}
+	records := constructInsertRecordsWithTokens()
+	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: true}}
+	json := `{
+		"Header" : {
+			"x-request-id": "reqId-123"
+		},
+		"StatusCode": "200",
+		"vaultID": "123",
+		"responses": [
+			{
+				"records": [
+					{
+						"skyflow_id": "id1"
+					}
+				]
+			},
+			{
+				"fields": {
+					"first_name": "token1",
+					"primary_card": {
+						"card_number": "token2"
+					}
+				}
+			}
+		]
+	}`
+	r := ioutil.NopCloser(bytes.NewReader([]byte(json)))
+	mocks.GetDoFunc = func(*http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: 200,
+			Body:       r,
+		}, nil
+	}
+	insertApi.Post("")
+}
 
 func TestEmptyColumnInUpsertOptions(t *testing.T) {
 	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken}
@@ -198,6 +291,7 @@ func TestEmptyColumnInUpsertOptions(t *testing.T) {
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false,Upsert: upsertArray}}
 	ctx:= context.TODO()
 	_, err := insertApi.Post(ctx,"")
+
 	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_COLUMN_IN_UPSERT_OPTIONS, insertTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
@@ -220,6 +314,7 @@ func TestEmptyTableInUpsertOptions(t *testing.T) {
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false,Upsert: upsertArray}}
 	ctx:= context.TODO()
 	_, err := insertApi.Post(ctx,"")
+
 	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_TABLE_IN_UPSERT_OPTIONS, insertTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
@@ -270,9 +365,9 @@ func TestValidRequest(t *testing.T) {
 	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.google.com", TokenProvider: GetToken}
 	records := constructInsertRecords()
 	var upsertArray []common.UpsertOptions
-	var upsertOption = common.UpsertOptions{Table:"table1",Column: "column"}
-	upsertArray = append(upsertArray,upsertOption)
-	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: true,Upsert: upsertArray}}
+	var upsertOption = common.UpsertOptions{Table: "table1", Column: "column"}
+	upsertArray = append(upsertArray, upsertOption)
+	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: true, Upsert: upsertArray}}
 	json := `{
 		"Header" : {
 			"x-request-id": "reqId-123"
@@ -386,7 +481,21 @@ func constructInsertRecords() map[string]interface{} {
 	record["fields"] = fields
 	recordsArray = append(recordsArray, record)
 	records["records"] = recordsArray
-
+	return records
+}
+func constructInsertRecordsWithTokens() map[string]interface{} {
+	records := make(map[string]interface{})
+	var recordsArray []interface{}
+	var record = make(map[string]interface{})
+	var fields = make(map[string]interface{})
+	var tokens = make(map[string]interface{})
+	fields["first_name"] = "name"
+	record["table"] = "cards"
+	record["fields"] = fields
+	tokens["first_name"] = "token1"
+	record["tokens"] = tokens
+	recordsArray = append(recordsArray, record)
+	records["records"] = recordsArray
 	return records
 }
 

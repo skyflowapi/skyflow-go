@@ -72,6 +72,7 @@ type InsertRecords struct {
 type InsertRecord struct {
 	Table  string
 	Fields map[string]interface{}
+	Tokens map[string]interface{}
 }
 
 type DetokenizeInput struct {
@@ -139,3 +140,4 @@ const (
 
 const sdk_name="skyflow-go"
 const sdk_version="1.7.0"
+

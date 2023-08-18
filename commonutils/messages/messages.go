@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2022 Skyflow, Inc. 
+Copyright (c) 2022 Skyflow, Inc.
 */
 package messages
 
@@ -72,7 +72,9 @@ const (
 	DEPRECATED_ISVALID_FUNCTION            string = "[skyflow] Interface: %s - IsValid method is deprecated, will be removed in future, use IsExpired()"
 	MISSING_TOKENPROVIDER                  string = "[skyflow] Interface: %s - TokenProvider is missing"
 
-	EMPTY_TABLE_IN_UPSERT_OPTIONS          string = "[skyflow] Interface: %s - Table name is missing in upsert options"
-	EMPTY_COLUMN_IN_UPSERT_OPTIONS         string = "[skyflow] Interface: %s - Column name is missing in upsert options"
-
+	EMPTY_TABLE_IN_UPSERT_OPTIONS   string = "[skyflow] Interface: %s - Table name is missing in upsert options"
+	EMPTY_COLUMN_IN_UPSERT_OPTIONS  string = "[skyflow] Interface: %s - Column name is missing in upsert options"
+	EMPTY_TOKENS_IN_INSERT          string = "[skyflow] Interface: %s - tokens is empty in records"
+	MISMATCH_OF_FIELDS_AND_TOKENS   string = "[skyflow] Interface: %s - Fields and Tokens object are not matching"
+	INVALID_TOKENS_IN_INSERT_RECORD string = "[skyflow] Interface: %s - invalid data type of tokens %s present in record"
 )
