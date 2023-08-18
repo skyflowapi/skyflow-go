@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"math"
 	"net/http"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -59,7 +60,6 @@ func (insertApi *InsertApi) doValidations() *errors.SkyflowError {
 	}
 
 	for _, upsertOption := range insertApi.Options.Upsert {
-		fmt.Println(upsertOption)
 		var table = upsertOption.Table
 		var column = upsertOption.Column
 
@@ -99,6 +99,30 @@ func (insertApi *InsertApi) doValidations() *errors.SkyflowError {
 			if index == "" {
 				logger.Error(fmt.Sprintf(messages.EMPTY_COLUMN_NAME, insertTag))
 				return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_COLUMN_NAME, insertTag))
+			}
+		}
+		if tokens, ok := singleRecord["tokens"]; !ok {
+		} else if tokens == nil {
+			logger.Error(fmt.Sprintf(messages.EMPTY_TOKENS_IN_INSERT, insertTag))
+			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_TOKENS_IN_INSERT, insertTag))
+		} else if _, isString := tokens.(string); isString {
+			logger.Error(fmt.Sprintf(messages.INVALID_TOKENS_IN_INSERT_RECORD, insertTag, reflect.TypeOf(tokens)))
+			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.INVALID_TOKENS_IN_INSERT_RECORD, insertTag, reflect.TypeOf(tokens)))
+		} else if _, isMap := tokens.(map[string]interface{}); !isMap {
+			logger.Error(fmt.Sprintf(messages.INVALID_TOKENS_IN_INSERT_RECORD, insertTag, reflect.TypeOf(tokens)))
+			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.INVALID_TOKENS_IN_INSERT_RECORD, insertTag, reflect.TypeOf(tokens)))
+		} else {
+			tokensMap, _ := tokens.(map[string]interface{})
+			fieldsMap, _ := fields.(map[string]interface{})
+			if len(tokensMap) == 0 {
+				logger.Error(fmt.Sprintf(messages.EMPTY_TOKENS_IN_INSERT, insertTag))
+				return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_TOKENS_IN_INSERT, insertTag))
+			}
+			for tokenKey := range tokensMap {
+				if _, exists := fieldsMap[tokenKey]; !exists {
+					logger.Error(fmt.Sprintf(messages.MISMATCH_OF_FIELDS_AND_TOKENS, insertTag))
+					return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.MISMATCH_OF_FIELDS_AND_TOKENS, insertTag))
+				}
 			}
 		}
 	}
@@ -174,10 +198,12 @@ func (InsertApi *InsertApi) constructRequestBody(record common.InsertRecords, op
 		singleRecord := value
 		table := singleRecord.Table
 		fields := singleRecord.Fields
+		tokens := singleRecord.Tokens
 		var UniqueColumn = getUniqueColumn(singleRecord.Table, options.Upsert)
 		var finalRecord = make(map[string]interface{})
 		finalRecord["tableName"] = table
 		finalRecord["fields"] = fields
+		finalRecord["tokens"] = tokens
 		finalRecord["method"] = "POST"
 		finalRecord["quorum"] = true
 		if options.Upsert != nil {
