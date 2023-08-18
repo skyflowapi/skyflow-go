@@ -4,6 +4,7 @@ Copyright (c) 2022 Skyflow, Inc.
 package vaultapi
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -25,7 +26,7 @@ type GetByIdApi struct {
 
 var getByIdTag = "GetById"
 
-func (g *GetByIdApi) Get() (map[string]interface{}, *errors.SkyflowError) {
+func (g *GetByIdApi) Get(ctx context.Context) (map[string]interface{}, *errors.SkyflowError) {
 
 	err := g.doValidations()
 	if err != nil {
@@ -37,7 +38,7 @@ func (g *GetByIdApi) Get() (map[string]interface{}, *errors.SkyflowError) {
 		logger.Error(fmt.Sprintf(messages.INVALID_RECORDS, getByIdTag))
 		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.INVALID_RECORDS, getByIdTag))
 	}
-	res, err := g.doRequest(getByIdRecord)
+	res, err := g.doRequest(ctx,getByIdRecord)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +102,7 @@ func (g *GetByIdApi) doValidations() *errors.SkyflowError {
 	return nil
 }
 
-func (g *GetByIdApi) doRequest(records common.GetByIdInput) (map[string]interface{}, *errors.SkyflowError) {
+func (g *GetByIdApi) doRequest(ctx context.Context,records common.GetByIdInput) (map[string]interface{}, *errors.SkyflowError) {
 
 	var finalSuccess []interface{}
 	var finalError []map[string]interface{}
@@ -121,11 +122,21 @@ func (g *GetByIdApi) doRequest(records common.GetByIdInput) (map[string]interfac
 			v.Add("redaction", string(singleRecord.Redaction))
 			url1.RawQuery = v.Encode()
 			if err == nil {
-				request, _ := http.NewRequest(
-					"GET",
-					url1.String(),
-					strings.NewReader(""),
-				)
+				var request *http.Request
+				if ctx != nil {
+					request, _ = http.NewRequestWithContext(
+						ctx,
+						"GET",
+						url1.String(),
+						strings.NewReader(""),
+					)
+				} else {
+					request, _ = http.NewRequest(
+						"GET",
+						url1.String(),
+						strings.NewReader(""),
+					)
+				}
 				bearerToken := fmt.Sprintf("Bearer %s", g.Token)
 				request.Header.Add("Authorization", bearerToken)
 				skyMetadata := common.CreateJsonMetadata()

@@ -4,6 +4,7 @@ Copyright (c) 2022 Skyflow, Inc.
 package vaultapi
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -24,7 +25,7 @@ type DetokenizeApi struct {
 
 var detokenizeTag = "Detokenize"
 
-func (detokenize *DetokenizeApi) Get() (map[string]interface{}, *errors.SkyflowError) {
+func (detokenize *DetokenizeApi) Get(ctx context.Context) (map[string]interface{}, *errors.SkyflowError) {
 
 	err := detokenize.doValidations()
 	if err != nil {
@@ -36,7 +37,7 @@ func (detokenize *DetokenizeApi) Get() (map[string]interface{}, *errors.SkyflowE
 		logger.Error(fmt.Sprintf(messages.INVALID_RECORDS, detokenizeTag))
 		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.INVALID_RECORDS, detokenizeTag))
 	}
-	res, err := detokenize.sendRequest(detokenizeRecord)
+	res, err := detokenize.sendRequest(ctx,detokenizeRecord)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +84,7 @@ func (detokenizeApi *DetokenizeApi) doValidations() *errors.SkyflowError {
 
 }
 
-func (detokenize *DetokenizeApi) sendRequest(records common.DetokenizeInput) (map[string]interface{}, *errors.SkyflowError) {
+func (detokenize *DetokenizeApi) sendRequest(ctx context.Context, records common.DetokenizeInput) (map[string]interface{}, *errors.SkyflowError) {
 
 	var finalSuccess []map[string]interface{}
 	var finalError []map[string]interface{}
@@ -108,11 +109,21 @@ func (detokenize *DetokenizeApi) sendRequest(records common.DetokenizeInput) (ma
 			body["detokenizationParameters"] = params
 			requestBody, err := json.Marshal(body)
 			if err == nil {
-				request, _ := http.NewRequest(
-					"POST",
-					requestUrl,
-					strings.NewReader(string(requestBody)),
-				)
+				var request *http.Request
+				if ctx != nil {
+					request, _ = http.NewRequestWithContext(
+						ctx,
+						"POST",
+						requestUrl,
+						strings.NewReader(string(requestBody)),
+					)
+				} else {
+					request, _ = http.NewRequest(
+						"POST",
+						requestUrl,
+						strings.NewReader(string(requestBody)),
+					)
+				}
 				bearerToken := fmt.Sprintf("Bearer %s", detokenize.Token)
 				request.Header.Add("Authorization", bearerToken)
 				skyMetadata := common.CreateJsonMetadata()

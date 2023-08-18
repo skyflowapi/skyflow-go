@@ -3,6 +3,8 @@ Copyright (c) 2022 Skyflow, Inc.
 */
 package common
 
+import "context"
+
 type ResponseBody map[string]interface{}
 type TokenProvider func() (string, error)
 
@@ -41,7 +43,17 @@ type ConnectionConfig struct {
 type InsertOptions struct {
 	Tokens bool
 	Upsert []UpsertOptions
+	Context context.Context
 }
+
+type DetokenizeOptions struct {
+	Context context.Context
+}
+
+type GetByIdOptions struct {
+	Context context.Context
+}
+
 type UpsertOptions struct {
 	Table  string
 	Column string
@@ -126,5 +138,6 @@ const (
 	TEXTORXML         ContentType = "text/xml"
 )
 
-const sdk_name = "skyflow-go"
-const sdk_version = "1.6.0"
+const sdk_name="skyflow-go"
+const sdk_version="1.7.0"
+
