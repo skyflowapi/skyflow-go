@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"math"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -130,7 +129,7 @@ func (insertApi *InsertApi) doValidations() *errors.SkyflowError {
 	return nil
 }
 
-func (insertApi *InsertApi) Post(ctx context.Context,token string) (common.ResponseBody, *errors.SkyflowError) {
+func (insertApi *InsertApi) Post(ctx context.Context, token string) (common.ResponseBody, *errors.SkyflowError) {
 	err := insertApi.doValidations()
 	if err != nil {
 		return nil, err
@@ -205,7 +204,7 @@ func (InsertApi *InsertApi) constructRequestBody(record common.InsertRecords, op
 	postPayload := []interface{}{}
 	records := record.Records
 
-	for index, value := range records {
+	for _, value := range records {
 		singleRecord := value
 		table := singleRecord.Table
 		fields := singleRecord.Fields
@@ -220,16 +219,9 @@ func (InsertApi *InsertApi) constructRequestBody(record common.InsertRecords, op
 		if options.Upsert != nil {
 			finalRecord["upsert"] = UniqueColumn
 		}
-		postPayload = append(postPayload, finalRecord)
-		if options.Tokens {
-			temp2 := make(map[string]interface{})
-			temp2["method"] = "GET"
-			temp2["tableName"] = table
-			temp2["ID"] = fmt.Sprintf("$responses.%v.records.0.skyflow_id", 2*index)
-			temp2["tokenization"] = true
-			postPayload = append(postPayload, temp2)
-		}
 
+		finalRecord["tokenization"] = options.Tokens
+		postPayload = append(postPayload, finalRecord)
 	}
 	body := make(map[string]interface{})
 	body["records"] = postPayload
@@ -242,17 +234,19 @@ func (insertApi *InsertApi) buildResponse(responseJson []interface{}, requestRec
 	var recordsArray = []interface{}{}
 	var responseObject = make(map[string]interface{})
 	if insertApi.Options.Tokens {
-		for i := 1; i < len(responseJson); i = i + 2 {
-			var skyflowIDsObject = (responseJson[i-1]).(map[string]interface{})
-			var skyflowIDs = (skyflowIDsObject["records"]).([]interface{})
-			var skyflowID = (skyflowIDs[0]).(map[string]interface{})["skyflow_id"]
-			var record = (responseJson[i]).(map[string]interface{})
-			var recordIndex = math.Floor(float64(i) / 2)
-			var inputRecord = inputRecords[int(recordIndex)]
-			record["table"] = inputRecord.Table
-			var fields = (record["fields"]).(map[string]interface{})
-			fields["skyflow_id"] = skyflowID
-			recordsArray = append(recordsArray, record)
+		for i := 0; i < len(responseJson); i = i + 1 {
+			var mainRecord = responseJson[i].(map[string]interface{})
+			var record = mainRecord["records"].([]interface{})[0]
+			id := record.(map[string]interface{})["skyflow_id"]
+			tokens := record.(map[string]interface{})["tokens"]
+
+			var inputRecord = inputRecords[i]
+			records := map[string]interface{}{}
+			var fields = tokens.(map[string]interface{})
+			fields["skyflow_id"] = id
+			records["fields"] = fields
+			records["table"] = inputRecord.Table
+			recordsArray = append(recordsArray, records)
 		}
 	} else {
 		for i := 0; i < len(responseJson); i++ {

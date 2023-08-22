@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.1] - 2023-08-22
+### Changed
+-  Internal Batch API with tokenization
+
+## [1.7.0] - 2023-08-18
+### Added
+- Support for BYOT tokens in insert method
+- Support for Context in insert method
+
 ## [1.6.0] - 2023-06-09
 ### Added
 - `redaction` key for detokenize method for column group support.
