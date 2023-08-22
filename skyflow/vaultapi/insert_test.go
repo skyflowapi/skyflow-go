@@ -5,13 +5,14 @@ package vaultapi
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"reflect"
 	"testing"
-	"context"
+
 	"github.com/skyflowapi/skyflow-go/commonutils/errors"
 	"github.com/skyflowapi/skyflow-go/commonutils/messages"
 
@@ -30,8 +31,8 @@ func TestEmptyVaultId(t *testing.T) {
 	configuration := common.Configuration{VaultID: "", VaultURL: "https://www.url.com", TokenProvider: GetToken}
 	records := make(map[string]interface{})
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
-	ctx:= context.TODO()
-	_, err := insertApi.Post(ctx,"")
+	ctx := context.TODO()
+	_, err := insertApi.Post(ctx, "")
 	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_VAULT_ID, clientTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 
@@ -41,8 +42,8 @@ func TestEmptyVaultUrl(t *testing.T) {
 	configuration := common.Configuration{VaultID: "123", VaultURL: "", TokenProvider: GetToken}
 	records := make(map[string]interface{})
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
-	ctx:= context.TODO()
-	_, err := insertApi.Post(ctx,"")
+	ctx := context.TODO()
+	_, err := insertApi.Post(ctx, "")
 	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_VAULT_URL, clientTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
@@ -51,8 +52,8 @@ func TestInvalidVaultUrl(t *testing.T) {
 	configuration := common.Configuration{VaultID: "123", VaultURL: "url", TokenProvider: GetToken}
 	records := make(map[string]interface{})
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
-	ctx:= context.TODO()
-	_, err := insertApi.Post(ctx,"")
+	ctx := context.TODO()
+	_, err := insertApi.Post(ctx, "")
 	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.INVALID_VAULT_URL, clientTag, configuration.VaultURL))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
@@ -61,8 +62,8 @@ func TestInvalidVaultUrl1(t *testing.T) {
 	configuration := common.Configuration{VaultID: "123", VaultURL: "http://www.url.com", TokenProvider: GetToken}
 	records := make(map[string]interface{})
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
-	ctx:= context.TODO()
-	_, err := insertApi.Post(ctx,"")
+	ctx := context.TODO()
+	_, err := insertApi.Post(ctx, "")
 	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.INVALID_VAULT_URL, clientTag, configuration.VaultURL))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
@@ -70,8 +71,8 @@ func TestNoRecords(t *testing.T) {
 	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken}
 	records := make(map[string]interface{})
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
-	ctx:= context.TODO()
-	_, err := insertApi.Post(ctx,"")
+	ctx := context.TODO()
+	_, err := insertApi.Post(ctx, "")
 	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.RECORDS_KEY_NOT_FOUND, insertTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
@@ -81,8 +82,8 @@ func TestEmptyRecords(t *testing.T) {
 	var record []interface{}
 	records["records"] = record
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
-	ctx:= context.TODO()
-	_, err := insertApi.Post(ctx,"")
+	ctx := context.TODO()
+	_, err := insertApi.Post(ctx, "")
 	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_RECORDS, insertTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
@@ -95,8 +96,8 @@ func TestMissingTable(t *testing.T) {
 	recordsArray = append(recordsArray, record)
 	records["records"] = recordsArray
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
-	ctx:= context.TODO()
-	_, err := insertApi.Post(ctx,"")
+	ctx := context.TODO()
+	_, err := insertApi.Post(ctx, "")
 	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.MISSING_TABLE, insertTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
@@ -110,8 +111,8 @@ func TestEmptyTable(t *testing.T) {
 	recordsArray = append(recordsArray, record)
 	records["records"] = recordsArray
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
-	ctx:= context.TODO()
-	_, err := insertApi.Post(ctx,"")
+	ctx := context.TODO()
+	_, err := insertApi.Post(ctx, "")
 	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_TABLE_NAME, insertTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
@@ -125,8 +126,8 @@ func TestMissingFields(t *testing.T) {
 	recordsArray = append(recordsArray, record)
 	records["records"] = recordsArray
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
-	ctx:= context.TODO()
-	_, err := insertApi.Post(ctx,"")
+	ctx := context.TODO()
+	_, err := insertApi.Post(ctx, "")
 	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.FIELDS_KEY_ERROR, insertTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
@@ -142,8 +143,8 @@ func TestEmptyFields(t *testing.T) {
 	recordsArray = append(recordsArray, record)
 	records["records"] = recordsArray
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
-	ctx:= context.TODO()
-	_, err := insertApi.Post(ctx,"")
+	ctx := context.TODO()
+	_, err := insertApi.Post(ctx, "")
 	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_FIELDS, insertTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
@@ -158,8 +159,8 @@ func TestEmptyFields1(t *testing.T) {
 	recordsArray = append(recordsArray, record)
 	records["records"] = recordsArray
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
-	ctx:= context.TODO()
-	_, err := insertApi.Post(ctx,"")
+	ctx := context.TODO()
+	_, err := insertApi.Post(ctx, "")
 	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_FIELDS, insertTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
@@ -175,8 +176,8 @@ func TestEmptyColumn(t *testing.T) {
 	recordsArray = append(recordsArray, record)
 	records["records"] = recordsArray
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
-	ctx:= context.TODO()
-	_, err := insertApi.Post(ctx,"")
+	ctx := context.TODO()
+	_, err := insertApi.Post(ctx, "")
 	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_COLUMN_NAME, insertTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
@@ -238,10 +239,13 @@ func TestEmptyTokens(t *testing.T) {
 	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_TOKENS_IN_INSERT, insertTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
+
 func TestValidRequestWithTokens(t *testing.T) {
 	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.google.com", TokenProvider: GetToken}
 	records := constructInsertRecordsWithTokens()
+	fmt.Println(records)
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: true}}
+	fmt.Println("res", insertApi)
 	json := `{
 		"Header" : {
 			"x-request-id": "reqId-123"
@@ -252,17 +256,18 @@ func TestValidRequestWithTokens(t *testing.T) {
 			{
 				"records": [
 					{
-						"skyflow_id": "id1"
+						"skyflow_id": "id1",
+						"tokens": {
+							"first_name": "token1",
+							"primary_card": {
+								"*": "id2",
+								"card_number": "token2",
+								"cvv": "token3",
+								"expiry_date": "token4"
+							}
+						}
 					}
 				]
-			},
-			{
-				"fields": {
-					"first_name": "token1",
-					"primary_card": {
-						"card_number": "token2"
-					}
-				}
 			}
 		]
 	}`
@@ -291,10 +296,10 @@ func TestEmptyColumnInUpsertOptions(t *testing.T) {
 
 	var upsertArray []common.UpsertOptions
 	var upsertOption = common.UpsertOptions{Table: "table1"}
-	upsertArray = append(upsertArray,upsertOption)
-	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false,Upsert: upsertArray}}
-	ctx:= context.TODO()
-	_, err := insertApi.Post(ctx,"")
+	upsertArray = append(upsertArray, upsertOption)
+	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false, Upsert: upsertArray}}
+	ctx := context.TODO()
+	_, err := insertApi.Post(ctx, "")
 
 	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_COLUMN_IN_UPSERT_OPTIONS, insertTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
@@ -314,10 +319,10 @@ func TestEmptyTableInUpsertOptions(t *testing.T) {
 
 	var upsertArray []common.UpsertOptions
 	var upsertOption = common.UpsertOptions{Column: "column"}
-	upsertArray = append(upsertArray,upsertOption)
-	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false,Upsert: upsertArray}}
-	ctx:= context.TODO()
-	_, err := insertApi.Post(ctx,"")
+	upsertArray = append(upsertArray, upsertOption)
+	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false, Upsert: upsertArray}}
+	ctx := context.TODO()
+	_, err := insertApi.Post(ctx, "")
 
 	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_TABLE_IN_UPSERT_OPTIONS, insertTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
@@ -327,9 +332,9 @@ func TestValidRequestWithContext(t *testing.T) {
 	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.google.com", TokenProvider: GetToken}
 	records := constructInsertRecords()
 	var upsertArray []common.UpsertOptions
-	var upsertOption = common.UpsertOptions{Table:"table1",Column: "column"}
-	upsertArray = append(upsertArray,upsertOption)
-	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: true,Upsert: upsertArray}}
+	var upsertOption = common.UpsertOptions{Table: "table1", Column: "column"}
+	upsertArray = append(upsertArray, upsertOption)
+	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: true, Upsert: upsertArray}}
 	json := `{
 		"Header" : {
 			"x-request-id": "reqId-123"
@@ -340,17 +345,18 @@ func TestValidRequestWithContext(t *testing.T) {
 			{
 				"records": [
 					{
-						"skyflow_id": "id1"
+						"skyflow_id": "id1",
+						"tokens": {
+							"first_name": "token1",
+							"primary_card": {
+								"*": "id2",
+								"card_number": "token2",
+								"cvv": "token3",
+								"expiry_date": "token4"
+							}
+						}
 					}
 				]
-			},
-			{
-				"fields": {
-					"first_name": "token1",
-					"primary_card": {
-						"card_number": "token2"
-					}
-				}
 			}
 		]
 	}`
@@ -361,8 +367,8 @@ func TestValidRequestWithContext(t *testing.T) {
 			Body:       r,
 		}, nil
 	}
-	ctx:= context.TODO()
-	insertApi.Post(ctx,"")
+	ctx := context.TODO()
+	insertApi.Post(ctx, "")
 }
 
 func TestValidRequest(t *testing.T) {
@@ -382,17 +388,18 @@ func TestValidRequest(t *testing.T) {
 			{
 				"records": [
 					{
-						"skyflow_id": "id1"
+						"skyflow_id": "id1",
+						"tokens": {
+							"first_name": "token1",
+							"primary_card": {
+								"*": "id2",
+								"card_number": "token2",
+								"cvv": "token3",
+								"expiry_date": "token4"
+							}
+						}
 					}
 				]
-			},
-			{
-				"fields": {
-					"first_name": "token1",
-					"primary_card": {
-						"card_number": "token2"
-					}
-				}
 			}
 		]
 	}`
@@ -404,7 +411,7 @@ func TestValidRequest(t *testing.T) {
 		}, nil
 	}
 	var ctx context.Context
-	insertApi.Post(ctx,"")
+	insertApi.Post(ctx, "")
 }
 
 func TestValidRequestWithTokensFalse(t *testing.T) {
@@ -434,8 +441,8 @@ func TestValidRequestWithTokensFalse(t *testing.T) {
 			Body:       r,
 		}, nil
 	}
-	ctx:= context.TODO()
-	res, _ := insertApi.Post(ctx,"")
+	ctx := context.TODO()
+	res, _ := insertApi.Post(ctx, "")
 	jsonResponse, _ := json.Marshal(res)
 	var response common.InsertRecords
 	err1 := json.Unmarshal(jsonResponse, &response)
@@ -468,8 +475,8 @@ func TestInsertFailure(t *testing.T) {
 			Body:       r,
 		}, nil
 	}
-	ctx:= context.TODO()
-	_, err := insertApi.Post(ctx,"")
+	ctx := context.TODO()
+	_, err := insertApi.Post(ctx, "")
 	if err == nil {
 		t.Errorf("got nil, wanted skyflow error")
 	}

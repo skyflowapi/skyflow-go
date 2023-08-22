@@ -41,8 +41,8 @@ type ConnectionConfig struct {
 }
 
 type InsertOptions struct {
-	Tokens bool
-	Upsert []UpsertOptions
+	Tokens  bool
+	Upsert  []UpsertOptions
 	Context context.Context
 }
 
@@ -138,6 +138,5 @@ const (
 	TEXTORXML         ContentType = "text/xml"
 )
 
-const sdk_name="skyflow-go"
-const sdk_version="1.7.0"
-
+const sdk_name = "skyflow-go"
+const sdk_version = "1.7.1"
