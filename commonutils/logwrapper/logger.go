@@ -1,6 +1,6 @@
 /*
-	Copyright (c) 2022 Skyflow, Inc. 
-*/
+ *  Copyright (c) 2022 Skyflow, Inc.
+ */
 package logger
 
 import "github.com/sirupsen/logrus"
@@ -12,6 +12,7 @@ const (
 	INFO
 	DEBUG
 	WARN
+	FATAL
 )
 
 var log = logrus.New()
@@ -42,6 +43,8 @@ func Error(args ...interface{}) {
 
 func SetLogLevel(level LogLevel) {
 	switch level {
+	case FATAL:
+		log.SetLevel(logrus.FatalLevel)
 	case INFO:
 		log.SetLevel(logrus.InfoLevel)
 	case DEBUG:
