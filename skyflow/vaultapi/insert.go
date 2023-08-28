@@ -179,7 +179,7 @@ func (insertApi *InsertApi) Post(ctx context.Context, token string) (common.Resp
 		code = strconv.Itoa(res.StatusCode)
 	}
 	if err2 != nil {
-		logger.Error(fmt.Sprintf(messages.INSERTING_RECORDS_FAILED, insertTag, common.AppendRequestId(insertApi.Configuration.VaultID, requestId)))
+		logger.Error(fmt.Sprintf(messages.SERVER_ERROR, insertTag, common.AppendRequestId(fmt.Sprintf(messages.SERVER_ERROR, insertTag, err2), requestId)))
 		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(code), common.AppendRequestId(fmt.Sprintf(messages.SERVER_ERROR, insertTag, err2), requestId))
 	}
 
@@ -188,15 +188,14 @@ func (insertApi *InsertApi) Post(ctx context.Context, token string) (common.Resp
 	var result map[string]interface{}
 	err2 = json.Unmarshal(data, &result)
 	if err2 != nil {
-		logger.Error(fmt.Sprintf(messages.INSERTING_RECORDS_FAILED, insertTag, common.AppendRequestId(insertApi.Configuration.VaultID, requestId)))
+		logger.Error(fmt.Sprintf(messages.SERVER_ERROR, insertTag, common.AppendRequestId(string(data), requestId)))
 		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.UNKNOWN_ERROR, insertTag, common.AppendRequestId(string(data), requestId)))
 	} else if result["error"] != nil {
-		logger.Error(fmt.Sprintf(messages.INSERTING_RECORDS_FAILED, insertTag, common.AppendRequestId(insertApi.Configuration.VaultID, requestId)))
 		var generatedError = (result["error"]).(map[string]interface{})
+		logger.Error(fmt.Sprintf(messages.SERVER_ERROR, insertTag, common.AppendRequestId(generatedError["message"].(string), requestId)))
 		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(fmt.Sprintf("%v", generatedError["http_code"])), fmt.Sprintf(messages.SERVER_ERROR, insertTag, common.AppendRequestId(generatedError["message"].(string), requestId)))
 	}
 	logger.Info(fmt.Sprintf(messages.INSERTING_RECORDS_SUCCESS, insertTag, insertApi.Configuration.VaultID))
-
 	return insertApi.buildResponse((result["responses"]).([]interface{}), insertRecord), nil
 }
 
