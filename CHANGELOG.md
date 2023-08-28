@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.2] - 2023-08-28
+### Added
+-  Support for OFF Loglevel.
+
 ## [1.7.1] - 2023-08-22
 ### Changed
 -  Internal Batch API with tokenization
