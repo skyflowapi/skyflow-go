@@ -41,9 +41,10 @@ type ConnectionConfig struct {
 }
 
 type InsertOptions struct {
-	Tokens  bool
-	Upsert  []UpsertOptions
-	Context context.Context
+	Tokens          bool
+	Upsert          []UpsertOptions
+	Context         context.Context
+	ContinueOnError bool
 }
 
 type DetokenizeOptions struct {
@@ -67,8 +68,11 @@ type Configuration struct {
 
 type InsertRecords struct {
 	Records []InsertRecord
+	Errors  []InsertError
 }
-
+type InsertError struct {
+	Error ResponseError
+}
 type InsertRecord struct {
 	Table  string
 	Fields map[string]interface{}
