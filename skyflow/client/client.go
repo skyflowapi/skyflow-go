@@ -61,7 +61,9 @@ func (client *Client) Insert(records map[string]interface{}, options ...common.I
 
 func (client *Client) Detokenize(records map[string]interface{}, options ...common.DetokenizeOptions) (common.DetokenizeRecords, *errors.SkyflowError) {
 	var ctx context.Context
+	var option common.DetokenizeOptions = common.DetokenizeOptions{ContinueOnError: true}
 	if len(options) != 0 {
+		option = options[0]
 		if options[0].Context != nil {
 			ctx = options[0].Context
 		}
@@ -74,7 +76,7 @@ func (client *Client) Detokenize(records map[string]interface{}, options ...comm
 	if err != nil {
 		return common.DetokenizeRecords{}, err
 	}
-	detokenizeApi := vaultapi.DetokenizeApi{Configuration: client.configuration, Records: records, Token: token}
+	detokenizeApi := vaultapi.DetokenizeApi{Configuration: client.configuration, Records: records, Token: token,Options: option }
 
 	res, err := detokenizeApi.Get(ctx)
 

@@ -226,3 +226,36 @@ func TestInValidRequestForDetokenize(t *testing.T) {
 		t.Errorf("got nil, wanted skyflow error")
 	}
 }
+
+func TestInValidRequestForDetokenize(t *testing.T) {
+	options := common.DetokenizeOptions{ ContinueOnError : false }
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.google.com", TokenProvider: GetToken}
+	records := make(map[string]interface{})
+	var record1 = make(map[string]interface{})
+	record1["token"] = "1234"
+	var recordsArray []interface{}
+	recordsArray = append(recordsArray, record1)
+	records["records"] = recordsArray
+	detokenizeApi := DetokenizeApi{Configuration: configuration, Records: records, Token: ""}
+	resJson := `{
+		"error": {
+				"grpc_code": 5,
+				"http_code": 404,
+				"http_status": "Not Found",
+				"message": "Token not found for 1234"
+			}
+		]
+	}`
+	r := ioutil.NopCloser(bytes.NewReader([]byte(resJson)))
+	mocks.GetDoFunc = func(*http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: 200,
+			Body:       r,
+		}, nil
+	}
+	ctx:= context.TODO()
+	resp, _ := detokenizeApi.Get(ctx)
+	if resp["errors"] == nil {
+		t.Errorf("got nil, wanted skyflow error")
+	}
+}
