@@ -170,7 +170,7 @@ func (detokenize *DetokenizeApi) sendRequest(ctx context.Context, records common
 							error["error"] = errorObj
 							responseChannel <- error
 						} else {
-							logger.Info(fmt.Sprintf(messages.DETOKENIZING_BULK_SUCCESS, detokenizeTag))
+							logger.Info(fmt.Sprintf(messages.DETOKENIZING_BULK_SUCCESS, detokenizeTag, requestId))
 							var generatedResults = (result["records"]).([]interface{})
 							var records []map[string]interface{}
 							for i := 0; i < len(generatedResults); i++ {

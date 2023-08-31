@@ -227,7 +227,7 @@ func TestInValidRequestForDetokenize(t *testing.T) {
 	}
 }
 
-func TestInValidRequestForDetokenize(t *testing.T) {
+func TestInValidRequestForDetokenizeWithOptions(t *testing.T) {
 	options := common.DetokenizeOptions{ ContinueOnError : false }
 	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.google.com", TokenProvider: GetToken}
 	records := make(map[string]interface{})
@@ -236,7 +236,7 @@ func TestInValidRequestForDetokenize(t *testing.T) {
 	var recordsArray []interface{}
 	recordsArray = append(recordsArray, record1)
 	records["records"] = recordsArray
-	detokenizeApi := DetokenizeApi{Configuration: configuration, Records: records, Token: ""}
+	detokenizeApi := DetokenizeApi{Configuration: configuration, Records: records, Token: "", Options : options}
 	resJson := `{
 		"error": {
 				"grpc_code": 5,
