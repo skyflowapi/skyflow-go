@@ -49,7 +49,9 @@ func main() {
 	recordsArray = append(recordsArray, record1)
 	recordsArray = append(recordsArray, record2)
 	records["records"] = recordsArray
-	res, err := client.Detokenize(records)
+	//default value for ContinueOnError is true
+	var options = common.DetokenizeOptions{ ContinueOnError: false };
+	res, err := client.Detokenize(records, options)
 	if err == nil {
 		fmt.Println("Records : ", res.Records)
 	} else {
