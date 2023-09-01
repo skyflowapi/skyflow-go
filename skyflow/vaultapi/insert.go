@@ -192,7 +192,15 @@ func (insertApi *InsertApi) Post(ctx context.Context, token string) (common.Resp
 			logger.Error(fmt.Sprintf(messages.SERVER_ERROR, insertTag, common.AppendRequestId(string(data), requestId)))
 			return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.UNKNOWN_ERROR, insertTag, common.AppendRequestId(string(data), requestId)))
 		}
-		return insertApi.buildResponseWithContinueOnErr((result["responses"]).([]interface{}), insertRecord, requestId), nil
+		response, Partial := insertApi.buildResponseWithContinueOnErr((result["responses"]).([]interface{}), insertRecord, requestId)
+		if Partial {
+			logger.Error(fmt.Sprintf(messages.PARTIAL_SUCCESS, insertTag))
+		} else if len(response["records"].([]interface{})) == 0 {
+			logger.Error(fmt.Sprintf(messages.BATCH_INSERT_FAILURE, insertTag))
+		} else {
+			logger.Info(fmt.Sprintf(messages.INSERTING_RECORDS_SUCCESS, insertTag, insertApi.Configuration.VaultID))
+		}
+		return response, nil
 	} else {
 		if err2 != nil {
 			logger.Error(fmt.Sprintf(messages.SERVER_ERROR, insertTag, common.AppendRequestId(string(data), requestId)))
@@ -272,8 +280,9 @@ func (insertApi *InsertApi) buildResponseWithoutContinueOnErr(responseJson []int
 
 	return responseObject
 }
-func (insertApi *InsertApi) buildResponseWithContinueOnErr(responseJson []interface{}, requestRecords common.InsertRecords, requestId string) common.ResponseBody {
+func (insertApi *InsertApi) buildResponseWithContinueOnErr(responseJson []interface{}, requestRecords common.InsertRecords, requestId string) (common.ResponseBody, bool) {
 	var inputRecords = requestRecords.Records
+	var Partial = false
 	var recordsArray = []interface{}{}
 	var errorsArray = []interface{}{}
 	var responseObject = make(map[string]interface{})
@@ -317,7 +326,10 @@ func (insertApi *InsertApi) buildResponseWithContinueOnErr(responseJson []interf
 	if recordsArray != nil {
 		responseObject["records"] = recordsArray
 	}
-	return responseObject
+	if len(recordsArray) != 0 && (len(errorsArray) != 0) {
+		Partial = true
+	}
+	return responseObject, Partial
 }
 func getUniqueColumn(table string, upsertArray []common.UpsertOptions) string {
 	var UniqueColumn string
