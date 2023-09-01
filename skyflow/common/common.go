@@ -41,13 +41,15 @@ type ConnectionConfig struct {
 }
 
 type InsertOptions struct {
-	Tokens  bool
-	Upsert  []UpsertOptions
-	Context context.Context
+	Tokens          bool
+	Upsert          []UpsertOptions
+	Context         context.Context
+	ContinueOnError bool
 }
 
 type DetokenizeOptions struct {
 	Context context.Context
+	ContinueOnError bool
 }
 
 type GetByIdOptions struct {
@@ -67,8 +69,11 @@ type Configuration struct {
 
 type InsertRecords struct {
 	Records []InsertRecord
+	Errors  []InsertError
 }
-
+type InsertError struct {
+	Error ResponseError
+}
 type InsertRecord struct {
 	Table  string
 	Fields map[string]interface{}
@@ -139,4 +144,4 @@ const (
 )
 
 const sdk_name = "skyflow-go"
-const sdk_version = "1.7.2"
+const sdk_version = "1.8.0"

@@ -103,12 +103,31 @@ func TestDetokenizeValidToken(t *testing.T) {
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 
-func TestDetokenizeValidTokenWithContetx(t *testing.T) {
+func TestDetokenizeValidTokenWithContext(t *testing.T) {
 	configuration := common.Configuration{VaultID: "", VaultURL: "https://www.url.com", TokenProvider: validToken}
 	var client = Init(configuration)
 	var record = make(map[string]interface{})
 	ctx:= context.TODO()
 	_, err := client.Detokenize(record,common.DetokenizeOptions{Context: ctx})
+	skyflowError := errors1.NewSkyflowError(errors1.ErrorCodesEnum(errors1.SdkErrorCode), fmt.Sprintf(messages.EMPTY_VAULT_ID, clientTag))
+	check(err.GetMessage(), skyflowError.GetMessage(), t)
+}
+
+func TestDetokenizeBulkValidTokenWithContext(t *testing.T) {
+	configuration := common.Configuration{VaultID: "", VaultURL: "https://www.url.com", TokenProvider: validToken}
+	var client = Init(configuration)
+	var record = make(map[string]interface{})
+	ctx:= context.TODO()
+	_, err := client.Detokenize(record,common.DetokenizeOptions{Context: ctx,ContinueOnError: false})
+	skyflowError := errors1.NewSkyflowError(errors1.ErrorCodesEnum(errors1.SdkErrorCode), fmt.Sprintf(messages.EMPTY_VAULT_ID, clientTag))
+	check(err.GetMessage(), skyflowError.GetMessage(), t)
+}
+
+func TestDetokenizeBulkValidTokenWithoutContext(t *testing.T) {
+	configuration := common.Configuration{VaultID: "", VaultURL: "https://www.url.com", TokenProvider: validToken}
+	var client = Init(configuration)
+	var record = make(map[string]interface{})
+	_, err := client.Detokenize(record,common.DetokenizeOptions{ContinueOnError: false})
 	skyflowError := errors1.NewSkyflowError(errors1.ErrorCodesEnum(errors1.SdkErrorCode), fmt.Sprintf(messages.EMPTY_VAULT_ID, clientTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }

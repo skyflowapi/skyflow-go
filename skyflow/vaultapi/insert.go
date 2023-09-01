@@ -147,7 +147,7 @@ func (insertApi *InsertApi) Post(ctx context.Context, token string) (common.Resp
 	}
 	requestBody, err1 := json.Marshal(record)
 	if err1 != nil {
-		logger.Error(fmt.Sprintf(messages.EMPTY_RECORDS, detokenizeTag))
+		logger.Error(fmt.Sprintf(messages.EMPTY_RECORDS, insertTag))
 		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.UNKNOWN_ERROR, insertTag, err1))
 	}
 	requestUrl := fmt.Sprintf("%s/v1/vaults/%s", insertApi.Configuration.VaultURL, insertApi.Configuration.VaultID)
@@ -187,22 +187,37 @@ func (insertApi *InsertApi) Post(ctx context.Context, token string) (common.Resp
 	defer res.Body.Close()
 	var result map[string]interface{}
 	err2 = json.Unmarshal(data, &result)
-	if err2 != nil {
-		logger.Error(fmt.Sprintf(messages.SERVER_ERROR, insertTag, common.AppendRequestId(string(data), requestId)))
-		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.UNKNOWN_ERROR, insertTag, common.AppendRequestId(string(data), requestId)))
-	} else if result["error"] != nil {
-		var generatedError = (result["error"]).(map[string]interface{})
-		logger.Error(fmt.Sprintf(messages.SERVER_ERROR, insertTag, common.AppendRequestId(generatedError["message"].(string), requestId)))
-		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(fmt.Sprintf("%v", generatedError["http_code"])), fmt.Sprintf(messages.SERVER_ERROR, insertTag, common.AppendRequestId(generatedError["message"].(string), requestId)))
+	if insertApi.Options.ContinueOnError {
+		if err2 != nil {
+			logger.Error(fmt.Sprintf(messages.SERVER_ERROR, insertTag, common.AppendRequestId(string(data), requestId)))
+			return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.UNKNOWN_ERROR, insertTag, common.AppendRequestId(string(data), requestId)))
+		}
+		response, Partial := insertApi.buildResponseWithContinueOnErr((result["responses"]).([]interface{}), insertRecord, requestId)
+		if Partial {
+			logger.Error(fmt.Sprintf(messages.PARTIAL_SUCCESS, insertTag))
+		} else if len(response["records"].([]interface{})) == 0 {
+			logger.Error(fmt.Sprintf(messages.BATCH_INSERT_FAILURE, insertTag))
+		} else {
+			logger.Info(fmt.Sprintf(messages.INSERTING_RECORDS_SUCCESS, insertTag, insertApi.Configuration.VaultID))
+		}
+		return response, nil
+	} else {
+		if err2 != nil {
+			logger.Error(fmt.Sprintf(messages.SERVER_ERROR, insertTag, common.AppendRequestId(string(data), requestId)))
+			return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.UNKNOWN_ERROR, insertTag, common.AppendRequestId(string(data), requestId)))
+		} else if result["error"] != nil {
+			var generatedError = (result["error"]).(map[string]interface{})
+			logger.Error(fmt.Sprintf(messages.SERVER_ERROR, insertTag, common.AppendRequestId(generatedError["message"].(string), requestId)))
+			return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(fmt.Sprintf("%v", generatedError["http_code"])), fmt.Sprintf(messages.SERVER_ERROR, insertTag, common.AppendRequestId(generatedError["message"].(string), requestId)))
+		}
+		logger.Info(fmt.Sprintf(messages.INSERTING_RECORDS_SUCCESS, insertTag, insertApi.Configuration.VaultID))
+		return insertApi.buildResponseWithoutContinueOnErr((result["responses"]).([]interface{}), insertRecord), nil
 	}
-	logger.Info(fmt.Sprintf(messages.INSERTING_RECORDS_SUCCESS, insertTag, insertApi.Configuration.VaultID))
-	return insertApi.buildResponse((result["responses"]).([]interface{}), insertRecord), nil
 }
 
 func (InsertApi *InsertApi) constructRequestBody(record common.InsertRecords, options common.InsertOptions) (map[string]interface{}, *errors.SkyflowError) {
 	postPayload := []interface{}{}
 	records := record.Records
-
 	for _, value := range records {
 		singleRecord := value
 		table := singleRecord.Table
@@ -224,10 +239,13 @@ func (InsertApi *InsertApi) constructRequestBody(record common.InsertRecords, op
 	}
 	body := make(map[string]interface{})
 	body["records"] = postPayload
+	if options.ContinueOnError {
+		body["continueOnError"] = options.ContinueOnError
+	}
 	return body, nil
 }
 
-func (insertApi *InsertApi) buildResponse(responseJson []interface{}, requestRecords common.InsertRecords) common.ResponseBody {
+func (insertApi *InsertApi) buildResponseWithoutContinueOnErr(responseJson []interface{}, requestRecords common.InsertRecords) common.ResponseBody {
 
 	var inputRecords = requestRecords.Records
 	var recordsArray = []interface{}{}
@@ -262,7 +280,57 @@ func (insertApi *InsertApi) buildResponse(responseJson []interface{}, requestRec
 
 	return responseObject
 }
+func (insertApi *InsertApi) buildResponseWithContinueOnErr(responseJson []interface{}, requestRecords common.InsertRecords, requestId string) (common.ResponseBody, bool) {
+	var inputRecords = requestRecords.Records
+	var Partial = false
+	var recordsArray = []interface{}{}
+	var errorsArray = []interface{}{}
+	var responseObject = make(map[string]interface{})
+	for i := 0; i < len(responseJson); i = i + 1 {
+		var mainRecord = responseJson[i].(map[string]interface{})
+		var getBody = mainRecord["Body"].(map[string]interface{})
+		if _, ok := getBody["records"]; ok {
+			var record = getBody["records"].([]interface{})[0]
+			id := record.(map[string]interface{})["skyflow_id"]
 
+			var inputRecord = inputRecords[i]
+			records := map[string]interface{}{}
+			if insertApi.Options.Tokens {
+				tokens := record.(map[string]interface{})["tokens"]
+				var fields = tokens.(map[string]interface{})
+				fields["skyflow_id"] = id
+				records["fields"] = fields
+				records["table"] = inputRecord.Table
+				recordsArray = append(recordsArray, records)
+			} else {
+				var fields = make(map[string]interface{})
+				fields["skyflow_id"] = id
+				records["fields"] = fields
+				records["table"] = inputRecord.Table
+				recordsArray = append(recordsArray, records)
+			}
+		} else if _, ok := getBody["error"]; ok {
+			var StatusCode = mainRecord["Status"].(float64)
+			var error = getBody["error"]
+			errorsObj := map[string]interface{}{}
+			var errorObj = make(map[string]interface{})
+			errorObj["description"] = common.AppendRequestId(fmt.Sprintf(messages.SERVER_ERROR, insertTag, error), requestId)
+			errorObj["code"] = strconv.FormatFloat(StatusCode, 'f', -1, 64)
+			errorsObj["error"] = errorObj
+			errorsArray = append(errorsArray, errorsObj)
+		}
+	}
+	if errorsArray != nil {
+		responseObject["errors"] = errorsArray
+	}
+	if recordsArray != nil {
+		responseObject["records"] = recordsArray
+	}
+	if len(recordsArray) != 0 && (len(errorsArray) != 0) {
+		Partial = true
+	}
+	return responseObject, Partial
+}
 func getUniqueColumn(table string, upsertArray []common.UpsertOptions) string {
 	var UniqueColumn string
 	for _, eachOption := range upsertArray {

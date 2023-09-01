@@ -146,6 +146,7 @@ upsertArray = append(upsertArray,upsertOption)
 options = common.InsertOptions {
         Tokens: true //Optional, indicates whether tokens should be returned for the inserted data. This value defaults to "true".
         Upsert: upsertArray //Optional, upsert support.
+        ContinueOnError: true // Optional, decides whether to continue if error encountered or not
 }
 
 res, err: = skyflowClient.Insert(records, options)
@@ -199,6 +200,79 @@ Sample response :
       "fields": {
         "cardNumber": "f37186-e7e2-466f-91e5-48e2bcbc1",
         "fullname": "1989cb56-63a-4482-adf-1f74cd1a5"
+      }
+    }
+  ]
+}
+
+```
+
+
+[Insert call example with ContinueOnError](https://github.com/skyflowapi/skyflow-go/blob/main/samples/vault-api/insert_with_continueOnError.go):
+
+```go
+package main
+
+import (
+    "fmt"
+    Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
+    "github.com/skyflowapi/skyflow-go/skyflow/common"
+)
+
+func main() {
+
+    //Initialize the SkyflowClient.
+
+    var records = make(map[string] interface {})
+    var record = make(map[string] interface {})
+    record["table"] = "cards"
+    var fields = make(map[string] interface {})
+    fields["cardNumber"] = "411111111111"
+    fields["fullname"] = "name"
+    record["fields"] = fields
+
+    var record2 = make(map[string] interface {})
+    record2["table"] = "pii_field"
+    var fields2 = make(map[string] interface {})
+    fields2["name"] = "name"
+    record2["fields"] = fields2
+
+    var recordsArray[] interface {}
+    recordsArray = append(recordsArray, record)
+
+    records["records"] = recordsArray
+
+    var options = common.InsertOptions {
+        Tokens: true,
+        ContinueOnError: true
+    }
+
+    res, err: = skyflowClient.Insert(records, options)
+
+    if err == nil {
+        fmt.Println(res.Records)
+    }
+}
+```
+
+Sample response :
+
+```json
+{
+  "records": [
+    {
+      "table": "cards",
+      "fields": {
+        "cardNumber": "f37186-e7e2-466f-91e5-48e2bcbc1",
+        "fullname": "1989cb56-63a-4482-adf-1f74cd1a5"
+      }
+    }
+  ],
+  "errors": [
+    {
+      "error": {
+        "code": 404,
+        "description": "Object Name pii_field was not found for Vault - requestId : id1234"
       }
     }
   ]
@@ -268,7 +342,7 @@ Sample response :
 ```
 
 #### Detokenize
-To retrieve tokens from your vault, you can use the **Detokenize(records map[string]interface{})** method.The `records` parameter takes an array of SkyflowIDs to return, as shown below:
+To retrieve tokens from your vault, you can use the **Detokenize(records map[string]interface{},options common.DetokenizeOptions)** method.The `records` parameter takes an array of SkyflowIDs to return.The options parameter is a DetokenizeOptions object that provides further options, including `ContinueOnError` operation, for your detokenize call, as shown below:
 
 ```go
 import (
@@ -291,8 +365,10 @@ recordsArray = append(recordsArray, record1)
 recordsArray = append(recordsArray, record2)
 
 records["records"] = recordsArray
-
-res, err := skyflowClient.Detokenize(records)
+options := common.DetokenizeOptions {
+        ContinueOnError: true //Optional, true indicates making individual API calls. false indicates to make a bulk API call.. This value defaults to "true".
+}
+res, err := skyflowClient.Detokenize(records, options)
 
 Note: `redaction` defaults to `common.PLAIN_TEXT`
 ```
@@ -350,6 +426,56 @@ Sample response:
       }
     }
   ]
+}
+```
+[Detokenize call with the ContinueOnError example.](https://github.com/skyflowapi/skyflow-go/blob/main/samples/vault-api/detokenize.go):
+
+```go
+package main
+
+import (
+    "fmt"
+    Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
+    "github.com/skyflowapi/skyflow-go/skyflow/common"
+)
+
+func main() {
+
+    //initialize skyflowClient
+
+    var records = make(map[string] interface {})
+    var record1 = make(map[string] interface {})
+    record1["token"] = "45012507-f72b-4f5c-9bf9-86b133bae719"
+    var record2 = make(map[string] interface {})
+    record2["token"] = "131e70dc-6f76-4319-bdd3-96281e051051"
+    var recordsArray[] interface {}
+    recordsArray = append(recordsArray, record1)
+    recordsArray = append(recordsArray, record2)
+    records["records"] = recordsArray
+    options := common.DetokenizeOptions {
+        ContinueOnError: false
+    }
+    res, err: = skyflowClient.Detokenize(records, options)
+
+    if err == nil {
+        fmt.Println("Records:",res.Records)
+        fmt.Println("Errors:",res.Errors)
+    }
+}  
+```
+Sample response:
+```json
+{
+  "records": [
+    {
+      "token": "45012507-f72b-4f5c-9bf9-86b133bae719",
+      "value": "Jhon"
+    },
+    {
+      "token": "131e70dc-6f76-4319-bdd3-96281e051051",
+      "value": "1990-01-01"
+    }
+  ],
 }
 ```
 
@@ -567,8 +693,14 @@ Currently the following log levels are supported:
 
    When `LogLevel.ERROR` is passed, only ERROR logs will be printed.
 
+- `OFF`:
+
+  `LogLevel.OFF` can be used to turn off all logging from the Skyflow SDK.
+
 `Note`:
-  - The ranking of logging levels is as follows :  `DEBUG` < `INFO` < `WARN` < `ERROR`.
+  - The ranking of logging levels is as follows :  `DEBUG` < `INFO` < `WARN` < `ERROR`< `OFF`
+
+.
 ## Reporting a Vulnerability
 
 If you discover a potential security issue in this project, please reach out to us at security@skyflow.com. Please do not create public GitHub issues or Pull Requests, as malicious actors could potentially view them.

@@ -15,6 +15,8 @@ github.com/skyflowapi/skyflow-go/commonutils v0.0.0-20221207083805-e502fc29f175 
 github.com/skyflowapi/skyflow-go/commonutils v0.0.0-20221207083805-e502fc29f175/go.mod h1:C9IH9lBmu32OoVAFtwEUw9aN3bXG8lSVNy8K1fw69UY=
 github.com/skyflowapi/skyflow-go/commonutils v0.0.0-20230828090208-4d2a54b6479a h1:tjRtlEJSe6uKwfod6qJ2gd+ow2x6UrxHdtbPJY0mzwc=
 github.com/skyflowapi/skyflow-go/commonutils v0.0.0-20230828090208-4d2a54b6479a/go.mod h1:C9IH9lBmu32OoVAFtwEUw9aN3bXG8lSVNy8K1fw69UY=
+github.com/skyflowapi/skyflow-go/commonutils v0.0.0-20230901104651-952191588afc h1:FytAwtFOqmtF8eJ5fv2hsccRokkyktltgFruvuzx68k=
+github.com/skyflowapi/skyflow-go/commonutils v0.0.0-20230901104651-952191588afc/go.mod h1:C9IH9lBmu32OoVAFtwEUw9aN3bXG8lSVNy8K1fw69UY=
 github.com/skyflowapi/skyflow-go/service-account v0.0.0-20220726093601-000409040f22/go.mod h1:LBNohJDFCg7v1hg+F563rowtQSwQozD80HevGQ536wE=
 github.com/skyflowapi/skyflow-go/skyflow v0.0.0-20230524122159-564722a34b29 h1:Kfk2exj+X7YPTRw7R5mdCwbFzjKclAZN/CteS60RV6M=
 github.com/skyflowapi/skyflow-go/skyflow v0.0.0-20230524122159-564722a34b29/go.mod h1:CmjAtkYtwmXHaWPuUzIPmbeNQjX435r2he5qpnwXwMo=
@@ -22,6 +24,8 @@ github.com/skyflowapi/skyflow-go/skyflow v0.0.0-20230828090208-4d2a54b6479a h1:/
 github.com/skyflowapi/skyflow-go/skyflow v0.0.0-20230828090208-4d2a54b6479a/go.mod h1:c2oboOdSEgOLaZ4pp+xqiDGqCbE+KTHpOuz23q5gi6I=
 github.com/skyflowapi/skyflow-go/skyflow v0.0.0-20230828121044-6dd82fdfc5bc h1:PYmvvfDW3ioefC39hij+Dxc2OUNbsrNHv2efZgaNdyY=
 github.com/skyflowapi/skyflow-go/skyflow v0.0.0-20230828121044-6dd82fdfc5bc/go.mod h1:16N0PHZr5eSUUHDKe/rQAlOgmwYkCt6ZaJUgm5+oGRA=
+github.com/skyflowapi/skyflow-go/skyflow v0.0.0-20230901104651-952191588afc h1:ab9NtJNbCcjfzWkgd4Iq94hh/QkD+fydlKthwD/zZIQ=
+github.com/skyflowapi/skyflow-go/skyflow v0.0.0-20230901104651-952191588afc/go.mod h1:hNHZiqDFk62nnGUOb9lrV+WPr3lMe1UpyrTaqC3dRxQ=
 github.com/stretchr/testify v1.2.2 h1:bSDNvY7ZPG5RlJ8otE/7V6gMiyenm9RtJ7IUVIAoJ1w=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 golang.org/x/sys v0.0.0-20191026070338-33540a1f6037 h1:YyJpGZS1sBuBCzLAR1VEpK193GlqGZbnPFnPV/5Rsb4=

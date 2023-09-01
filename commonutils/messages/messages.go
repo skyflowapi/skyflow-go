@@ -21,7 +21,9 @@ const (
 	INSERTING_RECORDS_SUCCESS string = "[skyflow] Interface: %s - Successfully inserted records into vault with id %s"
 	INSERTING_RECORDS_FAILED  string = "[skyflow] Interface: %s - Failed inserting records into vault with id %s"
 	DETOKENIZING_RECORDS      string = "[skyflow] Interface: %s - Detokenizing token %s"
+	DETOKENIZING_BULK_SUCCESS string = "[skyflow] Interface: %s - Successfully detokenized with request-id : %s"
 	DETOKENIZING_SUCCESS      string = "[skyflow] Interface: %s - Successfully detokenized the token %s"
+	DETOKENIZING_BULK_FAILED  string = "[skyflow] Interface: %s - Detokenization failed with request-id : %s"
 	DETOKENIZING_FAILED       string = "[skyflow] Interface: %s - Detokenization failed for the token %s"
 	GETTING_RECORDS_BY_ID     string = "[skyflow] Interface: %s - Revealing records using skyflow ids for table %s"
 	GET_RECORDS_BY_ID_FAILED  string = "[skyflow] Interface: %s - Failed Revealing records using skyflow ids for table %s"
@@ -77,4 +79,6 @@ const (
 	EMPTY_TOKENS_IN_INSERT          string = "[skyflow] Interface: %s - tokens is empty in records"
 	MISMATCH_OF_FIELDS_AND_TOKENS   string = "[skyflow] Interface: %s - Fields and Tokens object are not matching"
 	INVALID_TOKENS_IN_INSERT_RECORD string = "[skyflow] Interface: %s - invalid data type of tokens %s present in record"
+	PARTIAL_SUCCESS                 string = "[skyflow] Interface: %s - Insert Operation is partially successful"
+	BATCH_INSERT_FAILURE            string = "[skyflow] Interface: %s - Insert Operation is unsuccessful"
 )
