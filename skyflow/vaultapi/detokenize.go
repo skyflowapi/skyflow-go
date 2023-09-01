@@ -21,6 +21,7 @@ type DetokenizeApi struct {
 	Configuration common.Configuration
 	Records       map[string]interface{}
 	Token         string
+	Options		  common.DetokenizeOptions
 }
 
 var detokenizeTag = "Detokenize"
@@ -91,103 +92,206 @@ func (detokenize *DetokenizeApi) sendRequest(ctx context.Context, records common
 
 	responseChannel := make(chan map[string]interface{})
 
-	for i := 0; i < len(records.Records); i++ {
-		logger.Info(fmt.Sprintf(messages.DETOKENIZING_RECORDS, detokenizeTag, records.Records[i].Token))
-		go func(i int, responseChannel chan map[string]interface{}) {
-			singleRecord := records.Records[i]
-			requestUrl := fmt.Sprintf("%s/v1/vaults/%s/detokenize", detokenize.Configuration.VaultURL, detokenize.Configuration.VaultID)
-			var detokenizeParameter = make(map[string]interface{})
-			detokenizeParameter["token"] = singleRecord.Token
-			if singleRecord.Redaction == "" {
-				detokenizeParameter["redaction"] = common.PLAIN_TEXT
-			} else {
-				detokenizeParameter["redaction"] = singleRecord.Redaction
-			}
-			var body = make(map[string]interface{})
-			var params []map[string]interface{}
-			params = append(params, detokenizeParameter)
-			body["detokenizationParameters"] = params
-			requestBody, err := json.Marshal(body)
-			if err == nil {
-				var request *http.Request
-				if ctx != nil {
-					request, _ = http.NewRequestWithContext(
-						ctx,
-						"POST",
-						requestUrl,
-						strings.NewReader(string(requestBody)),
-					)
-				} else {
-					request, _ = http.NewRequest(
-						"POST",
-						requestUrl,
-						strings.NewReader(string(requestBody)),
-					)
+	requestUrl := fmt.Sprintf("%s/v1/vaults/%s/detokenize", detokenize.Configuration.VaultURL, detokenize.Configuration.VaultID)
+	if ( !detokenize.Options.ContinueOnError ) {
+			go func( responseChannel chan map[string]interface{}) {
+				var detokenizeParameters []map[string]interface{}
+				for i := 0; i < len(records.Records); i++ {
+					logger.Info(fmt.Sprintf(messages.DETOKENIZING_RECORDS, detokenizeTag, records.Records[i].Token))
+					singleRecord := records.Records[i]
+					var detokenizeParameter = make(map[string]interface{})
+					detokenizeParameter["token"] = singleRecord.Token
+					if singleRecord.Redaction == "" {
+						detokenizeParameter["redaction"] = common.PLAIN_TEXT
+					} else {
+						detokenizeParameter["redaction"] = singleRecord.Redaction
+					}
+					detokenizeParameters = append(detokenizeParameters, detokenizeParameter)
 				}
-				bearerToken := fmt.Sprintf("Bearer %s", detokenize.Token)
-				request.Header.Add("Authorization", bearerToken)
-				skyMetadata := common.CreateJsonMetadata()
-				request.Header.Add("sky-metadata", skyMetadata)
-				res, err := Client.Do(request)
-				var requestId = ""
-				if res != nil {
-					requestId = res.Header.Get("x-request-id")
-				}
-				if err != nil {
-					logger.Error(fmt.Sprintf(messages.DETOKENIZING_FAILED, detokenizeTag, common.AppendRequestId(singleRecord.Token, requestId)))
-					var error = make(map[string]interface{})
-					var errorObj = make(map[string]interface{})
-					errorObj["code"] = "500"
-					errorObj["description"] = common.AppendRequestId(fmt.Sprintf(messages.SERVER_ERROR, detokenizeTag, err), requestId)
-					error["error"] = errorObj
-					error["token"] = singleRecord.Token
-					responseChannel <- error
-					return
-				}
-				data, _ := ioutil.ReadAll(res.Body)
-				defer res.Body.Close()
-				var result map[string]interface{}
-				err = json.Unmarshal(data, &result)
-				if err != nil {
-					logger.Error(fmt.Sprintf(messages.DETOKENIZING_FAILED, detokenizeTag, common.AppendRequestId(singleRecord.Token, requestId)))
-					var error = make(map[string]interface{})
-					var errorObj = make(map[string]interface{})
-					errorObj["code"] = "500"
-					errorObj["description"] = fmt.Sprintf(messages.UNKNOWN_ERROR, detokenizeTag, common.AppendRequestId(string(data), requestId))
-					error["error"] = errorObj
-					error["token"] = singleRecord.Token
-					responseChannel <- error
-				} else {
-					errorResult := result["error"]
-					if errorResult != nil {
-						logger.Error(fmt.Sprintf(messages.DETOKENIZING_FAILED, detokenizeTag, common.AppendRequestId(singleRecord.Token, requestId)))
-						var generatedError = (errorResult).(map[string]interface{})
+				var body = make(map[string]interface{})
+				body["detokenizationParameters"] = detokenizeParameters
+				requestBody, err := json.Marshal(body)
+				if err == nil {
+					var request *http.Request
+					if ctx != nil {
+						request, _ = http.NewRequestWithContext(
+							ctx,
+							"POST",
+							requestUrl,
+							strings.NewReader(string(requestBody)),
+						)
+					} else {
+						request, _ = http.NewRequest(
+							"POST",
+							requestUrl,
+							strings.NewReader(string(requestBody)),
+						)
+					}
+					bearerToken := fmt.Sprintf("Bearer %s", detokenize.Token)
+					request.Header.Add("Authorization", bearerToken)
+					skyMetadata := common.CreateJsonMetadata()
+					request.Header.Add("sky-metadata", skyMetadata)
+					res, err := Client.Do(request)
+					var requestId = ""
+					if res != nil {
+						requestId = res.Header.Get("x-request-id")
+					}
+					if err != nil {
+						logger.Error(fmt.Sprintf(messages.DETOKENIZING_BULK_FAILED, detokenizeTag, requestId))
 						var error = make(map[string]interface{})
 						var errorObj = make(map[string]interface{})
-						errorObj["code"] = fmt.Sprintf("%v", (errorResult.(map[string]interface{}))["http_code"])
-						errorObj["description"] = common.AppendRequestId((generatedError["message"]).(string), requestId)
+						errorObj["code"] = "500"
+						errorObj["description"] = common.AppendRequestId(fmt.Sprintf(messages.SERVER_ERROR, detokenizeTag, err), requestId)
+						error["error"] = errorObj
+						responseChannel <- error
+						return
+					}
+					data, _ := ioutil.ReadAll(res.Body)
+					defer res.Body.Close()
+					var result map[string]interface{}
+					err = json.Unmarshal(data, &result)
+					if err != nil {
+						logger.Error(fmt.Sprintf(messages.DETOKENIZING_BULK_FAILED, detokenizeTag,  requestId))
+						var error = make(map[string]interface{})
+						var errorObj = make(map[string]interface{})
+						errorObj["code"] = "500"
+						errorObj["description"] = fmt.Sprintf(messages.UNKNOWN_ERROR, detokenizeTag, common.AppendRequestId(string(data), requestId))
+						error["error"] = errorObj
+						responseChannel <- error
+					} else {
+						errorResult := result["error"]
+						if errorResult != nil {
+							logger.Error(fmt.Sprintf(messages.DETOKENIZING_BULK_FAILED, detokenizeTag,  requestId))
+							var generatedError = (errorResult).(map[string]interface{})
+							var error = make(map[string]interface{})
+							var errorObj = make(map[string]interface{})
+							errorObj["code"] = fmt.Sprintf("%v", (errorResult.(map[string]interface{}))["http_code"])
+							errorObj["description"] = common.AppendRequestId((generatedError["message"]).(string), requestId)
+							error["error"] = errorObj
+							responseChannel <- error
+						} else {
+							logger.Info(fmt.Sprintf(messages.DETOKENIZING_BULK_SUCCESS, detokenizeTag, requestId))
+							var generatedResults = (result["records"]).([]interface{})
+							var records []map[string]interface{}
+							for i := 0; i < len(generatedResults); i++ {
+								var record = (generatedResults[i]).(map[string]interface{})
+								delete(record, "valueType")
+								records = append(records, record)
+							}
+							output := map[string]interface{}{
+								"result":  records,
+							}
+							responseChannel <- output
+						}
+	
+					}
+				}
+			}( responseChannel)
+			response := <-responseChannel
+			if _, found := response["error"]; found {
+				finalError = append(finalError, response)
+			} else {
+					result, _ := common.ConvertToMaps(response["result"])
+					finalSuccess =  result
+			}
+	} else {
+		for i := 0; i < len(records.Records); i++ {
+			logger.Info(fmt.Sprintf(messages.DETOKENIZING_RECORDS, detokenizeTag, records.Records[i].Token))
+			go func(i int, responseChannel chan map[string]interface{}) {
+				singleRecord := records.Records[i]
+				var detokenizeParameter = make(map[string]interface{})
+				detokenizeParameter["token"] = singleRecord.Token
+				if singleRecord.Redaction == "" {
+					detokenizeParameter["redaction"] = common.PLAIN_TEXT
+				} else {
+					detokenizeParameter["redaction"] = singleRecord.Redaction
+				}
+				var body = make(map[string]interface{})
+				var params []map[string]interface{}
+				params = append(params, detokenizeParameter)
+				body["detokenizationParameters"] = params
+				requestBody, err := json.Marshal(body)
+				if err == nil {
+					var request *http.Request
+					if ctx != nil {
+						request, _ = http.NewRequestWithContext(
+							ctx,
+							"POST",
+							requestUrl,
+							strings.NewReader(string(requestBody)),
+						)
+					} else {
+						request, _ = http.NewRequest(
+							"POST",
+							requestUrl,
+							strings.NewReader(string(requestBody)),
+						)
+					}
+					bearerToken := fmt.Sprintf("Bearer %s", detokenize.Token)
+					request.Header.Add("Authorization", bearerToken)
+					skyMetadata := common.CreateJsonMetadata()
+					request.Header.Add("sky-metadata", skyMetadata)
+					res, err := Client.Do(request)
+					var requestId = ""
+					if res != nil {
+						requestId = res.Header.Get("x-request-id")
+					}
+					if err != nil {
+						logger.Error(fmt.Sprintf(messages.DETOKENIZING_FAILED, detokenizeTag, common.AppendRequestId(singleRecord.Token, requestId)))
+						var error = make(map[string]interface{})
+						var errorObj = make(map[string]interface{})
+						errorObj["code"] = "500"
+						errorObj["description"] = common.AppendRequestId(fmt.Sprintf(messages.SERVER_ERROR, detokenizeTag, err), requestId)
+						error["error"] = errorObj
+						error["token"] = singleRecord.Token
+						responseChannel <- error
+						return
+					}
+					data, _ := ioutil.ReadAll(res.Body)
+					defer res.Body.Close()
+					var result map[string]interface{}
+					err = json.Unmarshal(data, &result)
+					if err != nil {
+						logger.Error(fmt.Sprintf(messages.DETOKENIZING_FAILED, detokenizeTag, common.AppendRequestId(singleRecord.Token, requestId)))
+						var error = make(map[string]interface{})
+						var errorObj = make(map[string]interface{})
+						errorObj["code"] = "500"
+						errorObj["description"] = fmt.Sprintf(messages.UNKNOWN_ERROR, detokenizeTag, common.AppendRequestId(string(data), requestId))
 						error["error"] = errorObj
 						error["token"] = singleRecord.Token
 						responseChannel <- error
 					} else {
-						logger.Info(fmt.Sprintf(messages.DETOKENIZING_SUCCESS, detokenizeTag, singleRecord.Token))
-						var generatedResult = (result["records"]).([]interface{})
-						var record = (generatedResult[0]).(map[string]interface{})
-						delete(record, "valueType")
-						responseChannel <- record
+						errorResult := result["error"]
+						if errorResult != nil {
+							logger.Error(fmt.Sprintf(messages.DETOKENIZING_FAILED, detokenizeTag, common.AppendRequestId(singleRecord.Token, requestId)))
+							var generatedError = (errorResult).(map[string]interface{})
+							var error = make(map[string]interface{})
+							var errorObj = make(map[string]interface{})
+							errorObj["code"] = fmt.Sprintf("%v", (errorResult.(map[string]interface{}))["http_code"])
+							errorObj["description"] = common.AppendRequestId((generatedError["message"]).(string), requestId)
+							error["error"] = errorObj
+							error["token"] = singleRecord.Token
+							responseChannel <- error
+						} else {
+							logger.Info(fmt.Sprintf(messages.DETOKENIZING_SUCCESS, detokenizeTag, singleRecord.Token))
+							var generatedResult = (result["records"]).([]interface{})
+							var record = (generatedResult[0]).(map[string]interface{})
+							delete(record, "valueType")
+							responseChannel <- record
+						}
+	
 					}
-
 				}
+			}(i, responseChannel)
+		}
+	
+		for i := 0; i < len(records.Records); i++ {
+			response := <-responseChannel
+			if _, found := response["error"]; found {
+				finalError = append(finalError, response)
+			} else {
+				finalSuccess = append(finalSuccess, response)
 			}
-		}(i, responseChannel)
-	}
-
-	for i := 0; i < len(records.Records); i++ {
-		response := <-responseChannel
-		if _, found := response["error"]; found {
-			finalError = append(finalError, response)
-		} else {
-			finalSuccess = append(finalSuccess, response)
 		}
 	}
 

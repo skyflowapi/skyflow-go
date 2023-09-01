@@ -49,6 +49,7 @@ type InsertOptions struct {
 
 type DetokenizeOptions struct {
 	Context context.Context
+	ContinueOnError bool
 }
 
 type GetByIdOptions struct {
