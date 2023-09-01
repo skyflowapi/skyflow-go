@@ -77,4 +77,6 @@ const (
 	EMPTY_TOKENS_IN_INSERT          string = "[skyflow] Interface: %s - tokens is empty in records"
 	MISMATCH_OF_FIELDS_AND_TOKENS   string = "[skyflow] Interface: %s - Fields and Tokens object are not matching"
 	INVALID_TOKENS_IN_INSERT_RECORD string = "[skyflow] Interface: %s - invalid data type of tokens %s present in record"
+	PARTIAL_SUCCESS                 string = "[skyflow] Interface: %s - Insert Operation is partially successful"
+	BATCH_INSERT_FAILURE            string = "[skyflow] Interface: %s - Insert Operation is unsuccessful"
 )
