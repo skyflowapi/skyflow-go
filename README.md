@@ -342,7 +342,7 @@ Sample response :
 ```
 
 #### Detokenize
-To retrieve tokens from your vault, you can use the **Detokenize(records map[string]interface{})** method.The `records` parameter takes an array of SkyflowIDs to return, as shown below:
+To retrieve tokens from your vault, you can use the **Detokenize(records map[string]interface{},options common.DetokenizeOptions)** method.The `records` parameter takes an array of SkyflowIDs to return.The options parameter is a DetokenizeOptions object that provides further options, including `ContinueOnError` operation, for your detokenize call, as shown below:
 
 ```go
 import (
@@ -365,8 +365,10 @@ recordsArray = append(recordsArray, record1)
 recordsArray = append(recordsArray, record2)
 
 records["records"] = recordsArray
-
-res, err := skyflowClient.Detokenize(records)
+options := common.DetokenizeOptions {
+        ContinueOnError: true //Optional, true indicates making individual API calls. false indicates to make a bulk API call.. This value defaults to "true".
+}
+res, err := skyflowClient.Detokenize(records, options)
 
 Note: `redaction` defaults to `common.PLAIN_TEXT`
 ```
@@ -424,6 +426,56 @@ Sample response:
       }
     }
   ]
+}
+```
+[Detokenize call with the ContinueOnError example.](https://github.com/skyflowapi/skyflow-go/blob/main/samples/vault-api/detokenize.go):
+
+```go
+package main
+
+import (
+    "fmt"
+    Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
+    "github.com/skyflowapi/skyflow-go/skyflow/common"
+)
+
+func main() {
+
+    //initialize skyflowClient
+
+    var records = make(map[string] interface {})
+    var record1 = make(map[string] interface {})
+    record1["token"] = "45012507-f72b-4f5c-9bf9-86b133bae719"
+    var record2 = make(map[string] interface {})
+    record2["token"] = "131e70dc-6f76-4319-bdd3-96281e051051"
+    var recordsArray[] interface {}
+    recordsArray = append(recordsArray, record1)
+    recordsArray = append(recordsArray, record2)
+    records["records"] = recordsArray
+    options := common.DetokenizeOptions {
+        ContinueOnError: false
+    }
+    res, err: = skyflowClient.Detokenize(records, options)
+
+    if err == nil {
+        fmt.Println("Records:",res.Records)
+        fmt.Println("Errors:",res.Errors)
+    }
+}  
+```
+Sample response:
+```json
+{
+  "records": [
+    {
+      "token": "45012507-f72b-4f5c-9bf9-86b133bae719",
+      "value": "Jhon"
+    },
+    {
+      "token": "131e70dc-6f76-4319-bdd3-96281e051051",
+      "value": "1990-01-01"
+    }
+  ],
 }
 ```
 
