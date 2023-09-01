@@ -146,6 +146,7 @@ upsertArray = append(upsertArray,upsertOption)
 options = common.InsertOptions {
         Tokens: true //Optional, indicates whether tokens should be returned for the inserted data. This value defaults to "true".
         Upsert: upsertArray //Optional, upsert support.
+        ContinueOnError: true // Optional, decides whether to continue if error encountered or not
 }
 
 res, err: = skyflowClient.Insert(records, options)
@@ -199,6 +200,79 @@ Sample response :
       "fields": {
         "cardNumber": "f37186-e7e2-466f-91e5-48e2bcbc1",
         "fullname": "1989cb56-63a-4482-adf-1f74cd1a5"
+      }
+    }
+  ]
+}
+
+```
+
+
+[Insert call example with ContinueOnError](https://github.com/skyflowapi/skyflow-go/blob/main/samples/vault-api/insert_with_continueOnError.go):
+
+```go
+package main
+
+import (
+    "fmt"
+    Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
+    "github.com/skyflowapi/skyflow-go/skyflow/common"
+)
+
+func main() {
+
+    //Initialize the SkyflowClient.
+
+    var records = make(map[string] interface {})
+    var record = make(map[string] interface {})
+    record["table"] = "cards"
+    var fields = make(map[string] interface {})
+    fields["cardNumber"] = "411111111111"
+    fields["fullname"] = "name"
+    record["fields"] = fields
+
+    var record2 = make(map[string] interface {})
+    record2["table"] = "pii_field"
+    var fields2 = make(map[string] interface {})
+    fields2["name"] = "name"
+    record2["fields"] = fields2
+
+    var recordsArray[] interface {}
+    recordsArray = append(recordsArray, record)
+
+    records["records"] = recordsArray
+
+    var options = common.InsertOptions {
+        Tokens: true,
+        ContinueOnError: true
+    }
+
+    res, err: = skyflowClient.Insert(records, options)
+
+    if err == nil {
+        fmt.Println(res.Records)
+    }
+}
+```
+
+Sample response :
+
+```json
+{
+  "records": [
+    {
+      "table": "cards",
+      "fields": {
+        "cardNumber": "f37186-e7e2-466f-91e5-48e2bcbc1",
+        "fullname": "1989cb56-63a-4482-adf-1f74cd1a5"
+      }
+    }
+  ],
+  "errors": [
+    {
+      "error": {
+        "code": 404,
+        "description": "Object Name pii_field was not found for Vault - requestId : id1234"
       }
     }
   ]
@@ -567,8 +641,14 @@ Currently the following log levels are supported:
 
    When `LogLevel.ERROR` is passed, only ERROR logs will be printed.
 
+- `OFF`:
+
+  `LogLevel.OFF` can be used to turn off all logging from the Skyflow SDK.
+
 `Note`:
-  - The ranking of logging levels is as follows :  `DEBUG` < `INFO` < `WARN` < `ERROR`.
+  - The ranking of logging levels is as follows :  `DEBUG` < `INFO` < `WARN` < `ERROR`< `OFF`
+
+.
 ## Reporting a Vulnerability
 
 If you discover a potential security issue in this project, please reach out to us at security@skyflow.com. Please do not create public GitHub issues or Pull Requests, as malicious actors could potentially view them.
