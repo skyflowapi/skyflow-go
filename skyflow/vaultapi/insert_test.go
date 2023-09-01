@@ -646,7 +646,7 @@ func TestBuildResponseWithContinueOnErrorCase(t *testing.T) {
 	var insertRecord common.InsertRecords
 	if err := json.Unmarshal(jsonRecord, &insertRecord); err == nil {
 		if responses, ok := data["responses"].([]interface{}); ok {
-			actualResponse := insertApi.buildResponseWithContinueOnErr(responses, insertRecord, "reqId-123")
+			actualResponse, _ := insertApi.buildResponseWithContinueOnErr(responses, insertRecord, "reqId-123")
 			expectedJSON, _ := json.Marshal(expectedResponse)
 			actualJSON, _ := json.Marshal(actualResponse)
 			check(string(expectedJSON), string(actualJSON), t)
@@ -727,7 +727,7 @@ func TestBuildResponseWithContinueOnErrorErrorsCase(t *testing.T) {
 	var insertRecord common.InsertRecords
 	if err := json.Unmarshal(jsonRecord, &insertRecord); err == nil {
 		if responses, ok := data["responses"].([]interface{}); ok {
-			actualResponse := insertApi.buildResponseWithContinueOnErr(responses, insertRecord, "reqId-123")
+			actualResponse, _ := insertApi.buildResponseWithContinueOnErr(responses, insertRecord, "reqId-123")
 			expectedJSON, _ := json.Marshal(expectedResponse)
 			actualJSON, _ := json.Marshal(actualResponse)
 			check(string(expectedJSON), string(actualJSON), t)
