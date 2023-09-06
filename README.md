@@ -202,6 +202,9 @@ Sample response :
         "fullname": "1989cb56-63a-4482-adf-1f74cd1a5"
       }
     }
+  ],
+  "errors": [
+    null
   ]
 }
 
