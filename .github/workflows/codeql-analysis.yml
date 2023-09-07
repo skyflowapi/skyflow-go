@@ -22,7 +22,6 @@ jobs:
     
     env:
       GOBIN: ${{ github.workspace }}/bin
-      GOPATH: ${{ github.workspace }}
 
     steps:
     - name: Checkout repository
