@@ -48,7 +48,7 @@ type InsertOptions struct {
 }
 
 type DetokenizeOptions struct {
-	Context context.Context
+	Context         context.Context
 	ContinueOnError bool
 }
 
@@ -75,9 +75,10 @@ type InsertError struct {
 	Error ResponseError
 }
 type InsertRecord struct {
-	Table  string
-	Fields map[string]interface{}
-	Tokens map[string]interface{}
+	RequestIndex int
+	Table        string
+	Fields       map[string]interface{}
+	Tokens       map[string]interface{}
 }
 
 type DetokenizeInput struct {
@@ -105,8 +106,9 @@ type DetokenizeError struct {
 }
 
 type ResponseError struct {
-	Code        string
-	Description string
+	RequestIndex int
+	Code         string
+	Description  string
 }
 
 type GetByIdInput struct {
