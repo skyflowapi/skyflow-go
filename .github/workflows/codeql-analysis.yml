@@ -21,11 +21,8 @@ jobs:
         language: [ 'go' ]
     
     env:
+      GOBIN: ${{ github.workspace }}/bin
       GOPATH: ${{ github.workspace }}
-
-    defaults:
-      run:
-        working-directory: ${{ env.GOPATH }}/src/github.com/${{ github.repository }}
 
     steps:
     - name: Checkout repository
@@ -33,7 +30,7 @@ jobs:
       with:
           # Disabling shallow clone is recommended for improving relevancy of reporting
           fetch-depth: 0
-          path: ${{ env.GOPATH }}/src/github.com/${{ github.repository }}
+          path: ./
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
@@ -42,7 +39,13 @@ jobs:
         languages: ${{ matrix.language }}
 
     - name: Autobuild
-      uses: github/codeql-action/autobuild@v1
+      uses: github/codeql-action/autobuild@v2
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v1
+      uses: github/codeql-action/analyze@v2
+
+    - name: Upload SARIF Results
+      uses: actions/upload-artifact@v2
+      with:
+        name: sarif-results
+        path: /home/runner/work/skyflow-go/results/go.sarif
