@@ -196,15 +196,13 @@ Sample response :
 {
   "records": [
     {
+      "index": 0,
       "table": "cards",
       "fields": {
         "cardNumber": "f37186-e7e2-466f-91e5-48e2bcbc1",
         "fullname": "1989cb56-63a-4482-adf-1f74cd1a5"
       }
     }
-  ],
-  "errors": [
-    null
   ]
 }
 

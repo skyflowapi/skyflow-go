@@ -216,9 +216,9 @@ func (insertApi *InsertApi) Post(ctx context.Context, token string) (common.Resp
 }
 
 func (InsertApi *InsertApi) constructRequestBody(record common.InsertRecords, options common.InsertOptions) (map[string]interface{}, *errors.SkyflowError) {
+	postPayload := []interface{}{}
 	records := record.Records
-	postPayload := make([]interface{}, len(records))
-	for i, value := range records {
+	for _, value := range records {
 		singleRecord := value
 		table := singleRecord.Table
 		fields := singleRecord.Fields
@@ -235,7 +235,7 @@ func (InsertApi *InsertApi) constructRequestBody(record common.InsertRecords, op
 		}
 
 		finalRecord["tokenization"] = options.Tokens
-		postPayload[i] = finalRecord
+		postPayload = append(postPayload, finalRecord)
 	}
 	body := make(map[string]interface{})
 	body["records"] = postPayload
@@ -261,6 +261,7 @@ func (insertApi *InsertApi) buildResponseWithoutContinueOnErr(responseJson []int
 			records := map[string]interface{}{}
 			var fields = tokens.(map[string]interface{})
 			fields["skyflow_id"] = id
+			records["index"] = i
 			records["fields"] = fields
 			records["table"] = inputRecord.Table
 			recordsArray = append(recordsArray, records)
@@ -270,6 +271,7 @@ func (insertApi *InsertApi) buildResponseWithoutContinueOnErr(responseJson []int
 			var inputRecord = inputRecords[i]
 			var record = ((responseJson[i]).(map[string]interface{})["records"]).([]interface{})
 			var newRecord = make(map[string]interface{})
+			newRecord["index"] = i
 			newRecord["table"] = inputRecord.Table
 			newRecord["fields"] = record[0]
 			recordsArray = append(recordsArray, newRecord)
@@ -283,8 +285,8 @@ func (insertApi *InsertApi) buildResponseWithoutContinueOnErr(responseJson []int
 func (insertApi *InsertApi) buildResponseWithContinueOnErr(responseJson []interface{}, requestRecords common.InsertRecords, requestId string) (common.ResponseBody, bool) {
 	var inputRecords = requestRecords.Records
 	var Partial = false
-	var recordsArray = make([]interface{}, len(inputRecords))
-	var errorsArray = make([]interface{}, len(inputRecords))
+	var recordsArray = []interface{}{}
+	var errorsArray = []interface{}{}
 	var responseObject = make(map[string]interface{})
 	for i := 0; i < len(responseJson); i = i + 1 {
 		var mainRecord = responseJson[i].(map[string]interface{})
@@ -295,25 +297,32 @@ func (insertApi *InsertApi) buildResponseWithContinueOnErr(responseJson []interf
 
 			var inputRecord = inputRecords[i]
 			records := map[string]interface{}{}
-			fields := make(map[string]interface{})
 			if insertApi.Options.Tokens {
 				tokens := record.(map[string]interface{})["tokens"]
-				fields = tokens.(map[string]interface{})
+				var fields = tokens.(map[string]interface{})
+				fields["skyflow_id"] = id
+				records["index"] = i
+				records["fields"] = fields
+				records["table"] = inputRecord.Table
+				recordsArray = append(recordsArray, records)
+			} else {
+				var fields = make(map[string]interface{})
+				fields["skyflow_id"] = id
+				records["index"] = i
+				records["fields"] = fields
+				records["table"] = inputRecord.Table
+				recordsArray = append(recordsArray, records)
 			}
-			fields["skyflow_id"] = id
-			records["fields"] = fields
-			records["table"] = inputRecord.Table
-			recordsArray[i] = records
 		} else if _, ok := getBody["error"]; ok {
 			var StatusCode = mainRecord["Status"].(float64)
 			var error = getBody["error"]
 			errorsObj := map[string]interface{}{}
 			var errorObj = make(map[string]interface{})
+			errorObj["index"] = i
 			errorObj["description"] = common.AppendRequestId(fmt.Sprintf(messages.SERVER_ERROR, insertTag, error), requestId)
 			errorObj["code"] = strconv.FormatFloat(StatusCode, 'f', -1, 64)
 			errorsObj["error"] = errorObj
-			errorsArray[i] = errorsObj
-			Partial = true
+			errorsArray = append(errorsArray, errorsObj)
 		}
 	}
 	if errorsArray != nil {
@@ -321,6 +330,9 @@ func (insertApi *InsertApi) buildResponseWithContinueOnErr(responseJson []interf
 	}
 	if recordsArray != nil {
 		responseObject["records"] = recordsArray
+	}
+	if len(recordsArray) != 0 && (len(errorsArray) != 0) {
+		Partial = true
 	}
 	return responseObject, Partial
 }

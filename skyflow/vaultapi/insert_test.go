@@ -535,15 +535,11 @@ func TestValidRequestWithContinueOnError(t *testing.T) {
 }
 func TestValidRequestWithContinueOnErrorErrorCase(t *testing.T) {
 	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.google.com", TokenProvider: GetToken}
-	records := map[string]interface{}{"records": []interface{}{
-		map[string]interface{}{"fields": map[string]interface{}{"cvv": "123"}, "table": "cards"},
-		map[string]interface{}{"fields": map[string]interface{}{"cvv": "abc"}, "table": "cards"},
-	}}
+	records := constructInsertRecords()
 	var upsertArray []common.UpsertOptions
 	var upsertOption = common.UpsertOptions{Table: "table1", Column: "column"}
 	upsertArray = append(upsertArray, upsertOption)
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: true, Upsert: upsertArray, ContinueOnError: true}}
-
 	json := `{
 		"Header" : {
 			"x-request-id": "reqId-123"
@@ -629,9 +625,10 @@ func TestBuildResponseWithContinueOnErrorCase(t *testing.T) {
 		return
 	}
 	expectedResponse := map[string]interface{}{
-		"errors": []interface{}{nil},
+		"errors": []interface{}{},
 		"records": []interface{}{
 			map[string]interface{}{
+				"index": 0,
 				"table": "cards",
 				"fields": map[string]interface{}{
 					"first_name": "token1",
@@ -660,10 +657,7 @@ func TestBuildResponseWithContinueOnErrorCase(t *testing.T) {
 }
 func TestBuildResponseWithContinueOnErrorErrorsCase(t *testing.T) {
 	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.google.com", TokenProvider: GetToken}
-	records := map[string]interface{}{"records": []interface{}{
-		map[string]interface{}{"fields": map[string]interface{}{"cvv": "123"}, "table": "cards"},
-		map[string]interface{}{"fields": map[string]interface{}{"cvv": "abc"}, "table": "cards"},
-	}}
+	records := constructInsertRecords()
 	var upsertArray []common.UpsertOptions
 	var upsertOption = common.UpsertOptions{Table: "table1", Column: "column"}
 	upsertArray = append(upsertArray, upsertOption)
@@ -708,17 +702,16 @@ func TestBuildResponseWithContinueOnErrorErrorsCase(t *testing.T) {
 		return
 	}
 	expectedResponse := map[string]interface{}{
-		"errors": []interface{}{
-			nil,
-			map[string]interface{}{
-				"error": map[string]interface{}{
-					"code":        "400",
-					"description": "[skyflow] Interface: Insert - Server error Object Name credit_card was not found for Vault - requestId : reqId-123",
-				},
+		"errors": []interface{}{map[string]interface{}{
+			"error": map[string]interface{}{
+				"index":       1,
+				"code":        "400",
+				"description": "[skyflow] Interface: Insert - Server error Object Name credit_card was not found for Vault - requestId : reqId-123",
 			},
-		},
+		}},
 		"records": []interface{}{
 			map[string]interface{}{
+				"index": 0,
 				"table": "cards",
 				"fields": map[string]interface{}{
 					"first_name": "token1",
@@ -731,7 +724,6 @@ func TestBuildResponseWithContinueOnErrorErrorsCase(t *testing.T) {
 					"skyflow_id": "id1",
 				},
 			},
-			nil,
 		},
 	}
 	jsonRecord, _ := json.Marshal(records)
@@ -788,6 +780,7 @@ func TestBuildResponseWithoutContinueOnErrorCase(t *testing.T) {
 	expectedResponse := map[string]interface{}{
 		"records": []interface{}{
 			map[string]interface{}{
+				"index": 0,
 				"table": "cards",
 				"fields": map[string]interface{}{
 					"first_name": "token1",
