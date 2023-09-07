@@ -261,7 +261,7 @@ func (insertApi *InsertApi) buildResponseWithoutContinueOnErr(responseJson []int
 			records := map[string]interface{}{}
 			var fields = tokens.(map[string]interface{})
 			fields["skyflow_id"] = id
-			records["index"] = i
+			records["request_index"] = i
 			records["fields"] = fields
 			records["table"] = inputRecord.Table
 			recordsArray = append(recordsArray, records)
@@ -271,7 +271,7 @@ func (insertApi *InsertApi) buildResponseWithoutContinueOnErr(responseJson []int
 			var inputRecord = inputRecords[i]
 			var record = ((responseJson[i]).(map[string]interface{})["records"]).([]interface{})
 			var newRecord = make(map[string]interface{})
-			newRecord["index"] = i
+			newRecord["request_index"] = i
 			newRecord["table"] = inputRecord.Table
 			newRecord["fields"] = record[0]
 			recordsArray = append(recordsArray, newRecord)
@@ -301,14 +301,14 @@ func (insertApi *InsertApi) buildResponseWithContinueOnErr(responseJson []interf
 				tokens := record.(map[string]interface{})["tokens"]
 				var fields = tokens.(map[string]interface{})
 				fields["skyflow_id"] = id
-				records["index"] = i
+				records["request_index"] = i
 				records["fields"] = fields
 				records["table"] = inputRecord.Table
 				recordsArray = append(recordsArray, records)
 			} else {
 				var fields = make(map[string]interface{})
 				fields["skyflow_id"] = id
-				records["index"] = i
+				records["request_index"] = i
 				records["fields"] = fields
 				records["table"] = inputRecord.Table
 				recordsArray = append(recordsArray, records)
@@ -318,7 +318,7 @@ func (insertApi *InsertApi) buildResponseWithContinueOnErr(responseJson []interf
 			var error = getBody["error"]
 			errorsObj := map[string]interface{}{}
 			var errorObj = make(map[string]interface{})
-			errorObj["index"] = i
+			errorObj["request_index"] = i
 			errorObj["description"] = common.AppendRequestId(fmt.Sprintf(messages.SERVER_ERROR, insertTag, error), requestId)
 			errorObj["code"] = strconv.FormatFloat(StatusCode, 'f', -1, 64)
 			errorsObj["error"] = errorObj

@@ -196,7 +196,7 @@ Sample response :
 {
   "records": [
     {
-      "index": 0,
+      "request_index": 0,
       "table": "cards",
       "fields": {
         "cardNumber": "f37186-e7e2-466f-91e5-48e2bcbc1",
