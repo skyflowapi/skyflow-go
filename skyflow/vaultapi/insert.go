@@ -72,7 +72,6 @@ func (insertApi *InsertApi) doValidations() *errors.SkyflowError {
 			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_COLUMN_IN_UPSERT_OPTIONS, insertTag))
 		}
 	}
-
 	for _, record := range recordsArray {
 		var singleRecord = (record).(map[string]interface{})
 		var table = singleRecord["table"]
@@ -101,7 +100,15 @@ func (insertApi *InsertApi) doValidations() *errors.SkyflowError {
 				return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_COLUMN_NAME, insertTag))
 			}
 		}
+		if insertApi.Options.Byot != common.ENABLE && insertApi.Options.Byot != common.DISABLE && insertApi.Options.Byot != common.ENABLE_STRICT {
+			logger.Error(fmt.Sprintf(messages.INVALID_BYOT_TYPE, insertTag))
+			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.INVALID_BYOT_TYPE, insertTag))
+		}
 		if tokens, ok := singleRecord["tokens"]; !ok {
+			if insertApi.Options.Byot == common.ENABLE || insertApi.Options.Byot == common.ENABLE_STRICT {
+				logger.Error(fmt.Sprintf(messages.NO_TOKENS_IN_INSERT, insertTag, insertApi.Options.Byot))
+				return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.NO_TOKENS_IN_INSERT, insertTag, insertApi.Options.Byot))
+			}
 		} else if tokens == nil {
 			logger.Error(fmt.Sprintf(messages.EMPTY_TOKENS_IN_INSERT, insertTag))
 			return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_TOKENS_IN_INSERT, insertTag))
@@ -124,7 +131,16 @@ func (insertApi *InsertApi) doValidations() *errors.SkyflowError {
 					return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.MISMATCH_OF_FIELDS_AND_TOKENS, insertTag))
 				}
 			}
+			if insertApi.Options.Byot == common.DISABLE {
+				logger.Error(fmt.Sprintf(messages.TOKENS_PASSED_FOR_BYOT_DISABLE, insertTag))
+				return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.TOKENS_PASSED_FOR_BYOT_DISABLE, insertTag))
+			}
+			if len(fieldsMap) != len(tokensMap) {
+				logger.Error(fmt.Sprintf(messages.INSUFFICIENT_TOKENS_PASSED_FOR_BYOT_ENABLE_STRICT, insertTag))
+				return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.INSUFFICIENT_TOKENS_PASSED_FOR_BYOT_ENABLE_STRICT, insertTag))
+			}
 		}
+
 	}
 	return nil
 }
@@ -241,6 +257,7 @@ func (InsertApi *InsertApi) constructRequestBody(record common.InsertRecords, op
 	body["records"] = postPayload
 	if options.ContinueOnError {
 		body["continueOnError"] = options.ContinueOnError
+		body["byot"] = options.Byot
 	}
 	return body, nil
 }
