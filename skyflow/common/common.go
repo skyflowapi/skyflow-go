@@ -75,7 +75,7 @@ type InsertError struct {
 	Error ResponseError
 }
 type InsertRecord struct {
-	RequestIndex int
+	RequestIndex int `json:"request_index"`
 	Table        string
 	Fields       map[string]interface{}
 	Tokens       map[string]interface{}
@@ -106,7 +106,7 @@ type DetokenizeError struct {
 }
 
 type ResponseError struct {
-	RequestIndex int
+	RequestIndex int `json:"request_index"`
 	Code         string
 	Description  string
 }
