@@ -87,9 +87,21 @@ func TestInsertValidToken(t *testing.T) {
 func TestInsertInValidByot(t *testing.T) {
 	configuration := common.Configuration{VaultID: "id", VaultURL: "https://www.url.com", TokenProvider: validToken}
 	var client = Init(configuration)
+	var records = make(map[string]interface{})
 	var record = make(map[string]interface{})
-	_, err := client.Insert(record, common.InsertOptions{Tokens: true, Byot: "demo"})
-	skyflowError := errors1.NewSkyflowError(errors1.ErrorCodesEnum(errors1.SdkErrorCode), fmt.Sprintf(messages.INVALID_BYOT_TYPE, clientTag))
+	record["table"] = "credit_cards"
+	var fields = make(map[string]interface{})
+	fields["cardholder_name"] = "name"
+	fields["card_number"] = "4111111111111112"
+	record["fields"] = fields
+	var tokens = make(map[string]interface{})
+	tokens["cardholder_name"] = "token1"
+	record["tokens"] = tokens
+	var recordsArray []interface{}
+	recordsArray = append(recordsArray, record)
+	records["records"] = recordsArray
+	_, err := client.Insert(records, common.InsertOptions{Tokens: true, Byot: "demo"})
+	skyflowError := errors1.NewSkyflowError(errors1.ErrorCodesEnum(errors1.SdkErrorCode), fmt.Sprintf(messages.INVALID_BYOT_TYPE, "Insert"))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 func TestInsertByotTokensNotPassed(t *testing.T) {
@@ -105,8 +117,8 @@ func TestInsertByotTokensNotPassed(t *testing.T) {
 	var recordsArray []interface{}
 	recordsArray = append(recordsArray, record)
 	records["records"] = recordsArray
-	_, err := client.Insert(record, common.InsertOptions{Tokens: true, Byot: common.ENABLE})
-	skyflowError := errors1.NewSkyflowError(errors1.ErrorCodesEnum(errors1.SdkErrorCode), fmt.Sprintf(messages.NO_TOKENS_IN_INSERT, clientTag, "ENABLE"))
+	_, err := client.Insert(records, common.InsertOptions{Tokens: true, Byot: common.ENABLE})
+	skyflowError := errors1.NewSkyflowError(errors1.ErrorCodesEnum(errors1.SdkErrorCode), fmt.Sprintf(messages.NO_TOKENS_IN_INSERT, "Insert", "ENABLE"))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 func TestInsertByotTokensNotAllPassed(t *testing.T) {
@@ -125,8 +137,8 @@ func TestInsertByotTokensNotAllPassed(t *testing.T) {
 	var recordsArray []interface{}
 	recordsArray = append(recordsArray, record)
 	records["records"] = recordsArray
-	_, err := client.Insert(record, common.InsertOptions{Tokens: true, Byot: common.ENABLE_STRICT})
-	skyflowError := errors1.NewSkyflowError(errors1.ErrorCodesEnum(errors1.SdkErrorCode), fmt.Sprintf(messages.INSUFFICIENT_TOKENS_PASSED_FOR_BYOT_ENABLE_STRICT, clientTag))
+	_, err := client.Insert(records, common.InsertOptions{Tokens: true, Byot: common.ENABLE_STRICT})
+	skyflowError := errors1.NewSkyflowError(errors1.ErrorCodesEnum(errors1.SdkErrorCode), fmt.Sprintf(messages.INSUFFICIENT_TOKENS_PASSED_FOR_BYOT_ENABLE_STRICT, "Insert"))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 func TestInsertByotNotPassedforTokens(t *testing.T) {
@@ -145,8 +157,8 @@ func TestInsertByotNotPassedforTokens(t *testing.T) {
 	var recordsArray []interface{}
 	recordsArray = append(recordsArray, record)
 	records["records"] = recordsArray
-	_, err := client.Insert(record, common.InsertOptions{Tokens: true})
-	skyflowError := errors1.NewSkyflowError(errors1.ErrorCodesEnum(errors1.SdkErrorCode), fmt.Sprintf(messages.TOKENS_PASSED_FOR_BYOT_DISABLE, clientTag))
+	_, err := client.Insert(records, common.InsertOptions{Tokens: true})
+	skyflowError := errors1.NewSkyflowError(errors1.ErrorCodesEnum(errors1.SdkErrorCode), fmt.Sprintf(messages.TOKENS_PASSED_FOR_BYOT_DISABLE, "Insert"))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
 }
 func TestInsertValidTokenWithContext(t *testing.T) {

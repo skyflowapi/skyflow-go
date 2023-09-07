@@ -135,7 +135,7 @@ func (insertApi *InsertApi) doValidations() *errors.SkyflowError {
 				logger.Error(fmt.Sprintf(messages.TOKENS_PASSED_FOR_BYOT_DISABLE, insertTag))
 				return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.TOKENS_PASSED_FOR_BYOT_DISABLE, insertTag))
 			}
-			if len(fieldsMap) != len(tokensMap) {
+			if len(fieldsMap) != len(tokensMap) && insertApi.Options.Byot == common.ENABLE_STRICT {
 				logger.Error(fmt.Sprintf(messages.INSUFFICIENT_TOKENS_PASSED_FOR_BYOT_ENABLE_STRICT, insertTag))
 				return errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.INSUFFICIENT_TOKENS_PASSED_FOR_BYOT_ENABLE_STRICT, insertTag))
 			}
