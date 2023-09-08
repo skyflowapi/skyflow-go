@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
 
 	"github.com/skyflowapi/skyflow-go/commonutils/errors"
 	logger "github.com/skyflowapi/skyflow-go/commonutils/logwrapper"
@@ -27,11 +28,15 @@ func (client *Client) Insert(records map[string]interface{}, options ...common.I
 	var tempOptions common.InsertOptions
 	var ctx context.Context
 	if len(options) == 0 {
-		tempOptions = common.InsertOptions{Tokens: true}
+		tempOptions = common.InsertOptions{Tokens: true, Byot: common.DISABLE}
 	} else {
 		tempOptions = options[0]
 		if options[0].Context != nil {
 			ctx = options[0].Context
+		}
+		v := reflect.ValueOf(options[0])
+		if v.FieldByName("Byot").IsZero() {
+			tempOptions.Byot = common.DISABLE
 		}
 	}
 	if client.configuration.TokenProvider == nil {
@@ -44,7 +49,7 @@ func (client *Client) Insert(records map[string]interface{}, options ...common.I
 	}
 	insertApi := vaultapi.InsertApi{Configuration: client.configuration, Records: records, Options: tempOptions}
 
-	res, err := insertApi.Post(ctx,token)
+	res, err := insertApi.Post(ctx, token)
 
 	if err != nil {
 		return common.InsertRecords{}, err
@@ -76,7 +81,7 @@ func (client *Client) Detokenize(records map[string]interface{}, options ...comm
 	if err != nil {
 		return common.DetokenizeRecords{}, err
 	}
-	detokenizeApi := vaultapi.DetokenizeApi{Configuration: client.configuration, Records: records, Token: token,Options: option }
+	detokenizeApi := vaultapi.DetokenizeApi{Configuration: client.configuration, Records: records, Token: token, Options: option}
 
 	res, err := detokenizeApi.Get(ctx)
 
