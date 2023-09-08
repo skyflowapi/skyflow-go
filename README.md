@@ -195,11 +195,13 @@ Sample response :
 ```json
 {
   "records": [
-    {
+    { 
+      "request_index": 0,
       "table": "cards",
       "fields": {
         "cardNumber": "f37186-e7e2-466f-91e5-48e2bcbc1",
-        "fullname": "1989cb56-63a-4482-adf-1f74cd1a5"
+        "fullname": "1989cb56-63a-4482-adf-1f74cd1a5",
+        "skyflow_id": "da26de53-95d5-4bdb-99db-8d8c66a35ff9"
       }
     }
   ]
@@ -261,16 +263,19 @@ Sample response :
 {
   "records": [
     {
+      "request_index": 0,
       "table": "cards",
       "fields": {
         "cardNumber": "f37186-e7e2-466f-91e5-48e2bcbc1",
-        "fullname": "1989cb56-63a-4482-adf-1f74cd1a5"
+        "fullname": "1989cb56-63a-4482-adf-1f74cd1a5",
+        "skyflow_id": "da26de53-95d5-4bdb-99db-8d8c66a35ff9"
       }
     }
   ],
   "errors": [
     {
       "error": {
+        "request_index": 1,
         "code": 404,
         "description": "Object Name pii_field was not found for Vault - requestId : id1234"
       }
@@ -331,10 +336,12 @@ Sample response :
 {
   "records": [
     {
+      "request_index": 0,
       "table": "cards",
       "fields": {
         "cardNumber": "f37186-e7e2-466f-91e5-48e2bcbc1",
-        "fullname": "1989cb56-63a-4482-adf-1f74cd1a5"
+        "fullname": "1989cb56-63a-4482-adf-1f74cd1a5",
+        "skyflow_id": "da26de53-95d5-4bdb-99db-8d8c66a35ff9"
       }
     }
   ]

@@ -628,7 +628,8 @@ func TestBuildResponseWithContinueOnErrorCase(t *testing.T) {
 		"errors": []interface{}{},
 		"records": []interface{}{
 			map[string]interface{}{
-				"table": "cards",
+				"request_index": 0,
+				"table":         "cards",
 				"fields": map[string]interface{}{
 					"first_name": "token1",
 					"primary_card": map[string]interface{}{
@@ -703,13 +704,15 @@ func TestBuildResponseWithContinueOnErrorErrorsCase(t *testing.T) {
 	expectedResponse := map[string]interface{}{
 		"errors": []interface{}{map[string]interface{}{
 			"error": map[string]interface{}{
-				"code":        "400",
-				"description": "[skyflow] Interface: Insert - Server error Object Name credit_card was not found for Vault - requestId : reqId-123",
+				"request_index": 1,
+				"code":          "400",
+				"description":   "[skyflow] Interface: Insert - Server error Object Name credit_card was not found for Vault - requestId : reqId-123",
 			},
 		}},
 		"records": []interface{}{
 			map[string]interface{}{
-				"table": "cards",
+				"request_index": 0,
+				"table":         "cards",
 				"fields": map[string]interface{}{
 					"first_name": "token1",
 					"primary_card": map[string]interface{}{
@@ -777,7 +780,8 @@ func TestBuildResponseWithoutContinueOnErrorCase(t *testing.T) {
 	expectedResponse := map[string]interface{}{
 		"records": []interface{}{
 			map[string]interface{}{
-				"table": "cards",
+				"request_index": 0,
+				"table":         "cards",
 				"fields": map[string]interface{}{
 					"first_name": "token1",
 					"primary_card": map[string]interface{}{
