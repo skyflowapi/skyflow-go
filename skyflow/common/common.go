@@ -81,12 +81,13 @@ type InsertRecords struct {
 	Errors  []InsertError
 }
 type InsertError struct {
-	Error ResponseError
+	Error InsertResponseError
 }
 type InsertRecord struct {
-	Table  string
-	Fields map[string]interface{}
-	Tokens map[string]interface{}
+	RequestIndex int `json:"request_index"`
+	Table        string
+	Fields       map[string]interface{}
+	Tokens       map[string]interface{}
 }
 
 type DetokenizeInput struct {
@@ -113,11 +114,15 @@ type DetokenizeError struct {
 	Error ResponseError
 }
 
+type InsertResponseError struct {
+	RequestIndex int `json:"request_index"`
+	Code         string
+	Description  string
+}
 type ResponseError struct {
 	Code        string
 	Description string
 }
-
 type GetByIdInput struct {
 	Records []SkyflowIdRecord
 }
@@ -153,4 +158,4 @@ const (
 )
 
 const sdk_name = "skyflow-go"
-const sdk_version = "1.8.0"
+const sdk_version = "1.8.1"
