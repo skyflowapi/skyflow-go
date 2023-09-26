@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.8.1] - 2023-09-08
+### Added
+- Added request index in response in Insert Method.
+
 ## [1.8.0] - 2023-09-01
 ### Added
 - Support for Bulk request with Continue on Error in Detokenize Method
