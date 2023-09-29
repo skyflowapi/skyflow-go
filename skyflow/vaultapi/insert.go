@@ -257,8 +257,8 @@ func (InsertApi *InsertApi) constructRequestBody(record common.InsertRecords, op
 	body["records"] = postPayload
 	if options.ContinueOnError {
 		body["continueOnError"] = options.ContinueOnError
-		body["byot"] = options.Byot
 	}
+	body["byot"] = options.Byot
 	return body, nil
 }
 
