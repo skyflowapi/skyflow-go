@@ -31,6 +31,14 @@ const (
 	REDACTED   RedactionType = "REDACTED"
 )
 
+type BYOT string
+
+const (
+	DISABLE       BYOT = "DISABLE"
+	ENABLE        BYOT = "ENABLE"
+	ENABLE_STRICT BYOT = "ENABLE_STRICT"
+)
+
 type ConnectionConfig struct {
 	ConnectionURL string
 	MethodName    RequestMethod
@@ -45,6 +53,7 @@ type InsertOptions struct {
 	Upsert          []UpsertOptions
 	Context         context.Context
 	ContinueOnError bool
+	Byot            BYOT
 }
 
 type DetokenizeOptions struct {
@@ -149,4 +158,4 @@ const (
 )
 
 const sdk_name = "skyflow-go"
-const sdk_version = "1.8.1"
+const sdk_version = "1.9.0"
