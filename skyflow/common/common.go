@@ -158,4 +158,4 @@ const (
 )
 
 const sdk_name = "skyflow-go"
-const sdk_version = "1.8.1"
+const sdk_version = "1.9.0"

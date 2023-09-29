@@ -81,7 +81,7 @@ const (
 	INVALID_TOKENS_IN_INSERT_RECORD                   string = "[skyflow] Interface: %s - invalid data type of tokens %s present in record"
 	PARTIAL_SUCCESS                                   string = "[skyflow] Interface: %s - Insert Operation is partially successful"
 	BATCH_INSERT_FAILURE                              string = "[skyflow] Interface: %s - Insert Operation is unsuccessful"
-	TOKENS_PASSED_FOR_BYOT_DISABLE                    string = "[skyflow] Interface: %s - To consider tokens struct pass byot value as ENABLE"
+	TOKENS_PASSED_FOR_BYOT_DISABLE                    string = "[skyflow] Interface: %s - Pass 'Byot' parameter with 'ENABLE' for token insertion"
 	INSUFFICIENT_TOKENS_PASSED_FOR_BYOT_ENABLE_STRICT string = "[skyflow] Interface: %s - For byot as ENABLE_STRICT, tokens should be passed for all fields"
 	NO_TOKENS_IN_INSERT                               string = "[skyflow] Interface: %s - Tokens are not passed in records for byot as %s"
 	INVALID_BYOT_TYPE                                 string = "[skyflow] Interface: %s - Provided BYOT value doesn’t match with one of : 'DISABLE' 'ENABLE' or 'ENABLE_STRICT'"
