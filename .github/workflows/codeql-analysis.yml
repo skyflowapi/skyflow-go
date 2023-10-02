@@ -72,5 +72,5 @@ jobs:
     - name: Upload SARIF Results
       uses: actions/upload-artifact@v2
       with:
-        name: sarif-results
+        name: sarif-results-go
         path: /home/runner/work/skyflow-go/results/go.sarif
