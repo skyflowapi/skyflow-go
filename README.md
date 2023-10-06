@@ -134,6 +134,10 @@ var fields = make(map[string] interface {})
 fields["<field_name>"] = "<field_value>"
 record["fields"] = fields
 
+var tokens = make(map[string]interface{})
+tokens["card_number"] = "<tokens>"  
+record["tokens"] = tokens      // tokens for fields to be passed here
+
 var recordsArray[] interface {}
 recordsArray = append(recordsArray, record)
 
@@ -147,10 +151,19 @@ options = common.InsertOptions {
         Tokens: true //Optional, indicates whether tokens should be returned for the inserted data. This value defaults to "true".
         Upsert: upsertArray //Optional, upsert support.
         ContinueOnError: true // Optional, decides whether to continue if error encountered or not
+        Byot : "<BYOT>" //Optional, decides which mode applied for using Byot
 }
 
 res, err: = skyflowClient.Insert(records, options)
 ```
+
+Note: `Byot` defaults to `common.DISABLE`
+
+There are 3 accepted values in Skyflow.BYOT:
+
+-  `DISABLE` - No fields should have tokens.
+-  `ENABLE` - Tokens object is expected, all fields with tokens is also allowed.
+-  `ENABLE_STRICT` - All fields must have tokens.
 
 [Insert call example](https://github.com/skyflowapi/skyflow-go/blob/main/samples/vault-api/insert.go):
 
@@ -178,8 +191,13 @@ func main() {
     recordsArray = append(recordsArray, record)
     records["records"] = recordsArray
 
+    var tokens = make(map[string]interface{})
+    tokens["cardNumber"] = "9991-3466-6577-4760"  
+    record["tokens"] = tokens  
+
     var options = common.InsertOptions {
-        Tokens: true
+        Tokens: true,
+        Byot: common.ENABLE
     }
 
     res, err: = skyflowClient.Insert(records, options)
@@ -199,7 +217,7 @@ Sample response :
       "request_index": 0,
       "table": "cards",
       "fields": {
-        "cardNumber": "f37186-e7e2-466f-91e5-48e2bcbc1",
+        "cardNumber": "9991-3466-6577-4760",
         "fullname": "1989cb56-63a-4482-adf-1f74cd1a5",
         "skyflow_id": "da26de53-95d5-4bdb-99db-8d8c66a35ff9"
       }

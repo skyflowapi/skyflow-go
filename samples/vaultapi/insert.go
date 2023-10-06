@@ -39,14 +39,19 @@ func main() {
 	logger.SetLogLevel(logger.INFO) //set loglevel to INFO
 	configuration := common.Configuration{VaultID: "<vault_id>", VaultURL: "<vault_url>", TokenProvider: GetToken}
 	var client = Skyflow.Init(configuration)
-	var options = common.InsertOptions{Tokens: false}
+	var options = common.InsertOptions{Tokens: false, Byot: common.ENABLE}
 	var records = make(map[string]interface{})
 	var record = make(map[string]interface{})
 	record["table"] = "cards"
 	var fields = make(map[string]interface{})
 	fields["cvv"] = "123"
-	fields["fullname"] = "name"
+	fields["cardNumber"] = "4111 1111 1111 1111"
 	record["fields"] = fields
+
+	var tokens = make(map[string]interface{})
+	tokens["cardNumber"] = "<tokens>"
+	record["tokens"] = tokens
+
 	var recordsArray []interface{}
 	recordsArray = append(recordsArray, record)
 	records["records"] = recordsArray
