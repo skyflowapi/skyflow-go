@@ -50,7 +50,7 @@ import (
   saUtil "github.com/skyflowapi/skyflow-go/serviceaccount/util"
   Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
   "github.com/skyflowapi/skyflow-go/skyflow/common"
-  "github.com/skyflowapi/skyflow-go/commonutils/logger"
+  "github.com/skyflowapi/skyflow-go/commonutils/logwrapper"
 )
 ```
 Alternatively, `go get <package_name>` can also be used to download the required dependencies 
@@ -676,7 +676,7 @@ Sample invokeConnection Response
 The skyflow-go SDK provides useful logging using go libray `github.com/sirupsen/logrus`. By default the logging level of the SDK is set to `LogLevel.ERROR`. This can be changed by using `SetLogLevel(LogLevel)` as shown below:
 
 ```go
-import "github.com/skyflowapi/skyflow-go/commonutils/logger"
+import "github.com/skyflowapi/skyflow-go/commonutils/logwrapper"
 
 // sets the skyflow-go SDK log level to INFO
 logger.SetLogLevel(logger.LogLevel.INFO);
