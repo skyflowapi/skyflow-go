@@ -114,7 +114,13 @@ All Vault APIs must be invoked using a skyflowClient instance.
 
 #### Insert data into the vault
 
-To insert data into your vault, use the **Insert(records map[string]interface{}, options common.InsertOptions)** method of the Skyflow client. The **insertInput** parameter requires a `records` key and takes an array of records to insert as a value into the vault. The `options` parameter is a InsertOptions object that provides further options, including Upsert operations, for your insert call, as shown below.
+To insert data into your vault, use the **Insert(records map[string]interface{}, options common.InsertOptions)** method of the Skyflow client. The **insertInput** parameter requires a `records` key and takes an array of records to insert as a value into the vault. 
+
+You can also pass custom tokens for a particular field in a records object, instead of a Skyflow generated token.
+
+`Note`:  All keys that exist in the `tokens` object should exist in the fields object.
+
+The `options` parameter is a InsertOptions object that provides further options, including Upsert operations, for your insert call, as shown below.
 
 Insert call schema:
 
@@ -134,6 +140,10 @@ var fields = make(map[string] interface {})
 fields["<field_name>"] = "<field_value>"
 record["fields"] = fields
 
+var tokens = make(map[string] interface {})
+tokens["<field_name>"] = "<token>" 
+record["tokens"] = tokens 
+
 var recordsArray[] interface {}
 recordsArray = append(recordsArray, record)
 
@@ -151,8 +161,62 @@ options = common.InsertOptions {
 
 res, err: = skyflowClient.Insert(records, options)
 ```
+Insert call example with Tokens:
+```go
+package main
 
-[Insert call example](https://github.com/skyflowapi/skyflow-go/blob/main/samples/vault-api/insert.go):
+import (
+    "fmt"
+    Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
+    "github.com/skyflowapi/skyflow-go/skyflow/common"
+)
+func main() {
+    var records = make(map[string] interface {})
+    var record = make(map[string] interface {})
+    record["table"] = "cards"
+
+    var fields = make(map[string] interface {})
+    fields["card_number"] = "411111111111"
+    fields["fullname"] = "name"
+    record["fields"] = fields
+
+    var tokens = make(map[string] interface {})
+    tokens["card_number"] = "34dd6cc8-e201-4fbe-aed2-002fcef37f09" 
+    record["tokens"] = tokens
+
+    var recordsArray[] interface {}
+    recordsArray = append(recordsArray, record)
+    records["records"] = recordsArray
+
+    var options = common.InsertOptions {
+        Tokens: true
+    }
+    res, err: = skyflowClient.Insert(records, options)
+
+    if err == nil {
+        fmt.Println(res.Records)
+    }
+}
+```
+
+Sample response :
+```json
+{
+  "records": [
+    {
+      "table": "cards",
+      "fields": {
+        "card_number": "34dd6cc8-e201-4fbe-aed2-002fcef37f09",
+        "fullname": "1989cb56-63a-4482-adf-1f74cd1a5"
+      }
+    }
+  ]
+}
+```
+
+
+
+[Insert call example without Tokens](https://github.com/skyflowapi/skyflow-go/blob/main/samples/vault-api/insert.go):
 
 ```go
 package main
