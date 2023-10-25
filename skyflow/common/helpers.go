@@ -35,3 +35,14 @@ func CreateJsonMetadata() string {
 	}
 	return string(jsonData)
 }
+
+func ConvertToMaps(data interface{}) ([]map[string]interface{}, error) {
+	switch data := data.(type) {
+	case []map[string]interface{}:
+		return data, nil
+	case map[string]interface{}:
+		return []map[string]interface{}{data}, nil
+	default:
+		return nil, fmt.Errorf("unsupported type: %T", data)
+	}
+}

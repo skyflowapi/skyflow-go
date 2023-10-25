@@ -4,8 +4,10 @@ Copyright (c) 2022 Skyflow, Inc.
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
 
 	"github.com/skyflowapi/skyflow-go/commonutils/errors"
 	logger "github.com/skyflowapi/skyflow-go/commonutils/logwrapper"
@@ -24,10 +26,18 @@ var tokenUtils TokenUtils
 
 func (client *Client) Insert(records map[string]interface{}, options ...common.InsertOptions) (common.InsertRecords, *errors.SkyflowError) {
 	var tempOptions common.InsertOptions
+	var ctx context.Context
 	if len(options) == 0 {
-		tempOptions = common.InsertOptions{Tokens: true}
+		tempOptions = common.InsertOptions{Tokens: true, Byot: common.DISABLE}
 	} else {
 		tempOptions = options[0]
+		if options[0].Context != nil {
+			ctx = options[0].Context
+		}
+		v := reflect.ValueOf(options[0])
+		if v.FieldByName("Byot").IsZero() {
+			tempOptions.Byot = common.DISABLE
+		}
 	}
 	if client.configuration.TokenProvider == nil {
 		logger.Error(fmt.Sprintf(messages.MISSING_TOKENPROVIDER, clientTag))
@@ -39,7 +49,7 @@ func (client *Client) Insert(records map[string]interface{}, options ...common.I
 	}
 	insertApi := vaultapi.InsertApi{Configuration: client.configuration, Records: records, Options: tempOptions}
 
-	res, err := insertApi.Post(token)
+	res, err := insertApi.Post(ctx, token)
 
 	if err != nil {
 		return common.InsertRecords{}, err
@@ -54,8 +64,15 @@ func (client *Client) Insert(records map[string]interface{}, options ...common.I
 	return response, nil
 }
 
-func (client *Client) Detokenize(records map[string]interface{}) (common.DetokenizeRecords, *errors.SkyflowError) {
-
+func (client *Client) Detokenize(records map[string]interface{}, options ...common.DetokenizeOptions) (common.DetokenizeRecords, *errors.SkyflowError) {
+	var ctx context.Context
+	var option common.DetokenizeOptions = common.DetokenizeOptions{ContinueOnError: true}
+	if len(options) != 0 {
+		option = options[0]
+		if options[0].Context != nil {
+			ctx = options[0].Context
+		}
+	}
 	if client.configuration.TokenProvider == nil {
 		logger.Error(fmt.Sprintf(messages.MISSING_TOKENPROVIDER, clientTag))
 		return common.DetokenizeRecords{}, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.MISSING_TOKENPROVIDER, clientTag))
@@ -64,9 +81,9 @@ func (client *Client) Detokenize(records map[string]interface{}) (common.Detoken
 	if err != nil {
 		return common.DetokenizeRecords{}, err
 	}
-	detokenizeApi := vaultapi.DetokenizeApi{Configuration: client.configuration, Records: records, Token: token}
+	detokenizeApi := vaultapi.DetokenizeApi{Configuration: client.configuration, Records: records, Token: token, Options: option}
 
-	res, err := detokenizeApi.Get()
+	res, err := detokenizeApi.Get(ctx)
 
 	if err != nil {
 		return common.DetokenizeRecords{}, err
@@ -81,8 +98,13 @@ func (client *Client) Detokenize(records map[string]interface{}) (common.Detoken
 	return response, nil
 }
 
-func (client *Client) GetById(records map[string]interface{}) (common.GetByIdRecords, *errors.SkyflowError) {
-
+func (client *Client) GetById(records map[string]interface{}, options ...common.GetByIdOptions) (common.GetByIdRecords, *errors.SkyflowError) {
+	var ctx context.Context
+	if len(options) != 0 {
+		if options[0].Context != nil {
+			ctx = options[0].Context
+		}
+	}
 	if client.configuration.TokenProvider == nil {
 		logger.Error(fmt.Sprintf(messages.MISSING_TOKENPROVIDER, clientTag))
 		return common.GetByIdRecords{}, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.MISSING_TOKENPROVIDER, clientTag))
@@ -93,7 +115,7 @@ func (client *Client) GetById(records map[string]interface{}) (common.GetByIdRec
 	}
 	getByIdApi := vaultapi.GetByIdApi{Configuration: client.configuration, Records: records, Token: token}
 
-	res, err := getByIdApi.Get()
+	res, err := getByIdApi.Get(ctx)
 
 	if err != nil {
 		return common.GetByIdRecords{}, err

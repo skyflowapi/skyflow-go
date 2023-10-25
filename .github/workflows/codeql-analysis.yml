@@ -14,18 +14,14 @@ jobs:
       actions: read
       contents: read
       security-events: write
-
+      
     strategy:
       fail-fast: false
       matrix:
         language: [ 'go' ]
     
     env:
-      GOPATH: ${{ github.workspace }}
-
-    defaults:
-      run:
-        working-directory: ${{ env.GOPATH }}/src/github.com/${{ github.repository }}
+      GOBIN: ${{ github.workspace }}/bin
 
     steps:
     - name: Checkout repository
@@ -33,16 +29,48 @@ jobs:
       with:
           # Disabling shallow clone is recommended for improving relevancy of reporting
           fetch-depth: 0
-          path: ${{ env.GOPATH }}/src/github.com/${{ github.repository }}
+          path: ./
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v1
+      uses: github/codeql-action/init@v2
       with:
         languages: ${{ matrix.language }}
 
-    - name: Autobuild
-      uses: github/codeql-action/autobuild@v1
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.15
+        
+    - name: create-json
+      id: create-json
+      uses: jsdaniell/create-json@1.1.2
+      with:
+        name: "credentials.json"
+        json: ${{ secrets.CREDENTIALS_FILE_STR }}
+
+    - name: 'Setup .env'
+      run: |
+        touch .env
+        echo CREDENTIALS_FILE_PATH=../../credentials.json >> .env
+        echo EXPIRED_TOKEN=${{secrets.EXPIRED_TOKEN}} >> .env
+        echo VALID_CREDS_PVT_KEY=${{secrets.VALID_CREDS_PVT_KEY}} >> .env
+        echo CREDENTIALS_FILE_STR=${{secrets.CREDENTIALS_FILE_STR}} >> .env
+
+    - name: Build
+      run: |
+        cd commonutils
+        go build -v ./...
+        cd ../serviceaccount
+        go build -v ./...
+        cd ../skyflow
+        go build -v ./...
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v1
+      uses: github/codeql-action/analyze@v2
+
+    - name: Upload SARIF Results
+      uses: actions/upload-artifact@v2
+      with:
+        name: sarif-results-go
+        path: /home/runner/work/skyflow-go/results/go.sarif
