@@ -19,7 +19,10 @@ This go SDK is designed to help developers easily implement Skyflow into their g
       - [Insert data into the vault](#insert-data-into-the-vault)
       - [Detokenize](#detokenize)
       - [GetById](#getbyid)
-      - [InvokeConnection](#invokeconnection)
+      - [Get](#get)
+        - [Use Skyflow IDs](#use-skyflow-ids)
+        - [Use column name and values](#use-column-name-and-values)
+    - [InvokeConnection](#invokeconnection)
     - [Logging](#logging)
   - [Reporting a Vulnerability](#reporting-a-vulnerability)
 
@@ -586,7 +589,344 @@ Sample response:
 }
 ```
 
-#### InvokeConnection
+#### Get
+ 
+In order to retrieve data from your vault using Skyflow IDs or by Unique Column Values, use the **Get(records map[string]interface{}, options common.GetOptions)** method. The `records` parameter takes a map that should contain
+
+1. Either an array of Skyflow IDs to fetch
+2. Or a column name and array of column values
+
+The second parameter, options, is a GetOptions object that retrieves tokens of Skyflow IDs. 
+
+Note: 
+1. GetOptions parameter applicable only for retrieving tokens using Skyflow ID.
+2. You can't pass GetOptions along with the redaction type.
+3.  `tokens` defaults to false.
+
+##### Use Skyflow IDs
+1. Retrieve data using Redaction type:
+
+```go
+import (
+    Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
+    "github.com/skyflowapi/skyflow-go/skyflow/common"
+)
+
+//initialize skyflowClient
+
+var records = make(map[string] interface {})
+
+var record1 = make(map[string] interface {})
+record1["ids"] = [] string {} {              // List of SkyflowID's of the records to be fetched
+    "<skyflow_id1>", "<skyflow_id2>"
+}
+record1["table"] = "<table_name>"            // Name of table holding the records in the vault.
+record1["redaction"] =  common.PLAIN_TEXT    // Redaction type to apply to retrieved data.
+
+var recordsArray[] interface {}
+recordsArray = append(recordsArray, record1)
+records["records"] = recordsArray
+
+res, err := skyflowClient.Get(records)
+```
+
+2. Retrieve tokens using GetOptions:
+
+```go
+import (
+    Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
+    "github.com/skyflowapi/skyflow-go/skyflow/common"
+)
+
+//initialize skyflowClient
+
+var records = make(map[string] interface {})
+
+var record1 = make(map[string] interface {})
+record1["ids"] = [] string {} {     // List of SkyflowID's of the records to be fetched
+    "<skyflow_id1>", "<skyflow_id2>"
+}
+record1["table"] = "<table_name>"   // // Name of table holding the records in the vault.
+
+var recordsArray[] interface {}
+recordsArray = append(recordsArray, record1)
+records["records"] = recordsArray
+
+res, err := skyflowClient.Get(records, common.GetOptions{Tokens: true})
+```
+
+##### Use column name and values
+```go
+import (
+    Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
+    "github.com/skyflowapi/skyflow-go/skyflow/common"
+)
+
+//initialize skyflowClient
+
+var records = make(map[string] interface {})
+
+var record1 = make(map[string] interface {})
+record1["columnValues"] = [] string {} {     // List of given unique column values.
+    "<column_value1>", "<column_value2>"
+}
+record1["columnName"] = "<column_name>"      // Unique column name in the vault.
+record1["redaction"] =  common.PLAIN_TEXT 
+record1["table"] = "<table_name>"            // Name of table holding the above skyflow_id's
+
+var recordsArray[] interface {}
+recordsArray = append(recordsArray, record1)
+records["records"] = recordsArray
+
+res, err := skyflowClient.Get(records)
+```
+
+There are 4 accepted values in Skyflow.RedactionTypes:
+
+-  `PLAIN_TEXT`
+-  `MASKED`
+-  `REDACTED`
+-  `DEFAULT`
+
+Examples
+
+An example call using Skyflow IDs with RedactionType:
+
+```go
+package main
+
+import (
+    "fmt"
+    Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
+    "github.com/skyflowapi/skyflow-go/skyflow/common"
+)
+
+func main() {
+
+    //initialize skyflowClient
+
+    var records = make(map[string] interface {})
+    var record1 = make(map[string] interface {})
+    record1["ids"] = [] string {} {
+        "f8d8a622-b557-4c6b-a12c-c5ebe0b0bfd9", "da26de53-95d5-4bdb-99db-8d8c66a35ff9"
+    }
+    record1["table"] = "cards"
+    record1["redaction"] = common.PLAIN_TEXT
+
+    var record2 = make(map[string] interface {})
+    record2["ids"] = [] string {} { "invalid-id" }
+    record2["table"] = "cards"
+    record2["redaction"] = common.PLAIN_TEXT
+
+    var recordsArray[] interface {}
+    recordsArray = append(recordsArray, record1)
+    recordsArray = append(recordsArray, record2)
+
+    records["records"] = recordsArray
+
+    res, err: = skyflowClient.Get(records)
+
+    if err == nil {
+      fmt.Println("Records:",res.Records)
+      fmt.Println("Errors:",res.Errors)
+    }
+}
+```
+
+Sample response:
+
+```json
+{
+  "records": [
+    {
+      "fields": {
+        "card_number": "4111111111111111",
+        "expiry_date": "11/35",
+        "fullname": "myname",
+        "skyflow_id": "f8d8a622-b557-4c6b-a12c-c5ebe0b0bfd9"
+      },
+      "table": "cards"
+    },
+    {
+      "fields": {
+        "card_number": "4111111111111111",
+        "expiry_date": "10/23",
+        "fullname": "sam",
+        "skyflow_id": "da26de53-95d5-4bdb-99db-8d8c66a35ff9"
+      },
+      "table": "cards"
+    }
+  ],
+  "errors": [
+    {
+      "error": {
+        "code": "404",
+        "description": "No Records Found - requestId: fc531b8d-412e-9775-b945-4feacc9b8616"
+      },
+      "ids": ["Invalid Skyflow ID"]
+    }
+  ]
+}
+```
+
+An example call using Skyflow IDs with GetOptions:
+
+```go
+package main
+
+import (
+    "fmt"
+    Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
+    "github.com/skyflowapi/skyflow-go/skyflow/common"
+)
+
+func main() {
+
+    //initialize skyflowClient
+
+    var records = make(map[string] interface {})
+    var record1 = make(map[string] interface {})
+    record1["ids"] = [] string {} {
+        "f8d8a622-b557-4c6b-a12c-c5ebe0b0bfd9", "da26de53-95d5-4bdb-99db-8d8c66a35ff9"
+    }
+    record1["table"] = "cards"
+
+    var record2 = make(map[string] interface {})
+    record2["ids"] = [] string {} { "Invalid Skyflow ID" }
+    record2["table"] = "cards"
+
+    var recordsArray[] interface {}
+    recordsArray = append(recordsArray, record1)
+    recordsArray = append(recordsArray, record2)
+
+    records["records"] = recordsArray
+
+    res, err: = skyflowClient.Get(records, common.GetOptions{Tokens: true})
+
+    if err == nil {
+      fmt.Println("Records:",res.Records)
+      fmt.Println("Errors:",res.Errors)
+    }
+}
+```
+
+Sample response:
+
+```json
+{
+  "records": [
+    {
+      "fields": {
+        "card_number": "4555-5176-5936-1930",
+        "expiry_date": "23396425-93c9-419b-834b-7750b76a34b0",
+        "fullname": "d6bb7fe5-6b77-4842-b898-221c51c3cc20",
+        "id": "f8d8a622-b557-4c6b-a12c-c5ebe0b0bfd9"
+      },
+      "table": "cards"
+    },
+    {
+      "fields": {
+        "card_number": "8882-7418-2776-6660",
+        "expiry_date": "284fb1f6-3c29-449f-8899-83a7839821bc",
+        "fullname": "45a69af3-e22a-4668-9016-08bb2ef2259d",
+        "id": "da26de53-95d5-4bdb-99db-8d8c66a35ff9"
+      },
+      "table": "cards"
+    }
+  ],
+  "errors": [
+    {
+      "error": {
+        "code": "404",
+        "description": "No Records Found - requestId: fc531b8d-412e-9775-b945-4feacc9b8616"
+      },
+      "ids": ["Invalid Skyflow ID"]
+    }
+  ]
+}
+```
+An example call using column names and values. 
+
+```go
+package main
+
+import (
+    "fmt"
+    Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
+    "github.com/skyflowapi/skyflow-go/skyflow/common"
+)
+
+func main() {
+
+    //initialize skyflowClient
+
+    var records = make(map[string] interface {})
+    var record1 = make(map[string] interface {})
+    record1["columnValues"] = [] string {} {
+        "123455432112345", "123455432112346"
+    }
+    record1["columnName"] = "bank_account_number"
+    record1["table"] = "account_details"
+    record1["redaction"] = common.PLAIN_TEXT
+
+    var record2 = make(map[string] interface {})
+    record2["columnValues"] = [] string {} { "Invalid Skyflow column value" }
+    record1["columnName"] = "bank_account_number"
+    record2["table"] = "account_details"
+    record2["redaction"] = common.PLAIN_TEXT
+
+
+    var recordsArray[] interface {}
+    recordsArray = append(recordsArray, record1)
+    recordsArray = append(recordsArray, record2)
+
+    records["records"] = recordsArray
+
+    res, err: = skyflowClient.Get(records)
+
+    if err == nil {
+      fmt.Println("Records:",res.Records)
+      fmt.Println("Errors:",res.Errors)
+    }
+}
+```
+Sample response:
+
+```json
+{
+  "records": [
+    {
+      "fields": {
+        "bank_account_number": "123455432112345",
+        "pin_code": "123123",
+        "name": "vivek jain",
+        "id": "492c21a1-107f-4d10-ba2c-3482a411827d"
+      },
+      "table": "account_details"
+    },
+    {
+      "fields": {
+        "bank_account_number": "123455432112346",
+        "pin_code": "123123",
+        "name": "vivek",
+        "id": "ac6c6221-bcd1-4265-8fc7-ae7a8fb6dfd5"
+      },
+      "table": "account_details"
+    }
+  ],
+  "errors": [
+    {
+      "columnName": ["bank_account_number"],
+      "error": {
+        "code": 404,
+        "description": "No Records Found - requestId: fc531b8d-412e-9775-b945-4feacc9b8616"
+      }
+    }
+  ]
+}
+```
+
+### InvokeConnection
 
 End-user apps can use InvokeConnection to integrate checkout and card issuance flows with their apps and systems. To invoke a connection, use the invokeConnection(config ConnectionConfig) method of the Skyflow client. The config object must have `connectionURL`,`methodName` and the remaining are optional. 
 
