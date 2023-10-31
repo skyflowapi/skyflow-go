@@ -56,7 +56,8 @@ type InsertOptions struct {
 	Byot            BYOT
 }
 type GetOptions struct {
-	Tokens bool
+	Context context.Context
+	Tokens  bool
 }
 
 type DetokenizeOptions struct {

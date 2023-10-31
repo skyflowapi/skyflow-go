@@ -4,6 +4,7 @@ Copyright (c) 2022 Skyflow, Inc.
 package vaultapi
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -27,7 +28,7 @@ type GetApi struct {
 
 var getTag = "Get"
 
-func (g *GetApi) GetRecords() (map[string]interface{}, *errors.SkyflowError) {
+func (g *GetApi) GetRecords(ctx context.Context) (map[string]interface{}, *errors.SkyflowError) {
 	err := g.doValidations()
 	if err != nil {
 		return nil, err
@@ -38,7 +39,7 @@ func (g *GetApi) GetRecords() (map[string]interface{}, *errors.SkyflowError) {
 		logger.Error(fmt.Sprintf(messages.INVALID_RECORDS, getTag))
 		return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.INVALID_RECORDS, getTag))
 	}
-	res, err := g.doRequest(getRecord, g.Options)
+	res, err := g.doRequest(ctx, getRecord, g.Options)
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +172,7 @@ func (g *GetApi) doValidations() *errors.SkyflowError {
 	return nil
 }
 
-func (g *GetApi) doRequest(records common.GetInput, options common.GetOptions) (map[string]interface{}, *errors.SkyflowError) {
+func (g *GetApi) doRequest(ctx context.Context, records common.GetInput, options common.GetOptions) (map[string]interface{}, *errors.SkyflowError) {
 
 	var finalSuccess []interface{}
 	var finalError []map[string]interface{}
@@ -202,11 +203,21 @@ func (g *GetApi) doRequest(records common.GetInput, options common.GetOptions) (
 			}
 			url1.RawQuery = v.Encode()
 			if err == nil {
-				request, _ := http.NewRequest(
-					"GET",
-					url1.String(),
-					strings.NewReader(""),
-				)
+				var request *http.Request
+				if ctx != nil {
+					request, _ = http.NewRequestWithContext(
+						ctx,
+						"GET",
+						url1.String(),
+						strings.NewReader(""),
+					)
+				} else {
+					request, _ = http.NewRequest(
+						"GET",
+						url1.String(),
+						strings.NewReader(""),
+					)
+				}
 				bearerToken := fmt.Sprintf("Bearer %s", g.Token)
 				request.Header.Add("Authorization", bearerToken)
 				skyMetadata := common.CreateJsonMetadata()

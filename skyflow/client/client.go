@@ -131,6 +131,12 @@ func (client *Client) GetById(records map[string]interface{}, options ...common.
 }
 
 func (client *Client) Get(records map[string]interface{}, options ...common.GetOptions) (common.GetRecords, *errors.SkyflowError) {
+	var ctx context.Context
+	if len(options) != 0 {
+		if options[0].Context != nil {
+			ctx = options[0].Context
+		}
+	}
 	if client.configuration.TokenProvider == nil {
 		logger.Error(fmt.Sprintf(messages.MISSING_TOKENPROVIDER, clientTag))
 		return common.GetRecords{}, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.MISSING_TOKENPROVIDER, clientTag))
@@ -148,7 +154,7 @@ func (client *Client) Get(records map[string]interface{}, options ...common.GetO
 	}
 	getApi := vaultapi.GetApi{Configuration: client.configuration, Records: records, Options: tempOptions, Token: token}
 
-	res, err := getApi.GetRecords()
+	res, err := getApi.GetRecords(ctx)
 
 	if err != nil {
 		return common.GetRecords{}, err
