@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.10.0] - 2023-10-31
+### Added
+- `Get` method 
+
 ## [1.9.0] - 2023-09-29
 ### Added
 - Added BYOT strict modes in Insert Method.
