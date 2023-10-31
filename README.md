@@ -603,6 +603,7 @@ Note:
 2. You can't pass GetOptions along with the redaction type.
 3. `tokens` defaults to false.
 
+
 ##### Use Skyflow IDs
 1. Retrieve data using Redaction type:
 
