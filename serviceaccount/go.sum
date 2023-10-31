@@ -40,6 +40,8 @@ github.com/skyflowapi/skyflow-go/skyflow v0.0.0-20230929065454-9b1594129878 h1:K
 github.com/skyflowapi/skyflow-go/skyflow v0.0.0-20230929065454-9b1594129878/go.mod h1:DYYcQlrJBXPuaJsf647IOKnyjmYu4MoT2IfpVYHFjZQ=
 github.com/skyflowapi/skyflow-go/skyflow v0.0.0-20231031082702-92eed6eb74b5 h1:g9q1VEpArJtFBXeMIOvrSLOmA2VnjxgFpMlBK/rSPBQ=
 github.com/skyflowapi/skyflow-go/skyflow v0.0.0-20231031082702-92eed6eb74b5/go.mod h1:DYYcQlrJBXPuaJsf647IOKnyjmYu4MoT2IfpVYHFjZQ=
+github.com/skyflowapi/skyflow-go/skyflow v0.0.0-20231031091049-3cf64b759f31 h1:lCxdz9eb4w64ZN12Z+wAunL5j7ymhhm3fFGEIv6m1rc=
+github.com/skyflowapi/skyflow-go/skyflow v0.0.0-20231031091049-3cf64b759f31/go.mod h1:k62C/yrwW+y1Yi265avPiEa1cHB9Yyh3VWqp/26g4xg=
 github.com/stretchr/testify v1.2.2 h1:bSDNvY7ZPG5RlJ8otE/7V6gMiyenm9RtJ7IUVIAoJ1w=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 golang.org/x/sys v0.0.0-20191026070338-33540a1f6037 h1:YyJpGZS1sBuBCzLAR1VEpK193GlqGZbnPFnPV/5Rsb4=
