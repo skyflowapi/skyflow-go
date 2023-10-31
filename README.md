@@ -601,7 +601,8 @@ The second parameter, options, is a GetOptions object that retrieves tokens of S
 Note: 
 1. GetOptions parameter applicable only for retrieving tokens using Skyflow ID.
 2. You can't pass GetOptions along with the redaction type.
-3.  `tokens` defaults to false.
+3. `tokens` defaults to false.
+
 
 ##### Use Skyflow IDs
 1. Retrieve data using Redaction type:

@@ -55,6 +55,10 @@ type InsertOptions struct {
 	ContinueOnError bool
 	Byot            BYOT
 }
+type GetOptions struct {
+	Context context.Context
+	Tokens  bool
+}
 
 type DetokenizeOptions struct {
 	Context         context.Context
@@ -146,6 +150,32 @@ type SkyflowIdRecord struct {
 	Redaction RedactionType
 	Table     string
 }
+type GetInput struct {
+	Records []SkyflowIdColumnRecordRecord
+}
+type SkyflowIdColumnRecordRecord struct {
+	Ids          []string
+	Redaction    RedactionType
+	Table        string
+	ColumnValues []string
+	ColumnName   string
+}
+type GetRecords struct {
+	Records []GetRecord
+	Errors  []GetError
+}
+
+type GetRecord struct {
+	Fields map[string]interface{}
+	Table  string
+}
+
+type GetError struct {
+	Ids          []string
+	ColumnValues []string
+	ColumnName   string
+	Error        ResponseError
+}
 
 type ContentType string
 
@@ -158,4 +188,4 @@ const (
 )
 
 const sdk_name = "skyflow-go"
-const sdk_version = "1.9.0"
+const sdk_version = "1.10.0"
