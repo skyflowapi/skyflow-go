@@ -130,6 +130,46 @@ func (client *Client) GetById(records map[string]interface{}, options ...common.
 	return response, nil
 }
 
+func (client *Client) Get(records map[string]interface{}, options ...common.GetOptions) (common.GetRecords, *errors.SkyflowError) {
+	var ctx context.Context
+	if len(options) != 0 {
+		if options[0].Context != nil {
+			ctx = options[0].Context
+		}
+	}
+	if client.configuration.TokenProvider == nil {
+		logger.Error(fmt.Sprintf(messages.MISSING_TOKENPROVIDER, clientTag))
+		return common.GetRecords{}, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.MISSING_TOKENPROVIDER, clientTag))
+	}
+	token, err := tokenUtils.getBearerToken(client.configuration.TokenProvider)
+	if err != nil {
+		return common.GetRecords{}, err
+	}
+	var tempOptions common.GetOptions
+
+	if len(options) == 0 {
+		tempOptions = common.GetOptions{Tokens: false}
+	} else {
+		tempOptions = options[0]
+	}
+	getApi := vaultapi.GetApi{Configuration: client.configuration, Records: records, Options: tempOptions, Token: token}
+
+	res, err := getApi.GetRecords(ctx)
+
+	if err != nil {
+		return common.GetRecords{}, err
+	}
+
+	jsonResponse, _ := json.Marshal(res)
+	var response common.GetRecords
+	err1 := json.Unmarshal(jsonResponse, &response)
+	if err1 != nil {
+		return common.GetRecords{}, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.UNKNOWN_ERROR, "Get", err1))
+	}
+	return response, nil
+
+}
+
 func (client *Client) InvokeConnection(connectionConfig common.ConnectionConfig) (common.ResponseBody, *errors.SkyflowError) {
 
 	if client.configuration.TokenProvider == nil {
