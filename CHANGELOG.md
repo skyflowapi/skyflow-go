@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.10.0] - 2023-10-31
+### Added
+- `Get` method 
+
 ## [1.6.0] - 2023-06-09
 ### Added
 - `redaction` key for detokenize method for column group support.
