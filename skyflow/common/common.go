@@ -3,6 +3,8 @@ Copyright (c) 2022 Skyflow, Inc.
 */
 package common
 
+import "context"
+
 type ResponseBody map[string]interface{}
 type TokenProvider func() (string, error)
 
@@ -29,6 +31,14 @@ const (
 	REDACTED   RedactionType = "REDACTED"
 )
 
+type BYOT string
+
+const (
+	DISABLE       BYOT = "DISABLE"
+	ENABLE        BYOT = "ENABLE"
+	ENABLE_STRICT BYOT = "ENABLE_STRICT"
+)
+
 type ConnectionConfig struct {
 	ConnectionURL string
 	MethodName    RequestMethod
@@ -39,9 +49,22 @@ type ConnectionConfig struct {
 }
 
 type InsertOptions struct {
-	Tokens bool
-	Upsert []UpsertOptions
+	Tokens          bool
+	Upsert          []UpsertOptions
+	Context         context.Context
+	ContinueOnError bool
+	Byot            BYOT
 }
+
+type DetokenizeOptions struct {
+	Context         context.Context
+	ContinueOnError bool
+}
+
+type GetByIdOptions struct {
+	Context context.Context
+}
+
 type UpsertOptions struct {
 	Table  string
 	Column string
@@ -55,11 +78,16 @@ type Configuration struct {
 
 type InsertRecords struct {
 	Records []InsertRecord
+	Errors  []InsertError
 }
-
+type InsertError struct {
+	Error InsertResponseError
+}
 type InsertRecord struct {
-	Table  string
-	Fields map[string]interface{}
+	RequestIndex int `json:"request_index"`
+	Table        string
+	Fields       map[string]interface{}
+	Tokens       map[string]interface{}
 }
 
 type DetokenizeInput struct {
@@ -86,11 +114,15 @@ type DetokenizeError struct {
 	Error ResponseError
 }
 
+type InsertResponseError struct {
+	RequestIndex int `json:"request_index"`
+	Code         string
+	Description  string
+}
 type ResponseError struct {
 	Code        string
 	Description string
 }
-
 type GetByIdInput struct {
 	Records []SkyflowIdRecord
 }
@@ -125,5 +157,5 @@ const (
 	TEXTORXML         ContentType = "text/xml"
 )
 
-const sdk_name="skyflow-go"
-const sdk_version="1.6.0"
+const sdk_name = "skyflow-go"
+const sdk_version = "1.9.0"
