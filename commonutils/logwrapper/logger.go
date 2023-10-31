@@ -3,7 +3,10 @@
 */
 package logger
 
-import "github.com/sirupsen/logrus"
+import (
+	"github.com/sirupsen/logrus"
+	"io/ioutil"
+)
 
 type LogLevel int
 
@@ -12,6 +15,7 @@ const (
 	INFO
 	DEBUG
 	WARN
+	OFF
 )
 
 var log = logrus.New()
@@ -50,6 +54,8 @@ func SetLogLevel(level LogLevel) {
 		log.SetLevel(logrus.WarnLevel)
 	case ERROR:
 		log.SetLevel(logrus.ErrorLevel)
+	case OFF:
+		log.SetOutput(ioutil.Discard)
 	default:
 		log.SetLevel(logrus.ErrorLevel)
 	}

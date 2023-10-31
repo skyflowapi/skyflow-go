@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2022 Skyflow, Inc. 
+Copyright (c) 2022 Skyflow, Inc.
 */
 package messages
 
@@ -21,7 +21,9 @@ const (
 	INSERTING_RECORDS_SUCCESS string = "[skyflow] Interface: %s - Successfully inserted records into vault with id %s"
 	INSERTING_RECORDS_FAILED  string = "[skyflow] Interface: %s - Failed inserting records into vault with id %s"
 	DETOKENIZING_RECORDS      string = "[skyflow] Interface: %s - Detokenizing token %s"
+	DETOKENIZING_BULK_SUCCESS string = "[skyflow] Interface: %s - Successfully detokenized with request-id : %s"
 	DETOKENIZING_SUCCESS      string = "[skyflow] Interface: %s - Successfully detokenized the token %s"
+	DETOKENIZING_BULK_FAILED  string = "[skyflow] Interface: %s - Detokenization failed with request-id : %s"
 	DETOKENIZING_FAILED       string = "[skyflow] Interface: %s - Detokenization failed for the token %s"
 	GETTING_RECORDS_BY_ID     string = "[skyflow] Interface: %s - Revealing records using skyflow ids for table %s"
 	GET_RECORDS_BY_ID_FAILED  string = "[skyflow] Interface: %s - Failed Revealing records using skyflow ids for table %s"
@@ -72,7 +74,15 @@ const (
 	DEPRECATED_ISVALID_FUNCTION            string = "[skyflow] Interface: %s - IsValid method is deprecated, will be removed in future, use IsExpired()"
 	MISSING_TOKENPROVIDER                  string = "[skyflow] Interface: %s - TokenProvider is missing"
 
-	EMPTY_TABLE_IN_UPSERT_OPTIONS          string = "[skyflow] Interface: %s - Table name is missing in upsert options"
-	EMPTY_COLUMN_IN_UPSERT_OPTIONS         string = "[skyflow] Interface: %s - Column name is missing in upsert options"
-
+	EMPTY_TABLE_IN_UPSERT_OPTIONS                     string = "[skyflow] Interface: %s - Table name is missing in upsert options"
+	EMPTY_COLUMN_IN_UPSERT_OPTIONS                    string = "[skyflow] Interface: %s - Column name is missing in upsert options"
+	EMPTY_TOKENS_IN_INSERT                            string = "[skyflow] Interface: %s - tokens is empty in records"
+	MISMATCH_OF_FIELDS_AND_TOKENS                     string = "[skyflow] Interface: %s - Fields and Tokens object are not matching"
+	INVALID_TOKENS_IN_INSERT_RECORD                   string = "[skyflow] Interface: %s - invalid data type of tokens %s present in record"
+	PARTIAL_SUCCESS                                   string = "[skyflow] Interface: %s - Insert Operation is partially successful"
+	BATCH_INSERT_FAILURE                              string = "[skyflow] Interface: %s - Insert Operation is unsuccessful"
+	TOKENS_PASSED_FOR_BYOT_DISABLE                    string = "[skyflow] Interface: %s - Pass 'Byot' parameter with 'ENABLE' for token insertion"
+	INSUFFICIENT_TOKENS_PASSED_FOR_BYOT_ENABLE_STRICT string = "[skyflow] Interface: %s - For byot as ENABLE_STRICT, tokens should be passed for all fields"
+	NO_TOKENS_IN_INSERT                               string = "[skyflow] Interface: %s - Tokens are not passed in records for byot as %s"
+	INVALID_BYOT_TYPE                                 string = "[skyflow] Interface: %s - Provided BYOT value doesn’t match with one of : 'DISABLE' 'ENABLE' or 'ENABLE_STRICT'"
 )
