@@ -25,22 +25,21 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
+          go-version: '^1.21' # The Go version to download (if necessary) and use.
           # Disabling shallow clone is recommended for improving relevancy of reporting
           fetch-depth: 0
           path: ./
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v2
+      uses: github/codeql-action/init@v3
       with:
         languages: ${{ matrix.language }}
 
     - name: Set up Go
-      uses: actions/setup-go@v2
-      with:
-        go-version: 1.15
+      uses: actions/setup-go@v3
         
     - name: create-json
       id: create-json
@@ -67,7 +66,7 @@ jobs:
         go build -v ./...
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v2
+      uses: github/codeql-action/analyze@v3
 
     - name: Upload SARIF Results
       uses: actions/upload-artifact@v2
