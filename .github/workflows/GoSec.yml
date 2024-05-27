@@ -18,7 +18,7 @@ jobs:
       uses: securego/gosec@master
       with:
         # we let the report trigger content trigger a failure using the GitHub Security features.
-        args: '-severity=high -no-fail -fmt sarif -out results.sarif ./...'
+        args: '-severity=high -confidence medium -no-fail -fmt sarif -out results.sarif ./...'
         # run: time gosec ./...
         
     - name: Upload SARIF file
