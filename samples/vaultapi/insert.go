@@ -42,10 +42,10 @@ func main() {
 	var options = common.InsertOptions{Tokens: false}
 	var records = make(map[string]interface{})
 	var record = make(map[string]interface{})
-	record["table"] = "cards"
+	record["table"] = "credit_cards"
 	var fields = make(map[string]interface{})
-	fields["cvv"] = "123"
-	fields["fullname"] = "name"
+	fields["card_number"] = "411111111111"
+	fields["cardholder_name"] = "name"
 	record["fields"] = fields
 	var recordsArray []interface{}
 	recordsArray = append(recordsArray, record)
@@ -57,3 +57,4 @@ func main() {
 		panic(err.GetMessage())
 	}
 }
+

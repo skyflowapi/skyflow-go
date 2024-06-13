@@ -40,7 +40,7 @@ func main() {
 	configuration := common.Configuration{TokenProvider: GetToken}
 	var client = Skyflow.Init(configuration)
 
-	connectionUrl := "<CONNECTION_URL>"
+	connectionUrl := "<connection_url>"
 	pathParams := make(map[string]string)
 	pathParams["card_number"] = "<card_number>"
 
