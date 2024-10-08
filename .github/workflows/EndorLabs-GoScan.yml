@@ -1,5 +1,4 @@
 name: "EndorLabs Scan"
-
 # Run workflow each time code is pushed to your repository and on a schedule.
 on:
   pull_request:
@@ -7,25 +6,18 @@ on:
       - main
 jobs:
   scan-repo:
-    runs-on: ubuntu-latest
-    
+    runs-on: ubuntu-latest 
     steps:
-        
         - name: Checkout Repository
           uses: actions/checkout@v3
-
-       
-          
         - name: Setup Go
           uses: actions/setup-go@v4
           with:
-            go-version: '1.21'
-          
+            go-version: '1.21'  
         - name: Go Build 
           run: |
             go mod tidy
-            go mod vendor
-          
+            go mod vendor          
         - name: Endor Labs SCA Scan
           uses: endorlabs/github-action@main
           with:
@@ -34,7 +26,5 @@ jobs:
             enable_github_action_token: true
             scan_dependencies: true
             pr: true
-           
-            additional_args: "--pr-incremental" # Additional parameters can be passed with whitespace separation, for example: --github to enable RSPM
-            enable_pr_comments: true #<-- Uncomment to enable PR comments if enabled comment out pr_baseline
+            additional_args: "--pr-incremental --enable-pr-comments=true"
             github_token: ${{ secrets.REPO_PAT_SERVICE_IT }} #<-- Needs to be enabled if you want to use enable_pr_comments
