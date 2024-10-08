@@ -38,7 +38,7 @@ jobs:
             additional_args: "--pr-incremental" # Additional parameters can be passed with whitespace separation, for example: --github to enable RSPM
             enable_pr_comments: true #<-- Uncomment to enable PR comments if enabled comment out pr_baseline
             # scan_summary_output_type: "table" <-- Uncomment to choose the format, default it table
-            #github_token: ${{ secrets.REPO_PAT_SERVICE_IT }} #<-- Needs to be enabled if you want to use enable_pr_comments
+            github_token: ${{ secrets.REPO_PAT_SERVICE_IT }} #<-- Needs to be enabled if you want to use enable_pr_comments
             # scan_secrets: true <-- Uncomment to enable secrets scanning
             # scan_git_logs: true <-- Uncomment to scan git logs for committed secrets
             # scan_github_actions: true <-- Uncomment to scan GH Action Vulnerabilities
