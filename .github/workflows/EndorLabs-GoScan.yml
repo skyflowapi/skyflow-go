@@ -25,7 +25,7 @@ jobs:
         - name: Endor Labs SCA Scan
           uses: endorlabs/github-action@main
           with:
-            namespace: "skyflowapi"
+            namespace: "skyflow"
             api: "https://api.endorlabs.com"
             enable_github_action_token: true
             scan_dependencies: true
