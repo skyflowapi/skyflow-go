@@ -28,4 +28,4 @@ jobs:
             pr: true
             enable_pr_comments: true
             github_token: ${{ secrets.REPO_PAT_SERVICE_IT }} 
-            additional_args: "--pr-incremental"
+           
