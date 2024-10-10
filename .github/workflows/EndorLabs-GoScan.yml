@@ -27,5 +27,5 @@ jobs:
             scan_dependencies: true
             pr: true
             enable_pr_comments: true
-            github_token: ${{ secrets.REPO_PAT_SERVICE_IT }} #<-- Needs to be enabled if you want to use enable_pr_comments
+            github_token: ${{ secrets.REPO_PAT_SERVICE_IT }} 
             additional_args: "--pr-incremental"
