@@ -26,5 +26,6 @@ jobs:
             enable_github_action_token: true
             scan_dependencies: true
             pr: true
-            additional_args: "--pr-incremental --enable-pr-comments=true"
+            enable_pr_comments: true
+            additional_args: "--pr-incremental"
             github_token: ${{ secrets.REPO_PAT_SERVICE_IT }} #<-- Needs to be enabled if you want to use enable_pr_comments
