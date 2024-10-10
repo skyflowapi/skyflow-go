@@ -5,23 +5,23 @@ package vaultapi
 
 import (
 	"bytes"
-	"fmt"
-	"io/ioutil"
-	"net/http"
-	"testing"
 	"context"
+	"fmt"
 	"github.com/skyflowapi/skyflow-go/commonutils/errors"
 	"github.com/skyflowapi/skyflow-go/commonutils/messages"
 	"github.com/skyflowapi/skyflow-go/commonutils/mocks"
 	"github.com/skyflowapi/skyflow-go/skyflow/common"
 	"github.com/stretchr/testify/assert"
+	"io/ioutil"
+	"net/http"
+	"testing"
 )
 
 func TestNoRecordsForDetokenize(t *testing.T) {
 	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken}
 	records := make(map[string]interface{})
 	detokenizeApi := DetokenizeApi{Configuration: configuration, Records: records, Token: ""}
-	ctx:= context.TODO()
+	ctx := context.TODO()
 	_, err := detokenizeApi.Get(ctx)
 	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.RECORDS_KEY_NOT_FOUND, detokenizeTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
@@ -32,7 +32,7 @@ func TestEmptyRecordsForDetokenize(t *testing.T) {
 	var record []interface{}
 	records["records"] = record
 	detokenizeApi := DetokenizeApi{Configuration: configuration, Records: records, Token: ""}
-	ctx:= context.TODO()
+	ctx := context.TODO()
 	_, err := detokenizeApi.Get(ctx)
 	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_RECORDS, detokenizeTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
@@ -46,7 +46,7 @@ func TestNoTokenForDetokenize(t *testing.T) {
 	recordsArray = append(recordsArray, record1)
 	records["records"] = recordsArray
 	detokenizeApi := DetokenizeApi{Configuration: configuration, Records: records, Token: ""}
-	ctx:= context.TODO()
+	ctx := context.TODO()
 	_, err := detokenizeApi.Get(ctx)
 	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.MISSING_TOKEN, detokenizeTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
@@ -61,7 +61,7 @@ func TestEmptyEmptyTokenForDetokenize(t *testing.T) {
 	recordsArray = append(recordsArray, record1)
 	records["records"] = recordsArray
 	detokenizeApi := DetokenizeApi{Configuration: configuration, Records: records, Token: ""}
-	ctx:= context.TODO()
+	ctx := context.TODO()
 	_, err := detokenizeApi.Get(ctx)
 	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_TOKEN_ID, detokenizeTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
@@ -92,9 +92,9 @@ func TestValidRequestForDetokenize(t *testing.T) {
 			Body:       r,
 		}, nil
 	}
-	ctx:= context.TODO()
-	_,err:=detokenizeApi.Get(ctx)
-	if err!=nil{
+	ctx := context.TODO()
+	_, err := detokenizeApi.Get(ctx)
+	if err != nil {
 		t.Errorf("failed after detokenize api")
 	}
 }
@@ -125,8 +125,8 @@ func TestValidRequestForDetokenizeWithoutContext(t *testing.T) {
 		}, nil
 	}
 	var ctx context.Context
-	_,err:=detokenizeApi.Get(ctx)
-	if err!=nil{
+	_, err := detokenizeApi.Get(ctx)
+	if err != nil {
 		t.Errorf("failed after detokenize api")
 	}
 }
@@ -157,9 +157,9 @@ func TestValidRequestForDetokenizeRedaction(t *testing.T) {
 			Body:       r,
 		}, nil
 	}
-	ctx:= context.TODO()
-	_,err:=detokenizeApi.Get(ctx)
-	if err!=nil{
+	ctx := context.TODO()
+	_, err := detokenizeApi.Get(ctx)
+	if err != nil {
 		t.Errorf("failed after detokenize api")
 	}
 }
@@ -190,10 +190,10 @@ func TestInvalidRequestForDetokenizeRedaction(t *testing.T) {
 			Body:       r,
 		}, nil
 	}
-	ctx:= context.TODO()
-	_,err:=detokenizeApi.Get(ctx)
-	assert.NotNil(t,err)
-}	
+	ctx := context.TODO()
+	_, err := detokenizeApi.Get(ctx)
+	assert.NotNil(t, err)
+}
 
 func TestInValidRequestForDetokenize(t *testing.T) {
 	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.google.com", TokenProvider: GetToken}
@@ -220,7 +220,7 @@ func TestInValidRequestForDetokenize(t *testing.T) {
 			Body:       r,
 		}, nil
 	}
-	ctx:= context.TODO()
+	ctx := context.TODO()
 	resp, _ := detokenizeApi.Get(ctx)
 	if resp["errors"] == nil {
 		t.Errorf("got nil, wanted skyflow error")
@@ -228,7 +228,7 @@ func TestInValidRequestForDetokenize(t *testing.T) {
 }
 
 func TestInValidRequestForDetokenizeWithOptions(t *testing.T) {
-	options := common.DetokenizeOptions{ ContinueOnError : false }
+	options := common.DetokenizeOptions{ContinueOnError: false}
 	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.google.com", TokenProvider: GetToken}
 	records := make(map[string]interface{})
 	var record1 = make(map[string]interface{})
@@ -236,7 +236,7 @@ func TestInValidRequestForDetokenizeWithOptions(t *testing.T) {
 	var recordsArray []interface{}
 	recordsArray = append(recordsArray, record1)
 	records["records"] = recordsArray
-	detokenizeApi := DetokenizeApi{Configuration: configuration, Records: records, Token: "", Options : options}
+	detokenizeApi := DetokenizeApi{Configuration: configuration, Records: records, Token: "", Options: options}
 	resJson := `{
 		"error": {
 				"grpc_code": 5,
@@ -253,7 +253,7 @@ func TestInValidRequestForDetokenizeWithOptions(t *testing.T) {
 			Body:       r,
 		}, nil
 	}
-	ctx:= context.TODO()
+	ctx := context.TODO()
 	resp, _ := detokenizeApi.Get(ctx)
 	if resp["errors"] == nil {
 		t.Errorf("got nil, wanted skyflow error")
