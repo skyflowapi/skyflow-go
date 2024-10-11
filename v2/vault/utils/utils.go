@@ -1,8 +1,12 @@
 package utils
 
+import "context"
+
 type VaultConfig struct {
-	ID     string
-	Config VaultConfigDetails //vault configuration details here
+	VaultId     string
+	ClusterId   string
+	Env         string
+	Credentials string
 }
 
 type VaultConfigDetails struct {
@@ -11,10 +15,17 @@ type VaultConfigDetails struct {
 
 type ConnectionConfig struct {
 	// connection-specific details here
+	ConnectionId  string
+	ConnectionUrl string
 }
 
 type Credentials struct {
 	// credentials-related fields here
+	Path              string
+	Roles             []string
+	Context           context.Context
+	CredentialsString string
+	Token             string
 }
 
 type InsertRequest struct {
