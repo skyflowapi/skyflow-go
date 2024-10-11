@@ -1,26 +1,26 @@
 /*
-	Copyright (c) 2022 Skyflow, Inc. 
+Copyright (c) 2022 Skyflow, Inc.
 */
 package vaultapi
 
 import (
 	"bytes"
-	"fmt"
-	"io/ioutil"
-	"net/http"
-	"testing"
 	"context"
+	"fmt"
 	"github.com/skyflowapi/skyflow-go/commonutils/errors"
 	"github.com/skyflowapi/skyflow-go/commonutils/messages"
 	"github.com/skyflowapi/skyflow-go/commonutils/mocks"
 	"github.com/skyflowapi/skyflow-go/skyflow/common"
+	"io/ioutil"
+	"net/http"
+	"testing"
 )
 
 func TestNoRecordsForGetById(t *testing.T) {
 	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.url.com", TokenProvider: GetToken}
 	records := make(map[string]interface{})
 	getByIdApi := GetByIdApi{Configuration: configuration, Records: records, Token: ""}
-	ctx:= context.TODO()
+	ctx := context.TODO()
 	_, err := getByIdApi.Get(ctx)
 	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.RECORDS_KEY_NOT_FOUND, getByIdTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
@@ -31,7 +31,7 @@ func TestEmptyRecordsForGetById(t *testing.T) {
 	var record []interface{}
 	records["records"] = record
 	getByIdApi := GetByIdApi{Configuration: configuration, Records: records, Token: ""}
-	ctx:= context.TODO()
+	ctx := context.TODO()
 	_, err := getByIdApi.Get(ctx)
 	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_RECORDS, getByIdTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
@@ -45,7 +45,7 @@ func TestNoTableForGetById(t *testing.T) {
 	recordsArray = append(recordsArray, record1)
 	records["records"] = recordsArray
 	getByIdApi := GetByIdApi{Configuration: configuration, Records: records, Token: ""}
-	ctx:= context.TODO()
+	ctx := context.TODO()
 	_, err := getByIdApi.Get(ctx)
 	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.MISSING_TABLE, getByIdTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
@@ -60,7 +60,7 @@ func TestEmptyTableForGetById(t *testing.T) {
 	recordsArray = append(recordsArray, record1)
 	records["records"] = recordsArray
 	getByIdApi := GetByIdApi{Configuration: configuration, Records: records, Token: ""}
-	ctx:= context.TODO()
+	ctx := context.TODO()
 	_, err := getByIdApi.Get(ctx)
 	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_TABLE_NAME, getByIdTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
@@ -77,7 +77,7 @@ func TestNoRedactionForGetById(t *testing.T) {
 	recordsArray = append(recordsArray, record1)
 	records["records"] = recordsArray
 	getByIdApi := GetByIdApi{Configuration: configuration, Records: records, Token: ""}
-	ctx:= context.TODO()
+	ctx := context.TODO()
 	_, err := getByIdApi.Get(ctx)
 	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.MISSING_REDACTION, getByIdTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
@@ -92,7 +92,7 @@ func TestNoIdsForGetById(t *testing.T) {
 	recordsArray = append(recordsArray, record1)
 	records["records"] = recordsArray
 	getByIdApi := GetByIdApi{Configuration: configuration, Records: records, Token: ""}
-	ctx:= context.TODO()
+	ctx := context.TODO()
 	_, err := getByIdApi.Get(ctx)
 	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.MISSING_KEY_IDS, getByIdTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
@@ -108,7 +108,7 @@ func TestEmptyIdsForGetById(t *testing.T) {
 	recordsArray = append(recordsArray, record1)
 	records["records"] = recordsArray
 	getByIdApi := GetByIdApi{Configuration: configuration, Records: records, Token: ""}
-	ctx:= context.TODO()
+	ctx := context.TODO()
 	_, err := getByIdApi.Get(ctx)
 	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_RECORD_IDS, getByIdTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
@@ -126,7 +126,7 @@ func TestEmptyIdsForGetById1(t *testing.T) {
 	recordsArray = append(recordsArray, record1)
 	records["records"] = recordsArray
 	getByIdApi := GetByIdApi{Configuration: configuration, Records: records, Token: ""}
-	ctx:= context.TODO()
+	ctx := context.TODO()
 	_, err := getByIdApi.Get(ctx)
 	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_RECORD_IDS, getByIdTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
@@ -145,7 +145,7 @@ func TestEmptyTokenForGetById(t *testing.T) {
 	recordsArray = append(recordsArray, record1)
 	records["records"] = recordsArray
 	getByIdApi := GetByIdApi{Configuration: configuration, Records: records, Token: ""}
-	ctx:= context.TODO()
+	ctx := context.TODO()
 	_, err := getByIdApi.Get(ctx)
 	skyflowError := errors.NewSkyflowError(errors.ErrorCodesEnum(errors.SdkErrorCode), fmt.Sprintf(messages.EMPTY_TOKEN_ID, getByIdTag))
 	check(err.GetMessage(), skyflowError.GetMessage(), t)
@@ -182,7 +182,7 @@ func TestValidRequestForGetByIdWithContext(t *testing.T) {
 			Body:       r,
 		}, nil
 	}
-	ctx:= context.TODO()
+	ctx := context.TODO()
 	getByIdApi.Get(ctx)
 
 }
