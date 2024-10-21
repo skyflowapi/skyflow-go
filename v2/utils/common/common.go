@@ -1,12 +1,21 @@
-package utils
+package common
 
 import "context"
+
+type Env int
+
+const (
+	DEV Env = iota
+	STAGE
+	SANDBOX
+	PROD
+)
 
 type VaultConfig struct {
 	VaultId     string
 	ClusterId   string
-	Env         string
-	Credentials string
+	Env         Env
+	Credentials Credentials
 }
 
 type VaultConfigDetails struct {
@@ -14,13 +23,11 @@ type VaultConfigDetails struct {
 }
 
 type ConnectionConfig struct {
-	// connection-specific details here
 	ConnectionId  string
 	ConnectionUrl string
 }
 
 type Credentials struct {
-	// credentials-related fields here
 	Path              string
 	Roles             []string
 	Context           context.Context
@@ -77,7 +84,7 @@ type GetResponse struct {
 
 type UploadFileRequest struct {
 	TableName  string
-	DummyId    string
+	SkyflowId  string
 	ColumnName string
 	FilePath   string
 }
@@ -103,5 +110,4 @@ type UpdateOptions struct {
 }
 
 type DeleteOptions struct {
-	// Optional fields
 }
