@@ -6,8 +6,8 @@ package common
 import (
 	"encoding/json"
 	"fmt"
-	"runtime"
 	logger "github.com/skyflowapi/skyflow-go/commonutils/logwrapper"
+	"runtime"
 )
 
 func AppendRequestId(message string, requestId string) string {
