@@ -33,17 +33,14 @@ func (c *Skyflow) Builder() *SkyflowBuilder {
 
 func (b *SkyflowBuilder) WithVaultConfig(vaultConfig vaultutils.VaultConfig) *SkyflowBuilder {
 	if _, exists := b.vaultConfigs[vaultConfig.VaultId]; exists {
-		fmt.Printf("Vault config for vault ID %s already exists.\n", vaultConfig.VaultId)
 		return b
 	}
-
 	b.vaultConfigs[vaultConfig.VaultId] = vaultConfig
 	return b
 }
 
 func (b *SkyflowBuilder) WithConnectionConfig(connConfig vaultutils.ConnectionConfig) *SkyflowBuilder {
 	if _, exists := b.connectionConfig[connConfig.ConnectionId]; exists {
-		fmt.Printf("Connection config for connection ID %s already exists.\n", connConfig.ConnectionId)
 		return b
 	}
 
@@ -75,9 +72,9 @@ func (b *SkyflowBuilder) Build() (*Skyflow, error) {
 	}, nil
 }
 
-// vault method
+// Vault vault method
 func (c *Skyflow) Vault(vaultID ...string) (*vaultService, error) {
-	// get vault config if available in vaultconfigs, skyflow or env
+	// get vault config if available in vault configs, skyflow or env
 	config, err := getVaultConfig(c.builder, vaultID...)
 	if err != nil {
 		return nil, err
@@ -93,9 +90,9 @@ func (c *Skyflow) Vault(vaultID ...string) (*vaultService, error) {
 	if !exists {
 		return nil, fmt.Errorf("vault service not found for vault ID %s", config.VaultId)
 	}
-	fmt.Println("cred from env", config)
 	// Update the config in the vault service
 	vaultController.config = config
+
 	return vaultController, nil
 }
 
@@ -143,7 +140,7 @@ func setVaultCredentials(config *vaultutils.VaultConfig, builderCreds vaultutils
 	return nil
 }
 
-// update methods
+// UpdateLogLevel update methods
 func (c *Skyflow) UpdateLogLevel(logLevel logger.LogLevel) {
 	c.builder.logLevel = logLevel
 }

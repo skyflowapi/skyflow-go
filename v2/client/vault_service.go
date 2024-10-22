@@ -14,13 +14,11 @@ type vaultService struct {
 }
 
 func (v *vaultService) Insert(ctx context.Context, request vaultutils.InsertRequest, options vaultutils.InsertOptions) (*vaultutils.InsertResponse, error) {
-	// Instantiate VaultController
 	vaultController := controller.VaultController{
 		Config:   v.config,
 		Loglevel: v.logLevel,
 	}
 
-	// Insert method
 	return vaultController.Insert(ctx, request, options)
 }
 

@@ -5,10 +5,10 @@ import "context"
 type Env int
 
 const (
-	DEV Env = iota
+	PROD Env = iota
 	STAGE
 	SANDBOX
-	PROD
+	DEV
 )
 
 type VaultConfig struct {
