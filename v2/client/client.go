@@ -16,7 +16,7 @@ const defaultLogLevel logger.LogLevel = 2
 
 type SkyflowBuilder struct {
 	vaultConfigs     map[string]vaultutils.VaultConfig
-	vaultControllers map[string]*vaultService
+	vaultServices    map[string]*vaultService
 	connectionConfig map[string]vaultutils.ConnectionConfig
 	credentials      vaultutils.Credentials
 	logLevel         logger.LogLevel
@@ -25,7 +25,7 @@ type SkyflowBuilder struct {
 func (c *Skyflow) Builder() *SkyflowBuilder {
 	return &SkyflowBuilder{
 		vaultConfigs:     make(map[string]vaultutils.VaultConfig),
-		vaultControllers: make(map[string]*vaultService),
+		vaultServices:    make(map[string]*vaultService),
 		connectionConfig: make(map[string]vaultutils.ConnectionConfig),
 		logLevel:         defaultLogLevel,
 	}
@@ -60,8 +60,8 @@ func (b *SkyflowBuilder) WithLogLevel(logLevel logger.LogLevel) *SkyflowBuilder 
 
 func (b *SkyflowBuilder) Build() (*Skyflow, error) {
 	for vaultID, vaultConfig := range b.vaultConfigs {
-		if _, exists := b.vaultControllers[vaultID]; !exists {
-			b.vaultControllers[vaultID] = &vaultService{
+		if _, exists := b.vaultServices[vaultID]; !exists {
+			b.vaultServices[vaultID] = &vaultService{
 				config:   vaultConfig,
 				logLevel: &b.logLevel,
 			}
@@ -72,9 +72,9 @@ func (b *SkyflowBuilder) Build() (*Skyflow, error) {
 	}, nil
 }
 
-// Vault vault method
+// Vault vaultapi method
 func (c *Skyflow) Vault(vaultID ...string) (*vaultService, error) {
-	// get vault config if available in vault configs, skyflow or env
+	// get vaultapi config if available in vaultapi configs, skyflow or env
 	config, err := getVaultConfig(c.builder, vaultID...)
 	if err != nil {
 		return nil, err
@@ -85,12 +85,12 @@ func (c *Skyflow) Vault(vaultID ...string) (*vaultService, error) {
 		return nil, err
 	}
 
-	// Get the VaultController from the builder's VaultControllers map
-	vaultController, exists := c.builder.vaultControllers[config.VaultId]
+	// Get the VaultController from the builder's vaultServices map
+	vaultController, exists := c.builder.vaultServices[config.VaultId]
 	if !exists {
-		return nil, fmt.Errorf("vault service not found for vault ID %s", config.VaultId)
+		return nil, fmt.Errorf("vaultapi service not found for vaultapi ID %s", config.VaultId)
 	}
-	// Update the config in the vault service
+	// Update the config in the vaultapi service
 	vaultController.config = config
 
 	return vaultController, nil
@@ -104,29 +104,29 @@ func isCredentialsEmpty(creds vaultutils.Credentials) bool {
 }
 
 func getVaultConfig(builder *SkyflowBuilder, vaultID ...string) (vaultutils.VaultConfig, error) {
-	// if vault configs are empty
+	// if vaultapi configs are empty
 	if len(builder.vaultConfigs) == 0 {
-		return vaultutils.VaultConfig{}, fmt.Errorf("no vault configurations available")
+		return vaultutils.VaultConfig{}, fmt.Errorf("no vaultapi configurations available")
 	}
 
-	// if vault is passed
+	// if vaultapi is passed
 	if len(vaultID) > 0 && len(builder.vaultConfigs) > 0 {
 		config, exists := builder.vaultConfigs[vaultID[0]]
 		if !exists {
-			return vaultutils.VaultConfig{}, fmt.Errorf("vault ID %s not found", vaultID[0])
+			return vaultutils.VaultConfig{}, fmt.Errorf("vaultapi ID %s not found", vaultID[0])
 		}
 		return config, nil
 	}
 
-	// No vault ID passed, return the first vault config available
+	// No vaultapi ID passed, return the first vaultapi config available
 	for _, cfg := range builder.vaultConfigs {
 		return cfg, nil
 	}
 
-	return vaultutils.VaultConfig{}, fmt.Errorf("no vault configuration found")
+	return vaultutils.VaultConfig{}, fmt.Errorf("no vaultapi configuration found")
 }
 func setVaultCredentials(config *vaultutils.VaultConfig, builderCreds vaultutils.Credentials) error {
-	// here if credentials are empty in the vault config
+	// here if credentials are empty in the vaultapi config
 	if isCredentialsEmpty(config.Credentials) {
 		// here if builder credentials are available
 		if !isCredentialsEmpty(builderCreds) {
@@ -150,11 +150,11 @@ func (c *Skyflow) UpdateCredentials(credentials vaultutils.Credentials) {
 }
 func (c *Skyflow) UpdateVaultConfig(updatedConfig vaultutils.VaultConfig) error {
 	if _, exists := c.builder.vaultConfigs[updatedConfig.VaultId]; !exists {
-		return fmt.Errorf("vault ID %s not found", updatedConfig.VaultId)
+		return fmt.Errorf("vaultapi ID %s not found", updatedConfig.VaultId)
 	}
 
 	c.builder.vaultConfigs[updatedConfig.VaultId] = updatedConfig
-	c.builder.vaultControllers[updatedConfig.VaultId].config = updatedConfig
+	c.builder.vaultServices[updatedConfig.VaultId].config = updatedConfig
 	return nil
 }
 
