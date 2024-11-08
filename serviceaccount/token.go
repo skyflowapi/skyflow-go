@@ -175,7 +175,7 @@ func generateSignedDataTokens(clientID, keyID string, pvtKey *rsa.PrivateKey, op
 
 		tokenString, err := jwt.NewWithClaims(jwt.SigningMethodRS256, claims).SignedString(pvtKey)
 		if err != nil {
-			return nil, skyflowError.NewSkyflowError("400", "Token signing failed")
+			return nil, skyflowError.NewSkyflowError("400", "Error occurred while signing")
 		}
 		responseArray = append(responseArray, SignedDataTokensResponse{Token: token, SignedToken: "signed_token_" + tokenString})
 	}
