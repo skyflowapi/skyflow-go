@@ -26,7 +26,7 @@ jobs:
       uses: github/codeql-action/upload-sarif@v3
       with:
           # Path to SARIF file relative to the root of the repository
-          json_file: gosec_report.json 
+          SARIF_file: gosec_report.json 
 
     - name: Upload GoSec results
       uses: actions/upload-artifact@v4
