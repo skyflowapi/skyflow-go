@@ -27,12 +27,12 @@ jobs:
           # Path to SARIF file relative to the root of the repository
           sarif_file: results.sarif
 
+    - name: Convert SARIF to JSON
+      run: |
+        cp results.sarif results.json
+
     - name: Upload GoSec results
       uses: actions/upload-artifact@v4
       with:
           name: results
-          path: results.sarif
-
-    - name: Convert SARIF to JSON
-      run: |
-        cp results.sarif results.json
+          path: results.json
