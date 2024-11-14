@@ -22,14 +22,14 @@ jobs:
         # run: time gosec ./...
 
         
-    - name: Upload SARIF file
+    - name: Upload JSON file
       uses: github/codeql-action/upload-sarif@v3
       with:
           # Path to SARIF file relative to the root of the repository
-          sarif_file: results.sarif
+          json_file: gosec_report.json 
 
     - name: Upload GoSec results
       uses: actions/upload-artifact@v4
       with:
           name: results
-          path: results.sarif
+          path: gosec_report.json 
