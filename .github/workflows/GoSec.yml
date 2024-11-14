@@ -18,28 +18,20 @@ jobs:
       uses: securego/gosec@master
       with:
         # we let the report trigger content trigger a failure using the GitHub Security features.
-        args: '-severity=high -confidence medium -no-fail -fmt sarif -out results.sarif ./...'
+        args: '-severity=high -confidence medium -no-fail -fmt json -out results.json ./...'
         # run: time gosec ./...
 
-    - name: Generate GoSec Report
-      run: |
-        # Command to generate a report from the SARIF output
-         time gosec -fmt json -out results.json ./...
     
     - name: Upload SARIF file
-      uses: github/codeql-action/upload-sarif@v3
+      uses: github/codeql-action/upload-json@v3
       with:
           # Path to SARIF file relative to the root of the repository
-          sarif_file: results.sarif
+          json_file: results.json
 
     - name: Upload GoSec results
       uses: actions/upload-artifact@v4
       with:
           name: results
-          path: results.sarif
-
-    - name: Upload GoSec JSON report
-      uses: actions/upload-artifact@v4
-      with:
-          name: gosec-report
           path: results.json
+
+    
