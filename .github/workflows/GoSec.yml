@@ -1,12 +1,9 @@
-name: GoSec
-# Run workflow each time code is pushed to your repository.
+name: "GoSec Scan"
+
+# Run workflow each time code is pushed to your repository and on a schedule.
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+  workflow_call:
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -15,21 +12,31 @@ jobs:
       uses: actions/checkout@v3
       
     - name: Security Scan
-      uses: securego/gosec@master
+      uses: securego/gosec@v2.20.0
       with:
         # we let the report trigger content trigger a failure using the GitHub Security features.
-        args: '-severity=high -confidence medium -no-fail -fmt json -out gosec_report.json ./...'
+         args: '-severity=high -confidence=medium -no-fail -fmt sarif -out results.sarif ./...' 
         # run: time gosec ./...
-
         
-    - name: Upload JSON file
+    - name: Generate GoSec Report
+      run: |
+        # Command to generate a report from the SARIF output
+        gosec -fmt json -out results.json ./...
+      
+    - name: Upload SARIF file
       uses: github/codeql-action/upload-sarif@v3
       with:
           # Path to SARIF file relative to the root of the repository
-          SARIF_file: gosec_report.json 
+          sarif_file: results.sarif
 
     - name: Upload GoSec results
       uses: actions/upload-artifact@v4
       with:
           name: results
-          path: gosec_report.json 
+          path: results.sarif
+
+    - name: Upload GoSec JSON report
+      uses: actions/upload-artifact@v4
+      with:
+          name: gosec-report
+          path: results.json
