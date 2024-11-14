@@ -24,7 +24,7 @@ jobs:
     - name: Generate GoSec Report
       run: |
         # Command to generate a report from the SARIF output
-         gosec ./... -fmt=json > gosec_report.json
+         -fmt=json > gosec_report.json
         
     - name: Upload SARIF file
       uses: github/codeql-action/upload-sarif@v3
