@@ -5,6 +5,14 @@ import (
 	"fmt"
 )
 
+type ErrorCodesEnum string
+
+const (
+	INVALID_INPUT ErrorCodesEnum = "400"
+	InvalidInput                 = "InvalidInput"
+	SdkErrorCode                 = "400"
+)
+
 type SkyflowError struct {
 	code          ErrorCodesEnum
 	message       string
