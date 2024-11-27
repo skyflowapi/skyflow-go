@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 	vaultutils "skyflow-go/v2/utils/common"
-	"skyflow-go/v2/utils/error"
+	errors "skyflow-go/v2/utils/error"
 	"skyflow-go/v2/utils/logger"
 	"skyflow-go/v2/vault/controller"
 )

@@ -2,6 +2,7 @@ package common
 
 import (
 	"context"
+	"skyflow-go/v2/utils/logger"
 )
 
 type Env int
@@ -12,6 +13,29 @@ const (
 	SANDBOX
 	DEV
 )
+
+type TokenResponse struct {
+	AccessToken string `json:"accessToken"`
+	TokenType   string `json:"tokenType"`
+}
+
+type BearerTokenOptions struct {
+	Ctx      string
+	RoleIDs  []string
+	LogLevel logger.LogLevel
+}
+
+type SignedDataTokensOptions struct {
+	DataTokens []string
+	TimeToLive int
+	Ctx        string
+	LogLevel   logger.LogLevel
+}
+
+type SignedDataTokensResponse struct {
+	Token       string
+	SignedToken string
+}
 
 type VaultConfig struct {
 	VaultId     string
@@ -176,13 +200,6 @@ type UploadFileRequest struct {
 	SkyflowId  string
 	ColumnName string
 	FilePath   string
-}
-
-type UploadFileResponse struct {
-	// Response fields
-}
-
-type DeleteOptions struct {
 }
 
 type QueryRequest struct {
