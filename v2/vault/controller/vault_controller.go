@@ -46,14 +46,14 @@ func GenerateToken(credentials Credentials) (*string, *skyflowError.SkyflowError
 	var bearerToken string
 	switch {
 	case credentials.Path != "":
-		token, err := serviceaccount.GenerateBearerToken(credentials.Path, serviceaccount.BearerTokenOptions{})
+		token, err := serviceaccount.GenerateBearerToken(credentials.Path, BearerTokenOptions{})
 		if err != nil {
 			return nil, err
 		}
 		bearerToken = token.AccessToken
 
 	case credentials.CredentialsString != "":
-		token, err := serviceaccount.GenerateBearerTokenFromCreds(credentials.CredentialsString, serviceaccount.BearerTokenOptions{})
+		token, err := serviceaccount.GenerateBearerTokenFromCreds(credentials.CredentialsString, BearerTokenOptions{})
 		if err != nil {
 			return nil, err
 		}
