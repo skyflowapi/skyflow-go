@@ -19,40 +19,10 @@ type VaultConfig struct {
 	Env         Env
 	Credentials Credentials
 }
-type BYOT string
-
-const (
-	DISABLE       BYOT = "DISABLE"
-	ENABLE        BYOT = "ENABLE"
-	ENABLE_STRICT BYOT = "ENABLE_STRICT"
-)
-
-type OrderByEnum string
-
-const (
-	ASCENDING  OrderByEnum = "ASCENDING"
-	DESCENDING OrderByEnum = "DESCENDING"
-	NONE       OrderByEnum = "NONE"
-)
-
-// RedactionType
-type RedactionType string
-
-// Constants for RedactionType
-const (
-	DEFAULT    RedactionType = "DEFAULT"
-	PLAIN_TEXT RedactionType = "PLAIN_TEXT"
-	MASKED     RedactionType = "MASKED"
-	REDACTED   RedactionType = "REDACTED"
-)
-
-type VaultConfigDetails struct {
-	// vaultapi-specific details
-}
-
 type ConnectionConfig struct {
 	ConnectionId  string
 	ConnectionUrl string
+	Credentials   Credentials
 }
 
 type Credentials struct {
@@ -63,6 +33,62 @@ type Credentials struct {
 	Token             string
 	ApiKey            string
 }
+type BYOT string
+
+const (
+	DISABLE       BYOT = "DISABLE"
+	ENABLE        BYOT = "ENABLE"
+	ENABLE_STRICT BYOT = "ENABLE_STRICT"
+)
+
+type InvokeConnectionResponse struct {
+	Response map[string]interface{}
+}
+type RequestMethod string
+
+const (
+	GET    RequestMethod = "GET"
+	POST                 = "POST"
+	PUT                  = "PUT"
+	PATCH                = "PATCH"
+	DELETE               = "DELETE"
+)
+
+type InvokeConnectionRequest struct {
+	Method      RequestMethod
+	QueryParams map[string]interface{}
+	PathParams  map[string]string
+	Body        map[string]interface{}
+	Headers     map[string]string
+}
+type ContentType string
+
+const (
+	APPLICATIONORJSON ContentType = "application/json"
+	TEXTORPLAIN       ContentType = "text/plain"
+	FORMURLENCODED    ContentType = "application/x-www-form-urlencoded"
+	FORMDATA          ContentType = "multipart/form-data"
+	TEXTORXML         ContentType = "text/xml"
+)
+
+type OrderByEnum string
+
+const (
+	ASCENDING  OrderByEnum = "ASCENDING"
+	DESCENDING OrderByEnum = "DESCENDING"
+	NONE       OrderByEnum = "NONE"
+)
+
+type RedactionType string
+
+// Constants for RedactionType
+const (
+	DEFAULT    RedactionType = "DEFAULT"
+	PLAIN_TEXT RedactionType = "PLAIN_TEXT"
+	MASKED     RedactionType = "MASKED"
+	REDACTED   RedactionType = "REDACTED"
+)
+
 type InsertOptions struct {
 	ReturnTokens    bool
 	Upsert          string
@@ -112,7 +138,6 @@ type UpdateRequest struct {
 	Id     string
 	Values map[string]interface{}
 	Tokens map[string]interface{}
-	BYOT   BYOT
 }
 type UpdateOptions struct {
 	ReturnTokens bool
@@ -170,6 +195,7 @@ type TokenizeRequest struct {
 
 type TokenizeResponse struct {
 	Tokens []string
+	Errors []map[string]interface{}
 }
 type QueryResponse struct {
 	Fields        []map[string]interface{}

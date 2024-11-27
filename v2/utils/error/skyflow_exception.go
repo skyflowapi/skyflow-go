@@ -1,7 +1,6 @@
 package errors
 
 import (
-	"errors"
 	"fmt"
 )
 
@@ -12,24 +11,37 @@ const (
 )
 
 type SkyflowError struct {
-	code          ErrorCodesEnum
-	message       string
-	originalError error
+	httpCode       string
+	message        string
+	requestId      string
+	grpcCode       string
+	httpStatusCode string
+	details        map[string]interface{}
+	responseBody   map[string]interface{}
 }
 
 func (se *SkyflowError) Error() string {
-	return fmt.Sprintf("Message: %s, Original Error (if any): %s", se.message, se.originalError.Error())
+	return fmt.Sprintf("Message: %s, Original Error (if any): %s", se.message)
 }
 func (se *SkyflowError) GetMessage() string {
 	return fmt.Sprintf("Message: %s", se.message)
 }
 
 func (se *SkyflowError) GetCode() string {
-	return fmt.Sprintf("Code: %s", se.code)
+	return fmt.Sprintf("Code: %s", se.httpCode)
 }
-func NewSkyflowError(code ErrorCodesEnum, message string) *SkyflowError {
-	return &SkyflowError{code: code, message: message, originalError: errors.New("<nil>")}
+func NewSkyflowError(code string, message string) *SkyflowError {
+	return &SkyflowError{httpCode: code, message: message}
 }
-func NewSkyflowErrorf(code ErrorCodesEnum, format string, a ...interface{}) *SkyflowError {
+func NewSkyflowErrorf(code string, format string, a ...interface{}) *SkyflowError {
 	return NewSkyflowError(code, fmt.Sprintf(format, a...))
+}
+
+func SkyflowApiError(httpCode string, message string, requestId string, grpcCode string, httpStatusCode string) *SkyflowError {
+	return &SkyflowError{
+		httpCode:  httpCode,
+		message:   message,
+		requestId: requestId,
+		grpcCode:  grpcCode,
+	}
 }

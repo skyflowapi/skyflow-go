@@ -7,7 +7,6 @@ import (
 	"skyflow-go/v2/utils/error"
 	"skyflow-go/v2/utils/logger"
 	"skyflow-go/v2/vault/controller"
-	_ "skyflow-go/vault/controller"
 )
 
 type Skyflow struct {
@@ -17,19 +16,21 @@ type Skyflow struct {
 const defaultLogLevel logger.LogLevel = 2
 
 type SkyflowBuilder struct {
-	vaultConfigs     map[string]vaultutils.VaultConfig
-	vaultServices    map[string]*vaultService
-	connectionConfig map[string]vaultutils.ConnectionConfig
-	credentials      vaultutils.Credentials
-	logLevel         logger.LogLevel
+	vaultConfigs       map[string]vaultutils.VaultConfig
+	vaultServices      map[string]*vaultService
+	connectionServices map[string]*connectionService
+	connectionConfig   map[string]vaultutils.ConnectionConfig
+	credentials        vaultutils.Credentials
+	logLevel           logger.LogLevel
 }
 
 func (c *Skyflow) Builder() *SkyflowBuilder {
 	return &SkyflowBuilder{
-		vaultConfigs:     make(map[string]vaultutils.VaultConfig),
-		vaultServices:    make(map[string]*vaultService),
-		connectionConfig: make(map[string]vaultutils.ConnectionConfig),
-		logLevel:         defaultLogLevel,
+		vaultConfigs:       make(map[string]vaultutils.VaultConfig),
+		vaultServices:      make(map[string]*vaultService),
+		connectionServices: make(map[string]*connectionService),
+		connectionConfig:   make(map[string]vaultutils.ConnectionConfig),
+		logLevel:           defaultLogLevel,
 	}
 }
 
@@ -69,6 +70,15 @@ func (b *SkyflowBuilder) Build() (*Skyflow, error) {
 			}
 		}
 	}
+	for connectionId, connectionConfig := range b.connectionConfig {
+		if _, exists := b.vaultServices[connectionId]; !exists {
+			b.connectionServices[connectionId] = &connectionService{
+				config:   connectionConfig,
+				logLevel: &b.logLevel,
+			}
+		}
+	}
+
 	return &Skyflow{
 		builder: b,
 	}, nil
@@ -100,14 +110,55 @@ func (c *Skyflow) Vault(vaultID ...string) (*vaultService, *errors.SkyflowError)
 	vaultService.config = config
 	return vaultService, nil
 }
+func (c *Skyflow) Connection(connectionId ...string) (*connectionService, *errors.SkyflowError) {
+	config, err := getConnectionConfig(c.builder, connectionId...)
+	if err != nil {
+		return nil, err
+	}
+	err = setConnectionCredentials(&config, c.builder.credentials)
+	if err != nil {
+		return nil, err
+	}
+	connectionService, exists := c.builder.connectionServices[config.ConnectionId]
+	if !exists {
+		return nil, errors.NewSkyflowError("400", fmt.Sprintf("connection service not found for connectionid %s", config.ConnectionId))
+	}
+	connectionService.controller = controller.ConnectionController{
+		Config:   config,
+		Loglevel: &c.builder.logLevel,
+	}
+	connectionService.config = config
+	return connectionService, nil
+}
 
-// vaultutils or helper func will move later
+// vaultutils or helper func
 func isCredentialsEmpty(creds vaultutils.Credentials) bool {
 	return creds.Path == "" &&
 		creds.CredentialsString == "" &&
 		creds.Token == ""
 }
+func getConnectionConfig(builder *SkyflowBuilder, connectionId ...string) (vaultutils.ConnectionConfig, *errors.SkyflowError) {
+	// if connection configs are empty
+	if len(builder.connectionConfig) == 0 {
+		return vaultutils.ConnectionConfig{}, errors.NewSkyflowError("400", "no connection configurations available")
+	}
 
+	// if connection id is passed
+	if len(connectionId) > 0 && len(builder.connectionConfig) > 0 {
+		config, exists := builder.connectionConfig[connectionId[0]]
+		if !exists {
+			return vaultutils.ConnectionConfig{}, errors.NewSkyflowError("400", "connection ID %s not found")
+		}
+		return config, nil
+	}
+
+	// No conenction ID passed, return the first config available
+	for _, cfg := range builder.connectionConfig {
+		return cfg, nil
+	}
+
+	return vaultutils.ConnectionConfig{}, errors.NewSkyflowError("400", "no connection configuration found")
+}
 func getVaultConfig(builder *SkyflowBuilder, vaultID ...string) (vaultutils.VaultConfig, *errors.SkyflowError) {
 	// if vaultapi configs are empty
 	if len(builder.vaultConfigs) == 0 {
@@ -131,6 +182,20 @@ func getVaultConfig(builder *SkyflowBuilder, vaultID ...string) (vaultutils.Vaul
 	return vaultutils.VaultConfig{}, errors.NewSkyflowError("400", "no vaultapi configuration found")
 }
 func setVaultCredentials(config *vaultutils.VaultConfig, builderCreds vaultutils.Credentials) *errors.SkyflowError {
+	// here if credentials are empty in the vaultapi config
+	if isCredentialsEmpty(config.Credentials) {
+		// here if builder credentials are available
+		if !isCredentialsEmpty(builderCreds) {
+			config.Credentials = builderCreds
+		} else if envCreds := os.Getenv("SKYFLOW_CREDENTIALS"); envCreds != "" {
+			config.Credentials.CredentialsString = envCreds
+		} else {
+			return errors.NewSkyflowError("400", "no credentials available")
+		}
+	}
+	return nil
+}
+func setConnectionCredentials(config *vaultutils.ConnectionConfig, builderCreds vaultutils.Credentials) *errors.SkyflowError {
 	// here if credentials are empty in the vaultapi config
 	if isCredentialsEmpty(config.Credentials) {
 		// here if builder credentials are available
@@ -197,31 +262,3 @@ func (s *Skyflow) RemoveVaultConfig(vaultId string) error {
 	delete(s.builder.vaultConfigs, vaultId)
 	return nil
 }
-
-//Helper functions
-
-//func isCredentialsEmpty(creds vaultutils.Credentials) bool {
-//	return creds.Path == "" &&
-//		creds.CredentialsString == "" &&
-//		creds.Token == ""
-//}
-//
-//func getVaultConfig(s *Skyflow, vaultID ...string) (vaultutils.VaultConfig, error) {
-//	if len(s.vaultConfigs) == 0 {
-//		return vaultutils.VaultConfig{}, fmt.Errorf("no vault configurations available")
-//	}
-//
-//	if len(vaultID) > 0 {
-//		config, exists := s.vaultConfigs[vaultID[0]]
-//		if !exists {
-//			return vaultutils.VaultConfig{}, fmt.Errorf("vault ID %s not found", vaultID[0])
-//		}
-//		return config, nil
-//	}
-//
-//	for _, cfg := range s.vaultConfigs {
-//		return cfg, nil
-//	}
-//
-//	return vaultutils.VaultConfig{}, fmt.Errorf("no vault configuration found")
-//}
