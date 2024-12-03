@@ -11,6 +11,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"reflect"
+	"skyflow-go/v2/internal/validation"
 	"skyflow-go/v2/serviceaccount"
 	. "skyflow-go/v2/utils/common"
 	. "skyflow-go/v2/utils/error"
@@ -42,11 +43,15 @@ func setBearerTokenForConnectionController(v *ConnectionController) *SkyflowErro
 }
 
 func (v *ConnectionController) Invoke(ctx *context.Context, request *InvokeConnectionRequest) (*InvokeConnectionResponse, *SkyflowError) {
+	// Step 1: Validate Configuration
+	er := validation.ValidateInvokeConnectionRequest(*request)
+	if er != nil {
+		return nil, er
+	}
 	err := SetBearerTokenForConnectionControllerFunc(v)
 	if err != nil {
 		return nil, err
 	}
-	// Step 1: Validate Configuration
 
 	// Step 2: Build Request URL
 	requestUrl := buildRequestURL(

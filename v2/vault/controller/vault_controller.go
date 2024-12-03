@@ -7,6 +7,7 @@ import (
 	"net/http"
 	constants "skyflow-go/v2/internal/constants"
 	"skyflow-go/v2/internal/generated/vaultapi"
+	"skyflow-go/v2/internal/validation"
 	"skyflow-go/v2/serviceaccount"
 	. "skyflow-go/v2/utils/common"
 	skyflowError "skyflow-go/v2/utils/error"
@@ -166,8 +167,42 @@ func SetTokenMode(tokenMode BYOT, body *vaultapi.RecordServiceBatchOperationBody
 		body.SetByot(vaultapi.V1BYOT_DISABLE)
 	}
 }
+func GetFormattedGetRecord(record vaultapi.V1FieldRecords) map[string]interface{} {
+	getRecord := make(map[string]interface{})
+	var sourceMap map[string]interface{}
 
-// GetFormattedBatchInsertRecord formats the response from batch insert into a map.
+	// Decide whether to use Tokens or Fields
+	if record.Tokens != nil {
+		sourceMap = record.Tokens
+	} else {
+		sourceMap = record.Fields
+	}
+
+	// Copy elements from sourceMap to getRecord
+	if sourceMap != nil {
+		for key, value := range sourceMap {
+			getRecord[key] = value
+		}
+	}
+
+	return getRecord
+}
+func GetDetokenizePayload(request DetokenizeRequest, options DetokenizeOptions) vaultapi.V1DetokenizePayload {
+	payload := vaultapi.V1DetokenizePayload{}
+	payload.SetContinueOnError(options.ContinueOnError)
+	var reqArray []vaultapi.V1DetokenizeRecordRequest
+
+	for index := range request.Tokens {
+		req := vaultapi.V1DetokenizeRecordRequest{}
+		req.SetToken(request.Tokens[index])
+		req.SetRedaction(vaultapi.RedactionEnumREDACTION(request.RedactionType))
+		reqArray = append(reqArray, req)
+	}
+	if len(reqArray) > 0 {
+		payload.SetDetokenizationParameters(reqArray)
+	}
+	return payload
+}
 func GetFormattedBatchInsertRecord(record interface{}, requestIndex int) (map[string]interface{}, error) {
 	insertRecord := make(map[string]interface{})
 	// Convert the record to JSON and unmarshal it
@@ -224,6 +259,50 @@ func GetFormattedBulkInsertRecord(record vaultapi.V1RecordMetaProperties) map[st
 	}
 	return insertRecord
 }
+func GetFormattedQueryRecord(record vaultapi.V1FieldRecords) map[string]interface{} {
+	queryRecord := make(map[string]interface{})
+	if record.Fields != nil {
+		for key, value := range record.Fields {
+			queryRecord[key] = value
+		}
+	}
+	return queryRecord
+}
+func GetFormattedUpdateRecord(record vaultapi.V1UpdateRecordResponse) map[string]interface{} {
+	updateTokens := make(map[string]interface{})
+
+	// Check if tokens are not nil
+	if record.Tokens != nil {
+		// Iterate through the map and populate updateTokens
+		for key, value := range record.Tokens {
+			updateTokens[key] = value
+		}
+	}
+
+	return updateTokens
+}
+func getTokenizePayload(request *[]TokenizeRequest) vaultapi.V1TokenizePayload {
+	payload := vaultapi.V1TokenizePayload{}
+	var records []vaultapi.V1TokenizeRecordRequest
+	for _, tokenizeRequest := range *request {
+		record := vaultapi.V1TokenizeRecordRequest{
+			Value:       &tokenizeRequest.Value,
+			ColumnGroup: &tokenizeRequest.ColumnGroup,
+		}
+		records = append(records, record)
+	}
+	payload.SetTokenizationParameters(records)
+	return payload
+}
+func ParseTokenizeResponse(apiResponse vaultapi.V1TokenizeResponse) *TokenizeResponse {
+	var tokens []string
+	for _, record := range apiResponse.GetRecords() {
+		tokens = append(tokens, record.GetToken())
+	}
+	return &TokenizeResponse{
+		Tokens: tokens,
+	}
+}
 
 func (v *VaultController) callBulkInsertAPI(ctx context.Context, body vaultapi.RecordServiceInsertRecordBody, table string) (*vaultapi.V1InsertRecordResponse, *http.Response, error) {
 	bulkResp, httpsRes, err := v.ApiClient.RecordsAPI.RecordServiceInsertRecord(ctx, v.Config.VaultId, table).Body(body).Execute()
@@ -233,7 +312,6 @@ func (v *VaultController) callBulkInsertAPI(ctx context.Context, body vaultapi.R
 	return bulkResp, httpsRes, nil
 }
 
-// CallBatchInsertAPI handles the batch insert API call.
 func (v *VaultController) CallBatchInsertAPI(ctx context.Context, body vaultapi.RecordServiceBatchOperationBody) (*vaultapi.V1BatchOperationResponse, *http.Response, error) {
 	batchResp, httpRes, err := v.ApiClient.RecordsAPI.RecordServiceBatchOperation(ctx, v.Config.VaultId).Body(body).Execute()
 	if err != nil {
@@ -243,8 +321,12 @@ func (v *VaultController) CallBatchInsertAPI(ctx context.Context, body vaultapi.
 	return batchResp, httpRes, nil
 }
 
-// Insert performs the insert operation based on provided options.
 func (v *VaultController) Insert(ctx *context.Context, request *InsertRequest, options *InsertOptions) (*InsertResponse, *skyflowError.SkyflowError) {
+	// validate insert
+	errs := validation.ValidateInsertRequest(*request, *options)
+	if errs != nil {
+		return nil, errs
+	}
 	// Initialize the response structure
 	var resp InsertResponse
 	var insertedFields, errors []map[string]interface{}
@@ -299,26 +381,14 @@ func (v *VaultController) Insert(ctx *context.Context, request *InsertRequest, o
 	return &resp, nil
 }
 
-func GetDetokenizePayload(request DetokenizeRequest, options DetokenizeOptions) vaultapi.V1DetokenizePayload {
-	payload := vaultapi.V1DetokenizePayload{}
-	payload.SetContinueOnError(options.ContinueOnError)
-	var reqArray []vaultapi.V1DetokenizeRecordRequest
-
-	for index := range request.Tokens {
-		req := vaultapi.V1DetokenizeRecordRequest{}
-		req.SetToken(request.Tokens[index])
-		req.SetRedaction(vaultapi.RedactionEnumREDACTION(request.RedactionType))
-		reqArray = append(reqArray, req)
-	}
-	if len(reqArray) > 0 {
-		payload.SetDetokenizationParameters(reqArray)
-	}
-	return payload
-}
 func (v *VaultController) Detokenize(ctx *context.Context, request *DetokenizeRequest, options *DetokenizeOptions) (*DetokenizeResponse, *skyflowError.SkyflowError) {
 	//validate detokenize request body & options
 	var detokenizedFields []map[string]interface{}
 	var errorFields []map[string]interface{}
+	er := validation.ValidateDetokenizeRequest(*request)
+	if er != nil {
+		return nil, er
+	}
 	err := SetBearerTokenForVaultController(v)
 	if err != nil {
 		return nil, err
@@ -357,29 +427,12 @@ func (v *VaultController) Detokenize(ctx *context.Context, request *DetokenizeRe
 	}, nil
 }
 
-func GetFormattedGetRecord(record vaultapi.V1FieldRecords) map[string]interface{} {
-	getRecord := make(map[string]interface{})
-	var sourceMap map[string]interface{}
-
-	// Decide whether to use Tokens or Fields
-	if record.Tokens != nil {
-		sourceMap = record.Tokens
-	} else {
-		sourceMap = record.Fields
-	}
-
-	// Copy elements from sourceMap to getRecord
-	if sourceMap != nil {
-		for key, value := range sourceMap {
-			getRecord[key] = value
-		}
-	}
-
-	return getRecord
-}
-
 func (v *VaultController) Get(ctx *context.Context, request *GetRequest, options *GetOptions) (*GetResponse, *skyflowError.SkyflowError) {
 	// Get validate logic here
+	errs := validation.ValidateGetRequest(request, *options)
+	if errs != nil {
+		return nil, errs
+	}
 	var data []map[string]interface{}
 	err := SetBearerTokenForVaultController(v)
 	if err != nil {
@@ -429,6 +482,10 @@ func (v *VaultController) Get(ctx *context.Context, request *GetRequest, options
 
 func (v *VaultController) Delete(ctx *context.Context, request *DeleteRequest) (*DeleteResponse, *skyflowError.SkyflowError) {
 	// Delete validate logic here
+	errs := validation.ValidateDeleteRequest(*request)
+	if errs != nil {
+		return nil, errs
+	}
 	err := SetBearerTokenForVaultController(v)
 	if err != nil {
 		return nil, err
@@ -449,18 +506,12 @@ func (v *VaultController) Delete(ctx *context.Context, request *DeleteRequest) (
 	}, nil
 }
 
-func GetFormattedQueryRecord(record vaultapi.V1FieldRecords) map[string]interface{} {
-	queryRecord := make(map[string]interface{})
-	if record.Fields != nil {
-		for key, value := range record.Fields {
-			queryRecord[key] = value
-		}
-	}
-	return queryRecord
-}
-
 func (v *VaultController) Query(ctx *context.Context, queryRequest *QueryRequest) (*QueryResponse, *skyflowError.SkyflowError) {
 	// validate the query request
+	errs := validation.ValidateQueryRequest(*queryRequest)
+	if errs != nil {
+		return nil, errs
+	}
 	var fields []map[string]interface{}
 	var tokenizedData []map[string]interface{}
 
@@ -490,21 +541,12 @@ func (v *VaultController) Query(ctx *context.Context, queryRequest *QueryRequest
 	}, nil
 }
 
-func GetFormattedUpdateRecord(record vaultapi.V1UpdateRecordResponse) map[string]interface{} {
-	updateTokens := make(map[string]interface{})
-
-	// Check if tokens are not nil
-	if record.Tokens != nil {
-		// Iterate through the map and populate updateTokens
-		for key, value := range record.Tokens {
-			updateTokens[key] = value
-		}
-	}
-
-	return updateTokens
-}
 func (v *VaultController) Update(ctx *context.Context, request *UpdateRequest, options *UpdateOptions) (*UpdateResponse, *skyflowError.SkyflowError) {
 	// Update validate logic here
+	errs := validation.ValidateUpdateRequest(*request, *options)
+	if errs != nil {
+		return nil, errs
+	}
 	err := SetBearerTokenForVaultController(v)
 	if err != nil {
 		return nil, err
@@ -543,32 +585,13 @@ func (v *VaultController) Update(ctx *context.Context, request *UpdateRequest, o
 	}, nil
 }
 
-func getTokenizePayload(request *[]TokenizeRequest) vaultapi.V1TokenizePayload {
-	payload := vaultapi.V1TokenizePayload{}
-	var records []vaultapi.V1TokenizeRecordRequest
-	for _, tokenizeRequest := range *request {
-		record := vaultapi.V1TokenizeRecordRequest{
-			Value:       &tokenizeRequest.Value,
-			ColumnGroup: &tokenizeRequest.ColumnGroup,
-		}
-		records = append(records, record)
-	}
-	payload.SetTokenizationParameters(records)
-	return payload
-}
-func ParseTokenizeResponse(apiResponse vaultapi.V1TokenizeResponse) *TokenizeResponse {
-	var tokens []string
-	for _, record := range apiResponse.GetRecords() {
-		tokens = append(tokens, record.GetToken())
-	}
-	return &TokenizeResponse{
-		Tokens: tokens,
-	}
-}
-
 func (v *VaultController) Tokenize(ctx *context.Context, request *[]TokenizeRequest) (*TokenizeResponse, *skyflowError.SkyflowError) {
 	// Update validate logic here
-	err := SetBearerTokenForVaultController(v)
+	err := validation.ValidateTokenizeRequest(request)
+	if err != nil {
+		return nil, err
+	}
+	err = SetBearerTokenForVaultController(v)
 	if err != nil {
 		return nil, err
 	}

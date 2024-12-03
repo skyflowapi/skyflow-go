@@ -22,30 +22,6 @@ func TestController(t *testing.T) {
 	RunSpecs(t, "Controller Suite")
 }
 
-func setupMockServer(mockResponse map[string]interface{}, status string, path string) *httptest.Server {
-	// Create a mock server
-	mockServer := http.NewServeMux()
-
-	// Define the handler for "/vaults/v1/vaults/"
-	mockServer.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		jsonData, _ := json.Marshal(mockResponse)
-		// Write the response
-		switch status {
-		case "ok":
-			w.WriteHeader(http.StatusOK)
-		case "partial":
-			w.WriteHeader(http.StatusMultiStatus)
-		default:
-			w.WriteHeader(http.StatusBadRequest)
-		}
-		_, _ = w.Write(jsonData)
-	})
-
-	// Start the server and return it
-	return httptest.NewServer(mockServer)
-}
-
 var _ = Describe("Vault controller Test cases", func() {
 	Describe("Test helper functions", func() {
 		Context("Test Get URL Function", func() {
@@ -528,6 +504,41 @@ var _ = Describe("Vault controller Test cases", func() {
 				Expect(insertError).ToNot(BeNil(), "Expected an error during insert operation")
 				Expect(res).To(BeNil(), "Expected no response due to error in insert operation")
 			})
+			It("should return an error when validations fails", func() {
+				// Prepare mock data
+				request := &InsertRequest{
+					Table: "",
+					Values: []map[string]interface{}{
+						{"field1": "value1"},
+						{"field2": "value2"},
+					},
+				}
+				options := &InsertOptions{
+					ContinueOnError: true,
+					Upsert:          "upsert",
+				}
+
+				// Create the VaultController instance
+				contrl := VaultController{
+					Config: VaultConfig{
+						VaultId:   "id",
+						ClusterId: "clusterid",
+						Env:       PROD,
+						Credentials: Credentials{
+							Token: "Token",
+						},
+					},
+				}
+
+				// Call the Insert method
+				ctx := context.Background()
+				res, insertError := contrl.Insert(&ctx, request, options)
+
+				// Assertions
+				Expect(insertError).ToNot(BeNil(), "Expected an error during insert operation")
+				Expect(res).To(BeNil(), "Expected no response due to error in insert operation")
+			})
+
 		})
 		Context("Insert with ContinueOnError True - Partial Error Case", func() {
 			It("should return partial success and error fields", func() {
@@ -885,6 +896,16 @@ var _ = Describe("Vault controller Test cases", func() {
 				Expect(err).ToNot(BeNil())
 				Expect(res).To(BeNil())
 			})
+			It("should return detokenized data with errors", func() {
+				ctx = context.Background()
+				request.Tokens = nil
+				// Call the Detokenize function
+				res, err := vaultController.Detokenize(&ctx, &request, &options)
+				// Validate the response
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
+			})
+
 			It("should return detokenized data with partial success response", func() {
 				_ = &VaultController{
 					Config: VaultConfig{
@@ -1108,6 +1129,12 @@ var _ = Describe("Vault controller Test cases", func() {
 				Expect(res).To(BeNil())
 				Expect(err).ToNot(BeNil())
 			})
+			It("should return error response when invalid data passed in Delete", func() {
+				request.Ids = []string{}
+				res, err := vaultController.Delete(&ctx, &request)
+				Expect(res).To(BeNil())
+				Expect(err).ToNot(BeNil())
+			})
 
 			It("should return error client creation step Delete", func() {
 				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
@@ -1179,6 +1206,12 @@ var _ = Describe("Vault controller Test cases", func() {
 					return nil
 				}
 
+				res, err := vaultController.Query(&ctx, &request)
+				Expect(res).To(BeNil())
+				Expect(err).ToNot(BeNil())
+			})
+			It("should return error response when invalid data passed in Query", func() {
+				request.Query = ""
 				res, err := vaultController.Query(&ctx, &request)
 				Expect(res).To(BeNil())
 				Expect(err).ToNot(BeNil())
@@ -1264,6 +1297,13 @@ var _ = Describe("Vault controller Test cases", func() {
 				Expect(res).To(BeNil())
 				Expect(err).ToNot(BeNil())
 			})
+			It("should return error response when validation fail for invalid data passed in Update", func() {
+				request.Tokens = nil
+
+				res, err := vaultController.Update(&ctx, &request, &UpdateOptions{ReturnTokens: false, TokenMode: ENABLE})
+				Expect(res).To(BeNil())
+				Expect(err).ToNot(BeNil())
+			})
 
 			It("should return error client creation step Update", func() {
 				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
@@ -1335,6 +1375,12 @@ var _ = Describe("Vault controller Test cases", func() {
 					v.ApiClient = *apiClient
 					return nil
 				}
+				res, err := vaultController.Tokenize(&ctx, &arrReq)
+				Expect(res).To(BeNil())
+				Expect(err).ToNot(BeNil())
+			})
+			It("should return error response when validations failed for invalid data passedin Tokenize", func() {
+				arrReq = append(arrReq, TokenizeRequest{})
 				res, err := vaultController.Tokenize(&ctx, &arrReq)
 				Expect(res).To(BeNil())
 				Expect(err).ToNot(BeNil())
@@ -1530,8 +1576,10 @@ var _ = Describe("ConnectionController", func() {
 			})
 			It("should handle when content type is not set", func() {
 				request := &InvokeConnectionRequest{
-					Method:  "POST",
-					Headers: map[string]string{},
+					Method: "POST",
+					Headers: map[string]string{
+						"Content-Type": "application/x-www-form-urlencoded",
+					},
 					Body: map[string]interface{}{
 						"key": "value",
 					},
@@ -1543,6 +1591,21 @@ var _ = Describe("ConnectionController", func() {
 				Expect(err).To(BeNil())
 				Expect(response).ToNot(BeNil())
 				Expect(response.Response).To(HaveKeyWithValue("key", "value"))
+			})
+			It("should throw error when invalid request passed", func() {
+				request := &InvokeConnectionRequest{
+					Method:  "POST",
+					Headers: map[string]string{},
+					Body: map[string]interface{}{
+						"key": "value",
+					},
+				}
+				SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError {
+					return nil
+				}
+				response, err := ctrl.Invoke(&ctx, request)
+				Expect(err).ToNot(BeNil())
+				Expect(response).To(BeNil())
 			})
 
 		})
@@ -1622,3 +1685,27 @@ var _ = Describe("ConnectionController", func() {
 	})
 
 })
+
+func setupMockServer(mockResponse map[string]interface{}, status string, path string) *httptest.Server {
+	// Create a mock server
+	mockServer := http.NewServeMux()
+
+	// Define the handler for "/vaults/v1/vaults/"
+	mockServer.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		jsonData, _ := json.Marshal(mockResponse)
+		// Write the response
+		switch status {
+		case "ok":
+			w.WriteHeader(http.StatusOK)
+		case "partial":
+			w.WriteHeader(http.StatusMultiStatus)
+		default:
+			w.WriteHeader(http.StatusBadRequest)
+		}
+		_, _ = w.Write(jsonData)
+	})
+
+	// Start the server and return it
+	return httptest.NewServer(mockServer)
+}

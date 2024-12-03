@@ -1,7 +1,6 @@
 package common
 
 import (
-	"context"
 	"skyflow-go/v2/utils/logger"
 )
 
@@ -43,20 +42,21 @@ type VaultConfig struct {
 	Env         Env
 	Credentials Credentials
 }
+
+type Credentials struct {
+	Path              string
+	Roles             []string
+	Context           string
+	CredentialsString string
+	Token             string
+	ApiKey            string
+}
 type ConnectionConfig struct {
 	ConnectionId  string
 	ConnectionUrl string
 	Credentials   Credentials
 }
 
-type Credentials struct {
-	Path              string
-	Roles             []string
-	Context           context.Context
-	CredentialsString string
-	Token             string
-	ApiKey            string
-}
 type BYOT string
 
 const (
@@ -107,10 +107,10 @@ type RedactionType string
 
 // Constants for RedactionType
 const (
-	DEFAULT    RedactionType = "DEFAULT"
 	PLAIN_TEXT RedactionType = "PLAIN_TEXT"
-	MASKED     RedactionType = "MASKED"
-	REDACTED   RedactionType = "REDACTED"
+	DEFAULT                  = "DEFAULT"
+	MASKED                   = "MASKED"
+	REDACTED                 = "REDACTED"
 )
 
 type InsertOptions struct {
