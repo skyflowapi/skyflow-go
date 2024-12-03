@@ -2,10 +2,10 @@ package client
 
 import (
 	"context"
+	"skyflow-go/v2/internal/vault/controller"
 	. "skyflow-go/v2/utils/common"
 	skyflowError "skyflow-go/v2/utils/error"
 	"skyflow-go/v2/utils/logger"
-	"skyflow-go/v2/vault/controller"
 )
 
 type vaultService struct {

@@ -4,17 +4,18 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
 	constants "skyflow-go/v2/internal/constants"
 	vaultapi2 "skyflow-go/v2/internal/generated/vaultapi"
+	. "skyflow-go/v2/internal/vault/controller"
 	. "skyflow-go/v2/utils/common"
 	skyflowError "skyflow-go/v2/utils/error"
-	. "skyflow-go/v2/vault/controller"
 	"testing"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 func TestController(t *testing.T) {
