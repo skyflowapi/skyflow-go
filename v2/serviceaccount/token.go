@@ -2,12 +2,10 @@ package serviceaccount
 
 import (
 	"encoding/json"
-	"fmt"
-	"time"
-
 	. "skyflow-go/v2/internal/helpers"
 	. "skyflow-go/v2/utils/common"
 	skyflowError "skyflow-go/v2/utils/error"
+	"time"
 
 	"github.com/golang-jwt/jwt"
 )
@@ -16,7 +14,7 @@ import (
 func GenerateBearerToken(credentialsFilePath string, options BearerTokenOptions) (*TokenResponse, *skyflowError.SkyflowError) {
 	credKeys, err := ParseCredentialsFile(credentialsFilePath)
 	if err != nil {
-		return nil, skyflowError.NewSkyflowError("400", "Failed to parse credential file")
+		return nil, err
 	}
 
 	token, err1 := GenerateBearerTokenHelper(credKeys, options)
@@ -34,12 +32,12 @@ func GenerateBearerToken(credentialsFilePath string, options BearerTokenOptions)
 func GenerateBearerTokenFromCreds(credentials string, options BearerTokenOptions) (*TokenResponse, *skyflowError.SkyflowError) {
 	var credKeys map[string]interface{}
 	if err := json.Unmarshal([]byte(credentials), &credKeys); err != nil {
-		return nil, skyflowError.NewSkyflowError("400", "Failed to parse credential string, wrong format given")
+		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_CREDENTIALS)
 	}
 
 	token, err1 := GenerateBearerTokenHelper(credKeys, options)
 	if err1 != nil {
-		return nil, skyflowError.NewSkyflowError("400", "Failed to generate bearer token")
+		return nil, err1
 	}
 
 	return &TokenResponse{
@@ -52,14 +50,14 @@ func GenerateBearerTokenFromCreds(credentials string, options BearerTokenOptions
 func GenerateSignedDataTokens(credentialsFilePath string, options SignedDataTokensOptions) ([]SignedDataTokensResponse, *skyflowError.SkyflowError) {
 	// validate data
 	if credentialsFilePath == "" {
-		return nil, skyflowError.NewSkyflowError("400", "credential path not provided")
+		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_CREDENTIAL_FILE_PATH)
 	}
 	if len(options.DataTokens) == 0 {
-		return nil, skyflowError.NewSkyflowError("400", "No data tokens provided")
+		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_TOKENS_DETOKENIZE)
 	}
 	credKeys, err := ParseCredentialsFile(credentialsFilePath)
 	if err != nil {
-		return nil, skyflowError.NewSkyflowError("400", "Failed to parse credential file")
+		return nil, err
 	}
 
 	return GetSignedDataTokens(credKeys, options)
@@ -68,7 +66,7 @@ func GenerateSignedDataTokens(credentialsFilePath string, options SignedDataToke
 func GenerateSignedDataTokensFromCreds(credentials string, options SignedDataTokensOptions) ([]SignedDataTokensResponse, *skyflowError.SkyflowError) {
 	var credKeys map[string]interface{}
 	if err := json.Unmarshal([]byte(credentials), &credKeys); err != nil {
-		return nil, skyflowError.NewSkyflowError("400", "Failed to parse credential file")
+		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_CREDENTIALS)
 	}
 
 	return GetSignedDataTokens(credKeys, options)
@@ -97,8 +95,7 @@ func IsExpired(tokenString string) bool {
 	}
 	currentTime := time.Now()
 	if expiryTime.Before(currentTime) {
-		fmt.Println("EXPIRE_BEARER_TOKEN")
-		//logger.Info(fmt.Sprintf(messages.EXPIRE_BEARER_TOKEN, "ServiceAccountUtil"))
+		return true
 	}
 	return expiryTime.Before(currentTime)
 }

@@ -2,12 +2,13 @@ package validation_test
 
 import (
 	"fmt"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	. "skyflow-go/v2/internal/validation"
 	"skyflow-go/v2/utils/common"
 	errors "skyflow-go/v2/utils/error"
 	"testing"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 func TestServiceAccount(t *testing.T) {
@@ -313,8 +314,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 
 	Describe("Validate Config", func() {
 		var (
-			validCredentials   common.Credentials
-			invalidCredentials common.Credentials
+			validCredentials common.Credentials
 		)
 
 		BeforeEach(func() {
@@ -327,7 +327,6 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 				ApiKey:            "valid-apikey",
 			}
 
-			invalidCredentials = common.Credentials{}
 		})
 
 		Context("Invalid VaultConfig", func() {
@@ -356,20 +355,6 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			})
 		})
 
-		Context("Invalid Credentials", func() {
-			It("should return error for invalid Credentials", func() {
-				config := common.VaultConfig{
-					VaultId:     "valid-vault-id",
-					ClusterId:   "valid-cluster-id",
-					Env:         common.PROD,
-					Credentials: invalidCredentials,
-				}
-				err := ValidateVaultConfig(config)
-				Expect(err).ToNot(BeNil())
-				Expect(err.GetMessage()).ToNot(BeEmpty())
-			})
-		})
-
 		Context("Valid VaultConfig", func() {
 			It("should return nil for valid VaultConfig", func() {
 				config := common.VaultConfig{
@@ -395,7 +380,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 
 					err := ValidateConnectionConfig(config)
 					Expect(err).To(HaveOccurred())
-					Expect(err.GetCode()).To(ContainSubstring("400"))
+					Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
 					Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_CONNECTION_ID))
 				})
 
@@ -408,7 +393,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 
 					err := ValidateConnectionConfig(config)
 					Expect(err).To(HaveOccurred())
-					Expect(err.GetCode()).To(ContainSubstring("400"))
+					Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
 					Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_CONNECTION_URL))
 				})
 
@@ -421,7 +406,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 
 					err := ValidateConnectionConfig(config)
 					Expect(err).To(HaveOccurred())
-					Expect(err.GetCode()).To(ContainSubstring("400"))
+					Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
 					Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_CONNECTION_URL))
 				})
 
@@ -434,7 +419,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 
 					err := ValidateConnectionConfig(config)
 					Expect(err).To(HaveOccurred())
-					Expect(err.GetCode()).To(ContainSubstring("400"))
+					Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
 					Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_CONNECTION_URL))
 				})
 				It("should return an error if ConnectionUrl is invalid", func() {
@@ -446,7 +431,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 
 					err := ValidateConnectionConfig(config)
 					Expect(err).To(HaveOccurred())
-					Expect(err.GetCode()).To(ContainSubstring("400"))
+					Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
 					Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_CONNECTION_URL))
 				})
 
@@ -471,7 +456,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 					credentials := common.Credentials{}
 					err := ValidateCredentials(credentials)
 					Expect(err).To(HaveOccurred())
-					Expect(err.GetCode()).To(ContainSubstring("400"))
+					Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
 					Expect(err.GetMessage()).To(ContainSubstring(errors.NO_TOKEN_GENERATION_MEANS_PASSED))
 				})
 
@@ -482,7 +467,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 					}
 					err := ValidateCredentials(credentials)
 					Expect(err).To(HaveOccurred())
-					Expect(err.GetCode()).To(ContainSubstring("400"))
+					Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
 					Expect(err.GetMessage()).To(ContainSubstring(errors.MULTIPLE_TOKEN_GENERATION_MEANS_PASSED))
 				})
 
@@ -492,7 +477,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 					}
 					err := ValidateCredentials(credentials)
 					Expect(err).To(HaveOccurred())
-					Expect(err.GetCode()).To(ContainSubstring("400"))
+					Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
 					Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_API_KEY))
 				})
 
@@ -503,7 +488,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 					}
 					err := ValidateCredentials(credentials)
 					Expect(err).To(HaveOccurred())
-					Expect(err.GetCode()).To(ContainSubstring("400"))
+					Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
 					Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_ROLES))
 				})
 
@@ -515,7 +500,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 					}
 					err := ValidateCredentials(credentials)
 					Expect(err).To(HaveOccurred())
-					Expect(err.GetCode()).To(ContainSubstring("400"))
+					Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
 					Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_ROLE_IN_ROLES))
 				})
 			})
@@ -910,42 +895,42 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 	})
 	Context("ValidateTokenizeRequest", func() {
 		var (
-			request *[]common.TokenizeRequest
+			request []common.TokenizeRequest
 		)
 		It("should return INVALID_TOKENIZE_REQUEST error", func() {
 			request = nil
 			err := ValidateTokenizeRequest(request)
 			Expect(err).ToNot(BeNil())
-			Expect(err.GetCode()).To(ContainSubstring("400"))
+			Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
 			Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_TOKENIZE_REQUEST))
 		})
 		It("should return INVALID_TOKENIZE_REQUEST error", func() {
-			request = &[]common.TokenizeRequest{}
+			request = []common.TokenizeRequest{}
 			err := ValidateTokenizeRequest(request)
 			Expect(err).ToNot(BeNil())
-			Expect(err.GetCode()).To(ContainSubstring("400"))
+			Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
 			Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_TOKENIZE_REQUEST))
 		})
 		It("should return EMPTY_VALUE_IN_COLUMN_VALUES error", func() {
-			request = &[]common.TokenizeRequest{
+			request = []common.TokenizeRequest{
 				{ColumnGroup: "", Value: "valid_value"},
 			}
 			err := ValidateTokenizeRequest(request)
 			Expect(err).ToNot(BeNil())
-			Expect(err.GetCode()).To(ContainSubstring("400"))
+			Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
 			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_VALUE_IN_COLUMN_VALUES))
 		})
 		It("should return EMPTY_COLUMN_VALUES error", func() {
-			request = &[]common.TokenizeRequest{
+			request = []common.TokenizeRequest{
 				{ColumnGroup: "valid_group", Value: ""},
 			}
 			err := ValidateTokenizeRequest(request)
 			Expect(err).ToNot(BeNil())
-			Expect(err.GetCode()).To(ContainSubstring("400"))
+			Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
 			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_COLUMN_VALUES))
 		})
 		It("should return nil", func() {
-			request = &[]common.TokenizeRequest{
+			request = []common.TokenizeRequest{
 				{ColumnGroup: "valid_group", Value: "valid_value"},
 			}
 			err := ValidateTokenizeRequest(request)
@@ -965,7 +950,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 
 			// Assert
 			Expect(err).ToNot(BeNil())
-			Expect(err.GetCode()).To(ContainSubstring("400"))
+			Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
 			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_QUERY))
 		})
 
@@ -992,7 +977,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			err := ValidateDeleteRequest(request)
 
 			Expect(err).ToNot(BeNil())
-			Expect(err.GetCode()).To(ContainSubstring("400"))
+			Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
 			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_TABLE))
 		})
 		It("should return an EMPTY_IDS error", func() {
@@ -1004,7 +989,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			err := ValidateDeleteRequest(request)
 
 			Expect(err).ToNot(BeNil())
-			Expect(err.GetCode()).To(ContainSubstring("400"))
+			Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
 			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_IDS))
 		})
 		It("should return an EMPTY_ID_IN_IDS error", func() {
@@ -1016,7 +1001,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			err := ValidateDeleteRequest(request)
 
 			Expect(err).ToNot(BeNil())
-			Expect(err.GetCode()).To(ContainSubstring("400"))
+			Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
 			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_ID_IN_IDS))
 		})
 		It("should return nil", func() {

@@ -64,7 +64,7 @@ func GenerateToken(credentials Credentials) (*string, *skyflowError.SkyflowError
 		bearerToken = credentials.Token
 
 	default:
-		return nil, skyflowError.NewSkyflowError("400", "creds not valid")
+		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_CREDENTIALS)
 	}
 	return &bearerToken, nil
 }
@@ -79,6 +79,9 @@ func SetBearerTokenForVaultController(v *VaultController) *skyflowError.SkyflowE
 		}
 		v.Token = *token
 	}
+	if serviceaccount.IsExpired(v.Token) {
+		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.TOKEN_EXPIRED)
+	}
 	return nil
 }
 
@@ -91,7 +94,7 @@ func CreateRequestClient(v *VaultController) *skyflowError.SkyflowError {
 	} else {
 		err := SetBearerTokenForVaultController(v)
 		if err != nil {
-			return skyflowError.NewSkyflowError("400", "error occurred in token generation")
+			return err
 		}
 		configuration.AddDefaultHeader("Authorization", "Bearer "+v.Token)
 	}
@@ -203,23 +206,23 @@ func GetDetokenizePayload(request DetokenizeRequest, options DetokenizeOptions) 
 	}
 	return payload
 }
-func GetFormattedBatchInsertRecord(record interface{}, requestIndex int) (map[string]interface{}, error) {
+func GetFormattedBatchInsertRecord(record interface{}, requestIndex int) (map[string]interface{}, *skyflowError.SkyflowError) {
 	insertRecord := make(map[string]interface{})
 	// Convert the record to JSON and unmarshal it
 	jsonData, err := json.Marshal(record)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal record: %v", err)
+		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_RESPONSE)
 	}
 
 	var bodyObject map[string]interface{}
 	if err := json.Unmarshal(jsonData, &bodyObject); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal JSON: %v", err)
+		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_RESPONSE)
 	}
 
 	// Extract relevant data from "Body"
 	body, bodyExists := bodyObject["Body"].(map[string]interface{})
 	if !bodyExists {
-		return nil, fmt.Errorf("Body field not found in JSON")
+		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_RESPONSE)
 	}
 
 	// Handle extracted data
@@ -281,10 +284,10 @@ func GetFormattedUpdateRecord(record vaultapi.V1UpdateRecordResponse) map[string
 
 	return updateTokens
 }
-func getTokenizePayload(request *[]TokenizeRequest) vaultapi.V1TokenizePayload {
+func getTokenizePayload(request []TokenizeRequest) vaultapi.V1TokenizePayload {
 	payload := vaultapi.V1TokenizePayload{}
 	var records []vaultapi.V1TokenizeRecordRequest
-	for _, tokenizeRequest := range *request {
+	for _, tokenizeRequest := range request {
 		record := vaultapi.V1TokenizeRecordRequest{
 			Value:       &tokenizeRequest.Value,
 			ColumnGroup: &tokenizeRequest.ColumnGroup,
@@ -312,18 +315,17 @@ func (v *VaultController) callBulkInsertAPI(ctx context.Context, body vaultapi.R
 	return bulkResp, httpsRes, nil
 }
 
-func (v *VaultController) CallBatchInsertAPI(ctx context.Context, body vaultapi.RecordServiceBatchOperationBody) (*vaultapi.V1BatchOperationResponse, *http.Response, error) {
+func (v *VaultController) callBatchInsertAPI(ctx context.Context, body vaultapi.RecordServiceBatchOperationBody) (*vaultapi.V1BatchOperationResponse, *http.Response, error) {
 	batchResp, httpRes, err := v.ApiClient.RecordsAPI.RecordServiceBatchOperation(ctx, v.Config.VaultId).Body(body).Execute()
 	if err != nil {
-		fmt.Println("error making batch insert API call", err.Error(), "=>", httpRes.Body, "=>", batchResp.HasResponses())
-		return nil, httpRes, fmt.Errorf("CallBatchInsertAPI error making batch insert API call: %v", err)
+		return nil, httpRes, err
 	}
 	return batchResp, httpRes, nil
 }
 
-func (v *VaultController) Insert(ctx *context.Context, request *InsertRequest, options *InsertOptions) (*InsertResponse, *skyflowError.SkyflowError) {
+func (v *VaultController) Insert(ctx context.Context, request InsertRequest, options InsertOptions) (*InsertResponse, *skyflowError.SkyflowError) {
 	// validate insert
-	errs := validation.ValidateInsertRequest(*request, *options)
+	errs := validation.ValidateInsertRequest(request, options)
 	if errs != nil {
 		return nil, errs
 	}
@@ -333,22 +335,23 @@ func (v *VaultController) Insert(ctx *context.Context, request *InsertRequest, o
 
 	// Create the API client
 	if err := CreateRequestClientFunc(v); err != nil {
-		fmt.Println(err)
-		return nil, skyflowError.NewSkyflowError("400", "some issue with client")
+		return nil, err
 	}
-
 	if options.ContinueOnError {
 		// Batch insert handling
-		body := CreateInsertBatchBodyRequest(request, options)
-		batchResp, httpsRes, err1 := v.CallBatchInsertAPI(*ctx, *body)
-
-		if err1 != nil {
-			fmt.Println("here===>2", err1, batchResp, httpsRes)
-			return nil, skyflowError.NewSkyflowError("400", "insert call failed with client")
+		body := CreateInsertBatchBodyRequest(&request, &options)
+		batchResp, httpsRes, err1 := v.callBatchInsertAPI(ctx, *body)
+		if err1 != nil && httpsRes != nil {
+			return nil, skyflowError.SkyflowApiError(*httpsRes)
+		} else if err1 != nil {
+			return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.ERROR_OCCURRED+"%v", err1.Error()))
 		}
 
 		for index, record := range batchResp.GetResponses() {
-			formattedRecord, _ := GetFormattedBatchInsertRecord(record, index)
+			formattedRecord, parseErr := GetFormattedBatchInsertRecord(record, index)
+			if parseErr != nil {
+				return nil, parseErr
+			}
 			if formattedRecord["skyflow_id"] != nil {
 				insertedFields = append(insertedFields, formattedRecord)
 			} else {
@@ -361,13 +364,12 @@ func (v *VaultController) Insert(ctx *context.Context, request *InsertRequest, o
 		}
 	} else {
 		// Bulk insert handling
-		body := CreateInsertBulkBodyRequest(request, options)
-		bulkResp, httpRes, bulkErr := v.callBulkInsertAPI(*ctx, *body, request.Table)
-		fmt.Println("here is1", body, httpRes)
-
-		if bulkErr != nil {
-			fmt.Println(bulkErr)
-			return nil, skyflowError.NewSkyflowError("400", "insert failed")
+		body := CreateInsertBulkBodyRequest(&request, &options)
+		bulkResp, httpRes, bulkErr := v.callBulkInsertAPI(ctx, *body, request.Table)
+		if bulkErr != nil && httpRes != nil {
+			return nil, skyflowError.SkyflowApiError(*httpRes)
+		} else if bulkErr != nil {
+			return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.ERROR_OCCURRED+" %v ", bulkErr.Error()))
 		}
 
 		for _, record := range bulkResp.GetRecords() {
@@ -381,27 +383,24 @@ func (v *VaultController) Insert(ctx *context.Context, request *InsertRequest, o
 	return &resp, nil
 }
 
-func (v *VaultController) Detokenize(ctx *context.Context, request *DetokenizeRequest, options *DetokenizeOptions) (*DetokenizeResponse, *skyflowError.SkyflowError) {
+func (v *VaultController) Detokenize(ctx context.Context, request DetokenizeRequest, options DetokenizeOptions) (*DetokenizeResponse, *skyflowError.SkyflowError) {
 	//validate detokenize request body & options
 	var detokenizedFields []map[string]interface{}
 	var errorFields []map[string]interface{}
-	er := validation.ValidateDetokenizeRequest(*request)
+	er := validation.ValidateDetokenizeRequest(request)
 	if er != nil {
 		return nil, er
 	}
-	err := SetBearerTokenForVaultController(v)
-	if err != nil {
+	if err := CreateRequestClientFunc(v); err != nil {
 		return nil, err
 	}
-	if err := CreateRequestClientFunc(v); err != nil {
-		return nil, skyflowError.NewSkyflowError("400", "some issue with client")
-	}
 
-	payload := GetDetokenizePayload(*request, *options)
-	result, httpsRes, detokenizeErr := v.ApiClient.TokensAPI.RecordServiceDetokenize(*ctx, v.Config.VaultId).DetokenizePayload(payload).Execute()
-	if detokenizeErr != nil {
-		fmt.Println("===>", httpsRes, detokenizeErr)
-		return nil, skyflowError.NewSkyflowError("400", "some issue with client")
+	payload := GetDetokenizePayload(request, options)
+	result, httpsRes, detokenizeErr := v.ApiClient.TokensAPI.RecordServiceDetokenize(ctx, v.Config.VaultId).DetokenizePayload(payload).Execute()
+	if detokenizeErr != nil && httpsRes != nil {
+		return nil, skyflowError.SkyflowApiError(*httpsRes)
+	} else if detokenizeErr != nil {
+		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.ERROR_OCCURRED+"%v", detokenizeErr.Error()))
 	}
 	if result != nil {
 		records := result.GetRecords()
@@ -427,21 +426,17 @@ func (v *VaultController) Detokenize(ctx *context.Context, request *DetokenizeRe
 	}, nil
 }
 
-func (v *VaultController) Get(ctx *context.Context, request *GetRequest, options *GetOptions) (*GetResponse, *skyflowError.SkyflowError) {
+func (v *VaultController) Get(ctx context.Context, request GetRequest, options GetOptions) (*GetResponse, *skyflowError.SkyflowError) {
 	// Get validate logic here
-	errs := validation.ValidateGetRequest(request, *options)
+	errs := validation.ValidateGetRequest(request, options)
 	if errs != nil {
 		return nil, errs
 	}
 	var data []map[string]interface{}
-	err := SetBearerTokenForVaultController(v)
-	if err != nil {
+	if err := CreateRequestClientFunc(v); err != nil {
 		return nil, err
 	}
-	if err := CreateRequestClientFunc(v); err != nil {
-		return nil, skyflowError.NewSkyflowError("400", "some issue with client")
-	}
-	query := v.ApiClient.RecordsAPI.RecordServiceBulkGetRecord(*ctx, v.Config.VaultId, request.Table).SkyflowIds(request.Ids)
+	query := v.ApiClient.RecordsAPI.RecordServiceBulkGetRecord(ctx, v.Config.VaultId, request.Table).SkyflowIds(request.Ids)
 
 	// Add conditional chaining for optional parameters
 	if options.RedactionType != "" {
@@ -465,10 +460,11 @@ func (v *VaultController) Get(ctx *context.Context, request *GetRequest, options
 	query = query.Tokenization(options.ReturnTokens)
 	query.DownloadURL(options.DownloadURL)
 	// Execute the query
-	result, httpResp, err1 := query.Execute()
-	if err1 != nil {
-		fmt.Println("===>", httpResp, err1)
-		return nil, skyflowError.NewSkyflowError("400", "some issue with request")
+	result, httpsRes, err1 := query.Execute()
+	if err1 != nil && httpsRes != nil {
+		return nil, skyflowError.SkyflowApiError(*httpsRes)
+	} else if err1 != nil {
+		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.ERROR_OCCURRED+"%v", err1.Error()))
 	}
 
 	records := result.GetRecords()
@@ -480,54 +476,49 @@ func (v *VaultController) Get(ctx *context.Context, request *GetRequest, options
 	return &GetResponse{Data: data}, nil
 }
 
-func (v *VaultController) Delete(ctx *context.Context, request *DeleteRequest) (*DeleteResponse, *skyflowError.SkyflowError) {
+func (v *VaultController) Delete(ctx context.Context, request DeleteRequest) (*DeleteResponse, *skyflowError.SkyflowError) {
 	// Delete validate logic here
-	errs := validation.ValidateDeleteRequest(*request)
+	errs := validation.ValidateDeleteRequest(request)
 	if errs != nil {
 		return nil, errs
 	}
-	err := SetBearerTokenForVaultController(v)
-	if err != nil {
-		return nil, err
-	}
+
 	if err := CreateRequestClientFunc(v); err != nil {
-		return nil, skyflowError.NewSkyflowError("400", "some issue with client")
+		return nil, err
 	}
 	reqBody := vaultapi.RecordServiceBulkDeleteRecordBody{}
 	reqBody.SetSkyflowIds(request.Ids)
-	res, httpRes, err1 := v.ApiClient.RecordsAPI.RecordServiceBulkDeleteRecord(*ctx, v.Config.VaultId, request.Table).Body(reqBody).Execute()
+	res, httpsRes, err1 := v.ApiClient.RecordsAPI.RecordServiceBulkDeleteRecord(ctx, v.Config.VaultId, request.Table).Body(reqBody).Execute()
 
-	if err1 != nil {
-		fmt.Println("===>", httpRes, err1)
-		return nil, skyflowError.NewSkyflowError("400", "some issue with request")
+	if err1 != nil && httpsRes != nil {
+		return nil, skyflowError.SkyflowApiError(*httpsRes)
+	} else if err1 != nil {
+		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.ERROR_OCCURRED+"%v", err1.Error()))
 	}
 	return &DeleteResponse{
 		DeletedIds: res.GetRecordIDResponse(),
 	}, nil
 }
 
-func (v *VaultController) Query(ctx *context.Context, queryRequest *QueryRequest) (*QueryResponse, *skyflowError.SkyflowError) {
+func (v *VaultController) Query(ctx context.Context, queryRequest QueryRequest) (*QueryResponse, *skyflowError.SkyflowError) {
 	// validate the query request
-	errs := validation.ValidateQueryRequest(*queryRequest)
+	errs := validation.ValidateQueryRequest(queryRequest)
 	if errs != nil {
 		return nil, errs
 	}
 	var fields []map[string]interface{}
 	var tokenizedData []map[string]interface{}
 
-	err := SetBearerTokenForVaultController(v)
-	if err != nil {
-		return nil, err
-	}
 	if err := CreateRequestClientFunc(v); err != nil {
-		return nil, skyflowError.NewSkyflowError("400", "some issue with client")
+		return nil, err
 	}
 	body := vaultapi.QueryServiceExecuteQueryBody{}
 	body.SetQuery(queryRequest.Query)
-	result, httpRes, errr := v.ApiClient.QueryAPI.QueryServiceExecuteQuery(*ctx, v.Config.VaultId).Body(body).Execute()
-	if errr != nil {
-		fmt.Println("===>", httpRes, errr)
-		return nil, skyflowError.NewSkyflowError("400", "some issue with request")
+	result, httpsRes, errr := v.ApiClient.QueryAPI.QueryServiceExecuteQuery(ctx, v.Config.VaultId).Body(body).Execute()
+	if errr != nil && httpsRes != nil {
+		return nil, skyflowError.SkyflowApiError(*httpsRes)
+	} else if errr != nil {
+		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.ERROR_OCCURRED+"%v", errr.Error()))
 	}
 	if result.GetRecords() != nil {
 		for _, record := range result.GetRecords() {
@@ -541,18 +532,15 @@ func (v *VaultController) Query(ctx *context.Context, queryRequest *QueryRequest
 	}, nil
 }
 
-func (v *VaultController) Update(ctx *context.Context, request *UpdateRequest, options *UpdateOptions) (*UpdateResponse, *skyflowError.SkyflowError) {
+func (v *VaultController) Update(ctx context.Context, request UpdateRequest, options UpdateOptions) (*UpdateResponse, *skyflowError.SkyflowError) {
 	// Update validate logic here
-	errs := validation.ValidateUpdateRequest(*request, *options)
+	errs := validation.ValidateUpdateRequest(request, options)
 	if errs != nil {
 		return nil, errs
 	}
-	err := SetBearerTokenForVaultController(v)
-	if err != nil {
-		return nil, err
-	}
+
 	if err := CreateRequestClientFunc(v); err != nil {
-		return nil, skyflowError.NewSkyflowError("400", "some issue with client")
+		return nil, err
 	}
 	payload := vaultapi.RecordServiceUpdateRecordBody{}
 	switch options.TokenMode {
@@ -570,12 +558,14 @@ func (v *VaultController) Update(ctx *context.Context, request *UpdateRequest, o
 		record.SetTokens(request.Tokens)
 	}
 	payload.SetRecord(record)
-	result, httpRes, err1 := v.ApiClient.RecordsAPI.RecordServiceUpdateRecord(*ctx, v.Config.VaultId, request.Table, request.Id).Body(payload).Execute()
+	result, httpsRes, errr := v.ApiClient.RecordsAPI.RecordServiceUpdateRecord(ctx, v.Config.VaultId, request.Table, request.Id).Body(payload).Execute()
 
-	if err1 != nil {
-		fmt.Println("===>", httpRes, err)
-		return nil, skyflowError.NewSkyflowError("400", "some issue with request")
+	if errr != nil && httpsRes != nil {
+		return nil, skyflowError.SkyflowApiError(*httpsRes)
+	} else if errr != nil {
+		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.ERROR_OCCURRED+"%v", errr.Error()))
 	}
+
 	id := result.GetSkyflowId()
 	res := GetFormattedUpdateRecord(*result)
 
@@ -585,24 +575,21 @@ func (v *VaultController) Update(ctx *context.Context, request *UpdateRequest, o
 	}, nil
 }
 
-func (v *VaultController) Tokenize(ctx *context.Context, request *[]TokenizeRequest) (*TokenizeResponse, *skyflowError.SkyflowError) {
+func (v *VaultController) Tokenize(ctx context.Context, request []TokenizeRequest) (*TokenizeResponse, *skyflowError.SkyflowError) {
 	// Update validate logic here
 	err := validation.ValidateTokenizeRequest(request)
 	if err != nil {
 		return nil, err
 	}
-	err = SetBearerTokenForVaultController(v)
-	if err != nil {
+	if err := CreateRequestClientFunc(v); err != nil {
 		return nil, err
 	}
-	if err := CreateRequestClientFunc(v); err != nil {
-		return nil, skyflowError.NewSkyflowError("400", "some issue with client")
-	}
 	payload := getTokenizePayload(request)
-	result, httpRes, tokenizeErr := v.ApiClient.TokensAPI.RecordServiceTokenize(*ctx, v.Config.VaultId).TokenizePayload(payload).Execute()
-	if tokenizeErr != nil {
-		fmt.Println("===>", httpRes, err)
-		return nil, skyflowError.NewSkyflowError("400", "some issue with request")
+	result, httpsRes, tokenizeErr := v.ApiClient.TokensAPI.RecordServiceTokenize(ctx, v.Config.VaultId).TokenizePayload(payload).Execute()
+	if tokenizeErr != nil && httpsRes != nil {
+		return nil, skyflowError.SkyflowApiError(*httpsRes)
+	} else if tokenizeErr != nil {
+		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.ERROR_OCCURRED+"%v", tokenizeErr.Error()))
 	}
 
 	return ParseTokenizeResponse(*result), nil

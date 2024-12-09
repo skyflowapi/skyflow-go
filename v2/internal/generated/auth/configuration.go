@@ -200,13 +200,10 @@ func getServerOperationVariables(ctx context.Context, endpoint string) (map[stri
 
 // ServerURLWithContext returns a new server URL given an endpoint
 func (c *Configuration) ServerURLWithContext(ctx context.Context, endpoint string) (string, error) {
-	fmt.Println("ok1", c)
 	sc, ok := c.OperationServers[endpoint]
-	fmt.Println("ok2", ok)
 	if !ok {
 		sc = c.Servers
 	}
-    fmt.Println("ok3", ok)
 	if ctx == nil {
 		return sc.URL(0, nil)
 	}
@@ -215,13 +212,11 @@ func (c *Configuration) ServerURLWithContext(ctx context.Context, endpoint strin
 	if err != nil {
 		return "", err
 	}
-	fmt.Println("err", err)
 
 	variables, err := getServerOperationVariables(ctx, endpoint)
 	if err != nil {
 		return "", err
 	}
-	fmt.Println("err2", err)
 
 	return sc.URL(index, variables)
 }

@@ -14,7 +14,6 @@ package auth
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -63,9 +62,7 @@ func (a *AuthenticationAPIService) AuthenticationServiceGetAuthTokenExecute(r Au
 		formFiles            []formFile
 		localVarReturnValue  *V1GetAuthTokenResponse
 	)
-	fmt.Println("authenticationServiceGetAuthToken called", r.ctx, a)
 	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "AuthenticationAPIService.AuthenticationServiceGetAuthToken")
-	fmt.Println("localBasePath", err)
 	if err != nil {
 		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
 	}

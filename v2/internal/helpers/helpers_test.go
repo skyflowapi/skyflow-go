@@ -25,33 +25,6 @@ func TestController(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Service Account Bearer Token Generation Helper Suite")
 }
-func mockserver(res string) *httptest.Server {
-	// Mock server for simulating the HTTP request/response
-	mockServers := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Simulating a successful response
-		w.Header().Set("Content-Type", "application/json")
-
-		if r.URL.Path == "/v1/auth/sa/oauth/token" && res == "ok" {
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`{
-					"accessToken": "mockAccessToken",
-					"tokenType": "bearer"
-				}`))
-			return
-		}
-
-		// Simulate an error response for other endpoints
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error": "invalid_request"}`))
-	}))
-	return mockServers
-}
-func getValidCreds() map[string]interface{} {
-	pvtKey := os.Getenv("VALID_CREDS_PVT_KEY")
-	credMap := map[string]interface{}{}
-	_ = json.Unmarshal([]byte(pvtKey), &credMap)
-	return credMap
-}
 
 var _ = Describe("Helpers", func() {
 	Describe("ParseCredentialsFile", func() {
@@ -190,7 +163,7 @@ MIIBAAIBADANINVALIDKEY==
 			// Assert
 			Expect(parseErr).NotTo(BeNil())
 			Expect(parseErr.GetCode()).To(Equal("Code: 400"))
-			Expect(parseErr.GetMessage()).To(Equal("Message: Invalid private key type"))
+			Expect(parseErr.GetMessage()).To(ContainSubstring(INVALID_KEY_SPEC))
 		})
 		It("should successfully parse a valid PKCS1 private key", func() {
 			// Arrange
@@ -255,7 +228,7 @@ MIIBAAIBADANINVALIDKEY==
 				Expect(keyID).To(BeEmpty())
 				Expect(err).ToNot(BeNil())
 				Expect(err.GetCode()).To(Equal("Code: 400"))
-				Expect(err.GetMessage()).To(Equal("Message: Invalid credential parameters"))
+				Expect(err.GetMessage()).To(ContainSubstring(INVALID_CREDENTIALS))
 			})
 		})
 
@@ -269,7 +242,7 @@ MIIBAAIBADANINVALIDKEY==
 				Expect(keyID).To(BeEmpty())
 				Expect(err).ToNot(BeNil())
 				Expect(err.GetCode()).To(Equal("Code: 400"))
-				Expect(err.GetMessage()).To(Equal("Message: Invalid credential parameters"))
+				Expect(err.GetMessage()).To(ContainSubstring(INVALID_CREDENTIALS))
 			})
 		})
 
@@ -329,7 +302,7 @@ MIIBAAIBADANINVALIDKEY==
 				Expect(response).Should(BeNil())
 				Expect(err).ShouldNot(BeNil())
 				Expect(err.GetCode()).Should(Equal("Code: 400")) // Assuming a 400 error code for this case
-				Expect(err.GetMessage()).Should(Equal("Message: Missing private key"))
+				Expect(err.GetMessage()).Should(ContainSubstring(MISSING_PRIVATE_KEY))
 			})
 		})
 
@@ -344,7 +317,7 @@ MIIBAAIBADANINVALIDKEY==
 				Expect(response).Should(BeNil())
 				Expect(err).ShouldNot(BeNil())
 				Expect(err.GetCode()).Should(Equal("Code: 400")) // Assuming a 400 error code for this case
-				Expect(err.GetMessage()).Should(Equal("Message: Invalid credential parameters"))
+				Expect(err.GetMessage()).Should(ContainSubstring(INVALID_CREDENTIALS))
 			})
 		})
 
@@ -356,7 +329,7 @@ MIIBAAIBADANINVALIDKEY==
 				Expect(response).Should(BeNil())
 				Expect(err).ShouldNot(BeNil())
 				Expect(err.GetCode()).Should(Equal("Code: 400")) // Assuming 400 error for signing failure
-				Expect(err.GetMessage()).Should(Equal("Message: Invalid private key format"))
+				Expect(err.GetMessage()).Should(ContainSubstring(JWT_INVALID_FORMAT))
 			})
 
 		})
@@ -479,7 +452,7 @@ MIIBAAIBADANINVALIDKEY==
 				Expect(err).ShouldNot(BeNil())
 				Expect(response).Should(BeNil())
 				Expect(err.GetCode()).Should(Equal("Code: 400"))
-				Expect(err.GetMessage()).Should(Equal("Message: privateKey is nil"))
+				Expect(err.GetMessage()).Should(ContainSubstring(MISSING_PRIVATE_KEY))
 			})
 			It("should return an error when clientID is missing", func() {
 				// Remove privateKey from credKeys to simulate missing key
@@ -492,7 +465,7 @@ MIIBAAIBADANINVALIDKEY==
 				Expect(err).ShouldNot(BeNil())
 				Expect(response).Should(BeNil())
 				Expect(err.GetCode()).Should(Equal("Code: 400"))
-				Expect(err.GetMessage()).Should(Equal("Message: clientID is nil"))
+				Expect(err.GetMessage()).Should(ContainSubstring(MISSING_CLIENT_ID))
 			})
 			It("should return an error when tokenURI is missing", func() {
 				// Remove privateKey from credKeys to simulate missing key
@@ -505,7 +478,7 @@ MIIBAAIBADANINVALIDKEY==
 				Expect(err).ShouldNot(BeNil())
 				Expect(response).Should(BeNil())
 				Expect(err.GetCode()).Should(Equal("Code: 400"))
-				Expect(err.GetMessage()).Should(Equal("Message: tokenURI is nil"))
+				Expect(err.GetMessage()).Should(ContainSubstring(MISSING_TOKEN_URI))
 			})
 			It("should return an error when keyID is missing", func() {
 				// Remove privateKey from credKeys to simulate missing key
@@ -518,7 +491,7 @@ MIIBAAIBADANINVALIDKEY==
 				Expect(err).ShouldNot(BeNil())
 				Expect(response).Should(BeNil())
 				Expect(err.GetCode()).Should(Equal("Code: 400"))
-				Expect(err.GetMessage()).Should(Equal("Message: keyID is nil"))
+				Expect(err.GetMessage()).Should(ContainSubstring(MISSING_KEY_ID))
 			})
 			It("should return an error when invalid token uri passed", func() {
 				// Remove privateKey from credKeys to simulate missing key
@@ -531,9 +504,37 @@ MIIBAAIBADANINVALIDKEY==
 				Expect(err).ShouldNot(BeNil())
 				Expect(response).Should(BeNil())
 				Expect(err.GetCode()).Should(Equal("Code: 400"))
-				Expect(err.GetMessage()).Should(Equal("Message: Failed to get token URL"))
+				Expect(err.GetMessage()).Should(ContainSubstring(INVALID_TOKEN_URI))
 			})
 
 		})
 	})
 })
+
+func mockserver(res string) *httptest.Server {
+	// Mock server for simulating the HTTP request/response
+	mockServers := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Simulating a successful response
+		w.Header().Set("Content-Type", "application/json")
+
+		if r.URL.Path == "/v1/auth/sa/oauth/token" && res == "ok" {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`{
+					"accessToken": "mockAccessToken",
+					"tokenType": "bearer"
+				}`))
+			return
+		}
+
+		// Simulate an error response for other endpoints
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"error":{"grpc_code":16,"http_code":401,"message":"invalid_grant: Invalid Audience https://demo.com","http_status":"Unauthorized","details":[]}} `))
+	}))
+	return mockServers
+}
+func getValidCreds() map[string]interface{} {
+	pvtKey := os.Getenv("VALID_CREDS_PVT_KEY")
+	credMap := map[string]interface{}{}
+	_ = json.Unmarshal([]byte(pvtKey), &credMap)
+	return credMap
+}

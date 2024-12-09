@@ -123,7 +123,7 @@ var _ = Describe("ServiceAccount Test Suite", func() {
 			// Assert the error response
 			Expect(err).ToNot(BeNil())
 			Expect(tokenResp).To(BeNil())
-			Expect(err.GetMessage()).To(Equal("Message: Failed to parse credential file"))
+			Expect(err.GetMessage()).To(ContainSubstring(skyflowError.FILE_NOT_FOUND))
 		})
 	})
 	Context("GenerateBearerTokenCreds success/error response", func() {
@@ -178,7 +178,7 @@ var _ = Describe("ServiceAccount Test Suite", func() {
 			// Assert the error response
 			Expect(err).ToNot(BeNil())
 			Expect(tokenResp).To(BeNil())
-			Expect(err.GetMessage()).To(Equal("Message: Failed to parse credential string, wrong format given"))
+			Expect(err.GetMessage()).To(ContainSubstring(skyflowError.INVALID_CREDENTIALS))
 		})
 	})
 	Context("GenerateSignedTokenCreds success/error response", func() {

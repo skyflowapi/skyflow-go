@@ -14,10 +14,8 @@ type connectionService struct {
 	controller controller.ConnectionController
 }
 
-var connectionTag = "InvokeConnection"
-
 func (c *connectionService) Invoke(ctx context.Context, request InvokeConnectionRequest) (*InvokeConnectionResponse, *skyflowError.SkyflowError) {
-	res, err := c.controller.Invoke(&ctx, &request)
+	res, err := c.controller.Invoke(ctx, request)
 	if err != nil {
 		return nil, err
 	}

@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/hetiansu5/urlquery"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
@@ -18,6 +17,8 @@ import (
 	"skyflow-go/v2/utils/logger"
 	"strconv"
 	"strings"
+
+	"github.com/hetiansu5/urlquery"
 )
 
 type ConnectionController struct {
@@ -39,12 +40,15 @@ func setBearerTokenForConnectionController(v *ConnectionController) *SkyflowErro
 		}
 		v.Token = *token
 	}
+	if serviceaccount.IsExpired(v.Token) {
+		return NewSkyflowError(INVALID_INPUT_CODE, TOKEN_EXPIRED)
+	}
 	return nil
 }
 
-func (v *ConnectionController) Invoke(ctx *context.Context, request *InvokeConnectionRequest) (*InvokeConnectionResponse, *SkyflowError) {
+func (v *ConnectionController) Invoke(ctx context.Context, request InvokeConnectionRequest) (*InvokeConnectionResponse, *SkyflowError) {
 	// Step 1: Validate Configuration
-	er := validation.ValidateInvokeConnectionRequest(*request)
+	er := validation.ValidateInvokeConnectionRequest(request)
 	if er != nil {
 		return nil, er
 	}
@@ -61,32 +65,32 @@ func (v *ConnectionController) Invoke(ctx *context.Context, request *InvokeConne
 
 	// Step 3: Prepare Request Body
 	requestBody, err1 := prepareRequest(
-		*request,
+		request,
 		requestUrl,
 	)
 	if err1 != nil {
-		return nil, NewSkyflowError("400", "request not prepared")
+		return nil, NewSkyflowError(INVALID_INPUT_CODE, fmt.Sprintf(UNKNOWN_ERROR, err1.Error()))
 	}
 
 	// Step 4: Set Query Params
 	err2 := setQueryParams(requestBody, request.QueryParams)
 	if err2 != nil {
-		return nil, NewSkyflowError("400", "query param not added")
+		return nil, err2
 	}
 
 	// Step 5: Set Headers
-	setHeaders(requestBody, *v, *request)
+	setHeaders(requestBody, *v, request)
 
 	// Step 6: Send Request
 	res, requestId, invokeErr := sendRequest(requestBody)
 	if invokeErr != nil {
-		return nil, NewSkyflowError("400", "request not prepared")
+		return nil, NewSkyflowError(INVALID_INPUT_CODE, fmt.Sprintf(UNKNOWN_ERROR, invokeErr.Error()))
 	}
 
 	// Step 7: Parse Response
 	parseRes, parseErr := parseResponse(res, requestId)
 	if parseErr != nil {
-		return nil, NewSkyflowError("400", "response parse error")
+		return nil, parseErr
 	}
 	return &InvokeConnectionResponse{Response: parseRes}, nil
 }
@@ -188,7 +192,7 @@ func detectContentType(headers map[string]string) string {
 	}
 	return string(APPLICATIONORJSON)
 }
-func setQueryParams(request *http.Request, queryParams map[string]interface{}) error {
+func setQueryParams(request *http.Request, queryParams map[string]interface{}) *SkyflowError {
 	query := request.URL.Query()
 	for key, value := range queryParams {
 		switch v := value.(type) {
@@ -201,7 +205,7 @@ func setQueryParams(request *http.Request, queryParams map[string]interface{}) e
 		case bool:
 			query.Set(key, strconv.FormatBool(v))
 		default:
-			return NewSkyflowError("400", "invalid query param")
+			return NewSkyflowError(INVALID_INPUT_CODE, INVALID_QUERY_PARAM)
 		}
 	}
 	request.URL.RawQuery = query.Encode()
@@ -229,11 +233,11 @@ func sendRequest(request *http.Request) (*http.Response, string, error) {
 func parseResponse(response *http.Response, requestId string) (map[string]interface{}, *SkyflowError) {
 	data, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return nil, NewSkyflowError("400", "error in parsing")
+		return nil, NewSkyflowError(INVALID_INPUT_CODE, INVALID_RESPONSE)
 	}
 	var result map[string]interface{}
 	if err1 := json.Unmarshal(data, &result); err1 != nil {
-		return nil, NewSkyflowError("400", "error in parsing")
+		return nil, NewSkyflowError(INVALID_INPUT_CODE, INVALID_RESPONSE)
 	}
 	return result, nil
 }

@@ -1,14 +1,13 @@
 package client_test
 
 import (
-	"fmt"
-	vaultutils "skyflow-go/v2/utils/common"
-	"skyflow-go/v2/utils/logger"
-	"testing"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "skyflow-go/v2/client"
+	vaultutils "skyflow-go/v2/utils/common"
+	skyflowError "skyflow-go/v2/utils/error"
+	"skyflow-go/v2/utils/logger"
+	"testing"
 )
 
 func TestServiceAccount(t *testing.T) {
@@ -23,11 +22,10 @@ var _ = Describe("Skyflow Builder", func() {
 	})
 	Context("ClientBuilder1", func() {
 		It("should build a client with the correct configurations", func() {
-			vaultConfig1 := vaultutils.VaultConfig{VaultId: "vault1"}
+			vaultConfig1 := vaultutils.VaultConfig{VaultId: "vault1", ClusterId: "id"}
 			builder1, err := skyflowClient.Builder().
 				WithVaultConfig(vaultConfig1).
-				WithVaultConfig(vaultConfig1).
-				WithConnectionConfig(vaultutils.ConnectionConfig{ConnectionId: "conn1"}).
+				WithConnectionConfig(vaultutils.ConnectionConfig{ConnectionId: "conn1", ConnectionUrl: "https://demo.com"}).
 				WithSkyflowCredentials(vaultutils.Credentials{Token: "token1"}).
 				WithLogLevel(logger.WARN).
 				Build()
@@ -48,12 +46,12 @@ var _ = Describe("Skyflow Builder", func() {
 	})
 	Context("ClientBuilder2", func() {
 		It("should handle multiple vault configurations", func() {
-			vaultConfig2 := vaultutils.VaultConfig{VaultId: "vault2", Env: vaultutils.DEV}
-			vaultConfig3 := vaultutils.VaultConfig{VaultId: "vault3", Env: vaultutils.STAGE}
+			vaultConfig2 := vaultutils.VaultConfig{VaultId: "vault2", Env: vaultutils.DEV, ClusterId: "id"}
+			vaultConfig3 := vaultutils.VaultConfig{VaultId: "vault3", Env: vaultutils.STAGE, ClusterId: "id"}
 			builder2, err := skyflowClient.Builder().
 				WithVaultConfig(vaultConfig2).
 				WithVaultConfig(vaultConfig3).
-				WithConnectionConfig(vaultutils.ConnectionConfig{ConnectionId: "conn2"}).
+				WithConnectionConfig(vaultutils.ConnectionConfig{ConnectionId: "conn2", ConnectionUrl: "https://demo.com"}).
 				WithSkyflowCredentials(vaultutils.Credentials{Token: "token2"}).
 				WithLogLevel(logger.ERROR).Build()
 
@@ -75,20 +73,19 @@ var _ = Describe("Skyflow Builder", func() {
 	})
 	Context("CompareClientBuilders", func() {
 		It("should verify that two builders are different", func() {
-			vaultConfig1 := vaultutils.VaultConfig{VaultId: "vault1"}
-			vaultConfig2 := vaultutils.VaultConfig{VaultId: "vault2", Env: vaultutils.DEV}
-			vaultConfig3 := vaultutils.VaultConfig{VaultId: "vault3", Env: vaultutils.STAGE}
+			vaultConfig1 := vaultutils.VaultConfig{VaultId: "vault1", ClusterId: "id"}
+			vaultConfig2 := vaultutils.VaultConfig{VaultId: "vault2", Env: vaultutils.DEV, ClusterId: "id"}
+			vaultConfig3 := vaultutils.VaultConfig{VaultId: "vault3", Env: vaultutils.STAGE, ClusterId: "id"}
 
-			builder1, _ := skyflowClient.Builder().
+			builder1, err := skyflowClient.Builder().
 				WithVaultConfig(vaultConfig1).
-				WithConnectionConfig(vaultutils.ConnectionConfig{ConnectionId: "conn1"}).
+				WithConnectionConfig(vaultutils.ConnectionConfig{ConnectionId: "conn1", ConnectionUrl: "https://demo.com"}).
 				WithSkyflowCredentials(vaultutils.Credentials{Token: "token1"}).
 				WithLogLevel(logger.WARN).Build()
-
-			builder2, _ := skyflowClient.Builder().
+			builder2, err := skyflowClient.Builder().
 				WithVaultConfig(vaultConfig2).
 				WithVaultConfig(vaultConfig3).
-				WithConnectionConfig(vaultutils.ConnectionConfig{ConnectionId: "conn2"}).
+				WithConnectionConfig(vaultutils.ConnectionConfig{ConnectionId: "conn2", ConnectionUrl: "https://demo.com"}).
 				WithSkyflowCredentials(vaultutils.Credentials{Token: "token2"}).
 				WithLogLevel(logger.ERROR).Build()
 
@@ -107,13 +104,13 @@ var _ = Describe("Skyflow Builder", func() {
 	})
 	Context("DeleteFromVaultConfig", func() {
 		It("should delete a vault configuration and verify the update", func() {
-			vaultConfig1 := vaultutils.VaultConfig{VaultId: "vault1"}
-			vaultConfig3 := vaultutils.VaultConfig{VaultId: "vault3", Env: vaultutils.STAGE}
+			vaultConfig1 := vaultutils.VaultConfig{VaultId: "vault1", ClusterId: "id"}
+			vaultConfig3 := vaultutils.VaultConfig{VaultId: "vault3", Env: vaultutils.STAGE, ClusterId: "id"}
 
 			builder1, _ := skyflowClient.Builder().
 				WithVaultConfig(vaultConfig1).
 				WithVaultConfig(vaultConfig3).
-				WithConnectionConfig(vaultutils.ConnectionConfig{ConnectionId: "conn1"}).
+				WithConnectionConfig(vaultutils.ConnectionConfig{ConnectionId: "conn1", ConnectionUrl: "https://demo.com"}).
 				WithSkyflowCredentials(vaultutils.Credentials{Token: "token1"}).
 				WithLogLevel(logger.WARN).Build()
 
@@ -139,10 +136,10 @@ var _ = Describe("Skyflow Builder", func() {
 	})
 	Context("ClientBuilder1", func() {
 		It("should build a client with the correct configurations", func() {
-			vaultConfig1 := vaultutils.VaultConfig{VaultId: "vault1"}
+			vaultConfig1 := vaultutils.VaultConfig{VaultId: "vault1", ClusterId: "id"}
 			builder1, err := skyflowClient.Builder().
 				WithVaultConfig(vaultConfig1).
-				WithConnectionConfig(vaultutils.ConnectionConfig{ConnectionId: "conn1"}).
+				WithConnectionConfig(vaultutils.ConnectionConfig{ConnectionId: "conn1", ConnectionUrl: "https://demo.com"}).
 				WithSkyflowCredentials(vaultutils.Credentials{Token: "token1"}).
 				WithLogLevel(logger.WARN).
 				Build()
@@ -160,13 +157,28 @@ var _ = Describe("Skyflow Builder", func() {
 			Expect(err).To(BeNil())
 			Expect(config.Env).To(Equal(expectedVaultConfigs["vault1"].Env))
 		})
+		It("should return error when a client with the duplicate configurations", func() {
+			vaultConfig1 := vaultutils.VaultConfig{VaultId: "vault1", ClusterId: "id"}
+			builder1, err := skyflowClient.Builder().
+				WithVaultConfig(vaultConfig1).
+				WithVaultConfig(vaultConfig1).
+				WithConnectionConfig(vaultutils.ConnectionConfig{ConnectionId: "conn1", ConnectionUrl: "https://demo.com"}).
+				WithSkyflowCredentials(vaultutils.Credentials{Token: "token1"}).
+				WithLogLevel(logger.WARN).
+				Build()
+
+			Expect(builder1).To(BeNil())
+			Expect(err).To(HaveOccurred())
+			Expect(err.GetMessage()).To(ContainSubstring(skyflowError.VAULT_ID_ALREADY_IN_CONFIG_LIST))
+		})
+
 	})
 	Context("Test LogLevel and credentials", func() {
 		It("should return the correct default log level", func() {
 			builder, _ := skyflowClient.Builder().Build()
 			logLevel, err := builder.GetLoglevel()
 			expectNoError(err)
-			Expect(*logLevel).To(Equal(logger.DEBUG))
+			Expect(*logLevel).To(Equal(logger.ERROR))
 		})
 
 		It("should get the log level correctly", func() {
@@ -194,7 +206,11 @@ var _ = Describe("Skyflow Builder", func() {
 			}).Build()
 			expectNoError(err)
 
-			builder.UpdateSkyflowCredentials(vaultutils.Credentials{Token: "token2"})
+			errr := builder.UpdateSkyflowCredentials(vaultutils.Credentials{})
+			Expect(errr).ToNot(BeNil())
+
+			errr1 := builder.UpdateSkyflowCredentials(vaultutils.Credentials{Token: "token1"})
+			Expect(errr1).To(BeNil())
 		})
 
 	})
@@ -204,7 +220,7 @@ var _ = Describe("Skyflow Builder", func() {
 			connectionConfig := vaultutils.ConnectionConfig{ConnectionId: "id", ConnectionUrl: "https://demo.com", Credentials: vaultutils.Credentials{
 				Token: "token1",
 			}}
-			builder, err := skyflowClient.Builder().WithConnectionConfig(connectionConfig).WithConnectionConfig(connectionConfig).Build()
+			builder, err := skyflowClient.Builder().WithConnectionConfig(connectionConfig).Build()
 			expectNoError(err)
 			config1, err1 := builder.GetConnectionConfig("id")
 			expectNoError(err1)
@@ -234,6 +250,9 @@ var _ = Describe("Skyflow Builder", func() {
 			err3 := builder.UpdateConnectionConfig(vaultutils.ConnectionConfig{ConnectionId: "id2", ConnectionUrl: "https://demo2.com"})
 			Expect(err3).To(BeNil())
 
+			err5 := builder.UpdateConnectionConfig(vaultutils.ConnectionConfig{ConnectionId: "id2", ConnectionUrl: ""})
+			Expect(err5).ToNot(BeNil())
+
 			c, err4 := builder.GetConnectionConfig("id2")
 			Expect(err4).To(BeNil())
 			Expect(c.ConnectionId).To(Equal("id2"))
@@ -249,6 +268,16 @@ var _ = Describe("Skyflow Builder", func() {
 			})
 			Expect(errr).ToNot(BeNil())
 
+			// add already existing config throws error
+			errr = builder.AddConnectionConfig(vaultutils.ConnectionConfig{
+				ConnectionId:  "id2",
+				ConnectionUrl: "",
+				Credentials: vaultutils.Credentials{
+					Token: "token",
+				},
+			})
+			Expect(errr).ToNot(BeNil())
+
 			// update config that is not present
 			err3 = builder.UpdateConnectionConfig(vaultutils.ConnectionConfig{ConnectionId: "id4", ConnectionUrl: "https://demo2.com", Credentials: vaultutils.Credentials{
 				Token: "token",
@@ -256,28 +285,31 @@ var _ = Describe("Skyflow Builder", func() {
 			Expect(err3).ToNot(BeNil())
 		})
 	})
-	Context("AddVaultConfig", func() {
+	Context("Add VaultConfig and creds", func() {
 		It("should add a new vault configuration", func() {
 			vaultConfig := vaultutils.VaultConfig{VaultId: "newVault", Env: vaultutils.DEV, ClusterId: "id1", Credentials: vaultutils.Credentials{Token: "token1"}}
 			builder, err := skyflowClient.Builder().Build()
 			Expect(err).To(BeNil())
+
 			err1 := builder.AddVaultConfig(vaultConfig)
 			expectNoError(err1)
 
 			config, err2 := builder.GetVaultConfig("newVault")
 			expectNoError(err2)
 			Expect(config).To(Equal(vaultConfig))
+
+			err3 := builder.AddSkyflowCredentials(vaultutils.Credentials{Token: "token1"})
+			Expect(err3).To(BeNil())
+			err3 = builder.AddSkyflowCredentials(vaultutils.Credentials{})
+			Expect(err3).ToNot(BeNil())
 		})
 
-		//It("should return an error when adding a duplicate vault configuration", func() {
-		//	vaultConfig := vaultutils.VaultConfig{VaultId: "vault1"}
-		//	builder, err := skyflowClient.Builder().WithVaultConfig(vaultConfig).Build()
-		//	Expect(err).To(BeNil())
-		//	err = builder.AddVaultConfig(vaultConfig)
-		//	conf, errr := builder.GetVaultConfig(vaultConfig.VaultId)
-		//	Expect(errr).To(BeNil())
-		//	Expect(conf).To(Equal(vaultConfig))
-		//})
+		It("should return an error when adding a duplicate vault configuration", func() {
+			vaultConfig := vaultutils.VaultConfig{VaultId: "vault1"}
+			builder, err := skyflowClient.Builder().WithVaultConfig(vaultConfig).WithVaultConfig(vaultConfig).Build()
+			Expect(err).ToNot(BeNil())
+			Expect(builder).To(BeNil())
+		})
 	})
 	Context("UpdateVaultConfig", func() {
 		It("should update an existing vault configuration", func() {
@@ -287,7 +319,6 @@ var _ = Describe("Skyflow Builder", func() {
 			updatedConfig := vaultutils.VaultConfig{VaultId: "vault1", Env: vaultutils.PROD, ClusterId: "id1", Credentials: vaultutils.Credentials{Token: "token1"}}
 			err := builder.UpdateVaultConfig(updatedConfig)
 			expectNoError(err)
-			fmt.Println("errrtrtrtrtrt", err)
 			config, err2 := builder.GetVaultConfig("vault1")
 			expectNoError(err2)
 			Expect(config).To(Equal(updatedConfig))
@@ -300,17 +331,29 @@ var _ = Describe("Skyflow Builder", func() {
 			err := builder.UpdateVaultConfig(updatedConfig)
 			Expect(err).NotTo(BeNil())
 		})
+		It("should return an error when updating a non-existing vault configuration", func() {
+			updatedConfig := vaultutils.VaultConfig{VaultId: "nonExistentVault", Env: vaultutils.PROD, ClusterId: "id1", Credentials: vaultutils.Credentials{Token: "token1"}}
+			builder, errr := skyflowClient.Builder().Build()
+			Expect(errr).To(BeNil())
+			err := builder.UpdateVaultConfig(updatedConfig)
+			Expect(err).NotTo(BeNil())
+		})
 	})
 	Context("Test Vault method", func() {
 		It("should create a new Vault method", func() {
 			vaultConfig := vaultutils.VaultConfig{VaultId: "vault1", Env: vaultutils.DEV, Credentials: vaultutils.Credentials{
 				Token: "token1",
-			}}
-			builder, errr := skyflowClient.Builder().WithVaultConfig(vaultConfig).Build()
+			}, ClusterId: "invalid"}
+			vaultConfig2 := vaultutils.VaultConfig{VaultId: "vault0", Env: vaultutils.DEV, ClusterId: "id"}
+			builder, errr := skyflowClient.Builder().WithVaultConfig(vaultConfig).WithVaultConfig(vaultConfig2).Build()
 			Expect(errr).To(BeNil())
 			service, err := builder.Vault("vault1")
 			Expect(err).To(BeNil())
 			Expect(service).NotTo(BeNil())
+
+			service, err = builder.Vault("vault0")
+			Expect(err).ToNot(BeNil())
+			Expect(service).To(BeNil())
 
 			service, err = builder.Vault("vault2")
 			Expect(err).ToNot(BeNil())
@@ -337,13 +380,18 @@ var _ = Describe("Skyflow Builder", func() {
 			service, err = builder.Vault()
 			Expect(er).To(BeNil())
 			Expect(service).ToNot(Equal(vaultutils.VaultConfig{}))
+
+			er1 := builder.AddVaultConfig(vaultutils.VaultConfig{VaultId: "vault3", Env: vaultutils.DEV, Credentials: vaultutils.Credentials{Token: "token"}, ClusterId: "id"})
+			Expect(er1).ToNot(BeNil())
+			er2 := builder.AddVaultConfig(vaultutils.VaultConfig{VaultId: "vault3", Env: vaultutils.DEV, Credentials: vaultutils.Credentials{Token: "token"}, ClusterId: ""})
+			Expect(er2).ToNot(BeNil())
 		})
 	})
 	Context("Test Connection method", func() {
-		It("should create vault service", func() {
+		It("should create connection service", func() {
 			skyflowClient = Skyflow{}
-			connectionConfig := vaultutils.ConnectionConfig{ConnectionId: "id", Credentials: vaultutils.Credentials{Token: "token"}}
-			builder, err := skyflowClient.Builder().WithConnectionConfig(connectionConfig).WithConnectionConfig(vaultutils.ConnectionConfig{ConnectionId: "id4"}).Build()
+			connectionConfig := vaultutils.ConnectionConfig{ConnectionId: "id", Credentials: vaultutils.Credentials{Token: "token"}, ConnectionUrl: "https://demo.com"}
+			builder, err := skyflowClient.Builder().WithConnectionConfig(connectionConfig).WithConnectionConfig(vaultutils.ConnectionConfig{ConnectionId: "id4", ConnectionUrl: "https://demo.com"}).WithSkyflowCredentials(vaultutils.Credentials{Token: "token"}).Build()
 			expectNoError(err)
 			service, err := builder.Connection()
 			Expect(err).To(BeNil())
@@ -357,10 +405,6 @@ var _ = Describe("Skyflow Builder", func() {
 			Expect(err).ToNot(BeNil())
 			Expect(service).To(BeNil())
 
-			service, err = builder.Connection("id4")
-			Expect(err).ToNot(BeNil())
-			Expect(service).To(BeNil())
-
 			err = builder.RemoveConnectionConfig("id4")
 			Expect(err).To(BeNil())
 			err = builder.RemoveConnectionConfig("id")
@@ -371,6 +415,14 @@ var _ = Describe("Skyflow Builder", func() {
 			Expect(service).To(BeNil())
 
 		})
+		It("should return error when duplicate connection config passed", func() {
+			skyflowClient = Skyflow{}
+			connectionConfig := vaultutils.ConnectionConfig{ConnectionId: "id", Credentials: vaultutils.Credentials{Token: "token"}, ConnectionUrl: "https://demo.com"}
+			builder, err := skyflowClient.Builder().WithConnectionConfig(connectionConfig).WithConnectionConfig(vaultutils.ConnectionConfig{ConnectionId: "id", ConnectionUrl: "https://demo.com", Credentials: vaultutils.Credentials{Token: "token"}}).Build()
+			Expect(err).ToNot(BeNil())
+			Expect(builder).To(BeNil())
+		})
+
 	})
 })
 

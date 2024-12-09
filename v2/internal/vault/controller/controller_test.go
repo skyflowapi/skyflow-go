@@ -78,19 +78,19 @@ var _ = Describe("Vault controller Test cases", func() {
 
 			tests := []struct {
 				name         string
-				request      *InsertRequest
-				options      *InsertOptions
+				request      InsertRequest
+				options      InsertOptions
 				expectedBody *vaultapi2.RecordServiceInsertRecordBody
 			}{
 				{
 					name: "Default behavior",
-					request: &InsertRequest{
+					request: InsertRequest{
 						Values: []map[string]interface{}{
 							{"field1": "value1"},
 							{"field2": "value2"},
 						},
 					},
-					options: &InsertOptions{
+					options: InsertOptions{
 						ReturnTokens: true,
 						Upsert:       "upsert",
 						TokenMode:    DISABLE,
@@ -109,12 +109,12 @@ var _ = Describe("Vault controller Test cases", func() {
 				},
 				{
 					name: "With tokens",
-					request: &InsertRequest{
+					request: InsertRequest{
 						Values: []map[string]interface{}{
 							{"field1": "value1"},
 						},
 					},
-					options: &InsertOptions{
+					options: InsertOptions{
 						ReturnTokens: true,
 						Upsert:       "upsert",
 						Tokens: []map[string]interface{}{
@@ -138,10 +138,10 @@ var _ = Describe("Vault controller Test cases", func() {
 				},
 				{
 					name: "Empty input",
-					request: &InsertRequest{
+					request: InsertRequest{
 						Values: []map[string]interface{}{},
 					},
-					options: &InsertOptions{
+					options: InsertOptions{
 						ReturnTokens: false,
 						Upsert:       "upsert",
 						TokenMode:    ENABLE,
@@ -162,7 +162,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				test := test
 
 				It("should create the correct request body", func() {
-					actualBody := CreateInsertBulkBodyRequest(test.request, test.options)
+					actualBody := CreateInsertBulkBodyRequest(&test.request, &test.options)
 					Expect(reflect.DeepEqual(actualBody, test.expectedBody)).To(BeTrue(), "Expected body does not match actual body")
 				})
 			}
@@ -295,7 +295,7 @@ var _ = Describe("Vault controller Test cases", func() {
 
 					if test.expectedError != nil {
 						Expect(err).To(HaveOccurred())
-						Expect(err.Error()).To(ContainSubstring(test.expectedError.Error()))
+						Expect(err.GetMessage()).To(ContainSubstring(skyflowError.INVALID_RESPONSE))
 					} else {
 						Expect(err).To(BeNil())
 					}
@@ -394,7 +394,7 @@ var _ = Describe("Vault controller Test cases", func() {
 					ClusterId: "clusterid",
 					Env:       PROD,
 					Credentials: Credentials{
-						Token: "Token",
+						ApiKey: "sky-token",
 					},
 				},
 			}
@@ -425,14 +425,14 @@ var _ = Describe("Vault controller Test cases", func() {
 			})
 
 			It("should insert successfully", func() {
-				request := &InsertRequest{
+				request := InsertRequest{
 					Table: "test_table",
 					Values: []map[string]interface{}{
 						{"field1": "value1"},
 						{"field2": "value2"},
 					},
 				}
-				options := &InsertOptions{
+				options := InsertOptions{
 					ContinueOnError: true,
 					Upsert:          "upsert",
 					Tokens: []map[string]interface{}{
@@ -442,7 +442,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				}
 
 				ctx := context.Background()
-				res, insertError := contrl.Insert(&ctx, request, options)
+				res, insertError := contrl.Insert(ctx, request, options)
 
 				Expect(insertError).To(BeNil())
 				Expect(len(res.InsertedFields)).To(Equal(1))
@@ -458,20 +458,20 @@ var _ = Describe("Vault controller Test cases", func() {
 				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
 
 				// Prepare mock data
-				request := &InsertRequest{
+				request := InsertRequest{
 					Table: "test_table",
 					Values: []map[string]interface{}{
 						{"field1": "value1"},
 						{"field2": "value2"},
 					},
 				}
-				options := &InsertOptions{
+				options := InsertOptions{
 					ContinueOnError: true,
 					Upsert:          "upsert",
 				}
 
 				// Set up the mock server using the reusable function
-				ts = setupMockServer(response, "error", "/vaults/v1/vaults/")
+				ts = setupMockServer(response, "partial", "/vaults/v1/vaults/")
 				defer ts.Close()
 
 				// Set the mock server URL in the controller's client
@@ -499,22 +499,22 @@ var _ = Describe("Vault controller Test cases", func() {
 
 				// Call the Insert method
 				ctx := context.Background()
-				res, insertError := contrl.Insert(&ctx, request, options)
+				res, insertError := contrl.Insert(ctx, request, options)
 
 				// Assertions
-				Expect(insertError).ToNot(BeNil(), "Expected an error during insert operation")
-				Expect(res).To(BeNil(), "Expected no response due to error in insert operation")
+				Expect(insertError).To(BeNil(), "Expected an error during insert operation")
+				Expect(res).ToNot(BeNil(), "Expected no response due to error in insert operation")
 			})
 			It("should return an error when validations fails", func() {
 				// Prepare mock data
-				request := &InsertRequest{
+				request := InsertRequest{
 					Table: "",
 					Values: []map[string]interface{}{
 						{"field1": "value1"},
 						{"field2": "value2"},
 					},
 				}
-				options := &InsertOptions{
+				options := InsertOptions{
 					ContinueOnError: true,
 					Upsert:          "upsert",
 				}
@@ -533,7 +533,7 @@ var _ = Describe("Vault controller Test cases", func() {
 
 				// Call the Insert method
 				ctx := context.Background()
-				res, insertError := contrl.Insert(&ctx, request, options)
+				res, insertError := contrl.Insert(ctx, request, options)
 
 				// Assertions
 				Expect(insertError).ToNot(BeNil(), "Expected an error during insert operation")
@@ -550,14 +550,14 @@ var _ = Describe("Vault controller Test cases", func() {
 				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
 
 				// Prepare mock data
-				request := &InsertRequest{
+				request := InsertRequest{
 					Table: "test_table",
 					Values: []map[string]interface{}{
 						{"field1": "value1"},
 						{"field2": "value2"},
 					},
 				}
-				options := &InsertOptions{
+				options := InsertOptions{
 					ContinueOnError: true,
 					Upsert:          "upsert",
 				}
@@ -591,7 +591,7 @@ var _ = Describe("Vault controller Test cases", func() {
 
 				// Call the Insert method
 				ctx := context.Background()
-				res, insertError := contrl.Insert(&ctx, request, options)
+				res, insertError := contrl.Insert(ctx, request, options)
 
 				// Assertions
 				Expect(insertError).To(BeNil(), "Expected no error during insert operation")
@@ -608,14 +608,14 @@ var _ = Describe("Vault controller Test cases", func() {
 				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
 
 				// Mock request and options
-				request := &InsertRequest{
+				request := InsertRequest{
 					Table: "test_table",
 					Values: []map[string]interface{}{
 						{"name": "value1"},
 						{"expiry_month": "value2", "name": "value2"},
 					},
 				}
-				options := &InsertOptions{
+				options := InsertOptions{
 					ContinueOnError: false,
 					Upsert:          "upsert",
 					Tokens: []map[string]interface{}{
@@ -638,7 +638,7 @@ var _ = Describe("Vault controller Test cases", func() {
 
 				// Call the Insert method
 				ctx := context.Background()
-				res, insertError := contrl.Insert(&ctx, request, options)
+				res, insertError := contrl.Insert(ctx, request, options)
 
 				// Assertions
 				Expect(insertError).To(BeNil(), "Expected no error during insert operation")
@@ -650,21 +650,21 @@ var _ = Describe("Vault controller Test cases", func() {
 		})
 		Context("Insert with ContinueOnError False - Error Case", func() {
 			It("should return error", func() {
-				const mockJSONResponse = `{{"error":{"grpc_code":3,"http_code":400,"message":"Insert failed. Table name card_detail is invalid. Specify a valid table name.","http_status":"Bad Request","details":[]}}}`
+				const mockJSONResponse = `{"error":{"grpc_code":3,"http_code":400,"message":"Insert failed. Table name card_detail is invalid. Specify a valid table name.","http_status":"Bad Request","details":[]}}`
 				var response map[string]interface{}
 
 				// Unmarshal the mock JSON response into a map
 				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
 
 				// Prepare mock data
-				request := &InsertRequest{
+				request := InsertRequest{
 					Table: "test_table",
 					Values: []map[string]interface{}{
 						{"field1": "value1"},
 						{"field2": "value2"},
 					},
 				}
-				options := &InsertOptions{
+				options := InsertOptions{
 					ContinueOnError: false,
 					Upsert:          "upsert",
 				}
@@ -698,7 +698,7 @@ var _ = Describe("Vault controller Test cases", func() {
 
 				// Call the Insert method
 				ctx := context.Background()
-				res, insertError := contrl.Insert(&ctx, request, options)
+				res, insertError := contrl.Insert(ctx, request, options)
 
 				// Assertions
 				Expect(insertError).ToNot(BeNil(), "Expected error during insert operation")
@@ -714,14 +714,14 @@ var _ = Describe("Vault controller Test cases", func() {
 				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
 
 				// Prepare mock data
-				request := &InsertRequest{
+				request := InsertRequest{
 					Table: "test_table",
 					Values: []map[string]interface{}{
 						{"field1": "value1"},
 						{"field2": "value2"},
 					},
 				}
-				options := &InsertOptions{
+				options := InsertOptions{
 					ContinueOnError: true,
 					Upsert:          "upsert",
 					Tokens: []map[string]interface{}{
@@ -742,7 +742,7 @@ var _ = Describe("Vault controller Test cases", func() {
 
 				// Call the Insert method
 				ctx := context.Background()
-				_, insertError := contrl.Insert(&ctx, request, options)
+				_, insertError := contrl.Insert(ctx, request, options)
 
 				// Assertions
 				Expect(insertError).ToNot(BeNil(), "Expected an error when client creation fails")
@@ -762,7 +762,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				Config: VaultConfig{
 					VaultId: "vaultID",
 					Credentials: Credentials{
-						Token: "token",
+						ApiKey: "sky-token",
 					},
 					Env:       PROD,
 					ClusterId: "clusterID",
@@ -865,7 +865,7 @@ var _ = Describe("Vault controller Test cases", func() {
 					return nil
 				}
 				// Call the Detokenize function
-				res, err := vaultController.Detokenize(&ctx, &request, &options)
+				res, err := vaultController.Detokenize(ctx, request, options)
 				// Validate the response
 				Expect(err).To(BeNil())
 				Expect(res).ToNot(BeNil())
@@ -892,7 +892,7 @@ var _ = Describe("Vault controller Test cases", func() {
 					return nil
 				}
 				// Call the Detokenize function
-				res, err := vaultController.Detokenize(&ctx, &request, &options)
+				res, err := vaultController.Detokenize(ctx, request, options)
 				// Validate the response
 				Expect(err).ToNot(BeNil())
 				Expect(res).To(BeNil())
@@ -901,17 +901,16 @@ var _ = Describe("Vault controller Test cases", func() {
 				ctx = context.Background()
 				request.Tokens = nil
 				// Call the Detokenize function
-				res, err := vaultController.Detokenize(&ctx, &request, &options)
+				res, err := vaultController.Detokenize(ctx, request, options)
 				// Validate the response
 				Expect(err).ToNot(BeNil())
 				Expect(res).To(BeNil())
 			})
-
 			It("should return detokenized data with partial success response", func() {
 				_ = &VaultController{
 					Config: VaultConfig{
 						VaultId:     "vaultID",
-						Credentials: Credentials{},
+						Credentials: Credentials{Token: "token"},
 						Env:         PROD,
 						ClusterId:   "clusterID",
 					},
@@ -920,7 +919,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				mockJSONResponse := `{"records":[{"token":"token1", "valueType":"STRING", "value":"*REDACTED*", "error":null}, {"token":"token1", "valueType":"NONE", "value":"", "error":"Token Not Found"}]}`
 				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
 				// Set the mock server URL in the controller's client
-				ts := setupMockServer(response, "error", "/vaults/v1/vaults/")
+				ts := setupMockServer(response, "ok", "/vaults/v1/vaults/")
 
 				ctx = context.Background()
 				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
@@ -933,18 +932,18 @@ var _ = Describe("Vault controller Test cases", func() {
 					return nil
 				}
 				// Call the Detokenize function
-				res, err := vaultController.Detokenize(&ctx, &request, &options)
+				res, err := vaultController.Detokenize(ctx, request, options)
 				// Validate the response
-				Expect(err).ToNot(BeNil())
-				Expect(res).To(BeNil())
+				Expect(err).To(BeNil())
+				Expect(res).ToNot(BeNil())
 			})
 			It("should return error while creating client in detokenize", func() {
 				ctx = context.Background()
 				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
-					return skyflowError.NewSkyflowError("400", "error occurred in client fucntion")
+					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "error occurred in client fucntion")
 				}
 				// Call the Detokenize function
-				res, err := vaultController.Detokenize(&ctx, &request, &options)
+				res, err := vaultController.Detokenize(ctx, request, options)
 				// Validate the response
 				Expect(err).ToNot(BeNil())
 				Expect(res).To(BeNil())
@@ -952,10 +951,10 @@ var _ = Describe("Vault controller Test cases", func() {
 			It("should return error in get token while calling in detokenize", func() {
 				ctx = context.Background()
 				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
-					return skyflowError.NewSkyflowError("400", "error occurred in client fucntion")
+					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "error occurred in client fucntion")
 				}
 				// Call the Detokenize function
-				res, err := vaultController.Detokenize(&ctx, &request, &options)
+				res, err := vaultController.Detokenize(ctx, request, options)
 				// Validate the response
 				Expect(err).ToNot(BeNil())
 				Expect(res).To(BeNil())
@@ -971,7 +970,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				Config: VaultConfig{
 					VaultId: "vaultID",
 					Credentials: Credentials{
-						Token: "token",
+						ApiKey: "sky-token",
 					},
 					Env:       PROD,
 					ClusterId: "clusterID",
@@ -1004,7 +1003,7 @@ var _ = Describe("Vault controller Test cases", func() {
 					return nil
 				}
 
-				res, err := vaultController.Get(&ctx, &request, &options)
+				res, err := vaultController.Get(ctx, request, options)
 				Expect(err).To(BeNil())
 				Expect(res).ToNot(BeNil())
 			})
@@ -1025,15 +1024,15 @@ var _ = Describe("Vault controller Test cases", func() {
 					return nil
 				}
 
-				res, err := vaultController.Get(&ctx, &request, &options)
+				res, err := vaultController.Get(ctx, request, options)
 				Expect(res).To(BeNil())
 				Expect(err).ToNot(BeNil())
 			})
 			It("should return error client creation step Get", func() {
 				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
-					return skyflowError.NewSkyflowError("400", "error occurred in client fucntion")
+					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "error occurred in client fucntion")
 				}
-				res, err := vaultController.Get(&ctx, &request, &options)
+				res, err := vaultController.Get(ctx, request, options)
 				Expect(res).To(BeNil())
 				Expect(err).ToNot(BeNil())
 			})
@@ -1059,7 +1058,7 @@ var _ = Describe("Vault controller Test cases", func() {
 					v.ApiClient = *apiClient
 					return nil
 				}
-				res, err := vaultController.Get(&ctx, &request, &options)
+				res, err := vaultController.Get(ctx, request, options)
 				Expect(err).To(BeNil())
 				Expect(res).ToNot(BeNil())
 			})
@@ -1074,7 +1073,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				Config: VaultConfig{
 					VaultId: "vaultID",
 					Credentials: Credentials{
-						Token: "token",
+						ApiKey: "sky-token",
 					},
 					Env:       PROD,
 					ClusterId: "clusterID",
@@ -1104,7 +1103,7 @@ var _ = Describe("Vault controller Test cases", func() {
 					return nil
 				}
 
-				res, err := vaultController.Delete(&ctx, &request)
+				res, err := vaultController.Delete(ctx, request)
 				Expect(err).To(BeNil())
 				Expect(res).ToNot(BeNil())
 			})
@@ -1126,22 +1125,22 @@ var _ = Describe("Vault controller Test cases", func() {
 					return nil
 				}
 
-				res, err := vaultController.Delete(&ctx, &request)
+				res, err := vaultController.Delete(ctx, request)
 				Expect(res).To(BeNil())
 				Expect(err).ToNot(BeNil())
 			})
 			It("should return error response when invalid data passed in Delete", func() {
 				request.Ids = []string{}
-				res, err := vaultController.Delete(&ctx, &request)
+				res, err := vaultController.Delete(ctx, request)
 				Expect(res).To(BeNil())
 				Expect(err).ToNot(BeNil())
 			})
 
 			It("should return error client creation step Delete", func() {
 				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
-					return skyflowError.NewSkyflowError("400", "error occurred in client fucntion")
+					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "error occurred in client fucntion")
 				}
-				res, err := vaultController.Delete(&ctx, &request)
+				res, err := vaultController.Delete(ctx, request)
 				Expect(res).To(BeNil())
 				Expect(err).ToNot(BeNil())
 			})
@@ -1156,7 +1155,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				Config: VaultConfig{
 					VaultId: "vaultID",
 					Credentials: Credentials{
-						Token: "token",
+						ApiKey: "sky-token",
 					},
 					Env:       PROD,
 					ClusterId: "clusterID",
@@ -1185,7 +1184,7 @@ var _ = Describe("Vault controller Test cases", func() {
 					return nil
 				}
 
-				res, err := vaultController.Query(&ctx, &request)
+				res, err := vaultController.Query(ctx, request)
 				Expect(err).To(BeNil())
 				Expect(res).ToNot(BeNil())
 			})
@@ -1207,22 +1206,22 @@ var _ = Describe("Vault controller Test cases", func() {
 					return nil
 				}
 
-				res, err := vaultController.Query(&ctx, &request)
+				res, err := vaultController.Query(ctx, request)
 				Expect(res).To(BeNil())
 				Expect(err).ToNot(BeNil())
 			})
 			It("should return error response when invalid data passed in Query", func() {
 				request.Query = ""
-				res, err := vaultController.Query(&ctx, &request)
+				res, err := vaultController.Query(ctx, request)
 				Expect(res).To(BeNil())
 				Expect(err).ToNot(BeNil())
 			})
 
 			It("should return error client creation step Query", func() {
 				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
-					return skyflowError.NewSkyflowError("400", "error occurred in client fucntion")
+					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "error occurred in client fucntion")
 				}
-				res, err := vaultController.Query(&ctx, &request)
+				res, err := vaultController.Query(ctx, request)
 				Expect(res).To(BeNil())
 				Expect(err).ToNot(BeNil())
 			})
@@ -1237,7 +1236,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				Config: VaultConfig{
 					VaultId: "vaultID",
 					Credentials: Credentials{
-						Token: "token",
+						ApiKey: "sky-token",
 					},
 					Env:       PROD,
 					ClusterId: "clusterID",
@@ -1269,7 +1268,7 @@ var _ = Describe("Vault controller Test cases", func() {
 					return nil
 				}
 
-				res, err := vaultController.Update(&ctx, &request, &UpdateOptions{
+				res, err := vaultController.Update(ctx, request, UpdateOptions{
 					ReturnTokens: true,
 					TokenMode:    DISABLE,
 				})
@@ -1294,23 +1293,23 @@ var _ = Describe("Vault controller Test cases", func() {
 					return nil
 				}
 
-				res, err := vaultController.Update(&ctx, &request, &UpdateOptions{ReturnTokens: false, TokenMode: ENABLE})
+				res, err := vaultController.Update(ctx, request, UpdateOptions{ReturnTokens: false, TokenMode: ENABLE})
 				Expect(res).To(BeNil())
 				Expect(err).ToNot(BeNil())
 			})
 			It("should return error response when validation fail for invalid data passed in Update", func() {
 				request.Tokens = nil
 
-				res, err := vaultController.Update(&ctx, &request, &UpdateOptions{ReturnTokens: false, TokenMode: ENABLE})
+				res, err := vaultController.Update(ctx, request, UpdateOptions{ReturnTokens: false, TokenMode: ENABLE})
 				Expect(res).To(BeNil())
 				Expect(err).ToNot(BeNil())
 			})
 
 			It("should return error client creation step Update", func() {
 				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
-					return skyflowError.NewSkyflowError("400", "error occurred in client fucntion")
+					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "error occurred in client fucntion")
 				}
-				res, err := vaultController.Update(&ctx, &request, &UpdateOptions{ReturnTokens: true, TokenMode: ENABLE_STRICT})
+				res, err := vaultController.Update(ctx, request, UpdateOptions{ReturnTokens: true, TokenMode: ENABLE_STRICT})
 				Expect(res).To(BeNil())
 				Expect(err).ToNot(BeNil())
 			})
@@ -1325,7 +1324,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				Config: VaultConfig{
 					VaultId: "vaultID",
 					Credentials: Credentials{
-						Token: "token",
+						ApiKey: "sky-token",
 					},
 					Env:       PROD,
 					ClusterId: "clusterID",
@@ -1356,7 +1355,7 @@ var _ = Describe("Vault controller Test cases", func() {
 					return nil
 				}
 
-				res, err := vaultController.Tokenize(&ctx, &arrReq)
+				res, err := vaultController.Tokenize(ctx, arrReq)
 				Expect(err).To(BeNil())
 				Expect(res).ToNot(BeNil())
 			})
@@ -1376,22 +1375,22 @@ var _ = Describe("Vault controller Test cases", func() {
 					v.ApiClient = *apiClient
 					return nil
 				}
-				res, err := vaultController.Tokenize(&ctx, &arrReq)
+				res, err := vaultController.Tokenize(ctx, arrReq)
 				Expect(res).To(BeNil())
 				Expect(err).ToNot(BeNil())
 			})
 			It("should return error response when validations failed for invalid data passedin Tokenize", func() {
 				arrReq = append(arrReq, TokenizeRequest{})
-				res, err := vaultController.Tokenize(&ctx, &arrReq)
+				res, err := vaultController.Tokenize(ctx, arrReq)
 				Expect(res).To(BeNil())
 				Expect(err).ToNot(BeNil())
 			})
 
 			It("should return error client creation step Tokenize", func() {
 				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
-					return skyflowError.NewSkyflowError("400", "error occurred in client fucntion")
+					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "error occurred in client fucntion")
 				}
-				res, err := vaultController.Tokenize(&ctx, &arrReq)
+				res, err := vaultController.Tokenize(ctx, arrReq)
 				Expect(res).To(BeNil())
 				Expect(err).ToNot(BeNil())
 			})
@@ -1403,7 +1402,7 @@ var _ = Describe("ConnectionController", func() {
 		ctrl         *ConnectionController
 		mockServer   *httptest.Server
 		mockToken    string
-		mockRequest  *InvokeConnectionRequest
+		mockRequest  InvokeConnectionRequest
 		mockResponse map[string]interface{}
 	)
 
@@ -1416,7 +1415,7 @@ var _ = Describe("ConnectionController", func() {
 			Token: mockToken,
 		}
 		mockResponse = map[string]interface{}{"key": "value"}
-		mockRequest = &InvokeConnectionRequest{
+		mockRequest = InvokeConnectionRequest{
 			Headers: map[string]string{
 				"Content-Type": "application/json",
 			},
@@ -1443,7 +1442,7 @@ var _ = Describe("ConnectionController", func() {
 				SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError {
 					return nil
 				}
-				response, err := ctrl.Invoke(&ctx, mockRequest)
+				response, err := ctrl.Invoke(ctx, mockRequest)
 				Expect(err).To(BeNil())
 				Expect(response.Response).To(Equal(mockResponse))
 			})
@@ -1464,7 +1463,7 @@ var _ = Describe("ConnectionController", func() {
 				SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError {
 					return nil
 				}
-				response, err := ctrl.Invoke(&ctx, mockRequest)
+				response, err := ctrl.Invoke(ctx, mockRequest)
 				Expect(response).ToNot(BeNil())
 				Expect(err).To(BeNil())
 			})
@@ -1477,15 +1476,15 @@ var _ = Describe("ConnectionController", func() {
 				SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError {
 					return nil
 				}
-				response, err := ctrl.Invoke(&ctx, mockRequest)
+				response, err := ctrl.Invoke(ctx, mockRequest)
 				Expect(response).To(BeNil())
 				Expect(err).ToNot(BeNil())
 			})
 			It("should return an error when invalid token passed", func() {
 				SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError {
-					return skyflowError.NewSkyflowError("400", "error occurred in client fucntion")
+					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "error occurred in client fucntion")
 				}
-				response, err := ctrl.Invoke(&ctx, mockRequest)
+				response, err := ctrl.Invoke(ctx, mockRequest)
 				Expect(response).To(BeNil())
 				Expect(err).ToNot(BeNil())
 			})
@@ -1499,7 +1498,7 @@ var _ = Describe("ConnectionController", func() {
 				SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError {
 					return nil
 				}
-				response, err := ctrl.Invoke(&ctx, mockRequest)
+				response, err := ctrl.Invoke(ctx, mockRequest)
 				Expect(response).To(BeNil())
 				Expect(err).ToNot(BeNil())
 			})
@@ -1517,7 +1516,7 @@ var _ = Describe("ConnectionController", func() {
 				mockServer.Close()
 			})
 			It("should handle application/json content type", func() {
-				request := &InvokeConnectionRequest{
+				request := InvokeConnectionRequest{
 					Method: "POST",
 					Headers: map[string]string{
 						"Content-Type": "application/json",
@@ -1529,13 +1528,13 @@ var _ = Describe("ConnectionController", func() {
 				SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError {
 					return nil
 				}
-				response, err := ctrl.Invoke(&ctx, request)
+				response, err := ctrl.Invoke(ctx, request)
 				Expect(err).To(BeNil())
 				Expect(response).ToNot(BeNil())
 				Expect(response.Response).To(HaveKeyWithValue("key", "value"))
 			})
 			It("should handle application/x-www-form-urlencoded content type", func() {
-				request := &InvokeConnectionRequest{
+				request := InvokeConnectionRequest{
 					Method: "POST",
 					Headers: map[string]string{
 						"Content-Type": "application/x-www-form-urlencoded",
@@ -1547,14 +1546,14 @@ var _ = Describe("ConnectionController", func() {
 				SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError {
 					return nil
 				}
-				response, err := ctrl.Invoke(&ctx, request)
+				response, err := ctrl.Invoke(ctx, request)
 				Expect(err).To(BeNil())
 				Expect(response).ToNot(BeNil())
 				Expect(response.Response).To(HaveKeyWithValue("key", "value"))
 			})
 			It("should handle multipart/form-data content type", func() {
 
-				request := &InvokeConnectionRequest{
+				request := InvokeConnectionRequest{
 					Method: "POST",
 					Headers: map[string]string{
 						"Content-Type": "multipart/form-data",
@@ -1570,13 +1569,13 @@ var _ = Describe("ConnectionController", func() {
 				SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError {
 					return nil
 				}
-				response, err := ctrl.Invoke(&ctx, request)
+				response, err := ctrl.Invoke(ctx, request)
 				Expect(err).To(BeNil())
 				Expect(response).ToNot(BeNil())
 				Expect(response.Response).To(HaveKeyWithValue("key", "value"))
 			})
 			It("should handle when content type is not set", func() {
-				request := &InvokeConnectionRequest{
+				request := InvokeConnectionRequest{
 					Method: "POST",
 					Headers: map[string]string{
 						"Content-Type": "application/x-www-form-urlencoded",
@@ -1588,13 +1587,13 @@ var _ = Describe("ConnectionController", func() {
 				SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError {
 					return nil
 				}
-				response, err := ctrl.Invoke(&ctx, request)
+				response, err := ctrl.Invoke(ctx, request)
 				Expect(err).To(BeNil())
 				Expect(response).ToNot(BeNil())
 				Expect(response.Response).To(HaveKeyWithValue("key", "value"))
 			})
 			It("should throw error when invalid request passed", func() {
-				request := &InvokeConnectionRequest{
+				request := InvokeConnectionRequest{
 					Method:  "POST",
 					Headers: map[string]string{},
 					Body: map[string]interface{}{
@@ -1604,7 +1603,7 @@ var _ = Describe("ConnectionController", func() {
 				SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError {
 					return nil
 				}
-				response, err := ctrl.Invoke(&ctx, request)
+				response, err := ctrl.Invoke(ctx, request)
 				Expect(err).ToNot(BeNil())
 				Expect(response).To(BeNil())
 			})
@@ -1619,7 +1618,7 @@ var _ = Describe("ConnectionController", func() {
 					"boolKey":    true,
 					"invalidKey": struct{}{},
 				}
-				request := &InvokeConnectionRequest{
+				request := InvokeConnectionRequest{
 					Method: "POST",
 					Headers: map[string]string{
 						"Content-Type": "multipart/form-data",
@@ -1632,7 +1631,7 @@ var _ = Describe("ConnectionController", func() {
 				SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError {
 					return nil
 				}
-				response, err := ctrl.Invoke(&ctx, request)
+				response, err := ctrl.Invoke(ctx, request)
 				Expect(err).ToNot(BeNil())
 				Expect(response).To(BeNil())
 			})
@@ -1643,7 +1642,7 @@ var _ = Describe("ConnectionController", func() {
 					"stringKey": "test",
 					"boolKey":   true,
 				}
-				request := &InvokeConnectionRequest{
+				request := InvokeConnectionRequest{
 					Method: "POST",
 					Headers: map[string]string{
 						"Content-Type": "multipart/form-data",
@@ -1656,7 +1655,7 @@ var _ = Describe("ConnectionController", func() {
 				SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError {
 					return nil
 				}
-				response, err := ctrl.Invoke(&ctx, request)
+				response, err := ctrl.Invoke(ctx, request)
 				Expect(err).ToNot(BeNil())
 				Expect(response).To(BeNil())
 			})
@@ -1664,7 +1663,7 @@ var _ = Describe("ConnectionController", func() {
 		Context("Handling Path parameters", func() {
 			It("should correctly parse and set path parameters", func() {
 				pathParams := map[string]string{"id": "123"}
-				request := &InvokeConnectionRequest{
+				request := InvokeConnectionRequest{
 					Method: "POST",
 					Headers: map[string]string{
 						"Content-Type": "multipart/form-data",
@@ -1677,7 +1676,7 @@ var _ = Describe("ConnectionController", func() {
 				SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError {
 					return nil
 				}
-				response, err := ctrl.Invoke(&ctx, request)
+				response, err := ctrl.Invoke(ctx, request)
 				Expect(err).ToNot(BeNil())
 				Expect(response).To(BeNil())
 			})
@@ -1700,7 +1699,7 @@ func setupMockServer(mockResponse map[string]interface{}, status string, path st
 		case "ok":
 			w.WriteHeader(http.StatusOK)
 		case "partial":
-			w.WriteHeader(http.StatusMultiStatus)
+			w.WriteHeader(http.StatusOK)
 		default:
 			w.WriteHeader(http.StatusBadRequest)
 		}
