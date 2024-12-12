@@ -15,6 +15,7 @@ import (
 	. "skyflow-go/v2/utils/common"
 	. "skyflow-go/v2/utils/error"
 	"skyflow-go/v2/utils/logger"
+	logs "skyflow-go/v2/utils/messages"
 	"strconv"
 	"strings"
 
@@ -33,21 +34,38 @@ var SetBearerTokenForConnectionControllerFunc = setBearerTokenForConnectionContr
 // SetBearerTokenForConnectionController checks and updates the token if necessary.
 func setBearerTokenForConnectionController(v *ConnectionController) *SkyflowError {
 	// Validate token or generate a new one if expired or not set.
-	if v.Token == "" || serviceaccount.IsExpired(v.Token) {
+	// check if apikey or token already initalised
+	if v.ApiKey != "" {
+		logger.Info(logs.REUSE_API_KEY)
+		return nil
+	} else if v.Token != "" && serviceaccount.IsExpired(v.Token) {
+		logger.Info(logs.REUSE_BEARER_TOKEN)
+	}
+	if v.Config.Credentials.ApiKey != "" {
+		v.ApiKey = v.Config.Credentials.ApiKey
+	} else if v.Config.Credentials.Token != "" {
+		if serviceaccount.IsExpired(v.Config.Credentials.Token) {
+			logger.Error(logs.BEARER_TOKEN_EXPIRED)
+			return NewSkyflowError(INVALID_INPUT_CODE, TOKEN_EXPIRED)
+		}
+		v.Token = v.Config.Credentials.Token
+		return nil
+	} else if v.Token == "" || serviceaccount.IsExpired(v.Token) {
+		logger.Info(logs.GENERATE_BEARER_TOKEN_TRIGGERED)
 		token, err := GenerateToken(v.Config.Credentials)
 		if err != nil {
+			logger.Error(logs.BEARER_TOKEN_REJECTED)
 			return err
 		}
 		v.Token = *token
-	}
-	if serviceaccount.IsExpired(v.Token) {
-		return NewSkyflowError(INVALID_INPUT_CODE, TOKEN_EXPIRED)
 	}
 	return nil
 }
 
 func (v *ConnectionController) Invoke(ctx context.Context, request InvokeConnectionRequest) (*InvokeConnectionResponse, *SkyflowError) {
+	logger.Info(logs.INVOKE_CONNECTION_TRIGGERED)
 	// Step 1: Validate Configuration
+	logger.Info(logs.VALIDATING_INVOKE_CONNECTION_REQUEST)
 	er := validation.ValidateInvokeConnectionRequest(request)
 	if er != nil {
 		return nil, er
@@ -69,12 +87,14 @@ func (v *ConnectionController) Invoke(ctx context.Context, request InvokeConnect
 		requestUrl,
 	)
 	if err1 != nil {
+		logger.Error(logs.INVALID_REQUEST_HEADERS)
 		return nil, NewSkyflowError(INVALID_INPUT_CODE, fmt.Sprintf(UNKNOWN_ERROR, err1.Error()))
 	}
 
 	// Step 4: Set Query Params
 	err2 := setQueryParams(requestBody, request.QueryParams)
 	if err2 != nil {
+		logger.Error(logs.INVALID_QUERY_PARAM)
 		return nil, err2
 	}
 
@@ -84,9 +104,10 @@ func (v *ConnectionController) Invoke(ctx context.Context, request InvokeConnect
 	// Step 6: Send Request
 	res, requestId, invokeErr := sendRequest(requestBody)
 	if invokeErr != nil {
+		logger.Error(logs.INVOKE_CONNECTION_REQUEST_REJECTED)
 		return nil, NewSkyflowError(INVALID_INPUT_CODE, fmt.Sprintf(UNKNOWN_ERROR, invokeErr.Error()))
 	}
-
+	logger.Info(logs.INVOKE_CONNECTION_REQUEST_RESOLVED)
 	// Step 7: Parse Response
 	parseRes, parseErr := parseResponse(res, requestId)
 	if parseErr != nil {
@@ -212,7 +233,11 @@ func setQueryParams(request *http.Request, queryParams map[string]interface{}) *
 	return nil
 }
 func setHeaders(request *http.Request, api ConnectionController, invokeRequest InvokeConnectionRequest) {
-	request.Header.Set("x-skyflow-authorization", api.Token)
+	if api.ApiKey != "" {
+		request.Header.Set("x-skyflow-authorization", api.ApiKey)
+	} else {
+		request.Header.Set("x-skyflow-authorization", api.Token)
+	}
 	request.Header.Set("content-type", "application/json")
 
 	for key, value := range invokeRequest.Headers {

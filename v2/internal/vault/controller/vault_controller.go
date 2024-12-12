@@ -12,6 +12,7 @@ import (
 	. "skyflow-go/v2/utils/common"
 	skyflowError "skyflow-go/v2/utils/error"
 	"skyflow-go/v2/utils/logger"
+	logs "skyflow-go/v2/utils/messages"
 )
 
 type VaultController struct {
@@ -60,9 +61,6 @@ func GenerateToken(credentials Credentials) (*string, *skyflowError.SkyflowError
 		}
 		bearerToken = token.AccessToken
 
-	case credentials.Token != "":
-		bearerToken = credentials.Token
-
 	default:
 		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_CREDENTIALS)
 	}
@@ -73,32 +71,51 @@ func GenerateToken(credentials Credentials) (*string, *skyflowError.SkyflowError
 func SetBearerTokenForVaultController(v *VaultController) *skyflowError.SkyflowError {
 	// Validate token or generate a new one if expired or not set.
 	if v.Token == "" || serviceaccount.IsExpired(v.Token) {
+		logger.Info(logs.GENERATE_BEARER_TOKEN_TRIGGERED)
 		token, err := GenerateToken(v.Config.Credentials)
 		if err != nil {
 			return err
 		}
 		v.Token = *token
-	}
-	if serviceaccount.IsExpired(v.Token) {
-		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.TOKEN_EXPIRED)
+	} else {
+		logger.Info(logs.REUSE_BEARER_TOKEN)
 	}
 	return nil
 }
 
 // CreateRequestClient initializes the API client with the appropriate authorization header.
 func CreateRequestClient(v *VaultController) *skyflowError.SkyflowError {
-	configuration := vaultapi.NewConfiguration()
+	token := ""
 	if v.Config.Credentials.ApiKey != "" {
 		v.ApiKey = v.Config.Credentials.ApiKey
-		configuration.AddDefaultHeader("Authorization", "Bearer "+v.ApiKey)
+		logger.Info(logs.USING_API_KEY)
+	} else if v.Config.Credentials.Token != "" {
+		if serviceaccount.IsExpired(v.Config.Credentials.Token) {
+			logger.Error(logs.BEARER_TOKEN_EXPIRED)
+			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.TOKEN_EXPIRED)
+		} else {
+			logger.Info(logs.USING_BEARER_TOKEN)
+			v.Token = v.Config.Credentials.Token
+		}
 	} else {
 		err := SetBearerTokenForVaultController(v)
 		if err != nil {
 			return err
 		}
-		configuration.AddDefaultHeader("Authorization", "Bearer "+v.Token)
 	}
-	configuration.Servers[0].URL = GetURLWithEnv(v.Config.Env, v.Config.ClusterId)
+	if v.ApiKey != "" {
+		token = v.ApiKey
+	} else if v.Token != "" {
+		token = v.Token
+	}
+	configuration := &vaultapi.Configuration{
+		DefaultHeader: map[string]string{
+			"Authorization": "Bearer " + token,
+		},
+		Servers: []vaultapi.ServerConfiguration{{
+			URL: GetURLWithEnv(v.Config.Env, v.Config.ClusterId),
+		}},
+	}
 	apiClient := vaultapi.NewAPIClient(configuration)
 	v.ApiClient = *apiClient
 	return nil
@@ -325,6 +342,8 @@ func (v *VaultController) callBatchInsertAPI(ctx context.Context, body vaultapi.
 
 func (v *VaultController) Insert(ctx context.Context, request InsertRequest, options InsertOptions) (*InsertResponse, *skyflowError.SkyflowError) {
 	// validate insert
+	logger.Info(logs.INSERT_TRIGGERED)
+	logger.Info(logs.VALIDATE_INSERT_INPUT)
 	errs := validation.ValidateInsertRequest(request, options)
 	if errs != nil {
 		return nil, errs
@@ -341,9 +360,12 @@ func (v *VaultController) Insert(ctx context.Context, request InsertRequest, opt
 		// Batch insert handling
 		body := CreateInsertBatchBodyRequest(&request, &options)
 		batchResp, httpsRes, err1 := v.callBatchInsertAPI(ctx, *body)
+		logger.Info(logs.INSERT_BATCH_REQUEST_RESOLVED)
 		if err1 != nil && httpsRes != nil {
+			logger.Error(logs.INSERT_REQUEST_REJECTED)
 			return nil, skyflowError.SkyflowApiError(*httpsRes)
 		} else if err1 != nil {
+			logger.Error(logs.INSERT_REQUEST_REJECTED)
 			return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.ERROR_OCCURRED+"%v", err1.Error()))
 		}
 
@@ -366,9 +388,12 @@ func (v *VaultController) Insert(ctx context.Context, request InsertRequest, opt
 		// Bulk insert handling
 		body := CreateInsertBulkBodyRequest(&request, &options)
 		bulkResp, httpRes, bulkErr := v.callBulkInsertAPI(ctx, *body, request.Table)
+		logger.Info(logs.INSERT_BATCH_REQUEST_RESOLVED)
 		if bulkErr != nil && httpRes != nil {
+			logger.Error(logs.INSERT_REQUEST_REJECTED)
 			return nil, skyflowError.SkyflowApiError(*httpRes)
 		} else if bulkErr != nil {
+			logger.Error(logs.INSERT_REQUEST_REJECTED)
 			return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.ERROR_OCCURRED+" %v ", bulkErr.Error()))
 		}
 
@@ -376,17 +401,18 @@ func (v *VaultController) Insert(ctx context.Context, request InsertRequest, opt
 			formattedRes := GetFormattedBulkInsertRecord(record)
 			insertedFields = append(insertedFields, formattedRes)
 		}
-
 		resp = InsertResponse{InsertedFields: insertedFields}
 	}
-
+	logger.Info(logs.INSERT_DATA_SUCCESS)
 	return &resp, nil
 }
 
 func (v *VaultController) Detokenize(ctx context.Context, request DetokenizeRequest, options DetokenizeOptions) (*DetokenizeResponse, *skyflowError.SkyflowError) {
 	//validate detokenize request body & options
+	logger.Info(logs.DETOKENIZE_TRIGGERED)
 	var detokenizedFields []map[string]interface{}
 	var errorFields []map[string]interface{}
+	logger.Info(logs.VALIDATE_DETOKENIZE_INPUT)
 	er := validation.ValidateDetokenizeRequest(request)
 	if er != nil {
 		return nil, er
@@ -398,23 +424,31 @@ func (v *VaultController) Detokenize(ctx context.Context, request DetokenizeRequ
 	payload := GetDetokenizePayload(request, options)
 	result, httpsRes, detokenizeErr := v.ApiClient.TokensAPI.RecordServiceDetokenize(ctx, v.Config.VaultId).DetokenizePayload(payload).Execute()
 	if detokenizeErr != nil && httpsRes != nil {
+		logger.Error(logs.DETOKENIZE_REQUEST_REJECTED)
 		return nil, skyflowError.SkyflowApiError(*httpsRes)
 	} else if detokenizeErr != nil {
-		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.ERROR_OCCURRED+"%v", detokenizeErr.Error()))
+		logger.Error(logs.DETOKENIZE_REQUEST_REJECTED)
+		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.ERROR_OCCURRED+"%v", detokenizeErr))
 	}
+	logger.Info(logs.DETOKENIZE_REQUEST_RESOLVED)
 	if result != nil {
 		records := result.GetRecords()
 		for _, record := range records {
 			if record.HasError() {
-				er, _ := record.ToMap()
-				errorFields = append(errorFields, er)
+				er1 := map[string]interface{}{
+					"ValueType": string(record.GetValueType()),
+					"Token":     record.GetToken(),
+					"Value":     record.GetValue(),
+					"Error":     record.GetError(),
+				}
+				errorFields = append(errorFields, er1)
 			} else {
 				var rec map[string]interface{}
 				rec = map[string]interface{}{
 					"ValueType": string(record.GetValueType()),
 					"Token":     record.GetToken(),
 					"Value":     record.GetValue(),
-					"Error":     record.GetError(),
+					"Error":     record.Error,
 				}
 				detokenizedFields = append(detokenizedFields, rec)
 			}
@@ -428,6 +462,8 @@ func (v *VaultController) Detokenize(ctx context.Context, request DetokenizeRequ
 
 func (v *VaultController) Get(ctx context.Context, request GetRequest, options GetOptions) (*GetResponse, *skyflowError.SkyflowError) {
 	// Get validate logic here
+	logger.Info(logs.GET_TRIGGERED)
+	logger.Info(logs.VALIDATE_GET_INPUT)
 	errs := validation.ValidateGetRequest(request, options)
 	if errs != nil {
 		return nil, errs
@@ -462,22 +498,27 @@ func (v *VaultController) Get(ctx context.Context, request GetRequest, options G
 	// Execute the query
 	result, httpsRes, err1 := query.Execute()
 	if err1 != nil && httpsRes != nil {
+		logger.Error(logs.GET_REQUEST_REJECTED)
 		return nil, skyflowError.SkyflowApiError(*httpsRes)
 	} else if err1 != nil {
+		logger.Error(logs.GET_REQUEST_REJECTED)
 		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.ERROR_OCCURRED+"%v", err1.Error()))
 	}
-
+	logger.Info(logs.GET_REQUEST_RESOLVED)
 	records := result.GetRecords()
 	if records != nil {
 		for _, record := range records {
 			data = append(data, GetFormattedGetRecord(record))
 		}
 	}
+	logger.Info(logs.GET_SUCCESS)
 	return &GetResponse{Data: data}, nil
 }
 
 func (v *VaultController) Delete(ctx context.Context, request DeleteRequest) (*DeleteResponse, *skyflowError.SkyflowError) {
 	// Delete validate logic here
+	logger.Info(logs.DELETE_TRIGGERED)
+	logger.Info(logs.VALIDATE_DELETE_INPUT)
 	errs := validation.ValidateDeleteRequest(request)
 	if errs != nil {
 		return nil, errs
@@ -491,10 +532,14 @@ func (v *VaultController) Delete(ctx context.Context, request DeleteRequest) (*D
 	res, httpsRes, err1 := v.ApiClient.RecordsAPI.RecordServiceBulkDeleteRecord(ctx, v.Config.VaultId, request.Table).Body(reqBody).Execute()
 
 	if err1 != nil && httpsRes != nil {
+		logger.Error(logs.DELETE_REQUEST_REJECTED)
 		return nil, skyflowError.SkyflowApiError(*httpsRes)
 	} else if err1 != nil {
+		logger.Error(logs.DELETE_REQUEST_REJECTED)
 		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.ERROR_OCCURRED+"%v", err1.Error()))
 	}
+	logger.Info(logs.DELETE_REQUEST_RESOLVED)
+	logger.Info(logs.DELETE_SUCCESS)
 	return &DeleteResponse{
 		DeletedIds: res.GetRecordIDResponse(),
 	}, nil
@@ -502,6 +547,8 @@ func (v *VaultController) Delete(ctx context.Context, request DeleteRequest) (*D
 
 func (v *VaultController) Query(ctx context.Context, queryRequest QueryRequest) (*QueryResponse, *skyflowError.SkyflowError) {
 	// validate the query request
+	logger.Info(logs.QUERY_TRIGGERED)
+	logger.Info(logs.VALIDATE_QUERY_INPUT)
 	errs := validation.ValidateQueryRequest(queryRequest)
 	if errs != nil {
 		return nil, errs
@@ -516,16 +563,20 @@ func (v *VaultController) Query(ctx context.Context, queryRequest QueryRequest) 
 	body.SetQuery(queryRequest.Query)
 	result, httpsRes, errr := v.ApiClient.QueryAPI.QueryServiceExecuteQuery(ctx, v.Config.VaultId).Body(body).Execute()
 	if errr != nil && httpsRes != nil {
+		logger.Error(logs.QUERY_REQUEST_REJECTED)
 		return nil, skyflowError.SkyflowApiError(*httpsRes)
 	} else if errr != nil {
+		logger.Error(logs.QUERY_REQUEST_REJECTED)
 		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.ERROR_OCCURRED+"%v", errr.Error()))
 	}
+	logger.Info(logs.QUERY_REQUEST_RESOLVED)
 	if result.GetRecords() != nil {
 		for _, record := range result.GetRecords() {
 			fields = append(fields, GetFormattedQueryRecord(record))
 			tokenizedData = append(tokenizedData, record.Tokens)
 		}
 	}
+	logger.Info(logs.QUERY_SUCCESS)
 	return &QueryResponse{
 		Fields:        fields,
 		TokenizedData: tokenizedData,
@@ -534,6 +585,8 @@ func (v *VaultController) Query(ctx context.Context, queryRequest QueryRequest) 
 
 func (v *VaultController) Update(ctx context.Context, request UpdateRequest, options UpdateOptions) (*UpdateResponse, *skyflowError.SkyflowError) {
 	// Update validate logic here
+	logger.Info(logs.UPDATE_TRIGGERED)
+	logger.Info(logs.VALIDATE_UPDATE_INPUT)
 	errs := validation.ValidateUpdateRequest(request, options)
 	if errs != nil {
 		return nil, errs
@@ -561,14 +614,16 @@ func (v *VaultController) Update(ctx context.Context, request UpdateRequest, opt
 	result, httpsRes, errr := v.ApiClient.RecordsAPI.RecordServiceUpdateRecord(ctx, v.Config.VaultId, request.Table, request.Id).Body(payload).Execute()
 
 	if errr != nil && httpsRes != nil {
+		logger.Error(logs.UPDATE_REQUEST_REJECTED)
 		return nil, skyflowError.SkyflowApiError(*httpsRes)
 	} else if errr != nil {
+		logger.Error(logs.UPDATE_REQUEST_REJECTED)
 		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.ERROR_OCCURRED+"%v", errr.Error()))
 	}
-
+	logger.Info(logs.UPDATE_REQUEST_RESOLVED)
 	id := result.GetSkyflowId()
 	res := GetFormattedUpdateRecord(*result)
-
+	logger.Info(logs.UPDATE_SUCCESS)
 	return &UpdateResponse{
 		Tokens:    res,
 		SkyflowId: id,
@@ -577,6 +632,8 @@ func (v *VaultController) Update(ctx context.Context, request UpdateRequest, opt
 
 func (v *VaultController) Tokenize(ctx context.Context, request []TokenizeRequest) (*TokenizeResponse, *skyflowError.SkyflowError) {
 	// Update validate logic here
+	logger.Info(logs.TOKENIZE_TRIGGERED)
+	logger.Info(logs.VALIDATE_TOKENIZE_INPUT)
 	err := validation.ValidateTokenizeRequest(request)
 	if err != nil {
 		return nil, err
@@ -587,10 +644,12 @@ func (v *VaultController) Tokenize(ctx context.Context, request []TokenizeReques
 	payload := getTokenizePayload(request)
 	result, httpsRes, tokenizeErr := v.ApiClient.TokensAPI.RecordServiceTokenize(ctx, v.Config.VaultId).TokenizePayload(payload).Execute()
 	if tokenizeErr != nil && httpsRes != nil {
+		logger.Error(logs.TOKENIZE_REQUEST_REJECTED)
 		return nil, skyflowError.SkyflowApiError(*httpsRes)
 	} else if tokenizeErr != nil {
+		logger.Error(logs.TOKENIZE_REQUEST_REJECTED)
 		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.ERROR_OCCURRED+"%v", tokenizeErr.Error()))
 	}
-
+	logger.Info(logs.TOKENIZE_SUCCESS)
 	return ParseTokenizeResponse(*result), nil
 }

@@ -2,16 +2,19 @@ package serviceaccount
 
 import (
 	"encoding/json"
+	"fmt"
+	"github.com/golang-jwt/jwt"
 	. "skyflow-go/v2/internal/helpers"
 	. "skyflow-go/v2/utils/common"
 	skyflowError "skyflow-go/v2/utils/error"
+	"skyflow-go/v2/utils/logger"
+	. "skyflow-go/v2/utils/messages"
 	"time"
-
-	"github.com/golang-jwt/jwt"
 )
 
 // GenerateBearerToken Generate Bearer Token
 func GenerateBearerToken(credentialsFilePath string, options BearerTokenOptions) (*TokenResponse, *skyflowError.SkyflowError) {
+	logger.Info(GENERATE_BEARER_TOKEN_TRIGGERED)
 	credKeys, err := ParseCredentialsFile(credentialsFilePath)
 	if err != nil {
 		return nil, err
@@ -22,6 +25,7 @@ func GenerateBearerToken(credentialsFilePath string, options BearerTokenOptions)
 		return nil, err1
 	}
 
+	logger.Info(GENERATE_BEARER_TOKEN_SUCCESS)
 	return &TokenResponse{
 		AccessToken: token.GetAccessToken(),
 		TokenType:   token.GetTokenType(),
@@ -31,7 +35,9 @@ func GenerateBearerToken(credentialsFilePath string, options BearerTokenOptions)
 // GenerateBearerTokenFromCreds Generate Bearer Token from Credentials String
 func GenerateBearerTokenFromCreds(credentials string, options BearerTokenOptions) (*TokenResponse, *skyflowError.SkyflowError) {
 	var credKeys map[string]interface{}
+	logger.Info(GENERATE_BEARER_TOKEN_TRIGGERED)
 	if err := json.Unmarshal([]byte(credentials), &credKeys); err != nil {
+		logger.Error(INVALID_CREDENTIALS_STRING_FORMAT)
 		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_CREDENTIALS)
 	}
 
@@ -39,7 +45,7 @@ func GenerateBearerTokenFromCreds(credentials string, options BearerTokenOptions
 	if err1 != nil {
 		return nil, err1
 	}
-
+	logger.Info(GENERATE_BEARER_TOKEN_SUCCESS)
 	return &TokenResponse{
 		AccessToken: token.GetAccessToken(),
 		TokenType:   token.GetTokenType(),
@@ -49,7 +55,9 @@ func GenerateBearerTokenFromCreds(credentials string, options BearerTokenOptions
 // GenerateSignedDataTokens Generate Signed Data Tokens
 func GenerateSignedDataTokens(credentialsFilePath string, options SignedDataTokensOptions) ([]SignedDataTokensResponse, *skyflowError.SkyflowError) {
 	// validate data
+	logger.Error(GENERATE_SIGNED_DATA_TOKENS_TRIGGERED)
 	if credentialsFilePath == "" {
+		logger.Error(EMPTY_CREDENTIALS_PATH)
 		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_CREDENTIAL_FILE_PATH)
 	}
 	if len(options.DataTokens) == 0 {
@@ -65,7 +73,9 @@ func GenerateSignedDataTokens(credentialsFilePath string, options SignedDataToke
 
 func GenerateSignedDataTokensFromCreds(credentials string, options SignedDataTokensOptions) ([]SignedDataTokensResponse, *skyflowError.SkyflowError) {
 	var credKeys map[string]interface{}
+	logger.Error(GENERATE_SIGNED_DATA_TOKENS_TRIGGERED)
 	if err := json.Unmarshal([]byte(credentials), &credKeys); err != nil {
+		logger.Error(INVALID_CREDENTIALS_STRING_FORMAT)
 		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_CREDENTIALS)
 	}
 
@@ -74,7 +84,7 @@ func GenerateSignedDataTokensFromCreds(credentials string, options SignedDataTok
 
 func IsExpired(tokenString string) bool {
 	if tokenString == "" {
-		//logger.Info(fmt.Sprintf(messages.EMPTY_BEARER_TOKEN, "ServiceAccountUtil"))
+		logger.Info(fmt.Sprintf(EMPTY_BEARER_TOKEN))
 		return true
 	}
 	token, _, err := new(jwt.Parser).ParseUnverified(tokenString, jwt.MapClaims{})
@@ -95,7 +105,7 @@ func IsExpired(tokenString string) bool {
 	}
 	currentTime := time.Now()
 	if expiryTime.Before(currentTime) {
-		return true
+		logger.Info(BEARER_TOKEN_EXPIRED)
 	}
 	return expiryTime.Before(currentTime)
 }

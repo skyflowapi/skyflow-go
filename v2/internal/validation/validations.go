@@ -2,30 +2,36 @@ package validation
 
 import (
 	"fmt"
-	"log"
 	"net/url"
 	"regexp"
 	. "skyflow-go/v2/utils/common"
 	skyflowError "skyflow-go/v2/utils/error"
+	"skyflow-go/v2/utils/logger"
+	. "skyflow-go/v2/utils/messages"
 )
 
 func ValidateInsertRequest(request InsertRequest, options InsertOptions) *skyflowError.SkyflowError {
 	// Validate table
+	tag := "Insert"
 	if request.Table == "" {
+		logger.Error(fmt.Sprintf(EMPTY_TABLE, tag))
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.TABLE_KEY_ERROR)
 	}
 
 	// Validate values
 	if request.Values == nil {
+		logger.Error(fmt.Sprintf(VALUES_IS_REQUIRED, tag))
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_VALUES)
 	}
 	if len(request.Values) == 0 {
+		logger.Error(fmt.Sprintf(EMPTY_VALUES, tag))
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_VALUES)
 	}
 
 	// Validate upsert
 	if options.Upsert != "" {
 		if options.Homogeneous {
+			logger.Error(fmt.Sprintf(HOMOGENOUS_NOT_SUPPORTED_WITH_UPSERT, tag))
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.HOMOGENOUS_NOT_SUPPORTED_WITH_UPSERT)
 		}
 	}
@@ -34,8 +40,10 @@ func ValidateInsertRequest(request InsertRequest, options InsertOptions) *skyflo
 	for _, valueMap := range request.Values {
 		for key, value := range valueMap {
 			if value == nil || value == "" {
+				logger.Error(fmt.Sprintf(EMPTY_OR_NULL_VALUE_IN_VALUES, tag, key))
 				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_VALUE_IN_VALUES)
 			} else if key == "" {
+				logger.Error(fmt.Sprintf(EMPTY_OR_NULL_KEY_IN_VALUES, tag))
 				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_KEY_IN_VALUES)
 			}
 
@@ -46,13 +54,16 @@ func ValidateInsertRequest(request InsertRequest, options InsertOptions) *skyflo
 	switch options.TokenMode {
 	case DISABLE:
 		if options.Tokens != nil {
+			logger.Error(fmt.Sprintf(TOKENS_NOT_ALLOWED_WITH_BYOT_DISABLE, tag))
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.TOKENS_PASSED_FOR_BYOT_DISABLE)
 		}
 	case ENABLE:
 		if options.Tokens == nil {
+			logger.Error(fmt.Sprintf(TOKENS_REQUIRED_WITH_BYOT, tag, ENABLE))
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_TOKENS)
 		}
 		if len(options.Tokens) != len(request.Values) {
+			logger.Error(fmt.Sprintf(INSUFFICIENT_TOKENS_PASSED_FOR_BYOT_ENABLE, tag))
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INSUFFICIENT_TOKENS_PASSED_FOR_BYOT_ENABLE_STRICT)
 		}
 		if err := ValidateTokensForInsertRequest(options.Tokens, request.Values, ENABLE); err != nil {
@@ -60,9 +71,11 @@ func ValidateInsertRequest(request InsertRequest, options InsertOptions) *skyflo
 		}
 	case ENABLE_STRICT:
 		if options.Tokens == nil {
+			logger.Error(fmt.Sprintf(TOKENS_REQUIRED_WITH_BYOT, tag, ENABLE))
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_TOKENS)
 		}
 		if len(options.Tokens) != len(request.Values) {
+			logger.Error(fmt.Sprintf(INSUFFICIENT_TOKENS_PASSED_FOR_BYOT_ENABLE_STRICT, tag))
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INSUFFICIENT_TOKENS_PASSED_FOR_BYOT_ENABLE_STRICT)
 		}
 		if err := ValidateTokensForInsertRequest(options.Tokens, request.Values, ENABLE_STRICT); err != nil {
@@ -74,30 +87,33 @@ func ValidateInsertRequest(request InsertRequest, options InsertOptions) *skyflo
 }
 
 func ValidateTokensForInsertRequest(tokens []map[string]interface{}, values []map[string]interface{}, mode BYOT) *skyflowError.SkyflowError {
+	tag := "insert"
 	if tokens == nil || len(tokens) == 0 {
 		if mode == ENABLE || mode == ENABLE_STRICT {
-			//logger.Error(fmt.Sprintf(messages.NO_TOKENS_IN_INSERT, insertTag, insertApi.Options.Byot))
+			logger.Error(fmt.Sprintf(EMPTY_TOKENS, tag))
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.NO_TOKENS_WITH_BYOT, mode))
 		}
 	} else {
 		for i, tokensMap := range tokens {
 			fieldsMap := values[i]
 			if len(tokensMap) != len(fieldsMap) && mode == ENABLE_STRICT {
+				logger.Error(fmt.Sprintf(INSUFFICIENT_TOKENS_PASSED_FOR_BYOT_ENABLE_STRICT, tag))
 				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INSUFFICIENT_TOKENS_PASSED_FOR_BYOT_ENABLE_STRICT)
 			}
 			if len(tokensMap) == 0 {
-				//logger.Error(fmt.Sprintf(messages.EMPTY_TOKENS_IN_INSERT, insertTag))
+				logger.Error(fmt.Sprintf(EMPTY_TOKENS, tag))
 				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_TOKENS)
 			}
 			for key, tokenKey := range tokensMap {
 				if _, exists := fieldsMap[key]; !exists {
-					//logger.Error(fmt.Sprintf(messages.MISMATCH_OF_FIELDS_AND_TOKENS, insertTag))
+					logger.Error(fmt.Sprintf(MISMATCH_OF_FIELDS_AND_TOKENS, tag))
 					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.MISMATCH_OF_FIELDS_AND_TOKENS)
 				}
 				if tokenKey == nil {
-					//logError(fmt.Sprintf("Value for key '%s' in tokens or values map is nil.", key))
+					logger.Error(fmt.Sprintf(EMPTY_OR_NULL_VALUE_IN_TOKENS, tag, key))
 					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_VALUE_IN_TOKENS)
 				} else if fieldsMap[key] == nil {
+					logger.Error(fmt.Sprintf(MISMATCH_OF_FIELDS_AND_TOKENS, tag))
 					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.MISMATCH_OF_FIELDS_AND_TOKENS)
 				}
 			}
@@ -105,26 +121,29 @@ func ValidateTokensForInsertRequest(tokens []map[string]interface{}, values []ma
 	}
 	return nil
 }
-func validateTokenForStrict(tokens map[string]interface{}, values map[string]interface{}, mode BYOT) *skyflowError.SkyflowError {
+func validateTokenForStrict(tokens map[string]interface{}, values map[string]interface{}, mode BYOT, tag string) *skyflowError.SkyflowError {
 	if len(tokens) == 0 {
-		//logger.Error(fmt.Sprintf(messages.EMPTY_TOKENS_IN_INSERT, insertTag))
+		logger.Error(fmt.Sprintf(EMPTY_TOKENS, tag))
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_TOKENS)
 	}
 	if len(tokens) != len(values) && mode == ENABLE_STRICT {
+		logger.Error(fmt.Sprintf(INSUFFICIENT_TOKENS_PASSED_FOR_BYOT_ENABLE_STRICT, tag))
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INSUFFICIENT_TOKENS_PASSED_FOR_BYOT_ENABLE_STRICT)
 	}
 	for key, tokenKey := range tokens {
 		if key == "" {
+			logger.Error(fmt.Sprintf(EMPTY_OR_NULL_KEY_IN_TOKENS, tag))
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_KEY_IN_TOKENS)
 		} else if tokenKey == nil {
-			//logError(fmt.Sprintf("Value for key '%s' in tokens or values map is nil.", key))
+			logger.Error(fmt.Sprintf(EMPTY_OR_NULL_VALUE_IN_TOKENS, tag, key))
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_VALUE_IN_TOKENS)
 		}
 		if _, exists := values[key]; !exists {
-			//logger.Error(fmt.Sprintf(messages.MISMATCH_OF_FIELDS_AND_TOKENS, insertTag))
+			logger.Error(fmt.Sprintf(MISMATCH_OF_FIELDS_AND_TOKENS, tag))
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.MISMATCH_OF_FIELDS_AND_TOKENS)
 		}
 		if values[key] == nil {
+			logger.Error(fmt.Sprintf(EMPTY_OR_NULL_VALUE_IN_VALUES, tag, key))
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.MISMATCH_OF_FIELDS_AND_TOKENS)
 		}
 	}
@@ -135,10 +154,10 @@ func validateTokenForStrict(tokens map[string]interface{}, values map[string]int
 func ValidateVaultConfig(vaultConfig VaultConfig) *skyflowError.SkyflowError {
 	// Validate VaultId
 	if vaultConfig.VaultId == "" {
-		log.Println("Error: Vault ID is required.")
+		logger.Error(VAULT_ID_IS_REQUIRED)
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_VAULT_ID)
 	} else if vaultConfig.ClusterId == "" {
-		log.Println("Error: Cluster ID is required.")
+		logger.Error(CLUSTER_ID_IS_REQUIRED)
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_CLUSTER_ID)
 	}
 	return nil
@@ -147,16 +166,17 @@ func ValidateVaultConfig(vaultConfig VaultConfig) *skyflowError.SkyflowError {
 // ValidateConnectionConfig validates the ConnectionConfig struct
 func ValidateConnectionConfig(config ConnectionConfig) *skyflowError.SkyflowError {
 	if config.ConnectionId == "" {
-		log.Println("Error: Connection ID is required.")
+		logger.Error(CONNECTION_ID_IS_REQUIRED)
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_CONNECTION_ID)
 	} else if config.ConnectionUrl == "" {
-		log.Println("Error: Connection URL is required.", config)
+		logger.Error(CONNECTION_URL_IS_REQUIRED)
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_CONNECTION_URL)
 	}
 
 	// Parse the URL
 	_, err := url.Parse(config.ConnectionUrl)
 	if err != nil {
+		logger.Error(INVALID_CONNECTION_URL)
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_CONNECTION_URL)
 	}
 	//if parsedURL.Scheme != "https" {
@@ -185,9 +205,10 @@ func ValidateCredentials(credentials Credentials) *skyflowError.SkyflowError {
 
 	// Validation logic
 	if credPresent > 1 {
-		//log.Println("Error: Multiple token generation means passed")
+		logger.Error(MULTIPLE_TOKEN_GENERATION_MEANS_PASSED)
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.MULTIPLE_TOKEN_GENERATION_MEANS_PASSED)
 	} else if credPresent < 1 {
+		logger.Error(NO_TOKEN_GENERATION_MEANS_PASSED)
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.NO_TOKEN_GENERATION_MEANS_PASSED)
 	}
 
@@ -197,11 +218,11 @@ func ValidateCredentials(credentials Credentials) *skyflowError.SkyflowError {
 		apiKeyRegex := `^sky-[a-zA-Z0-9]{5}-[a-fA-F0-9]{32}$` // Replace this with the actual regex
 		matched, err := regexp.MatchString(apiKeyRegex, credentials.ApiKey)
 		if err != nil {
-			log.Println("Error: Failed to validate API key regex")
+			logger.Error(INVALID_API_KEY)
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_API_KEY)
 		}
 		if !matched {
-			log.Println("Error: Invalid API key format")
+			logger.Error(INVALID_API_KEY)
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_API_KEY)
 		}
 	}
@@ -209,12 +230,12 @@ func ValidateCredentials(credentials Credentials) *skyflowError.SkyflowError {
 	// Roles validation
 	if credentials.Roles != nil {
 		if len(credentials.Roles) == 0 {
-			log.Println("Error: Roles list is empty")
+			logger.Error(EMPTY_ROLES)
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_ROLES)
 		}
 		for index, role := range credentials.Roles {
 			if role == "" {
-				log.Printf("Error: Role at index %d is empty or null\n", index)
+				logger.Error(fmt.Sprintf(EMPTY_OR_NULL_ROLE_IN_ROLES, index))
 				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_ROLE_IN_ROLES)
 			}
 		}
@@ -228,12 +249,12 @@ func ValidateInvokeConnectionRequest(request InvokeConnectionRequest) *skyflowEr
 	// Validate headers
 	if request.Headers != nil {
 		if len(request.Headers) == 0 {
-			log.Println("Error: Empty request headers")
+			logger.Error(fmt.Sprintf(EMPTY_REQUEST_HEADERS, "InvokeConnectionRequest"))
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_REQUEST_HEADER)
 		}
 		for key, value := range request.Headers {
 			if key == "" || value == "" {
-				log.Println("Error: Invalid request header key or value")
+				logger.Error(fmt.Sprintf(INVALID_REQUEST_HEADERS, "InvokeConnectionRequest"))
 				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_REQUEST_HEADERS)
 			}
 		}
@@ -242,14 +263,15 @@ func ValidateInvokeConnectionRequest(request InvokeConnectionRequest) *skyflowEr
 	// Validate path parameters
 	if request.PathParams != nil {
 		if len(request.PathParams) == 0 {
-			log.Println("Error: Empty path parameters")
+			logger.Error(fmt.Sprintf(EMPTY_PATH_PARAMS, "InvokeConnectionRequest"))
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_PARAMETERS)
 		}
 		for key, value := range request.PathParams {
 			if key == "" {
-				log.Println("Error: Invalid path parameter key or value")
+				logger.Error(fmt.Sprintf(INVALID_PATH_PARAM, "InvokeConnectionRequest"))
 				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_PARAMETER_NAME)
 			} else if value == "" {
+				logger.Error(fmt.Sprintf(INVALID_PATH_PARAM, "InvokeConnectionRequest"))
 				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_PARAMETER_VALUE)
 
 			}
@@ -259,12 +281,12 @@ func ValidateInvokeConnectionRequest(request InvokeConnectionRequest) *skyflowEr
 	// Validate query parameters
 	if request.QueryParams != nil {
 		if len(request.QueryParams) == 0 {
-			log.Println("Error: Empty query parameters")
+			logger.Error(fmt.Sprintf(EMPTY_QUERY_PARAMS, "InvokeConnectionRequest"))
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_QUERY_PARAM)
 		}
 		for key, value := range request.QueryParams {
 			if key == "" || value == nil || value == "" {
-				log.Println("Error: Invalid query parameter key or value")
+				logger.Error(fmt.Sprintf(INVALID_QUERY_PARAM, "InvokeConnectionRequest"))
 				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_QUERY_PARAM)
 			}
 		}
@@ -272,7 +294,7 @@ func ValidateInvokeConnectionRequest(request InvokeConnectionRequest) *skyflowEr
 	// Validate body
 	if request.Body != nil {
 		if len(request.Body) == 0 {
-			log.Println("Error: Empty request body")
+			logger.Error(fmt.Sprintf(EMPTY_REQUEST_BODY, "InvokeConnectionRequest"))
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_REQUEST_BODY)
 		}
 	}
@@ -280,13 +302,17 @@ func ValidateInvokeConnectionRequest(request InvokeConnectionRequest) *skyflowEr
 }
 
 func ValidateDetokenizeRequest(request DetokenizeRequest) *skyflowError.SkyflowError {
+	tag := "DetokenizeRequest"
 	if request.Tokens == nil {
+		logger.Error(fmt.Sprintf(TOKENS_REQUIRED, tag))
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_DATA_TOKENS)
 	} else if len(request.Tokens) == 0 {
+		logger.Error(EMPTY_TOKENS_IN_DETOKENIZE)
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_TOKENS_DETOKENIZE)
 	} else {
-		for _, token := range request.Tokens {
+		for index, token := range request.Tokens {
 			if token == "" {
+				logger.Error(fmt.Sprintf(EMPTY_OR_NULL_TOKEN_IN_TOKENS, tag, index))
 				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_TOKEN_IN_DATA_TOKEN)
 			}
 		}
@@ -296,17 +322,21 @@ func ValidateDetokenizeRequest(request DetokenizeRequest) *skyflowError.SkyflowE
 
 func ValidateGetRequest(getRequest GetRequest, options GetOptions) *skyflowError.SkyflowError {
 	// Check if the table is valid
+	tag := "Get"
 	if getRequest.Table == "" {
+		logger.Error(fmt.Sprintf(EMPTY_TABLE, tag))
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_TABLE)
 	}
 
 	// Validate Ids
 	if getRequest.Ids != nil {
 		if len(getRequest.Ids) == 0 {
+			logger.Error(fmt.Sprintf(EMPTY_IDS, tag))
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_IDS)
 		}
-		for _, id := range getRequest.Ids {
+		for index, id := range getRequest.Ids {
 			if id == "" {
+				logger.Error(fmt.Sprintf(EMPTY_OR_NULL_ID_IN_IDS, tag, index))
 				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_ID_IN_IDS)
 			}
 		}
@@ -315,10 +345,12 @@ func ValidateGetRequest(getRequest GetRequest, options GetOptions) *skyflowError
 	// Validate Fields
 	if options.Fields != nil {
 		if len(options.Fields) == 0 {
+			logger.Error(fmt.Sprintf(EMPTY_FIELDS, tag))
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_FIELDS)
 		}
-		for _, field := range options.Fields {
+		for index, field := range options.Fields {
 			if field == "" {
+				logger.Error(fmt.Sprintf(EMPTY_OR_NULL_FIELD_IN_FIELDS, tag, index))
 				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_FIELD_IN_FIELDS)
 			}
 		}
@@ -326,29 +358,36 @@ func ValidateGetRequest(getRequest GetRequest, options GetOptions) *skyflowError
 
 	if options.ReturnTokens {
 		if options.ColumnName != "" || options.ColumnValues != nil {
+			logger.Error(fmt.Sprintf(TOKENIZATION_NOT_SUPPORTED_WITH_REDACTION, tag))
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.TOKENS_GET_COLUMN_NOT_SUPPORTED)
 		}
 	}
 
 	// ColumnName and ColumnValues logic
 	if getRequest.Ids == nil && options.ColumnName == "" && options.ColumnValues == nil {
+		logger.Error(fmt.Sprintf(NEITHER_IDS_NOR_COLUMN_NAME_PASSED, tag))
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.UNIQUE_COLUMN_OR_IDS_KEY_ERROR)
 	}
 	if getRequest.Ids != nil && (options.ColumnName != "" || options.ColumnValues != nil) {
+		logger.Error(fmt.Sprintf(BOTH_IDS_AND_COLUMN_NAME_PASSED, tag))
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.BOTH_IDS_AND_COLUMN_DETAILS_SPECIFIED)
 	}
 	if options.ColumnName == "" && options.ColumnValues != nil {
+		logger.Error(EMPTY_COLUMN_NAME_IN_GET_COLUMN)
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.COLUMN_NAME_KEY_ERROR)
 	}
 	if options.ColumnName != "" && options.ColumnValues == nil {
+		logger.Error(EMPTY_COLUMN_VALUES_IN_GET_COLUMN)
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_COLUMN_VALUES)
 	}
 	if options.ColumnName != "" {
 		if len(options.ColumnValues) == 0 {
+			logger.Error(EMPTY_COLUMN_VALUES_IN_GET_COLUMN)
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_COLUMN_VALUES)
 		}
-		for _, columnValue := range options.ColumnValues {
+		for index, columnValue := range options.ColumnValues {
 			if columnValue == "" {
+				logger.Error(fmt.Sprintf(EMPTY_OR_NULL_COLUMN_VALUE_IN_COLUMN_VALUES, tag, index))
 				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_VALUE_IN_COLUMN_VALUES)
 			}
 		}
@@ -357,13 +396,17 @@ func ValidateGetRequest(getRequest GetRequest, options GetOptions) *skyflowError
 }
 
 func ValidateDeleteRequest(request DeleteRequest) *skyflowError.SkyflowError {
+	tag := "delete"
 	if request.Table == "" {
+		logger.Error(fmt.Sprintf(EMPTY_TABLE, tag))
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_TABLE)
 	} else if request.Ids == nil || len(request.Ids) == 0 {
+		logger.Error(fmt.Sprintf(EMPTY_IDS, tag))
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_IDS)
 	}
-	for _, id := range request.Ids {
+	for index, id := range request.Ids {
 		if id == "" {
+			logger.Error(fmt.Sprintf(INVALID_ID, tag, index))
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_ID_IN_IDS)
 		}
 	}
@@ -372,6 +415,7 @@ func ValidateDeleteRequest(request DeleteRequest) *skyflowError.SkyflowError {
 
 func ValidateQueryRequest(request QueryRequest) *skyflowError.SkyflowError {
 	if request.Query == "" {
+		logger.Error(EMPTY_QUERY)
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_QUERY)
 	}
 	return nil
@@ -379,14 +423,18 @@ func ValidateQueryRequest(request QueryRequest) *skyflowError.SkyflowError {
 
 func ValidateTokenizeRequest(request []TokenizeRequest) *skyflowError.SkyflowError {
 	if request == nil {
+		logger.Error(INVALID_TOKENIZE_REQUEST)
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_TOKENIZE_REQUEST)
 	} else if len(request) == 0 {
+		logger.Error(INVALID_TOKENIZE_REQUEST)
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_TOKENIZE_REQUEST)
 	} else {
-		for _, tokenize := range request {
+		for index, tokenize := range request {
 			if tokenize.ColumnGroup == "" {
+				logger.Error(EMPTY_COLUMN_GROUP_IN_COLUMN_VALUES, index)
 				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_VALUE_IN_COLUMN_VALUES)
 			} else if tokenize.Value == "" {
+				logger.Error(EMPTY_OR_NULL_COLUMN_VALUE_IN_COLUMN_VALUES)
 				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_COLUMN_VALUES)
 			}
 		}
@@ -395,39 +443,48 @@ func ValidateTokenizeRequest(request []TokenizeRequest) *skyflowError.SkyflowErr
 }
 
 func ValidateUpdateRequest(request UpdateRequest, options UpdateOptions) *skyflowError.SkyflowError {
+	tag := "update"
 	if request.Table == "" {
+		logger.Error(fmt.Sprintf(EMPTY_TABLE, tag))
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_TABLE)
 	} else if request.Id == "" {
+		logger.Error(INVALID_SKYFLOW_ID_IN_UPDATE)
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_ID_IN_UPDATE)
 	} else if request.Values == nil || len(request.Values) == 0 {
+		logger.Error(fmt.Sprintf(EMPTY_VALUES, tag))
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_VALUES)
 	}
 
 	for key, value := range request.Values {
 		if value == "" {
+			logger.Error(fmt.Sprintf(EMPTY_OR_NULL_VALUE_IN_VALUES, tag, key))
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_VALUE_IN_VALUES)
 		} else if key == "" {
+			logger.Error(fmt.Sprintf(EMPTY_OR_NULL_KEY_IN_VALUES, tag))
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_KEY_IN_VALUES)
 		}
 	}
 	switch options.TokenMode {
 	case DISABLE:
 		if request.Tokens != nil || len(request.Tokens) != 0 {
+			logger.Error(fmt.Sprintf(TOKENS_NOT_ALLOWED_WITH_BYOT_DISABLE, tag))
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.TOKENS_PASSED_FOR_BYOT_DISABLE)
 		}
 	case ENABLE:
 		if request.Tokens == nil {
+			logger.Error(fmt.Sprintf(TOKENS_REQUIRED_WITH_BYOT, tag, ENABLE))
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.NO_TOKENS_WITH_BYOT, options.TokenMode))
 		}
-		err := validateTokenForStrict(request.Tokens, request.Values, options.TokenMode)
+		err := validateTokenForStrict(request.Tokens, request.Values, options.TokenMode, tag)
 		if err != nil {
 			return err
 		}
 	case ENABLE_STRICT:
 		if request.Tokens == nil {
+			logger.Error(fmt.Sprintf(TOKENS_REQUIRED_WITH_BYOT, tag, ENABLE_STRICT))
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.NO_TOKENS_WITH_BYOT, options.TokenMode))
 		}
-		err := validateTokenForStrict(request.Tokens, request.Values, options.TokenMode)
+		err := validateTokenForStrict(request.Tokens, request.Values, options.TokenMode, tag)
 		if err != nil {
 			return err
 		}

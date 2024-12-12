@@ -1,11 +1,12 @@
 /*
-	Copyright (c) 2022 Skyflow, Inc. 
+Copyright (c) 2022 Skyflow, Inc.
 */
 package logger
 
 import (
+	"io"
+
 	"github.com/sirupsen/logrus"
-	"io/ioutil"
 )
 
 type LogLevel int
@@ -55,7 +56,7 @@ func SetLogLevel(level LogLevel) {
 	case ERROR:
 		log.SetLevel(logrus.ErrorLevel)
 	case OFF:
-		log.SetOutput(ioutil.Discard)
+		log.SetOutput(io.Discard)
 	default:
 		log.SetLevel(logrus.ErrorLevel)
 	}
