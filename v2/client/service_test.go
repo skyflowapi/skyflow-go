@@ -24,14 +24,14 @@ var _ = Describe("Vault controller Test cases", func() {
 			err      *skyflowError.SkyflowError
 		)
 		BeforeEach(func() {
-			client, err = client.Builder().WithVaultConfig(VaultConfig{
+			client, err = NewSkyflow(WithVault(VaultConfig{
 				VaultId:   "id",
 				ClusterId: "cid",
 				Env:       0,
 				Credentials: Credentials{
 					ApiKey: "sky-abcde-1234567890abcdef1234567890abcdef",
 				},
-			}).Build()
+			}))
 			response = make(map[string]interface{})
 			ts = nil
 		})
@@ -354,6 +354,7 @@ var _ = Describe("Vault controller Test cases", func() {
 			})
 		})
 	})
+
 	Describe("Test Detokenize functions", func() {
 		var (
 			request DetokenizeRequest
@@ -362,14 +363,14 @@ var _ = Describe("Vault controller Test cases", func() {
 		)
 		BeforeEach(func() {
 			// Initialize the VaultController instance
-			client, _ = client.Builder().WithVaultConfig(VaultConfig{
+			client, _ = NewSkyflow(WithVault(VaultConfig{
 				VaultId:   "id",
 				ClusterId: "cid",
 				Env:       0,
 				Credentials: Credentials{
 					ApiKey: "sky-abcde-1234567890abcdef1234567890abcdef",
 				},
-			}).Build()
+			}))
 
 			// Initialize context, request, and options
 			request = DetokenizeRequest{
@@ -494,19 +495,20 @@ var _ = Describe("Vault controller Test cases", func() {
 			})
 		})
 	})
+
 	Describe("Test Get functions", func() {
 		var client *Skyflow
 		var ctx context.Context
 		BeforeEach(func() {
 			// Initialize the VaultController instance
-			client, _ = client.Builder().WithVaultConfig(VaultConfig{
+			client, _ = NewSkyflow(WithVault(VaultConfig{
 				VaultId:   "id",
 				ClusterId: "cid",
 				Env:       0,
 				Credentials: Credentials{
 					ApiKey: "sky-abcde-1234567890abcdef1234567890abcdef",
 				},
-			}).Build()
+			}))
 		})
 		Context("Test the success and error case", func() {
 			options := GetOptions{
@@ -598,19 +600,20 @@ var _ = Describe("Vault controller Test cases", func() {
 			})
 		})
 	})
+
 	Describe("Test Delete functions", func() {
 		var client *Skyflow
 		var ctx context.Context
 		BeforeEach(func() {
 			// Initialize the VaultController instance
-			client, _ = client.Builder().WithVaultConfig(VaultConfig{
+			client, _ = NewSkyflow(WithVault(VaultConfig{
 				VaultId:   "id",
 				ClusterId: "cid",
 				Env:       0,
 				Credentials: Credentials{
 					ApiKey: "sky-abcde-1234567890abcdef1234567890abcdef",
 				},
-			}).Build()
+			}))
 			ctx = context.TODO()
 		})
 		Context("Test the success and error case", func() {
@@ -680,19 +683,20 @@ var _ = Describe("Vault controller Test cases", func() {
 			})
 		})
 	})
+
 	Describe("Test Query functions", func() {
 		var client *Skyflow
 		var ctx context.Context
 		BeforeEach(func() {
 			// Initialize the VaultController instance
-			client, _ = client.Builder().WithVaultConfig(VaultConfig{
+			client, _ = NewSkyflow(WithVault(VaultConfig{
 				VaultId:   "id",
 				ClusterId: "cid",
 				Env:       0,
 				Credentials: Credentials{
 					ApiKey: "sky-abcde-1234567890abcdef1234567890abcdef",
 				},
-			}).Build()
+			}))
 			ctx = context.TODO()
 		})
 		Context("Test the success and error case", func() {
@@ -761,19 +765,20 @@ var _ = Describe("Vault controller Test cases", func() {
 			})
 		})
 	})
+
 	Describe("Test Update functions", func() {
 		var client *Skyflow
 		var ctx context.Context
 		BeforeEach(func() {
 			// Initialize the VaultController instance
-			client, _ = client.Builder().WithVaultConfig(VaultConfig{
+			client, _ = NewSkyflow(WithVault(VaultConfig{
 				VaultId:   "id",
 				ClusterId: "cid",
 				Env:       0,
 				Credentials: Credentials{
 					ApiKey: "sky-abcde-1234567890abcdef1234567890abcdef",
 				},
-			}).Build()
+			}))
 			ctx = context.TODO()
 		})
 		Context("Test the success and error case", func() {
@@ -848,19 +853,20 @@ var _ = Describe("Vault controller Test cases", func() {
 			})
 		})
 	})
+
 	Describe("Test Tokenize functions", func() {
 		var client *Skyflow
 		var ctx context.Context
 		BeforeEach(func() {
 			// Initialize the VaultController instance
-			client, _ = client.Builder().WithVaultConfig(VaultConfig{
+			client, _ = NewSkyflow(WithVault(VaultConfig{
 				VaultId:   "id",
 				ClusterId: "cid",
 				Env:       0,
 				Credentials: Credentials{
 					ApiKey: "sky-abcde-1234567890abcdef1234567890abcdef",
 				},
-			}).Build()
+			}))
 			ctx = context.TODO()
 		})
 		Context("Test the success and error case", func() {
@@ -960,13 +966,13 @@ var _ = Describe("ConnectionController", func() {
 					w.WriteHeader(http.StatusOK)
 					_, _ = w.Write([]byte(`{"key": "value"}`))
 				}))
-				client, _ = client.Builder().WithConnectionConfig(ConnectionConfig{
+				client, _ = NewSkyflow(WithConnection(ConnectionConfig{
 					ConnectionId:  "failed",
 					ConnectionUrl: mockServer.URL,
 					Credentials: Credentials{
 						Token: "TOKEN",
 					},
-				}).Build()
+				}))
 			})
 
 			AfterEach(func() {
@@ -978,7 +984,7 @@ var _ = Describe("ConnectionController", func() {
 					return nil
 				}
 
-				service, err := client.Connection()
+				service, err := client.Connection("failed")
 				response, err := service.Invoke(ctx, mockRequest)
 				Expect(err).To(BeNil())
 				Expect(response.Response).To(Equal(mockResponse))
@@ -1006,7 +1012,7 @@ var _ = Describe("ConnectionController", func() {
 				SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError {
 					return nil
 				}
-				service, _ := client.Connection()
+				service, _ := client.Connection("failed")
 
 				response, err := service.Invoke(ctx, request)
 				Expect(err).ToNot(BeNil())
@@ -1033,8 +1039,7 @@ var _ = Describe("ConnectionController", func() {
 				SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError {
 					return nil
 				}
-				service, _ := client.Connection()
-
+				service, err := client.Connection("failed")
 				response, err := service.Invoke(ctx, request)
 				Expect(err).ToNot(BeNil())
 				Expect(response).To(BeNil())

@@ -46,16 +46,23 @@ func GetURLWithEnv(env Env, clusterId string) string {
 // GenerateToken generates a bearer token using the provided credentials.
 func GenerateToken(credentials Credentials) (*string, *skyflowError.SkyflowError) {
 	var bearerToken string
+	var options = BearerTokenOptions{}
+	if credentials.Roles != nil {
+		options.RoleIDs = credentials.Roles
+	}
+	if credentials.Context != "" {
+		options.Ctx = credentials.Context
+	}
 	switch {
 	case credentials.Path != "":
-		token, err := serviceaccount.GenerateBearerToken(credentials.Path, BearerTokenOptions{})
+		token, err := serviceaccount.GenerateBearerToken(credentials.Path, options)
 		if err != nil {
 			return nil, err
 		}
 		bearerToken = token.AccessToken
 
 	case credentials.CredentialsString != "":
-		token, err := serviceaccount.GenerateBearerTokenFromCreds(credentials.CredentialsString, BearerTokenOptions{})
+		token, err := serviceaccount.GenerateBearerTokenFromCreds(credentials.CredentialsString, options)
 		if err != nil {
 			return nil, err
 		}

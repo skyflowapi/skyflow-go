@@ -63,6 +63,7 @@ func setBearerTokenForConnectionController(v *ConnectionController) *SkyflowErro
 }
 
 func (v *ConnectionController) Invoke(ctx context.Context, request InvokeConnectionRequest) (*InvokeConnectionResponse, *SkyflowError) {
+	tag := "Invoke Connection"
 	logger.Info(logs.INVOKE_CONNECTION_TRIGGERED)
 	// Step 1: Validate Configuration
 	logger.Info(logs.VALIDATING_INVOKE_CONNECTION_REQUEST)
@@ -87,14 +88,14 @@ func (v *ConnectionController) Invoke(ctx context.Context, request InvokeConnect
 		requestUrl,
 	)
 	if err1 != nil {
-		logger.Error(logs.INVALID_REQUEST_HEADERS)
+		logger.Error(fmt.Sprintf(logs.INVALID_REQUEST_HEADERS, tag))
 		return nil, NewSkyflowError(INVALID_INPUT_CODE, fmt.Sprintf(UNKNOWN_ERROR, err1.Error()))
 	}
 
 	// Step 4: Set Query Params
 	err2 := setQueryParams(requestBody, request.QueryParams)
 	if err2 != nil {
-		logger.Error(logs.INVALID_QUERY_PARAM)
+		logger.Error(fmt.Sprintf(logs.INVALID_QUERY_PARAM, tag))
 		return nil, err2
 	}
 

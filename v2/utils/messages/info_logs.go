@@ -11,14 +11,14 @@ const (
 	GENERATE_BEARER_TOKEN_SUCCESS      = SDK_LOG_PREFIX + "BearerToken is generated"
 	GENERATE_SIGNED_DATA_TOKEN_SUCCESS = SDK_LOG_PREFIX + "Signed Data tokens are generated"
 
-	VALIDATING_VAULT_CONFIG           = SDK_LOG_PREFIX + "Validating vault config."
-	VALIDATING_CONNECTION_CONFIG      = SDK_LOG_PREFIX + "Validating connection config."
-	VAULT_CONTROLLER_INITIALIZED      = SDK_LOG_PREFIX + "Initialized vault controller with vault ID %s1."
-	CONNECTION_CONTROLLER_INITIALIZED = SDK_LOG_PREFIX + "Initialized connection controller with connection ID %s1."
+	VALIDATING_VAULT_CONFIG                  = SDK_LOG_PREFIX + "Validating vault config."
+	VALIDATING_CONNECTION_CONFIG             = SDK_LOG_PREFIX + "Validating connection config."
+	VAULT_CONTROLLER_INITIALIZED             = SDK_LOG_PREFIX + "Initialized vault controller with vault ID %s."
+	CONNECTION_CONTROLLER_INITIALIZED        = SDK_LOG_PREFIX + "Initialized connection controller with connection ID %s."
+	VALIDATING_CRED                   string = SDK_LOG_PREFIX + "Validating skyflow credentials."
+	VAULT_ID_CONFIG_DOES_NOT_EXIST           = SDK_LOG_PREFIX + "Vault config with vault ID %s doesn't exist."
 
-	VAULT_ID_CONFIG_DOES_NOT_EXIST = SDK_LOG_PREFIX + "Vault config with vault ID %s1 doesn't exist."
-
-	CURRENT_LOG_LEVEL         = SDK_LOG_PREFIX + "Current log level is %s1."
+	CURRENT_LOG_LEVEL         = SDK_LOG_PREFIX + "Current log level is %v."
 	CLIENT_INITIALIZED        = SDK_LOG_PREFIX + "Initialized skyflow client successfully."
 	VALIDATE_INSERT_INPUT     = SDK_LOG_PREFIX + "Validating insert request."
 	VALIDATE_DETOKENIZE_INPUT = SDK_LOG_PREFIX + "Validating detokenize request."
