@@ -10,20 +10,21 @@ import (
 	"mime/multipart"
 	"net/http"
 	"reflect"
-	"skyflow-go/v2/internal/validation"
-	"skyflow-go/v2/serviceaccount"
-	. "skyflow-go/v2/utils/common"
-	. "skyflow-go/v2/utils/error"
-	"skyflow-go/v2/utils/logger"
-	logs "skyflow-go/v2/utils/messages"
 	"strconv"
 	"strings"
+
+	"github.com/skyflowapi/skyflow-go/v2/internal/validation"
+	"github.com/skyflowapi/skyflow-go/v2/serviceaccount"
+	"github.com/skyflowapi/skyflow-go/v2/utils/common"
+	"github.com/skyflowapi/skyflow-go/v2/utils/error"
+	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
+	logs "github.com/skyflowapi/skyflow-go/v2/utils/messages"
 
 	"github.com/hetiansu5/urlquery"
 )
 
 type ConnectionController struct {
-	Config   ConnectionConfig
+	Config   common.ConnectionConfig
 	Loglevel *logger.LogLevel
 	Token    string
 	ApiKey   string
@@ -32,7 +33,7 @@ type ConnectionController struct {
 var SetBearerTokenForConnectionControllerFunc = setBearerTokenForConnectionController
 
 // SetBearerTokenForConnectionController checks and updates the token if necessary.
-func setBearerTokenForConnectionController(v *ConnectionController) *SkyflowError {
+func setBearerTokenForConnectionController(v *ConnectionController) *errors.SkyflowError {
 	// Validate token or generate a new one if expired or not set.
 	// check if apikey or token already initalised
 	if v.ApiKey != "" {
@@ -46,7 +47,7 @@ func setBearerTokenForConnectionController(v *ConnectionController) *SkyflowErro
 	} else if v.Config.Credentials.Token != "" {
 		if serviceaccount.IsExpired(v.Config.Credentials.Token) {
 			logger.Error(logs.BEARER_TOKEN_EXPIRED)
-			return NewSkyflowError(INVALID_INPUT_CODE, TOKEN_EXPIRED)
+			return errors.NewSkyflowError(errors.INVALID_INPUT_CODE, errors.TOKEN_EXPIRED)
 		}
 		v.Token = v.Config.Credentials.Token
 		return nil
@@ -62,7 +63,7 @@ func setBearerTokenForConnectionController(v *ConnectionController) *SkyflowErro
 	return nil
 }
 
-func (v *ConnectionController) Invoke(ctx context.Context, request InvokeConnectionRequest) (*InvokeConnectionResponse, *SkyflowError) {
+func (v *ConnectionController) Invoke(ctx context.Context, request common.InvokeConnectionRequest) (*common.InvokeConnectionResponse, *errors.SkyflowError) {
 	tag := "Invoke Connection"
 	logger.Info(logs.INVOKE_CONNECTION_TRIGGERED)
 	// Step 1: Validate Configuration
@@ -89,7 +90,7 @@ func (v *ConnectionController) Invoke(ctx context.Context, request InvokeConnect
 	)
 	if err1 != nil {
 		logger.Error(fmt.Sprintf(logs.INVALID_REQUEST_HEADERS, tag))
-		return nil, NewSkyflowError(INVALID_INPUT_CODE, fmt.Sprintf(UNKNOWN_ERROR, err1.Error()))
+		return nil, errors.NewSkyflowError(errors.INVALID_INPUT_CODE, fmt.Sprintf(errors.UNKNOWN_ERROR, err1.Error()))
 	}
 
 	// Step 4: Set Query Params
@@ -106,7 +107,7 @@ func (v *ConnectionController) Invoke(ctx context.Context, request InvokeConnect
 	res, requestId, invokeErr := sendRequest(requestBody)
 	if invokeErr != nil {
 		logger.Error(logs.INVOKE_CONNECTION_REQUEST_REJECTED)
-		return nil, NewSkyflowError(INVALID_INPUT_CODE, fmt.Sprintf(UNKNOWN_ERROR, invokeErr.Error()))
+		return nil, errors.NewSkyflowError(errors.INVALID_INPUT_CODE, fmt.Sprintf(errors.UNKNOWN_ERROR, invokeErr.Error()))
 	}
 	logger.Info(logs.INVOKE_CONNECTION_REQUEST_RESOLVED)
 	// Step 7: Parse Response
@@ -114,7 +115,7 @@ func (v *ConnectionController) Invoke(ctx context.Context, request InvokeConnect
 	if parseErr != nil {
 		return nil, parseErr
 	}
-	return &InvokeConnectionResponse{Response: parseRes}, nil
+	return &common.InvokeConnectionResponse{Response: parseRes}, nil
 }
 
 // Utility Functions
@@ -124,20 +125,20 @@ func buildRequestURL(baseURL string, pathParams map[string]string) string {
 	}
 	return baseURL
 }
-func prepareRequest(request InvokeConnectionRequest, url string) (*http.Request, error) {
+func prepareRequest(request common.InvokeConnectionRequest, url string) (*http.Request, error) {
 	var body io.Reader
 	var writer *multipart.Writer
 	contentType := detectContentType(request.Headers)
 
 	switch contentType {
-	case string(FORMURLENCODED):
+	case string(common.FORMURLENCODED):
 		data, err := urlquery.Marshal(request.Body)
 		if err != nil {
 			return nil, err
 		}
 		body = strings.NewReader(string(data))
 
-	case string(FORMDATA):
+	case string(common.FORMDATA):
 		buffer := new(bytes.Buffer)
 		writer = multipart.NewWriter(buffer)
 		if err := writeFormData(writer, request.Body); err != nil {
@@ -212,9 +213,9 @@ func detectContentType(headers map[string]string) string {
 			return value
 		}
 	}
-	return string(APPLICATIONORJSON)
+	return string(common.APPLICATIONORJSON)
 }
-func setQueryParams(request *http.Request, queryParams map[string]interface{}) *SkyflowError {
+func setQueryParams(request *http.Request, queryParams map[string]interface{}) *errors.SkyflowError {
 	query := request.URL.Query()
 	for key, value := range queryParams {
 		switch v := value.(type) {
@@ -227,13 +228,13 @@ func setQueryParams(request *http.Request, queryParams map[string]interface{}) *
 		case bool:
 			query.Set(key, strconv.FormatBool(v))
 		default:
-			return NewSkyflowError(INVALID_INPUT_CODE, INVALID_QUERY_PARAM)
+			return errors.NewSkyflowError(errors.INVALID_INPUT_CODE, errors.INVALID_QUERY_PARAM)
 		}
 	}
 	request.URL.RawQuery = query.Encode()
 	return nil
 }
-func setHeaders(request *http.Request, api ConnectionController, invokeRequest InvokeConnectionRequest) {
+func setHeaders(request *http.Request, api ConnectionController, invokeRequest common.InvokeConnectionRequest) {
 	if api.ApiKey != "" {
 		request.Header.Set("x-skyflow-authorization", api.ApiKey)
 	} else {
@@ -256,14 +257,14 @@ func sendRequest(request *http.Request) (*http.Response, string, error) {
 	}
 	return response, requestId, nil
 }
-func parseResponse(response *http.Response, requestId string) (map[string]interface{}, *SkyflowError) {
+func parseResponse(response *http.Response, requestId string) (map[string]interface{}, *errors.SkyflowError) {
 	data, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return nil, NewSkyflowError(INVALID_INPUT_CODE, INVALID_RESPONSE)
+		return nil, errors.NewSkyflowError(errors.INVALID_INPUT_CODE, errors.INVALID_RESPONSE)
 	}
 	var result map[string]interface{}
 	if err1 := json.Unmarshal(data, &result); err1 != nil {
-		return nil, NewSkyflowError(INVALID_INPUT_CODE, INVALID_RESPONSE)
+		return nil, errors.NewSkyflowError(errors.INVALID_INPUT_CODE, errors.INVALID_RESPONSE)
 	}
 	return result, nil
 }

@@ -8,17 +8,18 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"skyflow-go/v2/internal/helpers"
-	"skyflow-go/v2/utils/common"
-	. "skyflow-go/v2/utils/error"
 	"strings"
 	"testing"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	"github.com/skyflowapi/skyflow-go/v2/internal/helpers"
+	"github.com/skyflowapi/skyflow-go/v2/utils/common"
+	. "github.com/skyflowapi/skyflow-go/v2/utils/error"
 )
 
 func TestController(t *testing.T) {

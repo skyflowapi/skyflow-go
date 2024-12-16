@@ -2,13 +2,13 @@ package client
 
 import (
 	"fmt"
+	"github.com/skyflowapi/skyflow-go/v2/internal/validation"
+	"github.com/skyflowapi/skyflow-go/v2/internal/vault/controller"
+	vaultutils "github.com/skyflowapi/skyflow-go/v2/utils/common"
+	error "github.com/skyflowapi/skyflow-go/v2/utils/error"
+	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
+	logs "github.com/skyflowapi/skyflow-go/v2/utils/messages"
 	"os"
-	"skyflow-go/v2/internal/validation"
-	"skyflow-go/v2/internal/vault/controller"
-	vaultutils "skyflow-go/v2/utils/common"
-	error "skyflow-go/v2/utils/error"
-	"skyflow-go/v2/utils/logger"
-	logs "skyflow-go/v2/utils/messages"
 )
 
 type Skyflow struct {

@@ -2,13 +2,14 @@ package client_test
 
 import (
 	"fmt"
+	"testing"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "skyflow-go/v2/client"
-	"skyflow-go/v2/utils/common"
-	error "skyflow-go/v2/utils/error"
-	"skyflow-go/v2/utils/logger"
-	"testing"
+	. "github.com/skyflowapi/skyflow-go/v2/client"
+	"github.com/skyflowapi/skyflow-go/v2/utils/common"
+	error "github.com/skyflowapi/skyflow-go/v2/utils/error"
+	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
 )
 
 func TestServiceAccount(t *testing.T) {

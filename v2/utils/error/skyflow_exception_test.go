@@ -3,9 +3,10 @@ package errors_test
 import (
 	"io"
 	"net/http"
-	. "skyflow-go/v2/utils/error"
 	"strings"
 	"testing"
+
+	. "github.com/skyflowapi/skyflow-go/v2/utils/error"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

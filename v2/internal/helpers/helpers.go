@@ -7,17 +7,18 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
-	"github.com/golang-jwt/jwt"
 	"io/ioutil"
 	"net/url"
 	"os"
-	constants "skyflow-go/v2/internal/constants"
-	internalAuthApi "skyflow-go/v2/internal/generated/auth"
-	. "skyflow-go/v2/utils/common"
-	skyflowError "skyflow-go/v2/utils/error"
-	"skyflow-go/v2/utils/logger"
-	logs "skyflow-go/v2/utils/messages"
 	"time"
+
+	"github.com/golang-jwt/jwt"
+	constants "github.com/skyflowapi/skyflow-go/v2/internal/constants"
+	internalAuthApi "github.com/skyflowapi/skyflow-go/v2/internal/generated/auth"
+	. "github.com/skyflowapi/skyflow-go/v2/utils/common"
+	skyflowError "github.com/skyflowapi/skyflow-go/v2/utils/error"
+	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
+	logs "github.com/skyflowapi/skyflow-go/v2/utils/messages"
 )
 
 // Helper function to read and parse credentials from file

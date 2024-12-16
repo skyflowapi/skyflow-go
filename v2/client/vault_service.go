@@ -2,19 +2,20 @@ package client
 
 import (
 	"context"
-	"skyflow-go/v2/internal/vault/controller"
-	. "skyflow-go/v2/utils/common"
-	skyflowError "skyflow-go/v2/utils/error"
-	"skyflow-go/v2/utils/logger"
+
+	"github.com/skyflowapi/skyflow-go/v2/internal/vault/controller"
+	"github.com/skyflowapi/skyflow-go/v2/utils/common"
+	skyflowError "github.com/skyflowapi/skyflow-go/v2/utils/error"
+	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
 )
 
 type vaultService struct {
-	config     *VaultConfig
+	config     *common.VaultConfig
 	logLevel   *logger.LogLevel
 	controller *controller.VaultController
 }
 
-func (v *vaultService) Insert(ctx context.Context, request InsertRequest, options InsertOptions) (*InsertResponse, *skyflowError.SkyflowError) {
+func (v *vaultService) Insert(ctx context.Context, request common.InsertRequest, options common.InsertOptions) (*common.InsertResponse, *skyflowError.SkyflowError) {
 	res, err := v.controller.Insert(ctx, request, options)
 	if err != nil {
 		return nil, err
@@ -22,7 +23,7 @@ func (v *vaultService) Insert(ctx context.Context, request InsertRequest, option
 	return res, nil
 }
 
-func (v *vaultService) Detokenize(ctx context.Context, request DetokenizeRequest, options DetokenizeOptions) (*DetokenizeResponse, *skyflowError.SkyflowError) {
+func (v *vaultService) Detokenize(ctx context.Context, request common.DetokenizeRequest, options common.DetokenizeOptions) (*common.DetokenizeResponse, *skyflowError.SkyflowError) {
 	res, err := v.controller.Detokenize(ctx, request, options)
 	if err != nil {
 		return nil, err
@@ -30,7 +31,7 @@ func (v *vaultService) Detokenize(ctx context.Context, request DetokenizeRequest
 	return res, nil
 }
 
-func (v *vaultService) Get(ctx context.Context, request GetRequest, options GetOptions) (*GetResponse, *skyflowError.SkyflowError) {
+func (v *vaultService) Get(ctx context.Context, request common.GetRequest, options common.GetOptions) (*common.GetResponse, *skyflowError.SkyflowError) {
 	// Get logic here
 	res, err := v.controller.Get(ctx, request, options)
 	if err != nil {
@@ -39,7 +40,7 @@ func (v *vaultService) Get(ctx context.Context, request GetRequest, options GetO
 	return res, nil
 }
 
-func (v *vaultService) Delete(ctx context.Context, request DeleteRequest) (*DeleteResponse, *skyflowError.SkyflowError) {
+func (v *vaultService) Delete(ctx context.Context, request common.DeleteRequest) (*common.DeleteResponse, *skyflowError.SkyflowError) {
 	// Delete logic here
 	res, err := v.controller.Delete(ctx, request)
 	if err != nil {
@@ -48,7 +49,7 @@ func (v *vaultService) Delete(ctx context.Context, request DeleteRequest) (*Dele
 	return res, nil
 }
 
-func (v *vaultService) Query(ctx context.Context, request QueryRequest) (*QueryResponse, *skyflowError.SkyflowError) {
+func (v *vaultService) Query(ctx context.Context, request common.QueryRequest) (*common.QueryResponse, *skyflowError.SkyflowError) {
 	// Query logic here
 	res, err := v.controller.Query(ctx, request)
 	if err != nil {
@@ -57,7 +58,7 @@ func (v *vaultService) Query(ctx context.Context, request QueryRequest) (*QueryR
 	return res, nil
 }
 
-func (v *vaultService) Update(ctx context.Context, request UpdateRequest, options UpdateOptions) (*UpdateResponse, error) {
+func (v *vaultService) Update(ctx context.Context, request common.UpdateRequest, options common.UpdateOptions) (*common.UpdateResponse, error) {
 	// Update logic here
 	res, err := v.controller.Update(ctx, request, options)
 	if err != nil {
@@ -66,7 +67,7 @@ func (v *vaultService) Update(ctx context.Context, request UpdateRequest, option
 	return res, nil
 }
 
-func (v *vaultService) Tokenize(ctx context.Context, request []TokenizeRequest) (*TokenizeResponse, *skyflowError.SkyflowError) {
+func (v *vaultService) Tokenize(ctx context.Context, request []common.TokenizeRequest) (*common.TokenizeResponse, *skyflowError.SkyflowError) {
 	res, err := v.controller.Tokenize(ctx, request)
 	if err != nil {
 		return nil, err

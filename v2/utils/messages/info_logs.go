@@ -1,7 +1,7 @@
 package logs
 
 import (
-	. "skyflow-go/v2/internal/constants"
+	. "github.com/skyflowapi/skyflow-go/v2/internal/constants"
 )
 
 const (

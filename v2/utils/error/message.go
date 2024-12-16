@@ -1,6 +1,6 @@
 package errors
 
-import . "skyflow-go/v2/internal/constants"
+import . "github.com/skyflowapi/skyflow-go/v2/internal/constants"
 
 // TO DO
 const (

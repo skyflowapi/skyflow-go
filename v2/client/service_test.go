@@ -3,15 +3,16 @@ package client_test
 import (
 	"context"
 	"encoding/json"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	"net/http"
 	"net/http/httptest"
-	. "skyflow-go/v2/client"
-	vaultapi2 "skyflow-go/v2/internal/generated/vaultapi"
-	. "skyflow-go/v2/internal/vault/controller"
-	. "skyflow-go/v2/utils/common"
-	skyflowError "skyflow-go/v2/utils/error"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	. "github.com/skyflowapi/skyflow-go/v2/client"
+	vaultapi2 "github.com/skyflowapi/skyflow-go/v2/internal/generated/vaultapi"
+	. "github.com/skyflowapi/skyflow-go/v2/internal/vault/controller"
+	. "github.com/skyflowapi/skyflow-go/v2/utils/common"
+	skyflowError "github.com/skyflowapi/skyflow-go/v2/utils/error"
 )
 
 var _ = Describe("Vault controller Test cases", func() {

@@ -1,7 +1,7 @@
 package common
 
 import (
-	"skyflow-go/v2/utils/logger"
+	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
 )
 
 type Env int

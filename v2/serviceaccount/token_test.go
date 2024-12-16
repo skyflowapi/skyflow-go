@@ -5,12 +5,13 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"skyflow-go/v2/internal/helpers"
-	"skyflow-go/v2/serviceaccount"
-	"skyflow-go/v2/utils/common"
-	skyflowError "skyflow-go/v2/utils/error"
 	"testing"
 	"time"
+
+	"github.com/skyflowapi/skyflow-go/v2/internal/helpers"
+	"github.com/skyflowapi/skyflow-go/v2/serviceaccount"
+	"github.com/skyflowapi/skyflow-go/v2/utils/common"
+	skyflowError "github.com/skyflowapi/skyflow-go/v2/utils/error"
 
 	"github.com/golang-jwt/jwt"
 	. "github.com/onsi/ginkgo/v2"

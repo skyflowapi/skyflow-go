@@ -1,6 +1,6 @@
 package logs
 
-import . "skyflow-go/v2/internal/constants"
+import . "github.com/skyflowapi/skyflow-go/v2/internal/constants"
 
 const (
 	CLIENT_ID_NOT_FOUND   = SDK_LOG_PREFIX + "Invalid credentials. Client ID cannot be empty."

@@ -2,19 +2,19 @@ package client
 
 import (
 	"context"
-	"skyflow-go/v2/internal/vault/controller"
-	. "skyflow-go/v2/utils/common"
-	skyflowError "skyflow-go/v2/utils/error"
-	"skyflow-go/v2/utils/logger"
+	"github.com/skyflowapi/skyflow-go/v2/internal/vault/controller"
+	"github.com/skyflowapi/skyflow-go/v2/utils/common"
+	skyflowError "github.com/skyflowapi/skyflow-go/v2/utils/error"
+	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
 )
 
 type connectionService struct {
-	config     ConnectionConfig
+	config     common.ConnectionConfig
 	logLevel   *logger.LogLevel
 	controller controller.ConnectionController
 }
 
-func (c *connectionService) Invoke(ctx context.Context, request InvokeConnectionRequest) (*InvokeConnectionResponse, *skyflowError.SkyflowError) {
+func (c *connectionService) Invoke(ctx context.Context, request common.InvokeConnectionRequest) (*common.InvokeConnectionResponse, *skyflowError.SkyflowError) {
 	res, err := c.controller.Invoke(ctx, request)
 	if err != nil {
 		return nil, err

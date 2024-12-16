@@ -2,10 +2,11 @@ package validation_test
 
 import (
 	"fmt"
-	. "skyflow-go/v2/internal/validation"
-	"skyflow-go/v2/utils/common"
-	errors "skyflow-go/v2/utils/error"
 	"testing"
+
+	. "github.com/skyflowapi/skyflow-go/v2/internal/validation"
+	"github.com/skyflowapi/skyflow-go/v2/utils/common"
+	errors "github.com/skyflowapi/skyflow-go/v2/utils/error"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

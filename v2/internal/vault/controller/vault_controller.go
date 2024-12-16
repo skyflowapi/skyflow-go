@@ -5,18 +5,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	constants "skyflow-go/v2/internal/constants"
-	"skyflow-go/v2/internal/generated/vaultapi"
-	"skyflow-go/v2/internal/validation"
-	"skyflow-go/v2/serviceaccount"
-	. "skyflow-go/v2/utils/common"
-	skyflowError "skyflow-go/v2/utils/error"
-	"skyflow-go/v2/utils/logger"
-	logs "skyflow-go/v2/utils/messages"
+
+	constants "github.com/skyflowapi/skyflow-go/v2/internal/constants"
+	"github.com/skyflowapi/skyflow-go/v2/internal/generated/vaultapi"
+	"github.com/skyflowapi/skyflow-go/v2/internal/validation"
+	"github.com/skyflowapi/skyflow-go/v2/serviceaccount"
+	"github.com/skyflowapi/skyflow-go/v2/utils/common"
+	skyflowError "github.com/skyflowapi/skyflow-go/v2/utils/error"
+	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
+	logs "github.com/skyflowapi/skyflow-go/v2/utils/messages"
 )
 
 type VaultController struct {
-	Config    VaultConfig
+	Config    common.VaultConfig
 	Loglevel  *logger.LogLevel
 	Token     string
 	ApiKey    string
@@ -26,16 +27,16 @@ type VaultController struct {
 var CreateRequestClientFunc = CreateRequestClient
 
 // GetURLWithEnv constructs the URL for the given environment and clusterId.
-func GetURLWithEnv(env Env, clusterId string) string {
+func GetURLWithEnv(env common.Env, clusterId string) string {
 	var url = constants.SECURE_PROTOCOL + clusterId
 	switch env {
-	case DEV:
+	case common.DEV:
 		url = url + constants.DEV_DOMAIN
-	case PROD:
+	case common.PROD:
 		url = url + constants.PROD_DOMAIN
-	case STAGE:
+	case common.STAGE:
 		url = url + constants.STAGE_DOMAIN
-	case SANDBOX:
+	case common.SANDBOX:
 		url = url + constants.SANDBOX_DOMAIN
 	default:
 		url = url + constants.PROD_DOMAIN
@@ -44,9 +45,9 @@ func GetURLWithEnv(env Env, clusterId string) string {
 }
 
 // GenerateToken generates a bearer token using the provided credentials.
-func GenerateToken(credentials Credentials) (*string, *skyflowError.SkyflowError) {
+func GenerateToken(credentials common.Credentials) (*string, *skyflowError.SkyflowError) {
 	var bearerToken string
-	var options = BearerTokenOptions{}
+	var options = common.BearerTokenOptions{}
 	if credentials.Roles != nil {
 		options.RoleIDs = credentials.Roles
 	}
@@ -129,7 +130,7 @@ func CreateRequestClient(v *VaultController) *skyflowError.SkyflowError {
 }
 
 // CreateInsertBulkBodyRequest createInsertBodyRequest generates the request body for bulk inserts.
-func CreateInsertBulkBodyRequest(request *InsertRequest, options *InsertOptions) *vaultapi.RecordServiceInsertRecordBody {
+func CreateInsertBulkBodyRequest(request *common.InsertRequest, options *common.InsertOptions) *vaultapi.RecordServiceInsertRecordBody {
 	var records []vaultapi.V1FieldRecords
 	for index, record := range request.Values {
 		bulkRecord := vaultapi.V1FieldRecords{
@@ -145,11 +146,11 @@ func CreateInsertBulkBodyRequest(request *InsertRequest, options *InsertOptions)
 	body.SetUpsert(options.Upsert)
 	body.SetRecords(records)
 	switch options.TokenMode {
-	case ENABLE_STRICT:
+	case common.ENABLE_STRICT:
 		body.SetByot(vaultapi.V1BYOT_ENABLE_STRICT)
-	case ENABLE:
+	case common.ENABLE:
 		body.SetByot(vaultapi.V1BYOT_ENABLE)
-	case DISABLE:
+	case common.DISABLE:
 		body.SetByot(vaultapi.V1BYOT_DISABLE)
 	default:
 		body.SetByot(vaultapi.V1BYOT_DISABLE)
@@ -158,7 +159,7 @@ func CreateInsertBulkBodyRequest(request *InsertRequest, options *InsertOptions)
 }
 
 // CreateInsertBatchBodyRequest generates the request body for batch inserts.
-func CreateInsertBatchBodyRequest(request *InsertRequest, options *InsertOptions) *vaultapi.RecordServiceBatchOperationBody {
+func CreateInsertBatchBodyRequest(request *common.InsertRequest, options *common.InsertOptions) *vaultapi.RecordServiceBatchOperationBody {
 	records := make([]vaultapi.V1BatchRecord, len(request.Values))
 	for index, record := range request.Values {
 		batchRecord := vaultapi.V1BatchRecord{}
@@ -182,13 +183,13 @@ func CreateInsertBatchBodyRequest(request *InsertRequest, options *InsertOptions
 }
 
 // SetTokenMode sets the tokenization mode in the request body.
-func SetTokenMode(tokenMode BYOT, body *vaultapi.RecordServiceBatchOperationBody) {
+func SetTokenMode(tokenMode common.BYOT, body *vaultapi.RecordServiceBatchOperationBody) {
 	switch tokenMode {
-	case ENABLE_STRICT:
+	case common.ENABLE_STRICT:
 		body.SetByot(vaultapi.V1BYOT_ENABLE_STRICT)
-	case ENABLE:
+	case common.ENABLE:
 		body.SetByot(vaultapi.V1BYOT_ENABLE)
-	case DISABLE:
+	case common.DISABLE:
 		body.SetByot(vaultapi.V1BYOT_DISABLE)
 	default:
 		body.SetByot(vaultapi.V1BYOT_DISABLE)
@@ -214,7 +215,7 @@ func GetFormattedGetRecord(record vaultapi.V1FieldRecords) map[string]interface{
 
 	return getRecord
 }
-func GetDetokenizePayload(request DetokenizeRequest, options DetokenizeOptions) vaultapi.V1DetokenizePayload {
+func GetDetokenizePayload(request common.DetokenizeRequest, options common.DetokenizeOptions) vaultapi.V1DetokenizePayload {
 	payload := vaultapi.V1DetokenizePayload{}
 	payload.SetContinueOnError(options.ContinueOnError)
 	var reqArray []vaultapi.V1DetokenizeRecordRequest
@@ -308,7 +309,7 @@ func GetFormattedUpdateRecord(record vaultapi.V1UpdateRecordResponse) map[string
 
 	return updateTokens
 }
-func getTokenizePayload(request []TokenizeRequest) vaultapi.V1TokenizePayload {
+func getTokenizePayload(request []common.TokenizeRequest) vaultapi.V1TokenizePayload {
 	payload := vaultapi.V1TokenizePayload{}
 	var records []vaultapi.V1TokenizeRecordRequest
 	for _, tokenizeRequest := range request {
@@ -321,12 +322,12 @@ func getTokenizePayload(request []TokenizeRequest) vaultapi.V1TokenizePayload {
 	payload.SetTokenizationParameters(records)
 	return payload
 }
-func ParseTokenizeResponse(apiResponse vaultapi.V1TokenizeResponse) *TokenizeResponse {
+func ParseTokenizeResponse(apiResponse vaultapi.V1TokenizeResponse) *common.TokenizeResponse {
 	var tokens []string
 	for _, record := range apiResponse.GetRecords() {
 		tokens = append(tokens, record.GetToken())
 	}
-	return &TokenizeResponse{
+	return &common.TokenizeResponse{
 		Tokens: tokens,
 	}
 }
@@ -347,7 +348,7 @@ func (v *VaultController) callBatchInsertAPI(ctx context.Context, body vaultapi.
 	return batchResp, httpRes, nil
 }
 
-func (v *VaultController) Insert(ctx context.Context, request InsertRequest, options InsertOptions) (*InsertResponse, *skyflowError.SkyflowError) {
+func (v *VaultController) Insert(ctx context.Context, request common.InsertRequest, options common.InsertOptions) (*common.InsertResponse, *skyflowError.SkyflowError) {
 	// validate insert
 	logger.Info(logs.INSERT_TRIGGERED)
 	logger.Info(logs.VALIDATE_INSERT_INPUT)
@@ -356,7 +357,7 @@ func (v *VaultController) Insert(ctx context.Context, request InsertRequest, opt
 		return nil, errs
 	}
 	// Initialize the response structure
-	var resp InsertResponse
+	var resp common.InsertResponse
 	var insertedFields, errors []map[string]interface{}
 
 	// Create the API client
@@ -387,7 +388,7 @@ func (v *VaultController) Insert(ctx context.Context, request InsertRequest, opt
 				errors = append(errors, formattedRecord)
 			}
 		}
-		resp = InsertResponse{
+		resp = common.InsertResponse{
 			InsertedFields: insertedFields,
 			ErrorFields:    errors,
 		}
@@ -408,13 +409,13 @@ func (v *VaultController) Insert(ctx context.Context, request InsertRequest, opt
 			formattedRes := GetFormattedBulkInsertRecord(record)
 			insertedFields = append(insertedFields, formattedRes)
 		}
-		resp = InsertResponse{InsertedFields: insertedFields}
+		resp = common.InsertResponse{InsertedFields: insertedFields}
 	}
 	logger.Info(logs.INSERT_DATA_SUCCESS)
 	return &resp, nil
 }
 
-func (v *VaultController) Detokenize(ctx context.Context, request DetokenizeRequest, options DetokenizeOptions) (*DetokenizeResponse, *skyflowError.SkyflowError) {
+func (v *VaultController) Detokenize(ctx context.Context, request common.DetokenizeRequest, options common.DetokenizeOptions) (*common.DetokenizeResponse, *skyflowError.SkyflowError) {
 	//validate detokenize request body & options
 	logger.Info(logs.DETOKENIZE_TRIGGERED)
 	var detokenizedFields []map[string]interface{}
@@ -461,13 +462,13 @@ func (v *VaultController) Detokenize(ctx context.Context, request DetokenizeRequ
 			}
 		}
 	}
-	return &DetokenizeResponse{
+	return &common.DetokenizeResponse{
 		DetokenizedFields: detokenizedFields,
 		ErrorRecords:      errorFields,
 	}, nil
 }
 
-func (v *VaultController) Get(ctx context.Context, request GetRequest, options GetOptions) (*GetResponse, *skyflowError.SkyflowError) {
+func (v *VaultController) Get(ctx context.Context, request common.GetRequest, options common.GetOptions) (*common.GetResponse, *skyflowError.SkyflowError) {
 	// Get validate logic here
 	logger.Info(logs.GET_TRIGGERED)
 	logger.Info(logs.VALIDATE_GET_INPUT)
@@ -519,10 +520,10 @@ func (v *VaultController) Get(ctx context.Context, request GetRequest, options G
 		}
 	}
 	logger.Info(logs.GET_SUCCESS)
-	return &GetResponse{Data: data}, nil
+	return &common.GetResponse{Data: data}, nil
 }
 
-func (v *VaultController) Delete(ctx context.Context, request DeleteRequest) (*DeleteResponse, *skyflowError.SkyflowError) {
+func (v *VaultController) Delete(ctx context.Context, request common.DeleteRequest) (*common.DeleteResponse, *skyflowError.SkyflowError) {
 	// Delete validate logic here
 	logger.Info(logs.DELETE_TRIGGERED)
 	logger.Info(logs.VALIDATE_DELETE_INPUT)
@@ -547,12 +548,12 @@ func (v *VaultController) Delete(ctx context.Context, request DeleteRequest) (*D
 	}
 	logger.Info(logs.DELETE_REQUEST_RESOLVED)
 	logger.Info(logs.DELETE_SUCCESS)
-	return &DeleteResponse{
+	return &common.DeleteResponse{
 		DeletedIds: res.GetRecordIDResponse(),
 	}, nil
 }
 
-func (v *VaultController) Query(ctx context.Context, queryRequest QueryRequest) (*QueryResponse, *skyflowError.SkyflowError) {
+func (v *VaultController) Query(ctx context.Context, queryRequest common.QueryRequest) (*common.QueryResponse, *skyflowError.SkyflowError) {
 	// validate the query request
 	logger.Info(logs.QUERY_TRIGGERED)
 	logger.Info(logs.VALIDATE_QUERY_INPUT)
@@ -584,13 +585,13 @@ func (v *VaultController) Query(ctx context.Context, queryRequest QueryRequest) 
 		}
 	}
 	logger.Info(logs.QUERY_SUCCESS)
-	return &QueryResponse{
+	return &common.QueryResponse{
 		Fields:        fields,
 		TokenizedData: tokenizedData,
 	}, nil
 }
 
-func (v *VaultController) Update(ctx context.Context, request UpdateRequest, options UpdateOptions) (*UpdateResponse, *skyflowError.SkyflowError) {
+func (v *VaultController) Update(ctx context.Context, request common.UpdateRequest, options common.UpdateOptions) (*common.UpdateResponse, *skyflowError.SkyflowError) {
 	// Update validate logic here
 	logger.Info(logs.UPDATE_TRIGGERED)
 	logger.Info(logs.VALIDATE_UPDATE_INPUT)
@@ -604,9 +605,9 @@ func (v *VaultController) Update(ctx context.Context, request UpdateRequest, opt
 	}
 	payload := vaultapi.RecordServiceUpdateRecordBody{}
 	switch options.TokenMode {
-	case ENABLE_STRICT:
+	case common.ENABLE_STRICT:
 		payload.SetByot(vaultapi.V1BYOT_ENABLE_STRICT)
-	case ENABLE:
+	case common.ENABLE:
 		payload.SetByot(vaultapi.V1BYOT_ENABLE)
 	default:
 		payload.SetByot(vaultapi.V1BYOT_DISABLE)
@@ -631,13 +632,13 @@ func (v *VaultController) Update(ctx context.Context, request UpdateRequest, opt
 	id := result.GetSkyflowId()
 	res := GetFormattedUpdateRecord(*result)
 	logger.Info(logs.UPDATE_SUCCESS)
-	return &UpdateResponse{
+	return &common.UpdateResponse{
 		Tokens:    res,
 		SkyflowId: id,
 	}, nil
 }
 
-func (v *VaultController) Tokenize(ctx context.Context, request []TokenizeRequest) (*TokenizeResponse, *skyflowError.SkyflowError) {
+func (v *VaultController) Tokenize(ctx context.Context, request []common.TokenizeRequest) (*common.TokenizeResponse, *skyflowError.SkyflowError) {
 	// Update validate logic here
 	logger.Info(logs.TOKENIZE_TRIGGERED)
 	logger.Info(logs.VALIDATE_TOKENIZE_INPUT)
