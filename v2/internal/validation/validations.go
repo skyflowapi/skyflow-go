@@ -2,13 +2,12 @@ package validation
 
 import (
 	"fmt"
-	"net/url"
-	"regexp"
-
 	"github.com/skyflowapi/skyflow-go/v2/utils/common"
 	skyflowError "github.com/skyflowapi/skyflow-go/v2/utils/error"
 	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
 	"github.com/skyflowapi/skyflow-go/v2/utils/messages"
+	"net/url"
+	"strings"
 )
 
 func ValidateInsertRequest(request common.InsertRequest, options common.InsertOptions) *skyflowError.SkyflowError {
@@ -216,15 +215,10 @@ func ValidateCredentials(credentials common.Credentials) *skyflowError.SkyflowEr
 	// API key validation
 	if credentials.ApiKey != "" {
 		// Validate API key format
-		apiKeyRegex := `^sky-[a-zA-Z0-9]{5}-[a-fA-F0-9]{32}$` // Replace this with the actual regex
-		matched, err := regexp.MatchString(apiKeyRegex, credentials.ApiKey)
-		if err != nil {
+		if len(credentials.ApiKey) != 42 || !strings.Contains(credentials.ApiKey, "sky-") {
 			logger.Error(logs.INVALID_API_KEY)
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_API_KEY)
-		}
-		if !matched {
-			logger.Error(logs.INVALID_API_KEY)
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_API_KEY)
+
 		}
 	}
 

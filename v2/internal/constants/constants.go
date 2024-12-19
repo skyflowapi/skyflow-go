@@ -2,6 +2,7 @@ package internal
 
 // internal private constants
 const (
+	SDK_METRICS_HEADER_KEY = "sky-metadata"
 	SECURE_PROTOCOL        = "https://"
 	DEV_DOMAIN             = ".vault.skyflowapis.dev"
 	STAGE_DOMAIN           = ".vault.skyflowapis.tech"
@@ -12,5 +13,4 @@ const (
 	SDK_NAME               = "Skyflow Go SDK "
 	SDK_VERSION            = "v2"
 	SDK_PREFIX             = SDK_NAME + SDK_VERSION
-	SDK_METRICS_HEADER_KEY = "sky-metadata"
 )
