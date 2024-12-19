@@ -51,6 +51,85 @@ var _ = Describe("Skyflow Client", func() {
 			Expect(client).NotTo(BeNil())
 			Expect(client.GetLoglevel()).To(Equal(&logLevel))
 		})
+		It("should return error when initialize with configuration with nil vault array", func() {
+			client, err := NewSkyflow(
+				WithVaults())
+			Expect(client).To(BeNil())
+			Expect(err).To(HaveOccurred())
+			Expect(err.GetMessage()).To(ContainSubstring(error.EMPTY_VAULT_CONFIG))
+		})
+		It("should return error when initialize with configuration with empty vault array", func() {
+			var config []common.VaultConfig
+			client, err := NewSkyflow(
+				WithVaults(config...))
+			Expect(client).To(BeNil())
+			Expect(err).To(HaveOccurred())
+			Expect(err.GetMessage()).To(ContainSubstring(error.EMPTY_VAULT_CONFIG))
+		})
+		It("should return error when initialize with configuration with incorrect vault config", func() {
+			var config []common.VaultConfig
+			config = append(config, common.VaultConfig{
+				VaultId:   "",
+				ClusterId: "cluster1",
+				Env:       0,
+			})
+			client, err := NewSkyflow(
+				WithVaults(config...))
+			Expect(client).To(BeNil())
+			Expect(err).To(HaveOccurred())
+			Expect(err.GetMessage()).To(ContainSubstring(error.INVALID_VAULT_ID))
+		})
+		It("should initialize THE CLIENT with configuration with vault config", func() {
+			var config []common.VaultConfig
+			config = append(config, common.VaultConfig{
+				VaultId:   "id",
+				ClusterId: "cluster1",
+				Env:       0,
+			})
+			client, err := NewSkyflow(
+				WithVaults(config...))
+			Expect(client).ToNot(BeNil())
+			Expect(err).ToNot(HaveOccurred())
+		})
+		It("should return error when initialize with configuration with nil connection config array", func() {
+			client, err := NewSkyflow(
+				WithConnections())
+			Expect(client).To(BeNil())
+			Expect(err).To(HaveOccurred())
+			Expect(err.GetMessage()).To(ContainSubstring(error.EMPTY_CONNECTION_CONFIG))
+		})
+		It("should return error when initialize with configuration with empty connection config array", func() {
+			var config []common.ConnectionConfig
+			client, err := NewSkyflow(
+				WithConnections(config...))
+			Expect(client).To(BeNil())
+			Expect(err).To(HaveOccurred())
+			Expect(err.GetMessage()).To(ContainSubstring(error.EMPTY_CONNECTION_CONFIG))
+		})
+		It("should return error when initialize with configuration with incorrect connection config config", func() {
+			var config []common.ConnectionConfig
+			config = append(config, common.ConnectionConfig{
+				ConnectionId:  "",
+				ConnectionUrl: "https://url",
+			})
+			client, err := NewSkyflow(
+				WithConnections(config...))
+			Expect(client).To(BeNil())
+			Expect(err).To(HaveOccurred())
+			Expect(err.GetMessage()).To(ContainSubstring(error.EMPTY_CONNECTION_ID))
+		})
+		It("should initialize THE CLIENT with configuration with connection config config", func() {
+			var config []common.ConnectionConfig
+			config = append(config, common.ConnectionConfig{
+				ConnectionId:  "ID",
+				ConnectionUrl: "https://url",
+			})
+			client, err := NewSkyflow(
+				WithConnections(config...))
+			Expect(client).ToNot(BeNil())
+			Expect(err).ToNot(HaveOccurred())
+		})
+
 	})
 
 	Context("when adding Vault and Connection Configs", func() {

@@ -43,7 +43,7 @@ func WithVault(config vaultutils.VaultConfig) Option {
 	return func(s *Skyflow) *error.SkyflowError {
 		if _, exists := s.vaultServices[config.VaultId]; exists {
 			logger.Error(fmt.Sprintf(logs.VAULT_CONFIG_EXISTS, config.VaultId))
-			return error.NewSkyflowError(logs.VAULT_CONFIG_EXISTS, config.VaultId)
+			return error.NewSkyflowError(error.INVALID_INPUT_CODE, fmt.Sprintf(error.VAULT_ID_EXITS_IN_CONFIG_LIST, config.VaultId))
 		}
 		// validate the config
 		logger.Info(logs.VALIDATING_VAULT_CONFIG)
@@ -55,6 +55,37 @@ func WithVault(config vaultutils.VaultConfig) Option {
 		s.vaultServices[config.VaultId] = &vaultService{
 			config:   &config,
 			logLevel: &s.logLevel,
+		}
+		return nil
+	}
+}
+
+func WithVaults(config ...vaultutils.VaultConfig) Option {
+	return func(s *Skyflow) *error.SkyflowError {
+		if config == nil {
+			logger.Error(logs.EMPTY_VAULT_ARRAY)
+			return error.NewSkyflowError(error.INVALID_INPUT_CODE, fmt.Sprintf(error.EMPTY_VAULT_CONFIG))
+		} else if len(config) == 0 {
+			logger.Error(logs.EMPTY_VAULT_ARRAY)
+			return error.NewSkyflowError(error.INVALID_INPUT_CODE, fmt.Sprintf(error.EMPTY_VAULT_CONFIG))
+		}
+
+		for _, vaultConfig := range config {
+			if _, exists := s.vaultServices[vaultConfig.VaultId]; exists {
+				logger.Error(fmt.Sprintf(logs.VAULT_CONFIG_EXISTS, vaultConfig.VaultId))
+				return error.NewSkyflowError(error.INVALID_INPUT_CODE, fmt.Sprintf(error.VAULT_ID_EXITS_IN_CONFIG_LIST, vaultConfig.VaultId))
+			}
+			// validate the config
+			logger.Info(logs.VALIDATING_VAULT_CONFIG)
+			if err := validation.ValidateVaultConfig(vaultConfig); err != nil {
+				return err
+			}
+
+			// create vault service for config
+			s.vaultServices[vaultConfig.VaultId] = &vaultService{
+				config:   &vaultConfig,
+				logLevel: &s.logLevel,
+			}
 		}
 		return nil
 	}
@@ -77,6 +108,37 @@ func WithConnection(config vaultutils.ConnectionConfig) Option {
 		s.connectionServices[config.ConnectionId] = &connectionService{
 			config:   config,
 			logLevel: &s.logLevel,
+		}
+		return nil
+	}
+}
+func WithConnections(config ...vaultutils.ConnectionConfig) Option {
+	return func(s *Skyflow) *error.SkyflowError {
+
+		if config == nil {
+			logger.Error(logs.EMPTY_CONNECTION_ARRAY)
+			return error.NewSkyflowError(error.INVALID_INPUT_CODE, fmt.Sprintf(error.EMPTY_CONNECTION_CONFIG))
+		} else if len(config) == 0 {
+			logger.Error(logs.EMPTY_CONNECTION_ARRAY)
+			return error.NewSkyflowError(error.INVALID_INPUT_CODE, fmt.Sprintf(error.EMPTY_CONNECTION_CONFIG))
+		}
+
+		for _, connectionConfig := range config {
+			if _, exists := s.connectionServices[connectionConfig.ConnectionId]; exists {
+				logger.Error(fmt.Sprintf(logs.CONNECTION_CONFIG_EXISTS, connectionConfig.ConnectionId))
+				return error.NewSkyflowError(error.INVALID_INPUT_CODE, fmt.Sprintf(error.CONNECTION_ID_EXITS_IN_CONFIG_LIST, connectionConfig.ConnectionId))
+			}
+			// validate the config
+			logger.Info(logs.VALIDATING_CONNECTION_CONFIG)
+			if err := validation.ValidateConnectionConfig(connectionConfig); err != nil {
+				return err
+			}
+
+			// create the connection service
+			s.connectionServices[connectionConfig.ConnectionId] = &connectionService{
+				config:   connectionConfig,
+				logLevel: &s.logLevel,
+			}
 		}
 		return nil
 	}
