@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"net/url"
 	"os"
+	"runtime"
 	"time"
 
 	"github.com/golang-jwt/jwt"
@@ -266,4 +267,22 @@ func GetPrivateKeyFromPem(pemKey string) (*rsa.PrivateKey, *skyflowError.Skyflow
 	}
 
 	return privateKey, nil
+}
+
+func CreateJsonMetadata() string {
+	// Create a map to hold the key-value pairs
+	data := map[string]string{
+		"sdk_name_version":        fmt.Sprintf("%s@%s", constants.SDK_NAME, constants.SDK_VERSION),
+		"sdk_client_device_model": string(runtime.GOOS),
+		"sdk_client_os_details":   fmt.Sprintf("%s %s", runtime.GOOS, runtime.GOARCH),
+		"sdk_runtime_details":     runtime.Version(),
+	}
+
+	// Marshal the map into JSON format
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		logger.Debug("failed for marshalling json data in createJSONMetadata()")
+		return ""
+	}
+	return string(jsonData)
 }

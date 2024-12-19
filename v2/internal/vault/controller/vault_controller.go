@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/skyflowapi/skyflow-go/v2/internal/helpers"
 	"net/http"
 
 	constants "github.com/skyflowapi/skyflow-go/v2/internal/constants"
@@ -118,7 +119,8 @@ func CreateRequestClient(v *VaultController) *skyflowError.SkyflowError {
 	}
 	configuration := &vaultapi.Configuration{
 		DefaultHeader: map[string]string{
-			"Authorization": "Bearer " + token,
+			"Authorization":                  "Bearer " + token,
+			constants.SDK_METRICS_HEADER_KEY: helpers.CreateJsonMetadata(),
 		},
 		Servers: []vaultapi.ServerConfiguration{{
 			URL: GetURLWithEnv(v.Config.Env, v.Config.ClusterId),
