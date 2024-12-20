@@ -25,7 +25,7 @@ var _ = Describe("Vault controller Test cases", func() {
 			err      *skyflowError.SkyflowError
 		)
 		BeforeEach(func() {
-			client, err = NewSkyflow(WithVault(VaultConfig{
+			client, err = NewSkyflow(WithVaults(VaultConfig{
 				VaultId:   "id",
 				ClusterId: "cid",
 				Env:       0,
@@ -364,7 +364,7 @@ var _ = Describe("Vault controller Test cases", func() {
 		)
 		BeforeEach(func() {
 			// Initialize the VaultController instance
-			client, _ = NewSkyflow(WithVault(VaultConfig{
+			client, _ = NewSkyflow(WithVaults(VaultConfig{
 				VaultId:   "id",
 				ClusterId: "cid",
 				Env:       0,
@@ -502,7 +502,7 @@ var _ = Describe("Vault controller Test cases", func() {
 		var ctx context.Context
 		BeforeEach(func() {
 			// Initialize the VaultController instance
-			client, _ = NewSkyflow(WithVault(VaultConfig{
+			client, _ = NewSkyflow(WithVaults(VaultConfig{
 				VaultId:   "id",
 				ClusterId: "cid",
 				Env:       0,
@@ -607,7 +607,7 @@ var _ = Describe("Vault controller Test cases", func() {
 		var ctx context.Context
 		BeforeEach(func() {
 			// Initialize the VaultController instance
-			client, _ = NewSkyflow(WithVault(VaultConfig{
+			client, _ = NewSkyflow(WithVaults(VaultConfig{
 				VaultId:   "id",
 				ClusterId: "cid",
 				Env:       0,
@@ -690,7 +690,7 @@ var _ = Describe("Vault controller Test cases", func() {
 		var ctx context.Context
 		BeforeEach(func() {
 			// Initialize the VaultController instance
-			client, _ = NewSkyflow(WithVault(VaultConfig{
+			client, _ = NewSkyflow(WithVaults(VaultConfig{
 				VaultId:   "id",
 				ClusterId: "cid",
 				Env:       0,
@@ -772,7 +772,7 @@ var _ = Describe("Vault controller Test cases", func() {
 		var ctx context.Context
 		BeforeEach(func() {
 			// Initialize the VaultController instance
-			client, _ = NewSkyflow(WithVault(VaultConfig{
+			client, _ = NewSkyflow(WithVaults(VaultConfig{
 				VaultId:   "id",
 				ClusterId: "cid",
 				Env:       0,
@@ -860,7 +860,7 @@ var _ = Describe("Vault controller Test cases", func() {
 		var ctx context.Context
 		BeforeEach(func() {
 			// Initialize the VaultController instance
-			client, _ = NewSkyflow(WithVault(VaultConfig{
+			client, _ = NewSkyflow(WithVaults(VaultConfig{
 				VaultId:   "id",
 				ClusterId: "cid",
 				Env:       0,
@@ -967,7 +967,7 @@ var _ = Describe("ConnectionController", func() {
 					w.WriteHeader(http.StatusOK)
 					_, _ = w.Write([]byte(`{"key": "value"}`))
 				}))
-				client, _ = NewSkyflow(WithConnection(ConnectionConfig{
+				client, _ = NewSkyflow(WithConnections(ConnectionConfig{
 					ConnectionId:  "failed",
 					ConnectionUrl: mockServer.URL,
 					Credentials: Credentials{

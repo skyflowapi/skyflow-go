@@ -58,7 +58,7 @@ func (v *vaultService) Query(ctx context.Context, request common.QueryRequest) (
 	return res, nil
 }
 
-func (v *vaultService) Update(ctx context.Context, request common.UpdateRequest, options common.UpdateOptions) (*common.UpdateResponse, error) {
+func (v *vaultService) Update(ctx context.Context, request common.UpdateRequest, options common.UpdateOptions) (*common.UpdateResponse, *skyflowError.SkyflowError) {
 	// Update logic here
 	res, err := v.controller.Update(ctx, request, options)
 	if err != nil {

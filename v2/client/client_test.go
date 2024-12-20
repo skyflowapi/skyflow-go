@@ -29,18 +29,23 @@ var _ = Describe("Skyflow Client", func() {
 			CredentialsString: "some-credentials",
 		}
 		var err *error.SkyflowError
+		var vaultArr []common.VaultConfig
+		vaultArr = append(vaultArr, common.VaultConfig{
+			VaultId:   "id",
+			ClusterId: "cluster1",
+			Env:       0,
+		})
+		var connArr []common.ConnectionConfig
+		connArr = append(connArr, common.ConnectionConfig{
+			ConnectionId:  "id1",
+			ConnectionUrl: "https://url",
+		})
+
 		client, err = NewSkyflow(
 			WithLogLevel(logLevel),
-			WithVault(
-				common.VaultConfig{
-					VaultId:   "id",
-					ClusterId: "cluster1",
-					Env:       0,
-				}),
-			WithConnection(common.ConnectionConfig{
-				ConnectionId:  "id1",
-				ConnectionUrl: "https://url",
-			}),
+			WithVaults(
+				vaultArr...),
+			WithConnections(connArr...),
 			WithCredentials(credentials),
 		)
 		Expect(err).Should(BeNil())
@@ -316,7 +321,7 @@ var _ = Describe("Skyflow Client", func() {
 
 		It("should return error a connection configuration", func() {
 			client1, err := NewSkyflow(
-				WithVault(common.VaultConfig{
+				WithVaults(common.VaultConfig{
 					VaultId:   "id",
 					ClusterId: "id",
 				},
@@ -327,7 +332,7 @@ var _ = Describe("Skyflow Client", func() {
 			Expect(err).ShouldNot(BeNil())
 
 			client1, err = NewSkyflow(
-				WithConnection(common.ConnectionConfig{}))
+				WithConnections(common.ConnectionConfig{}))
 			Expect(client1).To(BeNil())
 			Expect(err).ShouldNot(BeNil())
 
@@ -364,7 +369,7 @@ var _ = Describe("Skyflow Client", func() {
 	Context("client creation error", func() {
 		It("should return an error when trying to create a new client", func() {
 			client1, err := NewSkyflow(
-				WithVault(common.VaultConfig{
+				WithVaults(common.VaultConfig{
 					VaultId: "vault1",
 				}),
 			)
@@ -374,11 +379,11 @@ var _ = Describe("Skyflow Client", func() {
 
 		It("should return an error when trying to create a new client with vault config", func() {
 			client1, err := NewSkyflow(
-				WithVault(common.VaultConfig{
+				WithVaults(common.VaultConfig{
 					VaultId:   "vault1",
 					ClusterId: "demo",
 				}),
-				WithVault(common.VaultConfig{
+				WithVaults(common.VaultConfig{
 					VaultId:     "vault1",
 					ClusterId:   "demo",
 					Env:         0,
@@ -390,11 +395,11 @@ var _ = Describe("Skyflow Client", func() {
 		})
 		It("should return an error when trying to create a new client with connection config", func() {
 			client1, err := NewSkyflow(
-				WithConnection(common.ConnectionConfig{
+				WithConnections(common.ConnectionConfig{
 					ConnectionId:  "conn1",
 					ConnectionUrl: "http://url",
 				}),
-				WithConnection(common.ConnectionConfig{
+				WithConnections(common.ConnectionConfig{
 					ConnectionId:  "conn1",
 					ConnectionUrl: "http://url",
 				}),
@@ -405,11 +410,11 @@ var _ = Describe("Skyflow Client", func() {
 
 		It("should return an error when trying to create a new client with connection config when validates fails", func() {
 			client1, err := NewSkyflow(
-				WithConnection(common.ConnectionConfig{
+				WithConnections(common.ConnectionConfig{
 					ConnectionId:  "conn1",
 					ConnectionUrl: "http://url",
 				}),
-				WithConnection(common.ConnectionConfig{
+				WithConnections(common.ConnectionConfig{
 					ConnectionId: "conn1",
 				}),
 			)

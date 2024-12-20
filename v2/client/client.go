@@ -38,28 +38,7 @@ func NewSkyflow(opts ...Option) (*Skyflow, *error.SkyflowError) {
 	return client, nil
 }
 
-// WithVault sets a vault configuration.
-func WithVault(config vaultutils.VaultConfig) Option {
-	return func(s *Skyflow) *error.SkyflowError {
-		if _, exists := s.vaultServices[config.VaultId]; exists {
-			logger.Error(fmt.Sprintf(logs.VAULT_CONFIG_EXISTS, config.VaultId))
-			return error.NewSkyflowError(error.INVALID_INPUT_CODE, fmt.Sprintf(error.VAULT_ID_EXITS_IN_CONFIG_LIST, config.VaultId))
-		}
-		// validate the config
-		logger.Info(logs.VALIDATING_VAULT_CONFIG)
-		if err := validation.ValidateVaultConfig(config); err != nil {
-			return err
-		}
-
-		// create vault service for config
-		s.vaultServices[config.VaultId] = &vaultService{
-			config:   &config,
-			logLevel: &s.logLevel,
-		}
-		return nil
-	}
-}
-
+// WithVaults sets a vault configuration.
 func WithVaults(config ...vaultutils.VaultConfig) Option {
 	return func(s *Skyflow) *error.SkyflowError {
 		if config == nil {
@@ -91,27 +70,7 @@ func WithVaults(config ...vaultutils.VaultConfig) Option {
 	}
 }
 
-// WithConnection sets a connection configuration.
-func WithConnection(config vaultutils.ConnectionConfig) Option {
-	return func(s *Skyflow) *error.SkyflowError {
-		if _, exists := s.connectionServices[config.ConnectionId]; exists {
-			logger.Error(fmt.Sprintf(logs.CONNECTION_CONFIG_EXISTS, config.ConnectionId))
-			return error.NewSkyflowError(error.INVALID_INPUT_CODE, fmt.Sprintf(error.CONNECTION_ID_EXITS_IN_CONFIG_LIST, config.ConnectionId))
-		}
-		// validate the config
-		logger.Info(logs.VALIDATING_CONNECTION_CONFIG)
-		if err := validation.ValidateConnectionConfig(config); err != nil {
-			return err
-		}
-
-		// create the connection service
-		s.connectionServices[config.ConnectionId] = &connectionService{
-			config:   config,
-			logLevel: &s.logLevel,
-		}
-		return nil
-	}
-}
+// WithConnections sets a connection configuration.
 func WithConnections(config ...vaultutils.ConnectionConfig) Option {
 	return func(s *Skyflow) *error.SkyflowError {
 

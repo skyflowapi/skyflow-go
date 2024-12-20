@@ -2,9 +2,9 @@ package serviceaccount
 
 import (
 	"fmt"
-	"skyflow-go/v2/serviceaccount"
-	"skyflow-go/v2/utils/common"
-	"skyflow-go/v2/utils/logger"
+	"github.com/skyflowapi/skyflow-go/v2/serviceaccount"
+	"github.com/skyflowapi/skyflow-go/v2/utils/common"
+	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
 )
 
 func ExampleTokenGeneration() {
