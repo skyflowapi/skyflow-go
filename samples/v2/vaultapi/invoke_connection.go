@@ -33,8 +33,8 @@ func main() {
 		} else {
 			ctx := context.TODO()
 			body := map[string]interface{}{ // Set your data
-				"<HEADER_NAME_1>": "<HEADER_VALUE_1>",
-				"<HEADER_NAME_2>": "<HEADER_VALUE_2>",
+				"<KEY_1>": "<VALUE_1>",
+				"<KEY_2>": "<VALUE_2>",
 			}
 			headers := map[string]string{
 				"Content-Type": "application/json", // Set the content type
