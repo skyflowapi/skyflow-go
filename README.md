@@ -1,5 +1,5 @@
 # Description
-This go SDK is designed to help developers easily implement Skyflow into their go backend. 
+The Skyflow Go SDK is designed to help with integrating Skyflow into a go backend.
 
 [![CI](https://img.shields.io/static/v1?label=CI&message=passing&color=green?style=plastic&logo=github)](https://github.com/skyflowapi/skyflow-go/actions)
 [![GitHub release](https://img.shields.io/github/v/release/skyflowapi/skyflow-go.svg)](https://github.com/skyflowapi/skyflow-go/releases)
@@ -14,29 +14,44 @@ This go SDK is designed to help developers easily implement Skyflow into their g
   - [Installation](#installation)
     - [Requirements](#requirements)
     - [Configuration](#configuration)
-    - [Service Account Token Generation](#service-account-token-generation)
-    - [Vault APIs](#vault-apis)
-      - [Insert data into the vault](#insert-data-into-the-vault)
-      - [Detokenize](#detokenize)
-      - [GetById](#getbyid)
-      - [Get](#get)
-        - [Use Skyflow IDs](#use-skyflow-ids)
-        - [Use column name and values](#use-column-name-and-values)
-    - [InvokeConnection](#invokeconnection)
-    - [Logging](#logging)
+  - [Authentication](#authentication)
+    - [Service Account Bearer Token Generation](#service-account-bearer-token-generation)
+    - [Service Account Bearer Token with Context Generation](#service-account-bearer-token-with-context-generation)
+    - [Service Account Scoped Bearer Token Generation](#service-account-scoped-bearer-token-generation)
+    - [Signed Data Tokens Generation](#signed-data-tokens-generation)
+    - [General guideline for Service Account token types](#general-guideline-for-service-account-token-types)
+  - [Vault APIs](#vault-apis)
+    - [Client Initialization](#client-initialization)
+    - [Insert data into the vault](#insert-data-into-the-vault)
+      - [Constructing your insert request](#constructing-your-insert-request)
+    - [Detokenize](#detokenize)
+    - [Tokenize](#tokenize)
+    - [Get](#get)
+      - [Get by skyflow IDs](#get-by-skyflow-ids)
+      - [Get tokens](#get-tokens)
+      - [Get By column name and column values](#get-by-column-name-and-column-values)
+      - [Redaction types](#redaction-types)
+    - [Update](#update)
+    - [Delete](#delete)
+    - [Query](#query)
+  - [Connections](#connections)
+    - [Invoke Connection](#invoke-connection)
+  - [Logging](#logging)
   - [Reporting a Vulnerability](#reporting-a-vulnerability)
 
 
 ## Features
-
-- Authentication with a Skyflow Service Account and generation of a bearer token
-- Vault API operations to insert, retrieve and tokenize sensitive data
-- Invoking connections to call downstream third party APIs without directly handling sensitive data
+- Authentication with a Skyflow Service Account and Bearer Token Generation
+  Authenticate seamlessly using a Skyflow service account and generate bearer tokens for secure access.
+- Vault API Operations for Sensitive Data
+  Perform Vault API operations such as inserting, retrieving, and tokenizing sensitive data with ease.
+- Invoking Connections to Third-Party APIs
+  Securely invoke connections to downstream third-party APIs without directly handling sensitive data, ensuring compliance and data protection.
 
 ## Installation
 
 ### Requirements
-- go 1.15 and above
+- go 1.22.0 and above
 
 ### Configuration
 
@@ -50,146 +65,669 @@ Then, reference skyflow-go in a Go program with import:
 
 ```go
 import (
-  saUtil "github.com/skyflowapi/skyflow-go/serviceaccount/util"
-  Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
-  "github.com/skyflowapi/skyflow-go/skyflow/common"
-  "github.com/skyflowapi/skyflow-go/commonutils/logwrapper"
+"github.com/skyflowapi/skyflow-go/v2/client"
+"github.com/skyflowapi/skyflow-go/v2/utils/common"
+"github.com/skyflowapi/skyflow-go/v2/utils/logger"
 )
 ```
 Alternatively, `go get <package_name>` can also be used to download the required dependencies 
 
-### Service Account Token Generation
-[This](https://github.com/skyflowapi/skyflow-go/tree/main/serviceaccount) go module is used to generate service account tokens from service account credentials file which is downloaded upon creation of service account. The token generated from this module is valid for 60 minutes and can be used to make API calls to vault services as well as management API(s) based on the permissions of the service account.
+## Authentication
+The Authentication section covers various methods for generating and managing tokens that facilitate secure API calls and data interactions within the Vault ecosystem. It highlights four key mechanisms to accommodate different use cases and enhance access control:
+1. **Service Account Bearer Token Generation**:
+   Enables the creation of bearer tokens using service account credentials. These tokens, valid for 60 minutes, provide secure access to Vault services and management APIs based on the service account's permissions.
+2. **Service Account Bearer Token with Context Generation**:
+   Supports embedding context values into bearer tokens, enabling dynamic access control and the ability to track end-user identity. These tokens include context claims and allow flexible authorization for Vault services.
+3. **Service Account Scoped Bearer Token Generation**:
+   Facilitates the creation of bearer tokens with role-specific access, ensuring permissions are limited to the operations allowed by the designated role. This is particularly useful for service accounts with multiple roles.
+4. **Signed Data Tokens Generation**:
+   Adds an extra layer of security by digitally signing data tokens with the service account's private key. These signed tokens can be securely detokenized, provided the necessary bearer token and permissions are available.
 
-The **GenerateBearerToken(filepath)** function takes the credentials file path for token generation, alternatively, you can also send the entire credentials as string, by using **GenerateBearerTokenFromCreds(credentials)**.
+### Service Account Bearer Token Generation
+The Service Account go module is designed to generate service account tokens using a service account credentials file, which is provided when a service account is created. The tokens generated by this module are valid for 60 minutes and can be used to make API calls to Vault services and management APIs, depending on the permissions assigned to the service account.
+
+The **GenerateBearerToken(filepath)** utility provides functionality for generating bearer tokens using a credentials JSON file. Alternatively, you can pass the credentials as a string to achieve the same result.
 
 [Example](https://github.com/skyflowapi/skyflow-go/blob/main/samples/serviceaccount/token/main/service_account_token.go):
 
 ```go
-package main
-    
+/**
+ * Example program to generate a Bearer Token using Skyflow's BearerToken utility.
+ * The token can be generated in two ways:
+ * 1. Using the file path to a credentials.json file.
+ * 2. Using the JSON content of the credentials file as a string.
+ */
 import (
-    "fmt"
-    saUtil "github.com/skyflowapi/skyflow-go/serviceaccount/util"
+	"fmt"
+	saUtil "github.com/skyflowapi/skyflow-go/v2/serviceaccount"
+	"github.com/skyflowapi/skyflow-go/v2/utils/common"
+	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
 )
-    
-var bearerToken = ""
 
-func GetSkyflowBearerToken() (string, error) {
+func BearerTokenGenerationExample() {
+	// Variable to store the generated token
+	var token string
 
-	filePath := "<file_path>"
-	if saUtil.IsExpired(bearerToken) {
-		newToken, err := saUtil.GenerateBearerToken(filePath)
+	// Example 1: Generate Bearer Token using a credentials.json file
+	// Specify the full file path to the credentials.json file
+	var filePath = "<YOUR_CREDENTIALS_FILE_PATH>"
+
+	// Check if the token is either not initialized or has expired
+	if saUtil.IsExpired(token) {
+		// Create a BearerToken using the credentials file
+		res, err := saUtil.GenerateBearerToken(filePath, common.BearerTokenOptions{
+			LogLevel: logger.DEBUG,
+		})
 		if err != nil {
-			return "", err
+			fmt.Println("errors", *err)
 		} else {
-			bearerToken = newToken.AccessToken
-			return bearerToken, nil
+			token = res.AccessToken
 		}
 	}
-	return bearerToken, nil
+
+	// Print the generated Bearer Token to the console
+	fmt.Println("Generated Bearer Token (from file): " + token)
+
+	// Example 2: Generate Bearer Token using the credentials JSON as a string
+	// Provide the credentials JSON content as a string
+	var fileContents = "<YOUR_CREDENTIALS_FILE_CONTENTS_AS_STRING>"
+
+	// Check if the token is either not initialized or has expired
+	if saUtil.IsExpired(token) {
+		// Create a BearerToken using the credentials string
+		res, err := saUtil.GenerateBearerTokenFromCreds(fileContents, common.BearerTokenOptions{
+			LogLevel: logger.DEBUG,
+		})
+		if err != nil {
+			fmt.Println("Errors", *err)
+		} else {
+			fmt.Println("Token", res.AccessToken)
+		}
+		token = res.AccessToken
+	}
+
+	// Print the generated Bearer Token to the console
+	fmt.Println("Generated Bearer Token: " + token)
+}
+```
+### Service Account Bearer Token with Context Generation
+**Context-Aware Authorization** allows you to embed context values into a bearer token during its generation and reference those values in your policies. This enables more dynamic and flexible access control for data in the Vault and facilitates the validation of signed data tokens during detokenization. It can also be used to track end-user identity when making API calls using service accounts.
+A service account with the **context_id** identifier enabled can generate bearer tokens containing context information, represented as a JWT claim in a Skyflow-generated bearer token. Tokens generated from such service accounts include a **context_identifier** claim, are valid for 60 minutes, and can be used to make API calls to Vault services and management APIs, depending on the service account's permissions.
+
+[Example]()
+```go
+import (
+	"fmt"
+	saUtil "github.com/skyflowapi/skyflow-go/v2/serviceaccount"
+	"github.com/skyflowapi/skyflow-go/v2/utils/common"
+	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
+)
+
+/**
+ * Example program to generate a Bearer Token using Skyflow's BearerToken utility.
+ * The token is generated using two approaches:
+ * 1. By providing the credentials.json file path.
+ * 2. By providing the contents of credentials.json as a string.
+ */
+func BearerTokenGenerationWithContextExample() {
+	// Variable to store the generated Bearer Token
+	var bearerToken = "";
+
+	// Approach 1: Generate Bearer Token by specifying the path to the credentials.json file
+	// Replace <YOUR_CREDENTIALS_FILE_PATH> with the full path to your credentials.json file
+	var filePath = "<YOUR_CREDENTIALS_FILE_PATH>";
+
+	// Create a BearerToken using the file path
+	res, err := saUtil.GenerateBearerToken(filePath, common.BearerTokenOptions{LogLevel: logger.DEBUG, Ctx: "<CONTEXT>"})
+
+	if err != nil {
+		fmt.Println("errors:", *err)
+	} else {
+		// Retrieve the Bearer Token
+		bearerToken = res.AccessToken
+		fmt.Println("Token", res.AccessToken)
+	}
+	// Print the generated Bearer Token to the console
+	fmt.Println(bearerToken);
+
+	// Approach 2: Generate Bearer Token by specifying the contents of credentials.json as a string
+	// Replace <YOUR_CREDENTIALS_FILE_CONTENTS_AS_STRING> with the actual contents of your credentials.json file
+	var fileContents = "<YOUR_CREDENTIALS_FILE_CONTENTS_AS_STRING>";
+
+	// Create a BearerToken object using the file contents as a string
+	res, err = saUtil.GenerateBearerTokenFromCreds(fileContents, common.BearerTokenOptions{LogLevel: logger.DEBUG, Ctx: "<CONTEXT>"})
+
+	if err != nil {
+		fmt.Println("errors:", *err)
+	} else {
+		// Retrieve the Bearer Token
+		bearerToken = res.AccessToken
+		fmt.Println("Token", res.AccessToken)
+	}
+	// Print the generated Bearer Token to the console
+	fmt.Println(bearerToken);
 }
 ```
 
+### Service Account Scoped Bearer Token Generation
+A service account with multiple roles can generate bearer tokens with access limited to a specific role by specifying the appropriate roleID. It can be used to limit access to specific roles for services with multiple responsibilities, such as segregating access for billing vs. analytics. The generated bearer tokens are valid for 60 minutes and can only execute operations permitted by the permissions associated with the designated role.
 
-### Vault APIs
-
-The [Vault](https://github.com/skyflowapi/skyflow-go/tree/main/skyflow/vaultapi) Go module is used to perform operations on the vault such as inserting records, detokenizing tokens, retrieving tokens for a skyflow_id and to invoke a connection.
-
-To use this module, the skyflow client must first be initialized as follows.
-
+[Example]():
 ```go
 import (
-     Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
-     "github.com/skyflowapi/skyflow-go/skyflow/common"
+	"fmt"
+	saUtil "github.com/skyflowapi/skyflow-go/v2/serviceaccount"
+	"github.com/skyflowapi/skyflow-go/v2/utils/common"
+	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
 )
 
-configuration := common.Configuration {
-        VaultID: "<vauld_id>",      //Id of the vault that the client should connect to 
-        VaultURL: "<vault_url>",    //URL of the vault that the client should connect to
-        TokenProvider: GetToken     //helper function that retrieves a Skyflow bearer token from your backend
-}
+/**
+ * Example program to generate a Scoped Token using Skyflow's BearerToken utility.
+ * The token is generated by providing the file path to the credentials.json file 
+ * and specifying roles associated with the token.
+ */
+func ScopedTokenGenerationExample() {
+	// Variable to store the generated scoped token
+	var scopedToken interface{}
 
-skyflowClient := Skyflow.Init(configuration)
+	// Example: Generate Scoped Token by specifying the credentials.json file path
+	// Create a list of roles that the generated token will be scoped to
+	var roles = []string{"<ROLE_ID_1>", "<ROLE_ID_2>", "<ROLE_ID_3>"}
+
+	// Specify the full file path to the service account's credentials.json file
+	var filePath = "<YOUR_CREDENTIALS_FILE_PATH>"
+
+	// Create a BearerToken using the credentials file and associated roles
+	res, err := saUtil.GenerateBearerToken(filePath, common.BearerTokenOptions{LogLevel: logger.DEBUG, RoleIDs: roles}) // Set the roles that the token should be scoped to
+
+	if err != nil {
+		fmt.Println("Errors", *err)
+	} else {
+		// retrieve token
+		fmt.Println("Token", res.AccessToken)
+	}
+
+	// Retrieve the generated scoped token
+	scopedToken = res.AccessToken
+
+	// Print the generated scoped token to the console
+	fmt.Println(scopedToken);
+}
 ```
 
-All Vault APIs must be invoked using a skyflowClient instance.
-
-#### Insert data into the vault
-
-To insert data into your vault, use the **Insert(records map[string]interface{}, options common.InsertOptions)** method of the Skyflow client. The **insertInput** parameter requires a `records` key and takes an array of records to insert as a value into the vault. The `options` parameter is a InsertOptions object that provides further options, including Upsert operations, for your insert call, as shown below.
-
-Insert call schema:
-
+### Signed Data Tokens Generation
+Skyflow generates data tokens when sensitive data is inserted into the vault. These data tokens can be digitally signed using the private key of the service account credentials, adding an extra layer of protection. Signed tokens can be detokenized by providing the signed data token along with a bearer token generated from the service account credentials. The service account must have the necessary permissions and context to successfully detokenize the signed data tokens.
+[Example]():
 ```go
 import (
-    Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
-    "github.com/skyflowapi/skyflow-go/skyflow/common"
+	"fmt"
+	saUtil "github.com/skyflowapi/skyflow-go/v2/serviceaccount"
+	"github.com/skyflowapi/skyflow-go/v2/utils/common"
+	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
 )
 
-//Initialize the  SkyflowClient.
+// Example program to generate Signed Data Tokens using Skyflow's SignedDataTokens utility.
+// Signed Data Tokens can be generated in two ways:
+// 1. By specifying the file path to the credentials.json file.
+// 2. By providing the credentials as a JSON string.
+func SignedTokenGenerationExample() {
+	// Example 1: Generate Signed Data Tokens by specifying the credentials.json file path
+	// File path to the service account's credentials.json file
+	var filePath = "<YOUR_CREDENTIALS_FILE_PATH>";
 
-var records = make(map[string] interface {})
+	// Context value to associate with the token
+	var context = "abc";
 
-var record = make(map[string] interface {})
-record["table"] = "<your_table_name>"
-var fields = make(map[string] interface {})
-fields["<field_name>"] = "<field_value>"
-record["fields"] = fields
+	var tokens []string
+	tokens = append(tokens, "<TOKEN>")
+	res, err := saUtil.GenerateSignedDataTokens(filePath, common.SignedDataTokensOptions{
+		DataTokens: tokens,  // Set the data tokens to be signed
+		TimeToLive: 60, // in seconds
+		LogLevel: logger.ERROR,
+	})
+	if err != nil {
+		fmt.Println("ERROR: ", err)
+	} else {
+		// retrieve the signed data tokens 
+		fmt.Println("RESPONSE:", res)
+	}
 
-var recordsArray[] interface {}
-recordsArray = append(recordsArray, record)
+	// Example 2: Generate Signed Data Tokens by specifying credentials as a JSON string
+	// Provide the credentials JSON content as a string
+	var fileContents = "<YOUR_CREDENTIALS_FILE_CONTENTS_AS_STRING>";
 
-records["records"] = recordsArray
+	// Context value to associate with the token
+	context = "abc";
 
-var upsertArray []common.UpsertOptions
-var upsertOption = common.UpsertOptions{Table:"<table_name>",Column:"<column_name>"}
-upsertArray = append(upsertArray,upsertOption)
+	tokens = nil
+	tokens = append(tokens, "<TOKEN>")
 
-options = common.InsertOptions {
-        Tokens: true //Optional, indicates whether tokens should be returned for the inserted data. This value defaults to "true".
-        Upsert: upsertArray //Optional, upsert support.
-        ContinueOnError: true // Optional, decides whether to continue if error encountered or not
+	res, err = saUtil.GenerateSignedDataTokensFromCreds(fileContents, common.SignedDataTokensOptions{
+		DataTokens: tokens,  // Set the data tokens to be signed
+		TimeToLive: 60, // in seconds
+		LogLevel: logger.ERROR,
+	})
+
+	if err != nil {
+		fmt.Println("ERROR: ", err)
+	} else {
+		// retrieve the signed data tokens 
+		fmt.Println("RESPONSE: ", res)
+	}
 }
+```
 
-res, err: = skyflowClient.Insert(records, options)
+Response:
+```json
+[
+    {
+        "dataToken":"5530-4316-0674-5748",
+        "signedDataToken":"signed_token_eyJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJzLCpZjA"
+    }
+]
+```
+
+Notes:
+- The **time to live (TTL)** value should be specified in seconds.
+- By default, the TTL value is set to 60 seconds.
+
+### General guideline for Service Account token types
+- Service Account Bearer Token
+  Use this for general API calls when you only need basic authentication without additional context or role-based restrictions.
+- Service Account Bearer Token with Context
+  Use this when policies depend on specific contextual attributes or when tracking end-user identity is required.
+- Service Account Scoped Bearer Token
+  Use this to enforce fine-grained role-based access control, ensuring tokens only grant permissions for a specific role.
+- Signed Data Tokens
+  Use this to add cryptographic protection to sensitive data, enabling secure detokenization with verified integrity and authenticity.
+
+
+## Vault APIs
+
+The [Vault](https://github.com/skyflowapi/skyflow-go/tree/main/skyflow/vaultapi) module enables operations on the vault, including inserting records, detokenizing tokens, and retrieving tokens associated with a skyflow_id.
+
+### Client Initialization
+To use this module, you must first initialize the Skyflow client as shown below.
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"github.com/skyflowapi/skyflow-go/v2/client"
+	"github.com/skyflowapi/skyflow-go/v2/utils/common"
+	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
+)
+
+func main() {
+	// Step 1: Define configurations for individual vaults.
+	// Each VaultConfig contains details for connecting to a specific vault.
+	vaultConfig1 := common.VaultConfig{
+		VaultId: "<VAULT_ID1>",       // Replace with the ID of your first vault.
+		ClusterId: "<CLUSTER_ID1>",   // Replace with the cluster ID of your first vault.
+		Env: common.DEV,              // Specify the environment (PROD, DEV, or STAGING). Using DEV here.
+		Credentials: common.Credentials{
+			Token: "<BEARER_TOKEN1>", // Bearer token for authentication with the first vault.
+		},
+	}
+	vaultConfig2 := common.VaultConfig{
+		VaultId: "<VAULT_ID2>",       // Replace with the ID of your second vault.
+		ClusterId: "<CLUSTER_ID2>",   // Replace with the cluster ID of your second vault.
+		Env: common.DEV,              // Specify the environment.
+		Credentials: common.Credentials{
+			Token: "<BEARER_TOKEN2>", // Bearer token for authentication with the second vault.
+		},
+	}
+
+	// Step 2: Aggregate vault configurations into an array.
+	// This allows initializing the Skyflow client with multiple vaults.
+	var arr []common.VaultConfig
+	arr = append(arr, vaultConfig2, vaultConfig1) // Add both vault configurations.
+
+	// Step 3: Initialize the Skyflow client with the configured vaults
+	skyflowInstance, err := client.NewSkyflow(
+		client.WithVaults(arr...),              // Add the vault configurations.
+		client.WithCredentials(common.Credentials{}), // Global credentials (used if individual vault credentials are not set).
+		client.WithLogLevel(logger.DEBUG),      // Set the logging level to DEBUG for detailed logs.
+	)
+
+	// Step 4: Handle initialization errors or proceed with the initialized client.
+	if err != nil {
+		// Print the error if the client initialization fails.
+		fmt.Println(err)
+	} else {
+		// The Skyflow client is now initialized and ready for use.
+		fmt.Println("Skyflow client initialized successfully.")
+	}
+}
+```
+Notes:
+- If both Skyflow common credentials and individual credentials at the configuration level are provided, the individual credentials at the configuration level will take precedence.
+- If neither Skyflow common credentials nor individual configuration-level credentials are provided, the SDK will attempt to retrieve SKYFLOW_CREDENTIALS from the environment variables.
+- All Vault API operations must be executed using a client instance.
+
+
+### Insert data into the vault
+To insert data into your vault, use the `insert` method. The `InsertRequest` struct is used to create an insert request, which includes the values to be inserted as a list of records. You can also specify options in the insert request, such as returning tokenized data, upserting records, or continuing the operation in case of errors.
+
+#### Constructing your insert request
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "github.com/skyflowapi/skyflow-go/v2/client"
+    "github.com/skyflowapi/skyflow-go/v2/utils/common"
+    "github.com/skyflowapi/skyflow-go/v2/utils/logger"
+)
+
+func main() {
+	// Step 1: Initialise the vault and Skyflow client
+	// Step 2: Obtain a Vault service instance for performing operations. 
+	service, err := skyflowInstance.Vault("<VAULT_ID>") // Replace <VAULT_ID> with your vault ID.
+	if err != nil {
+		// Handle errors while getting the vault service instance.
+		fmt.Println("Error obtaining Vault service:", err)
+	}
+
+	// Step 3: Prepare the data to be inserted into the Skyflow vault.
+	ctx := context.TODO() // Create a context for the operation.
+
+	// Create a slice to hold the data records for insertion.
+	values := make([]map[string]interface{}, 0)
+
+	// Add the first record with field names and their respective values.
+	values = append(values, map[string]interface{}{
+		"<FIELD_NAME1_1>": "<VALUE_1>", // Replace with actual field name and value.
+	})
+
+	// Add the second record with field names and their respective values.
+	values = append(values, map[string]interface{}{
+		"<FIELD_NAME_2>": "<VALUE_1>", // Replace with actual field name and value.
+		"<FIELD_NAME_3>": "<VALUE_2>", // Replace with actual field name and value.
+	})
+
+	// Step 4: Perform the insert operation using the Vault service.
+	insert, errs := service.Insert(ctx, common.InsertRequest{
+		Table:  "<TABLE_NAME>", // Replace with the actual table name in your Skyflow vault.
+		Values: values,         // Attach the prepared data for insertion.
+	}, common.InsertOptions{
+		ContinueOnError: false, // Stop the operation if an error occurs.
+Tokens:    true,  // Request tokenized values to be returned in the response.
+	})
+	if errs != nil {
+		// Handle any errors that occur during the insert operation.
+		fmt.Println("ERROR:", *err4)
+	} else {
+		// Print the response from the insert operation.
+		fmt.Println("RESPONSE:", insert)
+	}
+}
 ```
 
 [Insert call example](https://github.com/skyflowapi/skyflow-go/blob/main/samples/vaultapi/insert.go):
 
 ```go
+/**
+ * This example demonstrates how to insert sensitive data (e.g., card information) into a Skyflow vault using the Skyflow client.
+ *
+ * 1. Initializes the Skyflow client.
+ * 2. Prepares a record with sensitive data (e.g., card number and cardholder name).
+ * 3. Creates an insert request for inserting the data into the Skyflow vault.
+ * 4. Prints the response of the insert operation.
+ */
 package main
 
 import (
-    "fmt"
-    Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
-    "github.com/skyflowapi/skyflow-go/skyflow/common"
+	"context"
+	"fmt"
+	"github.com/skyflowapi/skyflow-go/v2/client"
+	"github.com/skyflowapi/skyflow-go/v2/utils/common"
+	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
 )
 
 func main() {
+	// Step 1: Configure the vault and Skyflow client
+	// Create a VaultConfig with details for connecting to the Skyflow vault.
+	vaultConfig1 := common.VaultConfig{
+		VaultId:   "9f27764a10f7946fe56b3258e117", // Replace with your actual vault ID.
+		ClusterId: "<CLUSTER_ID>",                // Replace with your cluster ID.
+		Env:       common.DEV,                    // Specify the environment (e.g., DEV, PROD, STAGING).
+		Credentials: common.Credentials{
+			Token: "<BEARER_TOKEN>", // Replace with your actual bearer token.
+		},
+	}
 
-    //Initialize the SkyflowClient.
+	// Aggregate vault configurations into a slice.
+	var arr []common.VaultConfig
+	arr = append(arr, vaultConfig1)
 
-    var records = make(map[string] interface {})
-    var record = make(map[string] interface {})
-    record["table"] = "cards"
-    var fields = make(map[string] interface {})
-    fields["cardNumber"] = "411111111111"
-    fields["fullname"] = "name"
-    record["fields"] = fields
-    var recordsArray[] interface {}
-    recordsArray = append(recordsArray, record)
-    records["records"] = recordsArray
+	// Initialize the Skyflow client with the configured vaults and global settings.
+	skyflowInstance, err := client.NewSkyflow(
+		client.WithVaults(arr...),              // Pass the vault configurations.
+		client.WithCredentials(common.Credentials{}), // Global credentials if not set for individual vaults.
+		client.WithLogLevel(logger.DEBUG),      // Set logging level to DEBUG for detailed logs.
+	)
+	if err != nil {
+		// Handle initialization errors.
+		fmt.Println("Error initializing Skyflow client:", err)
+	}
 
-    var options = common.InsertOptions {
-        Tokens: true
-    }
+	// Step 2: Obtain a Vault service instance for performing operations.
+	service, serviceError := skyflowInstance.Vault("9f27764a10f7946fe56b3258e117") // Replace with your actual vault ID.
+	if serviceError != nil {
+		// Handle errors while getting the vault service instance.
+		fmt.Println("Error obtaining Vault service:", serviceError)
+	}
 
-    res, err: = skyflowClient.Insert(records, options)
+	// Step 3: Prepare the data to be inserted into the Skyflow vault.
+	ctx := context.TODO() // Create a context for the operation.
 
-    if err == nil {
-        fmt.Println(res.Records)
-    }
+	// Create a slice to hold the data records for insertion.
+	values := make([]map[string]interface{}, 0)
+
+	// Add a record with sensitive fields (e.g., card number and cardholder name).
+	values = append(values, map[string]interface{}{
+		"card_number":     "4111111111111111", // Replace with the actual card number.
+		"cardholder_name": "john doe",         // Replace with the actual cardholder name.
+	})
+
+	// Step 4: Perform the insert operation using the Vault service.
+	insert, err4 := service.Insert(ctx, common.InsertRequest{
+		Table:  "table1", // Replace with the actual table name in your Skyflow vault.
+		Values: values,   // Attach the prepared data for insertion.
+	}, common.InsertOptions{
+		ContinueOnError: false, // Stop the operation if an error occurs.
+Tokens:    true,  // Request tokenized values to be returned in the response.
+	})
+	if err4 != nil {
+		// Handle any errors that occur during the insert operation.
+		fmt.Println("ERROR:", *err4)
+	} else {
+		// Print the response from the insert operation.
+		fmt.Println("RESPONSE:", insert)
+	}
+}
+```
+
+Skyflow returns tokens for the record that was just inserted.
+```json
+Insert Response: {
+	"insertedFields": [{
+		"card_number": "5484-7829-1702-9110",
+		"request_index": "0",
+		"skyflow_id": "9fac9201-7b8a-4446-93f8-5244e1213bd1",
+		"cardholder_name": "b2308e2a-c1f5-469b-97b7-1f193159399b",
+	}],
+	"errors": []
+}
+```
+
+
+[Insert call example with ContinueOnError option](https://github.com/skyflowapi/skyflow-go/blob/main/samples/vaultapi/insert_with_continueOnError.go):
+The `ContinueOnError` flag is a boolean that determines whether insert operation should proceed despite encountering partial errors. Set to `true` to allow the process to continue even if some errors occur.
+
+```go
+/**
+ * This example demonstrates how to insert multiple records into a Skyflow vault using the Skyflow client.
+ *
+ * 1. Initializes the Skyflow client.
+ * 2. Prepares multiple records with sensitive data (e.g., card number and cardholder name).
+ * 3. Creates an insert request with the records to insert into the Skyflow vault.
+ * 4. Specifies options to continue on error and return tokens.
+ * 5. Prints the response of the insert operation.
+ */
+package main
+
+import (
+	"context"
+	"fmt"
+	"github.com/skyflowapi/skyflow-go/v2/client"
+	"github.com/skyflowapi/skyflow-go/v2/utils/common"
+	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
+)
+
+func main() {
+	// Step 1: Configure the vault and Skyflow client
+	// Create a VaultConfig with details for connecting to the Skyflow vault.
+	vaultConfig1 := common.VaultConfig{
+		VaultId:   "9f27764a10f7946fe56b3258e117", // Replace with your actual vault ID.
+		ClusterId: "<CLUSTER_ID>",                // Replace with your cluster ID.
+		Env:       common.DEV,                    // Specify the environment (e.g., DEV, PROD, STAGING).
+		Credentials: common.Credentials{
+			Token: "<BEARER_TOKEN>", // Replace with your actual bearer token.
+		},
+	}
+
+	// Aggregate vault configurations into a slice.
+	var arr []common.VaultConfig
+	arr = append(arr, vaultConfig1)
+
+	// Initialize the Skyflow client with the configured vaults and global settings.
+	skyflowInstance, err := client.NewSkyflow(
+		client.WithVaults(arr...),              // Pass the vault configurations.
+		client.WithCredentials(common.Credentials{}), // Global credentials if not set for individual vaults.
+		client.WithLogLevel(logger.DEBUG),      // Set logging level to DEBUG for detailed logs.
+	)
+	if err != nil {
+		// Handle initialization errors.
+		fmt.Println("Error initializing Skyflow client:", err)
+	}
+
+	// Step 2: Obtain a Vault service instance for performing operations.
+	service, serviceError := skyflowInstance.Vault("9f27764a10f7946fe56b3258e117") // Replace with your actual vault ID.
+	if serviceError != nil {
+		// Handle errors while getting the vault service instance.
+		fmt.Println("Error obtaining Vault service:", serviceError)
+
+	}
+
+	// Step 3: Prepare the data to be inserted into the Skyflow vault.
+	ctx := context.TODO() // Create a context for the operation.
+
+	// Create a slice to hold the data records for insertion.
+	values := make([]map[string]interface{}, 0)
+
+	// Add a record with sensitive fields (e.g., card number and cardholder name).
+	values = append(values, map[string]interface{}{
+		"card_number":     "4111111111111111", // Replace with the actual card number.
+		"cardholder_name": "john doe",         // Replace with the actual cardholder name.
+	})
+	values = append(values, map[string]interface{}{
+		"card_number":     "42222222222222222", // Replace with the actual card number.
+		"cardholder_name": "john doe",         // Replace with the actual cardholder name.
+	})
+
+	// Step 4: Perform the insert operation using the Vault service.
+	insert, err4 := service.Insert(ctx, common.InsertRequest{
+		Table:  "table1", // Replace with the actual table name in your Skyflow vault.
+		Values: values,   // Attach the prepared data for insertion.
+	}, common.InsertOptions{
+		ContinueOnError: true, // Stop the operation if an error occurs.
+Tokens:    true,  // Request tokenized values to be returned in the response.
+	})
+	if err4 != nil {
+		// Handle any errors that occur during the insert operation.
+		fmt.Println("ERROR:", *err4)
+	} else {
+		// Print the response from the insert operation.
+		fmt.Println("RESPONSE:", insert)
+	}
+}
+
+```
+
+Sample response :
+
+```json
+{
+	"insertedFields": [{
+		"card_number": "5484-7829-1702-9110",
+		"request_index": "0",
+		"skyflow_id": "9fac9201-7b8a-4446-93f8-5244e1213bd1",
+		"cardholder_name": "b2308e2a-c1f5-469b-97b7-1f193159399b",
+	}],
+	"errors": [{
+		"request_index": "1",
+		"error": "Insert failed. Column card_numbe is invalid. Specify a valid column.",
+	}]
+}
+```
+
+[Insert call example with upsert option]():
+An upsert operation checks for a record based on a unique column's value. If a match exists, the record is updated; otherwise, a new record is inserted.6
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"github.com/skyflowapi/skyflow-go/v2/client"
+	"github.com/skyflowapi/skyflow-go/v2/utils/common"
+	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
+)
+
+func main() {
+	skyflowInstance, err := client.NewSkyflow(
+		client.WithVaults(arr...),
+		client.WithCredentials(common.Credentials{}),
+		client.WithLogLevel(logger.DEBUG),
+	)
+	if err != nil {
+		fmt.Println("Error initializing Skyflow client:", err)
+	}
+
+	service, serviceError := skyflowInstance.Vault("<VAULT_ID>")
+	if serviceError != nil {
+		fmt.Println("Error obtaining Vault service:", serviceError)
+	}
+
+	ctx := context.TODO()
+
+	values := make([]map[string]interface{}, 0)
+	values = append(values, map[string]interface{}{
+		"<FIELD_NAME1_1>": "<VALUE_1>",
+	})
+	values = append(values, map[string]interface{}{
+		"<FIELD_NAME_2>": "<VALUE_1>",
+		"<FIELD_NAME_3>": "<VALUE_2>",
+	})
+
+	insert, err4 := service.Insert(ctx, common.InsertRequest{
+		Table:  "<TABLE_NAME>",
+		Values: values,
+	}, common.InsertOptions{
+		Tokens: true,
+		Upsert: "cardholder_name",
+	})
+	if err4 != nil {
+		fmt.Println("ERROR:", *err4)
+	} else {
+		fmt.Println("RESPONSE:", insert)
+	}
 }
 ```
 
@@ -197,858 +735,1317 @@ Sample response :
 
 ```json
 {
-  "records": [
-    { 
-      "request_index": 0,
-      "table": "cards",
-      "fields": {
-        "cardNumber": "f37186-e7e2-466f-91e5-48e2bcbc1",
-        "fullname": "1989cb56-63a-4482-adf-1f74cd1a5",
-        "skyflow_id": "da26de53-95d5-4bdb-99db-8d8c66a35ff9"
-      }
-    }
-  ]
+	"insertedFields": [{
+		"skyflowId": "9fac9201-7b8a-4446-93f8-5244e1213bd1",
+		"cardholder_name": "73ce45ce-20fd-490e-9310-c1d4f603ee83" 
+	}],
+	"errors": []
 }
-
 ```
 
+### Detokenize
+To retrieve tokens from your vault, use the detokenize method. The DetokenizeRequest requires a list of detokenization data as input. Additionally, you can provide optional parameters, such as the redaction type and the option to continue on error.
 
-[Insert call example with ContinueOnError](https://github.com/skyflowapi/skyflow-go/blob/main/samples/vaultapi/insert_with_continueOnError.go):
+**Constructing your detokenize request**
 
 ```go
-package main
+package vaultapi
 
 import (
-    "fmt"
-    Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
-    "github.com/skyflowapi/skyflow-go/skyflow/common"
+	"context"
+	"fmt"
+	"github.com/skyflowapi/skyflow-go/v2/client"
+	"github.com/skyflowapi/skyflow-go/v2/utils/common"
+	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
 )
 
 func main() {
+	// Step 1: Configure the vaults and Skyflow client 
+	// Step 2: Obtain a Vault service instance for performing operations.
+	service, serviceError := skyflowInstance.Vault("<VAULT_ID>") // Replace <VAULT_ID> with the specific vault ID.
+	if serviceError != nil {
+		// Handle errors while getting the vault service instance.
+		fmt.Println("Error obtaining Vault service:", serviceError)
 
-    //Initialize the SkyflowClient.
+	}
 
-    var records = make(map[string] interface {})
-    var record = make(map[string] interface {})
-    record["table"] = "cards"
-    var fields = make(map[string] interface {})
-    fields["cardNumber"] = "411111111111"
-    fields["fullname"] = "name"
-    record["fields"] = fields
+	// Step 3: Prepare the detokenize request.
+	ctx := context.TODO() // Create a context for the detokenization operation.
 
-    var record2 = make(map[string] interface {})
-    record2["table"] = "pii_field"
-    var fields2 = make(map[string] interface {})
-    fields2["name"] = "name"
-    record2["fields"] = fields2
+	// Provide the list of tokens to be detokenized (replace with actual tokens).
+	tokens := []string{"<TOKEN1>", "<TOKEN2>"} // Replace with actual token values.
 
-    var recordsArray[] interface {}
-    recordsArray = append(recordsArray, record)
+	// Create the DetokenizeRequest object with the tokens and redaction type.
+	request := common.DetokenizeRequest{
+		Tokens:        tokens,               // List of tokens to detokenize.
+		RedactionType: common.PLAIN_TEXT,    // Specify the redaction type (e.g., PLAIN_TEXT).
+	}
 
-    records["records"] = recordsArray
-
-    var options = common.InsertOptions {
-        Tokens: true,
-        ContinueOnError: true
-    }
-
-    res, err: = skyflowClient.Insert(records, options)
-
-    if err == nil {
-        fmt.Println(res.Records)
-    }
+	// Step 4: Perform the detokenization operation using the Vault service.
+	options := common.DetokenizeOptions{
+		ContinueOnError: true, // Continue even if one token cannot be detokenized.
+	}
+	res, err := service.Detokenize(ctx, request, options)
+	if err != nil {
+		// Step 5: Handle any errors that occur during the detokenization process.
+		fmt.Println("ERROR: ", err)
+	} else {
+		// Step 6: Print the detokenization response.
+		fmt.Println("RESPONSE: ", res)
+	}
 }
 ```
 
-Sample response :
-
-```json
-{
-  "records": [
-    {
-      "request_index": 0,
-      "table": "cards",
-      "fields": {
-        "cardNumber": "f37186-e7e2-466f-91e5-48e2bcbc1",
-        "fullname": "1989cb56-63a-4482-adf-1f74cd1a5",
-        "skyflow_id": "da26de53-95d5-4bdb-99db-8d8c66a35ff9"
-      }
-    }
-  ],
-  "errors": [
-    {
-      "error": {
-        "request_index": 1,
-        "code": 404,
-        "description": "Object Name pii_field was not found for Vault - requestId : id1234"
-      }
-    }
-  ]
-}
-
-```
-
-[Upsert call example](https://github.com/skyflowapi/skyflow-go/blob/main/samples/vaultapi/upsert.go):
-
-```go
-package main
-
-import (
-    "fmt"
-    Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
-    "github.com/skyflowapi/skyflow-go/skyflow/common"
-)
-
-func main() {
-
-    //Initialize the SkyflowClient.
-
-    var records = make(map[string] interface {})
-    var record = make(map[string] interface {})
-    record["table"] = "cards"
-    var fields = make(map[string] interface {})
-    fields["cardNumber"] = "411111111111"
-    fields["fullname"] = "name"
-    record["fields"] = fields
-    var recordsArray[] interface {}
-    recordsArray = append(recordsArray, record)
-    records["records"] = recordsArray
-
-    //Create an upsert array.
-
-    var upsertArray []common.UpsertOptions
-    var upsertOption = common.UpsertOptions{Table:"cards",Column:"cardNumber"}
-    upsertArray = append(upsertArray,upsertOption)
-
-    var options = common.InsertOptions {
-        Tokens: true
-        Upsert: upsertArray
-    }
-
-    res, err: = skyflowClient.Insert(records, options)
-
-    if err == nil {
-        fmt.Println(res.Records)
-    }
-}
-```
-
-Sample response :
-
-```json
-{
-  "records": [
-    {
-      "request_index": 0,
-      "table": "cards",
-      "fields": {
-        "cardNumber": "f37186-e7e2-466f-91e5-48e2bcbc1",
-        "fullname": "1989cb56-63a-4482-adf-1f74cd1a5",
-        "skyflow_id": "da26de53-95d5-4bdb-99db-8d8c66a35ff9"
-      }
-    }
-  ]
-}
-```
-
-#### Detokenize
-To retrieve tokens from your vault, you can use the **Detokenize(records map[string]interface{},options common.DetokenizeOptions)** method.The `records` parameter takes an array of SkyflowIDs to return.The options parameter is a DetokenizeOptions object that provides further options, including `ContinueOnError` operation, for your detokenize call, as shown below:
-
-```go
-import (
-    Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
-    "github.com/skyflowapi/skyflow-go/skyflow/common"
-)
-
-//initialize skyflowClient
-
-var records = make(map[string] interface {})
-
-var record1 = make(map[string] interface {})
-record1["token"] = "<token>"    // token for the record to be fetched
-var record2 = make(map[string] interface {})
-record2["token"] = "<token>"
-record2["redaction"] = "<RedactionType>" // Optional. Redaction to be applied for retrieved data.
-
-var recordsArray[] interface {}
-recordsArray = append(recordsArray, record1)
-recordsArray = append(recordsArray, record2)
-
-records["records"] = recordsArray
-options := common.DetokenizeOptions {
-        ContinueOnError: true //Optional, true indicates making individual API calls. false indicates to make a bulk API call.. This value defaults to "true".
-}
-res, err := skyflowClient.Detokenize(records, options)
-
-Note: `redaction` defaults to `common.PLAIN_TEXT`
-```
+Notes:
+- `RedactionType` defaults to `RedactionType.PLAIN_TEXT`.
+- `ContinueOnError` defaults to `true`.
 
 An [example](https://github.com/skyflowapi/skyflow-go/blob/main/samples/vaultapi/detokenize.go) of a Detokenize call:
 
 ```go
-package main
+/**
+ * This example demonstrates how to detokenize sensitive data from tokens stored in a Skyflow vault.
+ *
+ * 1. Initializes the Skyflow client.
+ * 2. Creates a list of tokens (e.g., credit card tokens) that represent the sensitive data.
+ * 3. Builds a detokenization request using the provided tokens and specifies how the redacted data should be returned.
+ * 4. Calls the Skyflow vault to detokenize the tokens and retrieves the detokenized data.
+ * 5. Prints the detokenization response, which contains the detokenized values or errors.
+ */
+package vaultapi
 
 import (
-    "fmt"
-    Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
-    "github.com/skyflowapi/skyflow-go/skyflow/common"
+	"context"
+	"fmt"
+	"github.com/skyflowapi/skyflow-go/v2/client"
+	"github.com/skyflowapi/skyflow-go/v2/utils/common"
+	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
 )
 
 func main() {
+	// Step 1: Configure the vaults and Skyflow client 
+	// Step 2: Obtain a Vault service instance for performing operations.
+	service, serviceError := skyflowInstance.Vault("9f27764a10f7946fe56b3258e117") // Replace <VAULT_ID> with the specific vault ID.
+	if serviceError != nil {
+		// Handle errors while getting the vault service instance.
+		fmt.Println("Error obtaining Vault service:", serviceError)
 
-    //initialize skyflowClient
+	}
 
-    var records = make(map[string] interface {})
-    var record1 = make(map[string] interface {})
-    record1["token"] = "45012507-f72b-4f5c-9bf9-86b133bae719"
-    var record2 = make(map[string] interface {})
-    record2["token"] = "invalid-token"
-    var recordsArray[] interface {}
-    recordsArray = append(recordsArray, record1)
-    recordsArray = append(recordsArray, record2)
-    records["records"] = recordsArray
+	// Step 3: Prepare the detokenize request.
+	ctx := context.TODO() // Create a context for the detokenization operation.
 
-    res, err: = skyflowClient.Detokenize(records)
+	// Provide the list of tokens to be detokenized (replace with actual tokens).
+	tokens := []string{"9738-1683-0486-1480", "6184-6357-8409-6668", "4914-9088-2814-3840"} // Replace with actual token values.
 
-    if err == nil {
-        fmt.Println("Records:",res.Records)
-        fmt.Println("Errors:",res.Errors)
-    }
-}  
+	// Create the DetokenizeRequest object with the tokens and redaction type.
+	request := common.DetokenizeRequest{
+		Tokens:        tokens,               // List of tokens to detokenize.
+		RedactionType: common.PLAIN_TEXT,    // Specify the redaction type (e.g., PLAIN_TEXT).
+	}
+
+	// Step 4: Perform the detokenization operation using the Vault service.
+	options := common.DetokenizeOptions{
+		ContinueOnError: false, // Continue even if one token cannot be detokenized.
+	}
+	res, errDetokenize := service.Detokenize(ctx, request, options)
+	if errDetokenize != nil {
+		// Step 5: Handle any errors that occur during the detokenization process.
+		fmt.Println("ERROR: ", errDetokenize)
+	} else {
+		// Step 6: Print the detokenization response.
+		fmt.Println("RESPONSE: ", res)
+	}
+}
 ```
 
 Sample response:
-
 ```json
 {
-  "records": [
-    {
-      "token": "131e70dc-6f76-4319-bdd3-96281e051051",
-      "value": "1990-01-01"
-    }
-  ],
-  "errors": [
-    {
-      "token": "invalid-token",
-      "error": {
-        "code": 404,
-        "description": "Tokens not found for invalid-token"
-      }
-    }
-  ]
+	"detokenizedFields": [{
+		"token": "9738-1683-0486-1480",
+		"value": "4111111111111115",
+		"type": "STRING",
+	}, {
+		"token": "6184-6357-8409-6668",
+		"value": "4111111111111119",
+		"type": "STRING",
+	}, {
+		"token": "4914-9088-2814-3840",
+		"value": "4111111111111118",
+		"type": "STRING",
+	}]
+	"errors": []
 }
 ```
-[Detokenize call with the ContinueOnError example.](https://github.com/skyflowapi/skyflow-go/blob/main/samples/vaultapi/detokenize.go):
+[An example of a detokenize call with `continueOnError` option]():
 
 ```go
-package main
+/**
+ * This example demonstrates how to detokenize sensitive data (e.g., credit card numbers) from tokens in a Skyflow vault.
+ *
+ * 1. Initializes the Skyflow client.
+ * 2. Creates a list of tokens (e.g., credit card tokens) to be detokenized.
+ * 3. Builds a detokenization request with the tokens and specifies the redaction type for the detokenized data.
+ * 4. Calls the Skyflow vault to detokenize the tokens and retrieves the detokenized data.
+ * 5. Prints the detokenization response, which includes the detokenized values or errors.
+ */
+package vaultapi
 
 import (
-    "fmt"
-    Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
-    "github.com/skyflowapi/skyflow-go/skyflow/common"
+	"context"
+	"fmt"
+	"github.com/skyflowapi/skyflow-go/v2/client"
+	"github.com/skyflowapi/skyflow-go/v2/utils/common"
+	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
 )
 
 func main() {
+	// Step 1: Configure the vaults and Skyflow client 
+	// Step 2: Obtain a Vault service instance for performing operations.
+	service, serviceError := skyflowInstance.Vault("9f27764a10f7946fe56b3258e117") // Replace <VAULT_ID> with the specific vault ID.
+	if serviceError != nil {
+		// Handle errors while getting the vault service instance.
+		fmt.Println("Error obtaining Vault service:", serviceError)
 
-    //initialize skyflowClient
+	}
 
-    var records = make(map[string] interface {})
-    var record1 = make(map[string] interface {})
-    record1["token"] = "45012507-f72b-4f5c-9bf9-86b133bae719"
-    var record2 = make(map[string] interface {})
-    record2["token"] = "131e70dc-6f76-4319-bdd3-96281e051051"
-    var recordsArray[] interface {}
-    recordsArray = append(recordsArray, record1)
-    recordsArray = append(recordsArray, record2)
-    records["records"] = recordsArray
-    options := common.DetokenizeOptions {
-        ContinueOnError: false
-    }
-    res, err: = skyflowClient.Detokenize(records, options)
+	// Step 3: Prepare the detokenize request.
+	ctx := context.TODO() // Create a context for the detokenization operation.
 
-    if err == nil {
-        fmt.Println("Records:",res.Records)
-        fmt.Println("Errors:",res.Errors)
-    }
-}  
+	// Provide the list of tokens to be detokenized (replace with actual tokens).
+	tokens := []string{"9738-1683-0486-1480", "6184-6357-8409-6668", "4914-9088-2814-3840"} // Replace with actual token values.
+
+	// Create the DetokenizeRequest object with the tokens and redaction type.
+	request := common.DetokenizeRequest{
+		Tokens:        tokens,               // List of tokens to detokenize.
+		RedactionType: common.PLAIN_TEXT,    // Specify the redaction type (e.g., PLAIN_TEXT).
+	}
+
+	// Step 4: Perform the detokenization operation using the Vault service.
+	options := common.DetokenizeOptions{
+		ContinueOnError: false, // Continue even if one token cannot be detokenized.
+	}
+	res, errDetokenize := service.Detokenize(ctx, request, options)
+	if errDetokenize != nil {
+		// Step 5: Handle any errors that occur during the detokenization process.
+		fmt.Println("ERROR: ", errDetokenize)
+	} else {
+		// Step 6: Print the detokenization response.
+		fmt.Println("RESPONSE: ", res)
+	}
+}
 ```
 Sample response:
 ```json
 {
-  "records": [
-    {
-      "token": "45012507-f72b-4f5c-9bf9-86b133bae719",
-      "value": "Jhon"
-    },
-    {
-      "token": "131e70dc-6f76-4319-bdd3-96281e051051",
-      "value": "1990-01-01"
-    }
-  ],
+	"detokenizedFields": [{
+		"token": "9738-1683-0486-1480",
+		"value": "4111111111111115",
+		"type": "STRING",
+	}, {
+		"token": "6184-6357-8409-6668",
+		"value": "4111111111111119",
+		"type": "STRING",
+	}],
+	"errors": [{
+		"token": "4914-9088-2814-384",
+		"error": "Token Not Found",
+	}]
 }
 ```
 
-#### GetById
+### Tokenize
+Tokenization is the process of replacing sensitive data with unique identifier tokens. This approach helps protect sensitive information by securely storing the original data while allowing the use of tokens within your application.
+To tokenize data, use the `tokenize` method. The `TokenizeRequest` struct is used to create a tokenize request. In this request, you specify the values parameter, which is a list of `ColumnValue` objects. Each `ColumnValue` contains two properties: `value` and `ColumnGroup`.
+
+**Constructing your Tokenize request**
+```go
+package vaultapi
+
+import (
+	"context"
+	"fmt"
+	"github.com/skyflowapi/skyflow-go/v2/client"
+	"github.com/skyflowapi/skyflow-go/v2/utils/common"
+	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
+)
+
+/**
+ * This example demonstrates how to tokenize sensitive data (e.g., credit card information) 
+ * using the Skyflow client, along with corresponding TokenizeRequest schema.
+ */
+func main() {
+	// Initialize Skyflow client
+
+    // Step 1: Access the vault
+	service, serviceErr := skyflowInstance.Vault("<VAULT_ID>")
+	if serviceErr != nil {
+		//  Handle error accessing the vault
+		fmt.Println(serviceErr)
+	} else {
+ // Step 2: Create a TokenizeRequest array to hold sensitive data
+	   ctx := context.TODO()
+	   var reqArray []common.TokenizeRequest
+
+	 // Step 3: Add sensitive data fields to the TokenizeRequest array
+	   reqArray = append(reqArray, common.TokenizeRequest{
+	   ColumnGroup: "<COLUMN_GROUP_NAME>", // Replace <COLUMN_GROUP_NAME> with actual column group name
+				Value:       "<VALUE>",            // Replace <VALUE> with the sensitive data value
+			})
+
+	 // Step 4 : Call the Skyflow vault to tokenize the sensitive data
+	   res, tokenizeErr := service.Tokenize(ctx, reqArray)
+	   if tokenizeErr != nil {
+		// Handle error during the tokenization process
+	        fmt.Println("ERROR: ", tokenizeErr)
+	   } else {
+	  // Step 5: Print the tokenization response, which contains the generated tokens or errors 
+		fmt.Println("RESPONSE: ", res)
+			}
+		}
+}
+```
+
+An [example]() of Tokenize call
+```go
+/**
+ * This example demonstrates how to tokenize sensitive data (e.g., credit card information) using the Skyflow client.
+ *
+ * 1. Initializes the Skyflow client.
+ * 2. Creates a column value for sensitive data (e.g., credit card number).
+ * 3. Builds a tokenize request with the column value to be tokenized.
+ * 4. Sends the request to the Skyflow vault for tokenization.
+ * 5. Prints the tokenization response, which includes the token or errors.
+ */
+func main() {
+	// Initialize Skyflow client
+
+    // Step 1: Access the vault
+	service, serviceErr := skyflowInstance.Vault("9f27764a10f7946fe56b3258e117")
+    // Replace "9f27764a10f7946fe56b3258e117" with your actual Skyflow vault ID
+
+	if serviceErr != nil {
+		//  Handle error accessing the vault
+		fmt.Println(serviceErr)
+	} else {
+ // Step 2: Create a TokenizeRequest array to hold sensitive data
+	   ctx := context.TODO()
+	   var reqArray []common.TokenizeRequest
+
+	 // Step 3: Add sensitive data fields to the TokenizeRequest array
+	   reqArray = append(reqArray, common.TokenizeRequest{
+	            ColumnGroup: "card_number_cg",              // Replace with actual column group name
+		          Value:       "4111111111111111",            // Replace with the actual sensitive data (e.g., card number)
+
+			})
+
+	   // Step 4 : Call the Skyflow vault to tokenize the sensitive data
+	   res, tokenizeErr := service.Tokenize(ctx, reqArray)
+	   if tokenizeErr != nil {
+		// Handle error during the tokenization process
+	        fmt.Println("ERROR: ", tokenizeErr)
+	   } else {
+	  // Step 5: Print the tokenization response, which contains the generated tokens or errors 
+		fmt.Println("RESPONSE: ", res)
+			}
+		}
+}
+```
+
+Sample response:
+```json
+{
+	"tokens": [5479-4229-4622-1393]
+}
+```
+
+### Get
  
-In order to retrieve data from your vault using SkyflowIDs, use the **GetById(records map[string]interface{})** method. The `records` parameter takes a map that has an array of SkyflowIDs to return, as shown below:
+To retrieve data using Skyflow IDs or unique column values, use the `get` method. The `GetRequest` struct is used to create a get request, where you specify parameters such as the table name, redaction type, Skyflow IDs, column names, column values, and whether to return tokens. If Skyflow IDs are provided, column names and column values cannot be used, and vice versa—if column names or column values are provided, Skyflow IDs cannot be used.
 
+Constructing your get request:
 ```go
+package vaultapi
+
 import (
-    Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
-    "github.com/skyflowapi/skyflow-go/skyflow/common"
+	"context"
+	"fmt"
+	"github.com/skyflowapi/skyflow-go/v2/client"
+	"github.com/skyflowapi/skyflow-go/v2/utils/common"
 )
 
-//initialize skyflowClient
+/**
+ * This example demonstrates how to retrieve data from the Skyflow vault using different methods, 
+ * along with corresponding GetRequest schema.
+ */
+func main() {
+	// Step 1: Initialize the Skyflow service
+	// Replace <VAULT_ID> with your actual Skyflow vault ID
+	service, serviceError := skyflowInstance.Vault("<VAULT_ID>")
+	if serviceError != nil {
+		// Handle any errors during initialization
+		fmt.Println("Error occurred while initializing Skyflow service:", serviceError)
 
-var records = make(map[string] interface {})
+	}
 
-var record1 = make(map[string] interface {})
-record1["ids"] = [] string {} {     // List of SkyflowID's of the records to be fetched
-    "<skyflow_id1>", "<skyflow_id2>"
+	// Step 2: Retrieve records by Skyflow ID without returning tokens
+	ctx := context.TODO() // Prepare the context for the request
+	res, getErr := service.Get(ctx, common.GetRequest{
+		Table: "<TABLE_NAME>",       // Replace with the actual table name
+		Ids:   []string{"<SKYFLOW_ID_1>", "<SKYFLOW_ID_2>"}, // Replace with actual Skyflow IDs
+	}, common.GetOptions{
+Tokens: false, // Set to false to avoid returning tokens
+		RedactionType: common.PLAIN_TEXT, // Redact data as plain text
+	})
+	if getErr != nil {
+		// Handle any errors during the retrieval process
+		fmt.Println("Error occurred while retrieving records by ID:", getErr)
+	} else {
+		// Print the retrieved records
+		fmt.Println("Response for records by ID:", res.Data)
+	}
+
+	// Step 3: Retrieve records by Skyflow ID with tokenized values
+	resWithTokens, getErrWithTokens := service.Get(ctx, common.GetRequest{
+		Table: "<TABLE_NAME>",       // Replace with the actual table name
+		Ids:   []string{"<SKYFLOW_ID_1>", "<SKYFLOW_ID_2>"}, // Replace with actual Skyflow IDs
+	}, common.GetOptions{
+Tokens: true, // Set to true to return tokenized values
+	})
+	if getErrWithTokens != nil {
+		// Handle any errors during the retrieval process
+		fmt.Println("Error occurred while retrieving tokenized records:", getErrWithTokens)
+	} else {
+		// Print the retrieved tokenized records
+		fmt.Println("Response for tokenized records:", resWithTokens.Data)
+	}
+
+	// Step 4: Retrieve records based on specific column values
+	columnValues := []string{"<COLUMN_VALUE_1>", "<COLUMN_VALUE_2>"} // List of column values to filter by
+	resByColumn, getErrByColumn := service.Get(ctx, common.GetRequest{
+		Table:       "<TABLE_NAME>", // Replace with the actual table name
+		ColumnName:  "<COLUMN_NAME>", // Replace with the actual column name
+		ColumnValues: columnValues,   // Add the list of column values
+	}, common.GetOptions{
+		RedactionType: common.PLAIN_TEXT, // Redact data as plain text
+	})
+	if getErrByColumn != nil {
+		// Handle any errors during the retrieval process
+		fmt.Println("Error occurred while retrieving records by column values:", getErrByColumn)
+	} else {
+		// Print the retrieved records filtered by column values
+		fmt.Println("Response for records by column values:", resByColumn.Data)
+	}
 }
-record1["table"] = "<table_name>"   // name of table holding the above skyflow_id's
-record1["redaction"] =  common.PLAIN_TEXT   // redaction to be applied to retrieved data
-
-var recordsArray[] interface {}
-recordsArray = append(recordsArray, record1)
-records["records"] = recordsArray
-
-res, err := skyflowClient.GetById(records)
 ```
 
-There are 4 accepted values in Skyflow.RedactionTypes:
+#### Get by skyflow IDs
+Retrieve specific records using `skyflow_ids`. Ideal for fetching exact records when IDs are known.
 
--  `PLAIN_TEXT`
--  `MASKED`
--  `REDACTED`
--  `DEFAULT`
+An [example]() of a get call to retrieve data using Redaction type:
 
-  
-
-An [example](https://github.com/skyflowapi/skyflow-go/blob/main/samples/vaultapi/get_by_id.go) of GetById call:
-
-```go
-package main
+```go 
+package vaultapi
 
 import (
-    "fmt"
-    Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
-    "github.com/skyflowapi/skyflow-go/skyflow/common"
+	"context"
+	"fmt"
+	"github.com/skyflowapi/skyflow-go/v2/utils/common"
 )
 
+/**
+ * This example demonstrates how to retrieve data from the Skyflow vault using a list of Skyflow IDs.
+ *
+ * 1. Initializes the Skyflow client with a given vault ID.
+ * 2. Creates a request to retrieve records based on Skyflow IDs.
+ * 3. Specifies that the response should not return tokens.
+ * 4. Uses plain text redaction type for the retrieved records.
+ * 5. Prints the response to display the retrieved records.
+ */
 func main() {
+	// Step 1: Initialize the Skyflow service
+	// Replace <VAULT_ID> with your actual Skyflow vault ID
+	service, serviceError := skyflowInstance.Vault("<VAULT_ID>")
+	if serviceError != nil {
+		// Step 4: Handle any errors that occur during the initialization process
+		fmt.Println("Error occurred while initializing Skyflow service:", serviceError)
 
-    //initialize skyflowClient
+	}
 
-    var records = make(map[string] interface {})
-    var record1 = make(map[string] interface {})
-    record1["ids"] = [] string {} {
-        "f8d8a622-b557-4c6b-a12c-c5ebe0b0bfd9", "da26de53-95d5-4bdb-99db-8d8c66a35ff9"
-    }
-    record1["table"] = "cards"
-    record1["redaction"] = common.PLAIN_TEXT
+	// Step 2: Prepare the context for the request
+	ctx := context.TODO()
 
-    var recordsArray[] interface {}
-    recordsArray = append(recordsArray, record1)
-    records["records"] = recordsArray
+	// Step 3: Create a GetRequest to retrieve records based on Skyflow IDs
+	// The request specifies:
+	// - `Ids`: A list of Skyflow IDs to retrieve records for
+	// - `Table`: The table from which the records will be retrieved
+	getRequest := common.GetRequest{
+		Table: "table1", // Replace with the actual table name
+		Ids: []string{
+			"a581d205-1969-4350-acbe-a2a13eb871a6", // Replace with actual Skyflow ID
+			"5ff887c3-b334-4294-9acc-70e78ae5164a", // Replace with actual Skyflow ID
+		},
+	}
 
-    res, err: = skyflowClient.GetById(records)
+	// Step 4: Specify options for the request
+	// Set `ReturnTokens` to false to avoid returning tokens in the response
+	getOptions := common.GetOptions{
+Tokens: false, // Tokens will not be returned
+		RedactionType: common.PLAIN_TEXT, // Data will be redacted as plain text
+	}
 
-    if err == nil {
-      fmt.Println("Records:",res.Records)
-      fmt.Println("Errors:",res.Errors)
-    }
+	// Step 5: Send the Get request to the Skyflow vault and retrieve records
+	res, getErr := service.Get(ctx, getRequest, getOptions)
+	if getErr != nil {
+		// Step 6: Handle any errors that occur during the data retrieval process
+		fmt.Println("Error occurred while retrieving records:", getErr)
+	} else {
+		// Step 7: Print the retrieved records from the response
+		fmt.Println("Response:", res.Data)
+	}
 }
 ```
 
 Sample response:
-
 ```json
 {
-  "records": [
-    {
-      "fields": {
-        "card_number": "4111111111111111",
-        "expiry_date": "11/35",
-        "fullname": "myname",
-        "skyflow_id": "f8d8a622-b557-4c6b-a12c-c5ebe0b0bfd9"
-      },
-      "table": "cards"
-    },
-    {
-      "fields": {
-        "card_number": "4111111111111111",
-        "expiry_date": "10/23",
-        "fullname": "sam",
-        "skyflow_id": "da26de53-95d5-4bdb-99db-8d8c66a35ff9"
-      },
-      "table": "cards"
-    }
-  ]
+	"data": [{
+		"card_number": "4555555555555553",
+		"email": "john.doe@gmail.com",
+		"name": "john doe",
+		"skyflow_id": "a581d205-1969-4350-acbe-a2a13eb871a6",
+	}, {
+		"card_number": "4555555555555559",
+		"email": "jane.doe@gmail.com",
+		"name": "jane doe",
+		"skyflow_id": "5ff887c3-b334-4294-9acc-70e78ae5164a",
+	}],
+	"errors": []
 }
 ```
 
-#### Get
- 
-In order to retrieve data from your vault using Skyflow IDs or by Unique Column Values, use the **Get(records map[string]interface{}, options common.GetOptions)** method. The `records` parameter takes a map that should contain
+#### Get tokens
+Enable tokenization to fetch field tokens. Ideal for securely processing sensitive data while maintaining data privacy.
 
-1. Either an array of Skyflow IDs to fetch
-2. Or a column name and array of column values
-
-The second parameter, options, is a GetOptions object that retrieves tokens of Skyflow IDs. 
-
-Note: 
-1. GetOptions parameter applicable only for retrieving tokens using Skyflow ID.
-2. You can't pass GetOptions along with the redaction type.
-3. `tokens` defaults to false.
-
-
-##### Use Skyflow IDs
-1. Retrieve data using Redaction type:
-
+An [example]() of get call to retrieve tokens using Skyflow IDs:
 ```go
-import (
-    Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
-    "github.com/skyflowapi/skyflow-go/skyflow/common"
-)
-
-//initialize skyflowClient
-
-var records = make(map[string] interface {})
-
-var record1 = make(map[string] interface {})
-record1["ids"] = [] string {} {              // List of SkyflowID's of the records to be fetched
-    "<skyflow_id1>", "<skyflow_id2>"
-}
-record1["table"] = "<table_name>"            // Name of table holding the records in the vault.
-record1["redaction"] =  common.PLAIN_TEXT    // Redaction type to apply to retrieved data.
-
-var recordsArray[] interface {}
-recordsArray = append(recordsArray, record1)
-records["records"] = recordsArray
-
-res, err := skyflowClient.Get(records)
-```
-
-2. Retrieve tokens using GetOptions:
-
-```go
-import (
-    Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
-    "github.com/skyflowapi/skyflow-go/skyflow/common"
-)
-
-//initialize skyflowClient
-
-var records = make(map[string] interface {})
-
-var record1 = make(map[string] interface {})
-record1["ids"] = [] string {} {     // List of SkyflowID's of the records to be fetched
-    "<skyflow_id1>", "<skyflow_id2>"
-}
-record1["table"] = "<table_name>"   // // Name of table holding the records in the vault.
-
-var recordsArray[] interface {}
-recordsArray = append(recordsArray, record1)
-records["records"] = recordsArray
-
-res, err := skyflowClient.Get(records, common.GetOptions{Tokens: true})
-```
-
-##### Use column name and values
-```go
-import (
-    Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
-    "github.com/skyflowapi/skyflow-go/skyflow/common"
-)
-
-//initialize skyflowClient
-
-var records = make(map[string] interface {})
-
-var record1 = make(map[string] interface {})
-record1["columnValues"] = [] string {} {     // List of given unique column values.
-    "<column_value1>", "<column_value2>"
-}
-record1["columnName"] = "<column_name>"      // Unique column name in the vault.
-record1["redaction"] =  common.PLAIN_TEXT 
-record1["table"] = "<table_name>"            // Name of table holding the above skyflow_id's
-
-var recordsArray[] interface {}
-recordsArray = append(recordsArray, record1)
-records["records"] = recordsArray
-
-res, err := skyflowClient.Get(records)
-```
-
-There are 4 accepted values in Skyflow.RedactionTypes:
-
--  `PLAIN_TEXT`
--  `MASKED`
--  `REDACTED`
--  `DEFAULT`
-
-Examples
-
-An example call using Skyflow IDs with RedactionType:
-
-```go
-package main
-
-import (
-    "fmt"
-    Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
-    "github.com/skyflowapi/skyflow-go/skyflow/common"
-)
-
+/**
+ * This example demonstrates how to retrieve data from the Skyflow vault and return tokens along with the records.
+ *
+ * 1. Initializes the Skyflow client with a given vault ID.
+ * 2. Creates a request to retrieve records based on Skyflow IDs and ensures tokens are returned.
+ * 3. Prints the response to display the retrieved records along with the tokens.
+ */
 func main() {
+	// Step 1: Initialize the Skyflow service
+	// Replace <VAULT_ID> with your actual Skyflow vault ID
+	service, serviceError := skyflowInstance.Vault("<VAULT_ID>")
+	if serviceError != nil {
+		// Step 4: Handle any errors that occur during the initialization process
+		fmt.Println("Error occurred while initializing Skyflow service:", serviceError)
+	}
 
-    //initialize skyflowClient
+	// Step 2: Prepare the context for the request
+	ctx := context.TODO()
 
-    var records = make(map[string] interface {})
-    var record1 = make(map[string] interface {})
-    record1["ids"] = [] string {} {
-        "f8d8a622-b557-4c6b-a12c-c5ebe0b0bfd9", "da26de53-95d5-4bdb-99db-8d8c66a35ff9"
-    }
-    record1["table"] = "cards"
-    record1["redaction"] = common.PLAIN_TEXT
+	// Step 3: Create a GetRequest to retrieve records based on Skyflow IDs
+	// The request specifies:
+	// - `Ids`: A list of Skyflow IDs to retrieve records for
+	// - `Table`: The table from which the records will be retrieved
+	getRequest := common.GetRequest{
+		Table: "table1", // Replace with the actual table name
+		Ids: []string{
+			"a581d205-1969-4350-acbe-a2a13eb871a6", // Replace with actual Skyflow ID
+			"5ff887c3-b334-4294-9acc-70e78ae5164a", // Replace with actual Skyflow ID
+		},
+	}
 
-    var record2 = make(map[string] interface {})
-    record2["ids"] = [] string {} { "invalid-id" }
-    record2["table"] = "cards"
-    record2["redaction"] = common.PLAIN_TEXT
+	// Step 4: Specify options for the request
+	// Set `ReturnTokens` to false to avoid returning tokens in the response
+	getOptions := common.GetOptions{
+Tokens: true, // Tokens will be returned
+	}
 
-    var recordsArray[] interface {}
-    recordsArray = append(recordsArray, record1)
-    recordsArray = append(recordsArray, record2)
-
-    records["records"] = recordsArray
-
-    res, err: = skyflowClient.Get(records)
-
-    if err == nil {
-      fmt.Println("Records:",res.Records)
-      fmt.Println("Errors:",res.Errors)
-    }
+	// Step 5: Send the Get request to the Skyflow vault and retrieve records
+	res, getErr := service.Get(ctx, getRequest, getOptions)
+	if getErr != nil {
+		// Step 6: Handle any errors that occur during the data retrieval process
+		fmt.Println("Error occurred while retrieving records:", getErr)
+	} else {
+		// Step 7: Print the retrieved records from the response
+		fmt.Println("Response:", res.Data)
+	}
 }
 ```
 
 Sample response:
-
 ```json
 {
-  "records": [
-    {
-      "fields": {
-        "card_number": "4111111111111111",
-        "expiry_date": "11/35",
-        "fullname": "myname",
-        "skyflow_id": "f8d8a622-b557-4c6b-a12c-c5ebe0b0bfd9"
-      },
-      "table": "cards"
-    },
-    {
-      "fields": {
-        "card_number": "4111111111111111",
-        "expiry_date": "10/23",
-        "fullname": "sam",
-        "skyflow_id": "da26de53-95d5-4bdb-99db-8d8c66a35ff9"
-      },
-      "table": "cards"
-    }
-  ],
-  "errors": [
-    {
-      "error": {
-        "code": "404",
-        "description": "No Records Found - requestId: fc531b8d-412e-9775-b945-4feacc9b8616"
-      },
-      "ids": ["Invalid Skyflow ID"]
-    }
-  ]
+	"data": [{
+		"card_number": "3998-2139-0328-0697",
+		"email": "c9a6c9555060@82c092e7.bd52",
+		"name": "82c092e7-74c0-4e60-bd52-c9a6c9555060",
+		"skyflow_id": "a581d205-1969-4350-acbe-a2a13eb871a6",
+	}, {
+		"card_number": "3562-0140-8820-7499",
+		"email": "6174366e2bc6@59f82e89.93fc",
+		"name": "59f82e89-138e-4f9b-93fc-6174366e2bc6",
+		"skyflow_id": "5ff887c3-b334-4294-9acc-70e78ae5164a",
+	}],
+	"errors": []
 }
 ```
 
-An example call using Skyflow IDs with GetOptions:
+#### Get By column name and column values
+Retrieve records by unique column values. Ideal for querying data without knowing Skyflow IDs, using alternate unique identifiers.
 
+An [example]() of get call to retrieve data using column name and column values
 ```go
 package main
 
 import (
-    "fmt"
-    Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
-    "github.com/skyflowapi/skyflow-go/skyflow/common"
+	"context"
+	"fmt"
+	"github.com/skyflowapi/skyflow-go/v2/client"
+	"github.com/skyflowapi/skyflow-go/v2/utils/common"
 )
 
+// This example demonstrates how to retrieve data from the Skyflow vault based on column values.
+//
+// 1. Initializes the Skyflow client with a given vault ID.
+// 2. Creates a request to retrieve records based on specific column values (e.g., email addresses).
+// 3. Prints the response to display the retrieved records after redacting sensitive data based on the specified redaction type.
 func main() {
+	// Step 1: Set up the Skyflow vault service
+	service, serviceError := skyflowInstance.Vault("<VAULT_ID>") // Replace <VAULT_ID> with the actual vault ID
+	if serviceError != nil {
+		fmt.Println(serviceError) // Print any errors that occur during service initialization
+	}
 
-    //initialize skyflowClient
+	// Step 2: Define the context for the API call
+	ctx := context.TODO() // Using context to manage the API request lifecycle
 
-    var records = make(map[string] interface {})
-    var record1 = make(map[string] interface {})
-    record1["ids"] = [] string {} {
-        "f8d8a622-b557-4c6b-a12c-c5ebe0b0bfd9", "da26de53-95d5-4bdb-99db-8d8c66a35ff9"
-    }
-    record1["table"] = "cards"
+	// Step 3: Define the column values to filter the records by
+	// For this example, we use email addresses as the column values
+	columnValues := []string{"john.doe@gmail.com", "jane.doe@gmail.com"} // Replace with actual values
 
-    var record2 = make(map[string] interface {})
-    record2["ids"] = [] string {} { "Invalid Skyflow ID" }
-    record2["table"] = "cards"
+	// Step 4: Create a GetRequest to retrieve records based on column values
+	// The request specifies:
+	// - Table: The name of the table to retrieve data from
+	// - ColumnName: The name of the column to filter records by (e.g., "email")
+	// - ColumnValues: The values to match in the specified column
+	// - RedactionType: How sensitive data should be redacted (e.g., PLAIN_TEXT)
+	request := common.GetRequest{
+		Table:        "table1",       // Replace with the actual table name
+		ColumnName:   "email",        // The column to filter by (e.g., "email")
+		ColumnValues: columnValues,   // The list of column values to match
+	}
+	options := common.GetOptions{
+		RedactionType: common.PLAIN_TEXT, // Set the redaction type (e.g., PLAIN_TEXT)
+	}
 
-    var recordsArray[] interface {}
-    recordsArray = append(recordsArray, record1)
-    recordsArray = append(recordsArray, record2)
-
-    records["records"] = recordsArray
-
-    res, err: = skyflowClient.Get(records, common.GetOptions{Tokens: true})
-
-    if err == nil {
-      fmt.Println("Records:",res.Records)
-      fmt.Println("Errors:",res.Errors)
-    }
+	// Step 5: Send the Get request to the Skyflow vault and retrieve the records
+	response, getErr := service.Get(ctx, request, options)
+	if getErr != nil {
+		// Handle errors that occur during the data retrieval process
+		fmt.Println("ERROR:", getErr)
+	} else {
+		// Print the response to display the retrieved records
+		fmt.Println("RESPONSE:", response.Data)
+	}
 }
 ```
 
 Sample response:
-
 ```json
 {
-  "records": [
-    {
-      "fields": {
-        "card_number": "4555-5176-5936-1930",
-        "expiry_date": "23396425-93c9-419b-834b-7750b76a34b0",
-        "fullname": "d6bb7fe5-6b77-4842-b898-221c51c3cc20",
-        "id": "f8d8a622-b557-4c6b-a12c-c5ebe0b0bfd9"
-      },
-      "table": "cards"
-    },
-    {
-      "fields": {
-        "card_number": "8882-7418-2776-6660",
-        "expiry_date": "284fb1f6-3c29-449f-8899-83a7839821bc",
-        "fullname": "45a69af3-e22a-4668-9016-08bb2ef2259d",
-        "id": "da26de53-95d5-4bdb-99db-8d8c66a35ff9"
-      },
-      "table": "cards"
-    }
-  ],
-  "errors": [
-    {
-      "error": {
-        "code": "404",
-        "description": "No Records Found - requestId: fc531b8d-412e-9775-b945-4feacc9b8616"
-      },
-      "ids": ["Invalid Skyflow ID"]
-    }
-  ]
+	"data": [{
+		"card_number": "4555555555555553",
+		"email": "john.doe@gmail.com",
+		"name": "john doe",
+		"skyflow_id": "a581d205-1969-4350-acbe-a2a13eb871a6",
+	}, {
+		"card_number": "4555555555555559",
+		"email": "jane.doe@gmail.com",
+		"name": "jane doe",
+		"skyflow_id": "5ff887c3-b334-4294-9acc-70e78ae5164a",
+	}],
+	"errors": []
 }
 ```
-An example call using column names and values. 
+#### Redaction types
+**Overview**
+Redaction types determine how sensitive data is displayed when retrieved from the vault.
 
+**Available Redaction Types**
+- `PLAIN_TEXT`: Displays the full, unmasked data.
+- `MASKED`: Partially obscures sensitive information.
+- `REDACTED`: Completely removes sensitive data from view.
+- `DEFAULT`: Applies the vault-configured default redaction setting.
+- 
+**Choosing the Right Redaction Type**
+- Use `PLAIN_TEXT` for internal, authorized access where full data visibility is necessary.
+- Use `MASKED` to provide partial visibility of sensitive data for less critical use cases.
+- Use `REDACTED` for scenarios requiring maximum data protection to prevent exposure of sensitive information.
+
+### Update
+To update data in your vault, use the `update` method. The `UpdateRequest` struct is used to create an update request, where you specify parameters such as the table name, data (as a map of key-value pairs), tokens, `ReturnTokens`, and `TokenMode`. If `ReturnTokens` is set to true, Skyflow returns tokens for the updated records. If `ReturnTokens` is set to false, Skyflow returns IDs for the updated records.
+
+**Constructing your update Request**
 ```go
 package main
 
 import (
-    "fmt"
-    Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
-    "github.com/skyflowapi/skyflow-go/skyflow/common"
+	"context"
+	"fmt"
+	"github.com/skyflowapi/skyflow-go/v2/client"
+	"github.com/skyflowapi/skyflow-go/v2/utils/common"
 )
 
+// This example demonstrates how to update records in the Skyflow vault by providing new data 
+// and/or tokenized values, along with corresponding UpdateRequest schema.
 func main() {
+	// Step 1: Set up the Skyflow vault service
+	service, serviceErr := skyflowInstance.Vault("<VAULT_ID>") // Replace <VAULT_ID> with the actual vault ID
+	if serviceErr != nil {
+		// Handle errors that occur during service initialization
+		fmt.Println(serviceErr) // Print the error
+	}
 
-    //initialize skyflowClient
+	// Step 2: Define the context for the API call
+	ctx := context.TODO() // Using context to manage the API request lifecycle
 
-    var records = make(map[string] interface {})
-    var record1 = make(map[string] interface {})
-    record1["columnValues"] = [] string {} {
-        "123455432112345", "123455432112346"
-    }
-    record1["columnName"] = "bank_account_number"
-    record1["table"] = "account_details"
-    record1["redaction"] = common.PLAIN_TEXT
+	// Step 3: Prepare the data to update in the vault
+	// Use a map to store the data that will be updated in the specified table
+	data := map[string]interface{}{
+		"<COLUMN_NAME_1>": "<COLUMN_VALUE_1>", // Example of a column name and its value to update
+		"<COLUMN_NAME_2>": "<COLUMN_VALUE_2>", // Another example of a column name and its value to update
+	}
 
-    var record2 = make(map[string] interface {})
-    record2["columnValues"] = [] string {} { "Invalid Skyflow column value" }
-    record1["columnName"] = "bank_account_number"
-    record2["table"] = "account_details"
-    record2["redaction"] = common.PLAIN_TEXT
+	// Step 4: Prepare the tokens (if necessary) for certain columns that require tokenization
+	// Example: Specify columns that need tokens in the update request
+	// Note: Tokens can be included in the `Values` map if required
 
+	// Step 5: Create an UpdateRequest to specify the update operation
+	// The request includes:
+	// - Table: The name of the table to update
+	// - Id: The unique Skyflow ID for the record being updated
+	// - Values: The map of data to update
+	// - ReturnTokens: A flag to indicate whether tokenized values should be returned
+	// - TokenMode: The tokenization mode (e.g., ENABLE to apply tokenization, DISABLE to skip it)
+	updateRequest := common.UpdateRequest{
+		Table:  "<TABLE_NAME>",         // Replace with the actual table name
+		Id:     "<SKYFLOW_ID>",         // The Skyflow ID to identify the record to update
+		Values: data,                   // The data to update in the record
+	}
+	updateOptions := common.UpdateOptions{
+Tokens: true,             // Specify whether to return tokens in the response
+		TokenMode:    common.DISABLE,   // Specify the tokenization mode (e.g., ENABLE or DISABLE)
+	}
 
-    var recordsArray[] interface {}
-    recordsArray = append(recordsArray, record1)
-    recordsArray = append(recordsArray, record2)
-
-    records["records"] = recordsArray
-
-    res, err: = skyflowClient.Get(records)
-
-    if err == nil {
-      fmt.Println("Records:",res.Records)
-      fmt.Println("Errors:",res.Errors)
-    }
+	// Step 6: Send the update request to the Skyflow vault and process the response
+	response, errUpdate := service.Update(ctx, updateRequest, updateOptions)
+	if errUpdate != nil {
+		// Handle errors that occur during the update operation
+		fmt.Println("ERROR:", *errUpdate) // Print the error for debugging purposes
+	} else {
+		// Print the response to confirm the update result
+		fmt.Println("response:", response)
+	}
 }
 ```
-Sample response:
 
+An [example]() of update call
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"github.com/skyflowapi/skyflow-go/v2/client"
+	"github.com/skyflowapi/skyflow-go/v2/utils/common"
+)
+
+// This example demonstrates how to update a record in the Skyflow vault with specified data and tokens.
+//
+// 1. Initializes the Skyflow client with a given vault ID.
+// 2. Constructs an update data to modify and tokens to include.
+// 3. Sends the request to update the record in the vault.
+// 4. Prints the response to confirm the success or failure of the update operation.
+func main() {
+	// Step 1: Set up the Skyflow vault service
+	// Initialize the Skyflow client with the provided Vault ID
+	service, serviceErr := skyflowInstance.Vault("<VAULT_ID>") // Replace <VAULT_ID> with your actual Vault ID
+	if serviceErr != nil {
+		// Handle errors that occur during the service initialization
+		fmt.Println(serviceErr) // Print the error for debugging purposes
+	}
+
+	// Step 2: Prepare the data to update in the vault
+	// Use a map to store the data that will be updated in the specified table
+	data := map[string]interface{}{
+		"skyflow_id":  "5b699e2c-4301-4f9f-bcff-0a8fd3057413",   // Skyflow ID identifies the record to update
+		"name":        "john doe",       // Updating the "name" column with a new value
+		"card_number": "4111111111111115", // Updating the "card_number" column with a new value
+	}
+
+	// Step 3: Prepare the tokens to include in the update request
+	// Tokens can be included to update sensitive data with tokenized values
+	tokens := map[string]interface{}{
+		"name": "72b8ffe3-c8d3-4b4f-8052-38b2a7405b5a", // Tokenized value for the "name" column
+	}
+
+	// Step 4: Create an UpdateRequest to define the update operation
+	// The request specifies:
+	// - Table: The name of the table to update
+	// - Id: The unique Skyflow ID for the record to update
+	// - Values: The data to update in the record
+	// - ReturnTokens: Whether to return tokens in the response
+	// - TokenMode: The tokenization mode (e.g., ENABLE to apply tokenization, DISABLE to skip it)
+	updateRequest := common.UpdateRequest{
+		Table:  "table1",  // Replace with the actual table name
+		Id:     "5b699e2c-4301-4f9f-bcff-0a8fd3057413",  // Skyflow ID to identify the record to update
+		Values: data,            // The data to update in the record
+	}
+
+	// Step 5: Define update options, including tokenization mode
+	updateOptions := common.UpdateOptions{
+Tokens: true,      // Specify whether to return tokens in the response
+		TokenMode:    common.DISABLE, // Specify tokenization mode (e.g., DISABLE means no tokenization)
+	}
+
+	// Step 6: Send the update request to the Skyflow vault and process the response
+	// Use the `Update` function to send the update request to the vault service
+	response, errUpdate := service.Update(context.TODO(), updateRequest, updateOptions)
+	if errUpdate != nil {
+		// Handle errors that occur during the update operation
+		fmt.Println("ERROR:", *errUpdate) // Print the error for debugging purposes
+	} else {
+		// Print the response to confirm the update result
+		fmt.Println("response:", response)
+	}
+}
+```
+
+Sample response:
+When `ReturnTokens` is set to `true`
 ```json
 {
-  "records": [
-    {
-      "fields": {
-        "bank_account_number": "123455432112345",
-        "pin_code": "123123",
-        "name": "vivek jain",
-        "id": "492c21a1-107f-4d10-ba2c-3482a411827d"
-      },
-      "table": "account_details"
-    },
-    {
-      "fields": {
-        "bank_account_number": "123455432112346",
-        "pin_code": "123123",
-        "name": "vivek",
-        "id": "ac6c6221-bcd1-4265-8fc7-ae7a8fb6dfd5"
-      },
-      "table": "account_details"
-    }
-  ],
-  "errors": [
-    {
-      "columnName": ["bank_account_number"],
-      "error": {
-        "code": 404,
-        "description": "No Records Found - requestId: fc531b8d-412e-9775-b945-4feacc9b8616"
-      }
-    }
+  "skyflowId": "5b699e2c-4301-4f9f-bcff-0a8fd3057413",
+  "name": "72b8ffe3-c8d3-4b4f-8052-38b2a7405b5a",
+  "card_number": "4315-7650-1359-9681"
+}
+```
+
+When `ReturnTokens` is set to `false`
+```json
+{
+  "skyflowId": "5b699e2c-4301-4f9f-bcff-0a8fd3057413"
+}
+```
+
+### Delete
+To delete records using Skyflow IDs, use the `Delete` method. The `DeleteRequest` struct accepts a list of Skyflow IDs that you want to delete, as shown below:
+
+Constructing your delete request
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"github.com/skyflowapi/skyflow-go/v2/client"
+	"github.com/skyflowapi/skyflow-go/v2/utils/common"
+)
+
+// This example demonstrates how to delete records from a Skyflow vault using specified Skyflow IDs,
+// along with the corresponding DeleteRequest schema.
+func main() {
+	// Step 1: Set up the Skyflow vault service
+	service, serviceErr := skyflowInstance.Vault("<VAULT_ID>") // Replace <VAULT_ID> with the actual vault ID
+	if serviceErr != nil {
+		// Handle errors during service initialization
+		fmt.Println(serviceErr) // Print the error message
+
+	}
+
+	// Step 2: Define the context for the API call
+	ctx := context.TODO() // Use context to manage the lifecycle of the API request
+
+	// Step 3: Prepare a list of Skyflow IDs for the records to delete
+	// The list stores the Skyflow IDs of the records that need to be deleted from the vault
+	ids := []string{
+		"<SKYFLOW_ID_1>", // Replace with actual Skyflow ID 1
+		"<SKYFLOW_ID_2>", // Replace with actual Skyflow ID 2
+		"<SKYFLOW_ID_3>", // Replace with actual Skyflow ID 3
+	}
+
+	// Step 4: Create a DeleteRequest to define the delete operation
+	// The request specifies:
+	// - Table: The name of the table from which to delete the records
+	// - IDs: The list of Skyflow IDs of the records to delete
+	deleteRequest := common.DeleteRequest{
+		Table: "<TABLE_NAME>", // Replace with the actual table name from which to delete records
+		Ids:   ids,            // List of Skyflow IDs to delete
+	}
+
+	// Step 5: Send the delete request to the Skyflow vault
+	deleteResponse, errDelete := service.Delete(ctx, deleteRequest) // Call to delete records from the vault
+	if errDelete != nil {
+		// Handle errors during the delete operation
+		fmt.Println("ERROR:", *errDelete) // Print the error message for debugging
+	} else {
+		// Step 6: Print the response to confirm the delete result
+		// The response confirms whether the delete operation was successful
+		fmt.Println("response:", deleteResponse) // Print the delete response
+	}
+}
+```
+
+An [example]() of delete call
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"github.com/skyflowapi/skyflow-go/v2/client"
+	"github.com/skyflowapi/skyflow-go/v2/utils/common"
+)
+
+// This example demonstrates how to delete records from a Skyflow vault using specified Skyflow IDs.
+func main() {
+	// Step 1: Set up the Skyflow vault service
+	service, serviceErr := skyflowInstance.Vault("<VAULT_ID>") // Replace <VAULT_ID> with your actual vault ID
+	if serviceErr != nil {
+		// Handle any errors that occur during service initialization
+		fmt.Println(serviceErr) // Print the error
+	}
+
+	// Step 2: Prepare a list of Skyflow IDs for the records to delete
+	// The list stores the Skyflow IDs of the records that need to be deleted from the vault
+	ids := []string{
+		"9cbf66df-6357-48f3-b77b-0f1acbb69280", // Replace with actual Skyflow ID 1
+		"ea74bef4-f27e-46fe-b6a0-a28e91b4477b", // Replace with actual Skyflow ID 2
+		"47700796-6d3b-4b54-9153-3973e281cafb", // Replace with actual Skyflow ID 3
+	}
+
+	// Step 3: Create a DeleteRequest to define the delete operation
+	// The request specifies:
+	// - Table: The table from which to delete the records
+	// - IDs: The list of Skyflow IDs to delete
+	deleteRequest := common.DeleteRequest{
+		Table: "<TABLE_NAME>", // Replace with the actual table name from which to delete
+		Ids:   ids,            // List of Skyflow IDs to delete
+	}
+
+	// Step 4: Send the delete request to the Skyflow vault
+	// The delete operation is executed, and the response is received
+	deleteResponse, errDelete := service.Delete(context.TODO(), deleteRequest)
+	if errDelete != nil {
+		// Handle errors that occur during the delete operation
+		fmt.Println("ERROR:", *errDelete) // Print the error for debugging purposes
+	} else {
+		// Step 5: Print the response to confirm the delete result
+		fmt.Println("response:", deleteResponse)
+	}
+}
+```
+
+Sample response:
+```json
+{
+  "deletedIds": [
+    "9cbf66df-6357-48f3-b77b-0f1acbb69280",
+    "ea74bef4-f27e-46fe-b6a0-a28e91b4477b",
+    "47700796-6d3b-4b54-9153-3973e281cafb"
   ]
 }
 ```
 
-### InvokeConnection
+### Query
+To retrieve data using SQL queries, use the query method. The QueryRequest accepts a query parameter, as shown below:
 
-End-user apps can use InvokeConnection to integrate checkout and card issuance flows with their apps and systems. To invoke a connection, use the invokeConnection(config ConnectionConfig) method of the Skyflow client. The config object must have `connectionURL`,`methodName` and the remaining are optional. 
-
-The InvokeConnection method lets you bypass handling sensitive data by integrating third-party server-side application using APIs. Before invoking the `InvokeConnection` method, you must create a connection and generate a connectionURL. Once you have the connectionURL, you can invoke a connection by using the **InvokeConnection(config ConnectionConfig)** method. The config parameter must include a `connectionURL` and `methodName`. The other fields are optional.
-
+**Constructing your query request**
 ```go
+package main
 
-  pathParams := make(map[string]string)
-  pathParams["<path_param_key>"] = "<path_param_value>"
+import (
+	"context"
+	"fmt"
+	"github.com/skyflowapi/skyflow-go/v2/client"
+	"github.com/skyflowapi/skyflow-go/v2/utils/common"
+)
 
-  queryParams := make(map[string]interface{})
-  queryParams["<query_param_key>"] = "<query_param_value>"
+// This example demonstrates how to execute a custom SQL query on a Skyflow vault, along with the QueryRequest schema.
+func main() {
+	// Step 1: Initialize the Skyflow vault service
+	service, serviceError := skyflowInstance.Vault("<VAULT_ID>") // Replace <VAULT_ID> with the actual Vault ID
+	if serviceError != nil {
+		// Handle errors that occur during the service initialization
+		fmt.Println(serviceError) // Print the error message
 
-  requestHeader := make(map[string]string)
-  requestHeader["<request_header_key>"] = "<request_header_value>"
+	}
 
-  requestBody := make(map[string]interface{})
-  requestBody["<request_body_key>"] = "<request_body_value>"
+	// Step 2: Define the SQL query to execute on the Skyflow vault
+	// Replace "<YOUR_SQL_QUERY>" with the actual SQL query you want to run
+	query := "<YOUR_SQL_QUERY>" // Example: "SELECT * FROM demo WHERE skyflow_id='<ID>'"
 
-  connectionConfig := common.ConnectionConfig{ConnectionURL : "<your_connection_url>",MethodName : "<Method_Name>",PathParams : pathParams,QueryParams : queryParams, RequestBody : requestBody, RequestHeaders : requestHeader}
+	// Step 3: Create a QueryRequest with the specified SQL query
+	// The QueryRequest contains the SQL query to execute against the Skyflow vault
+	queryRequest := common.QueryRequest{
+		Query: query, // Pass the query string to the request
+	}
 
-  skyflowClient.InvokeConnection(connectionConfig)  
+	// Step 4: Execute the query request on the specified Skyflow vault
+	// The query is executed using the Vault service, and the response is returned
+	ctx := context.TODO() // Using context to manage the API request lifecycle
+	res, queryErr := service.Query(ctx, queryRequest) // Execute the query
 
+	// Step 5: Handle the response or any errors from the query execution
+	if queryErr != nil {
+		// Handle any errors that occur during query execution
+		fmt.Println("ERROR: ", *queryErr) // Print the error message
+	} else {
+		// Print the response containing the query results
+		fmt.Println("RESPONSE: ", res)
+	}
+}
+```
+Refer to Query your data and Execute Query for guidelines and restrictions on supported SQL statements, operators, and keywords.
 
+An [example]() of query call
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"github.com/skyflowapi/skyflow-go/v2/client"
+	"github.com/skyflowapi/skyflow-go/v2/utils/common"
+)
+
+// This example demonstrates how to execute a SQL query on a Skyflow vault to retrieve data.
+//
+// 1. Initializes the Skyflow client with the Vault ID.
+// 2. Constructs a query request with a specified SQL query.
+// 3. Executes the query against the Skyflow vault.
+// 4. Prints the response from the query execution.
+
+func main() {
+	// Step 1: Set up the Skyflow vault service
+	service, serviceError := skyflowInstance.Vault("9f27764a10f7946fe56b3258e117") // Replace with the actual vault ID
+	if serviceError != nil {
+		// Handle errors that occur during service initialization
+		fmt.Println(serviceError) // Print the error
+
+	}
+
+	// Step 2: Define the SQL query to execute
+	// Example query: Retrieve all records from the "demo" table with a specific skyflow_id
+	query := "SELECT * FROM cards WHERE skyflow_id='3ea3861-x107-40w8-la98-106sp08ea83f'" // Replace with the actual Skyflow ID to filter the query 
+
+	// Step 3: Create a QueryRequest with the SQL query
+	// The query is sent in the QueryRequest struct to execute the query against the Skyflow vault
+	queryRequest := common.QueryRequest{
+		Query: query, // SQL query to execute
+	}
+
+	// Step 4: Execute the query request on the specified Skyflow vault and handle the response
+	ctx := context.TODO() // Context for managing the lifecycle of the query request
+	res, queryErr := service.Query(ctx, queryRequest) // Execute the query request
+
+	if queryErr != nil {
+		// Handle any errors that occur during query execution
+		fmt.Println("ERROR: ", *queryErr) // Print the error for debugging purposes
+	} else {
+		// Step 5: Print the response from the query execution
+		// The response contains the query results retrieved from the Skyflow vault
+		fmt.Println("RESPONSE: ", res) // Print the query response to show the results
+	}
+}
 ```
 
-`methodName` supports the following methods:
+Sample response:
+```json
+{
+	"fields": [{
+		"card_number": "XXXXXXXXXXXX1112",
+		"name": "S***ar",
+		"skyflow_id": "3ea3861-x107-40w8-la98-106sp08ea83f",
+		"tokenizedData": null
+	}]
+}
+```
+
+## Connections
+Skyflow Connections is a gateway service leveraging tokenization to securely send and receive data between your systems and first- or third-party services. The [connections]() module is used to invoke both INBOUND and/or OUTBOUND connections.
+- Inbound Connections: Act as intermediaries between your client and server, tokenizing sensitive data before it reaches your backend, ensuring downstream services handle only tokenized data.
+- Outbound Connections: Enable secure extraction of data from the vault and transfer it to third-party services via your backend server.
+- 
+### Invoke Connection
+Using Skyflow Connections, end-user applications can integrate the checkout and card issuance flow with their apps or systems. To invoke a connection, use the invoke method of the Skyflow client.
+**Constructing your invoke connection request**
+```go
+package vaultapi
+
+import (
+	"context"
+	"fmt"
+	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
+
+	. "github.com/skyflowapi/skyflow-go/v2/client"
+	. "github.com/skyflowapi/skyflow-go/v2/utils/common"
+)
+
+func main() {
+	// Step 1: Add connection configurations
+	// Define the configuration for the connection, including the connection ID, URL, and bearer token
+	connConfig1 := ConnectionConfig{ConnectionId: "<CONNECTION_ID1>", ConnectionUrl: "<CONNECTION_URL1>", Credentials: Credentials{Token: "<BEARER_TOKEN1>"}}
+	connConfig2 := ConnectionConfig{ConnectionId: "<CONNECTION_ID2>", ConnectionUrl: "<CONNECTION_URL2>", Credentials: Credentials{Token: "<BEARER_TOKEN2>"}}
+
+	// Step 2: Append connection configurations to an array
+	// Combine the connection configurations into an array to be used in the Skyflow client
+	var arr []ConnectionConfig
+	arr = append(arr, connConfig1, connConfig2)
+
+	// Step 3: Initialize the Skyflow client
+	// Set up the client with the defined connections and specify the log level
+	client1, clientError := NewSkyflow(
+		WithConnections(arr...),       // Pass the connection configurations array
+		WithLogLevel(logger.DEBUG),    // Set the log level to DEBUG for detailed logs
+	)
+	if clientError != nil {
+		// Handle errors during client initialization
+		fmt.Println("Error:", clientError) // Print the client error if initialization fails
+	} else {
+		// Step 4: Create a service connection using the client
+		// Use the client to create a connection to the specified connection ID
+		service, conError := client1.Connection("<CONNECTION_ID1>") // Replace with actual connection ID
+		if conError != nil {
+			// Handle errors when establishing the connection
+			fmt.Println("Error:", conError) // Print the connection error if it occurs
+		} else {
+			// Step 5: Define the request parameters
+			// Prepare the body, headers, query parameters, and path parameters for the request
+			ctx := context.TODO() // Define the context of the request
+			body := map[string]interface{}{ // Set your data in the body of the request
+				"<KEY>": "<VALUE>", // Example BODY
+			}
+			headers := map[string]string{ // Set request headers (e.g., Content-Type)
+				"<HEADER_NAME_1>": "<HEADER_VALUE_1>", // Example header
+				"<HEADER_NAME_2>": "<HEADER_VALUE_2>", // Another example header 
+			}
+			queryParams := map[string]interface{}{ // Define query parameters for the request
+				"<YOUR_QUERY_PARAM_KEY_1>": "<YOUR_QUERY_PARAM_VALUE_1>",
+				"<YOUR_QUERY_PARAM_KEY_2>": "<YOUR_QUERY_PARAM_VALUE_2>",
+			}
+			pathParams := map[string]string{ // Set path parameters for the URL
+				"<YOUR_PATH_PARAM_KEY_1>": "<YOUR_PATH_PARAM_VALUE_1>", // Example path parameter
+			}
+
+			// Step 6: Build the InvokeConnectionRequest
+			// Construct the request by specifying method, headers, body, query parameters, and path parameters
+			req := InvokeConnectionRequest{
+				Method:      POST,        // Set the HTTP method to POST for the request
+				Headers:     headers,     // Include the defined headers in the request
+				Body:        body,        // Attach the request body
+				QueryParams: queryParams, // Attach query parameters to the request
+				PathParams:  pathParams,  // Set the path parameters
+			}
+
+			// Step 7: Invoke the connection using the request
+			// Send the request to the external connection and receive the response
+			res, invokeError := service.Invoke(ctx, req) // Invoke the connection with the provided request
+			if invokeError != nil {
+				// Handle any errors that occur during the connection invocation
+				fmt.Println("ERROR: ", *invokeError) // Print the error if the invocation fails
+			} else {
+				// Step 8: Print the response from the invoked connection
+				// The response contains the result of the request sent to the external system
+				fmt.Println("RESPONSE", res) // Print the successful response
+			}
+		}
+	}
+}
+```
+
+`method` supports the following methods:
 - GET
 - POST
 - PUT
 - PATCH
 - DELETE
 
-**pathParams, queryParams, requestHeader, requestBody**  objects will be sent through the connection integration url as shown below.
+`pathParams`, `queryParams`, `requestHeader`, `requestBody` are the objects represented as map, that will be sent through the connection integration url.
 
-An [example](https://github.com/skyflowapi/skyflow-go/blob/main/samples/vaultapi/invoke_connection.go) of InvokeConnection call:
-
+An [example]() of invokeConnection
+package vaultapi
 ```go
-
-package main
-
 import (
-    "fmt"
-    Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
-    "github.com/skyflowapi/skyflow-go/skyflow/common"
+	"context"
+	"fmt"
+	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
+
+	. "github.com/skyflowapi/skyflow-go/v2/client"
+	. "github.com/skyflowapi/skyflow-go/v2/utils/common"
 )
 
 func main() {
+	// Step 1: Define connection configurations
+	// Add connection configurations for different services, each with a connection ID, URL, and credentials (token)
+	connConfig1 := ConnectionConfig{ConnectionId: "<CONNECTION_ID1>", ConnectionUrl: "https://connection.url.com", Credentials: Credentials{Path: "../cred.json"}}
 
-    //initialize skyflowClient
+	// Step 2: Add connection configurations to an array
+	// Multiple connections can be defined and added to the array for use with the Skyflow client
+	var arr []ConnectionConfig
+	arr = append(arr, connConfig1)
 
-    pathParams := make(map[string]string)
-    pathParams["card_number"] = "1852-344-234-34251"
+	// Step 3: Initialize the Skyflow client
+	// Set up the client by specifying the connections, log level, and other necessary configurations
+	client1, clientError := NewSkyflow(
+		WithConnections(arr...),       // Add the connection configurations to the client
+		WithLogLevel(logger.DEBUG),    // Set log level to DEBUG for detailed logs
+	)
+	if clientError != nil {
+		// Handle any errors that occur during Skyflow client initialization
+		fmt.Println("Error:", clientError)
+	} else {
+		// Step 4: Invoke a connection request
+		// Replace "<CONNECTION_ID1>" with the actual connection ID
+		service, conError := client1.Connection("<CONNECTION_ID1>")
+		if conError != nil {
+			// Handle errors that occur during the connection setup
+			fmt.Println("Error:", conError)
+		} else {
+			// Step 5: Define the request body, headers, and query parameters
+			// Define the data to send in the request body as a map
+			ctx := context.TODO() // Define the context for the API call
+			body := map[string]interface{}{ // Set your request data
+				"card_number": "4337-1696-5866-0865", // Example card number
+				"ssn": "524-41-4248",                // Example SSN
+			}
+			headers := map[string]string{ // Set the request headers
+				"Content-Type": "application/json", // Specify the content type for the request
+			}
+		
+			// Step 6: Create the InvokeConnectionRequest with the HTTP method, headers, body, query params, and path params
+			// Set the method to POST and include all necessary data in the request
+			req := InvokeConnectionRequest{
+				Method:      POST,    // Set the HTTP method to POST
+				Headers:     headers, // Add request headers
+				Body:        body,    // Add the body with request data
+			}
 
-    requestHeader := make(map[string]string)
-    requestHeaders["Authorization"] = "<YOUR_CONNECTION_AUTH>"
-
-    requestBody := make(map[string]interface{})
-    requestBody["expirationDate"] = "12/2026"
-
-    connectionConfig := common.ConnectionConfig{ConnectionURL : "<Connection_URL>",MethodName : "<Method_Name>",PathParams : pathParams, RequestBody : requestBody, RequestHeaders : requestHeader}
-
-    res, err: = skyflowClient.InvokeConnection(connectionConfig)
-
-    if err == nil {
-          jsonRes, err: = json.Marshal(res)
-          if err == nil {
-                fmt.Println("result: ", string(jsonRes))
-          }
-    }
+			// Step 7: Invoke the connection and capture the response
+			// Send the request to the connection and get the response
+			res, invokeError := service.Invoke(ctx, req)
+			if invokeError != nil {
+				// Handle any errors that occur during the connection invocation
+				fmt.Println("ERROR: ", *invokeError)
+			} else {
+				// Step 8: Print the response from the connection invocation
+				// Output the response to the console to confirm the result
+				fmt.Println("RESPONSE", res)
+			}
+		}
+	}
 }
 ```
-
-Sample invokeConnection Response
-```go
+Sample response:
+```json
 {
-    "receivedTimestamp": "2021-11-05 13:43:12.534",
-    "processingTimeinMs": 12,
-    "resource": {
-        "cvv2": "558"
-    }
+  "response":{
+    "card_number":"4337-1696-5866-0865",
+    "ssn":"524-41-4248"
+}
+}
+```
+## Logging
+The Skyflow Go SDK provides useful logging using go's built-in logging library. By default, the SDK's logging level is set to `LogLevel.ERROR`. This can be changed using the UpdateLogLevel(logLevel) method, as shown below:
+
+```go
+package main
+
+import (
+	"fmt"
+	"github.com/skyflowapi/skyflow-go/v2/client"
+	"github.com/skyflowapi/skyflow-go/v2/utils/common"
+	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
+)
+
+/**
+ * This example demonstrates how to configure the Skyflow client with custom log levels
+ * and authentication credentials (either token, credentials string, or other methods).
+ * It also shows how to configure a vault connection using specific parameters.
+ *
+ * 1. Set up credentials with a Bearer token or credentials string.
+ * 2. Define the Vault configuration.
+ * 3. Build the Skyflow client with the chosen configuration and set log level.
+ * 4. Example of changing the log level from ERROR (default) to INFO.
+ */
+func main() {
+	// Step 1: Set up credentials - either pass token or use credentials string
+	// In this case, we are using a Bearer token for authentication.
+	vaultConfig1 := common.VaultConfig{
+		VaultId:   "<VAULT_ID1>",            // Replace with the actual Vault ID (first vault)
+		ClusterId: "<CLUSTER_ID1>",          // Replace with the actual Cluster ID (from vault URL)
+		Env:       common.DEV,               // Set the environment (default is DEV, can also use PROD)
+		Credentials: common.Credentials{
+			Token: "<BEARER_TOKEN1>",        // Replace with the actual Bearer token
+		},
+	}
+
+	vaultConfig2 := common.VaultConfig{
+		VaultId:   "<VAULT_ID2>",            // Replace with the second Vault ID
+		ClusterId: "<CLUSTER_ID2>",          // Replace with the second Cluster ID
+		Env:       common.DEV,               // Set the environment (default is DEV)
+		Credentials: common.Credentials{
+			Token: "<BEARER_TOKEN2>",        // Replace with the second Bearer token
+		},
+	}
+
+	// Step 2: Define the Vault configuration
+	// Create an array of Vault configurations to be used for multiple Vaults.
+	var arr []common.VaultConfig
+	arr = append(arr, vaultConfig2, vaultConfig1) // Add multiple Vault configurations to the array
+
+	// Step 3: Build the Skyflow client with the chosen configuration and log level
+	// Using the Vault configurations and setting the log level to DEBUG.
+	skyflowInstance, err := client.NewSkyflow(
+		client.WithVaults(arr...),              // Add the Vault configurations from the array
+		client.WithCredentials(common.Credentials{}), // Pass empty credentials if not provided in the Vault config
+		client.WithLogLevel(logger.INFO),     // Set log level to INFO (default is ERROR)
+	)
+
+	// Step 4: Handle any errors that occur during client creation
+	if err != nil {
+		// Print the error if something went wrong during client initialization
+		fmt.Println("Error occurred while creating Skyflow client:", err)
+	} else {
+    skyflowInstance.UpdateLogLevel(logger.DEBUG)
+  }
+
+	// Step 5: Client is now ready to use with the specified log level and credentials
+	fmt.Println("Skyflow client has been successfully configured with log level: DEBUG.")
 }
 ```
 
-### Logging
-
-The skyflow-go SDK provides useful logging using go libray `github.com/sirupsen/logrus`. By default the logging level of the SDK is set to `LogLevel.ERROR`. This can be changed by using `SetLogLevel(LogLevel)` as shown below:
-
-```go
-import "github.com/skyflowapi/skyflow-go/commonutils/logwrapper"
-
-// sets the skyflow-go SDK log level to INFO
-logger.SetLogLevel(logger.LogLevel.INFO);
-```
-
-Currently the following log levels are supported:
-
+Currently, the following five log levels are supported:
 - `DEBUG`:
-
-   When `LogLevel.DEBUG` is passed, all level of logs will be printed(DEBUG, INFO, WARN, ERROR)
-   
-- `INFO`: 
-
-   When `LogLevel.INFO` is passed, INFO logs for every event that has occurred during the SDK flow execution will be printed along with WARN and ERROR logs
-   
-- `WARN`: 
-
-   When `LogLevel.WARN` is passed, WARN and ERROR logs will be printed
-   
+When `LogLevel.DEBUG` is passed, logs at all levels will be printed (DEBUG, INFO, WARN, ERROR).
+- `INFO`:
+When `LogLevel.INFO` is passed, INFO logs for every event that occurs during SDK flow execution will be printed, along with WARN and ERROR logs.
+- `WARN`:
+When `LogLevel.WARN` is passed, only WARN and ERROR logs will be printed.
 - `ERROR`:
-
-   When `LogLevel.ERROR` is passed, only ERROR logs will be printed.
-
+When `LogLevel.ERROR` is passed, only ERROR logs will be printed.
 - `OFF`:
+`LogLevel.OFF` can be used to turn off all logging from the Skyflow Go SDK.
 
-  `LogLevel.OFF` can be used to turn off all logging from the Skyflow SDK.
 
-`Note`:
-  - The ranking of logging levels is as follows :  `DEBUG` < `INFO` < `WARN` < `ERROR`< `OFF`
+`Note`: The ranking of logging levels is as follows: `DEBUG` < `INFO` < `WARN` < `ERROR` < `OFF`.
 
-.
 ## Reporting a Vulnerability
-
-If you discover a potential security issue in this project, please reach out to us at security@skyflow.com. Please do not create public GitHub issues or Pull Requests, as malicious actors could potentially view them.
+If you discover a potential security issue in this project, please reach out to us at security@skyflow.com. Please refrain from creating public GitHub issues or pull requests, as malicious actors could potentially view them.
