@@ -151,10 +151,10 @@ func BearerTokenGenerationExample() {
 }
 ```
 ### Service Account Bearer Token with Context Generation
-**Context-Aware Authorization** allows you to embed context values into a bearer token during its generation and reference those values in your policies. This enables more dynamic and flexible access control for data in the Vault and facilitates the validation of signed data tokens during detokenization. It can also be used to track end-user identity when making API calls using service accounts.
-A service account with the **context_id** identifier enabled can generate bearer tokens containing context information, represented as a JWT claim in a Skyflow-generated bearer token. Tokens generated from such service accounts include a **context_identifier** claim, are valid for 60 minutes, and can be used to make API calls to Vault services and management APIs, depending on the service account's permissions.
+`Context-Aware Authorization` allows you to embed context values into a bearer token during its generation and reference those values in your policies. This enables more dynamic and flexible access control for data in the Vault and facilitates the validation of signed data tokens during detokenization. It can also be used to track end-user identity when making API calls using service accounts.
+A service account with the `context_id` identifier enabled can generate bearer tokens containing context information, represented as a JWT claim in a Skyflow-generated bearer token. Tokens generated from such service accounts include a `context_identifier` claim, are valid for 60 minutes, and can be used to make API calls to Vault services and management APIs, depending on the service account's permissions.
 
-[Example]()
+[Example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/v2/serviceaccount/token_generation_with_context.go)
 ```go
 import (
 	"fmt"
@@ -212,7 +212,7 @@ func BearerTokenGenerationWithContextExample() {
 ### Service Account Scoped Bearer Token Generation
 A service account with multiple roles can generate bearer tokens with access limited to a specific role by specifying the appropriate roleID. It can be used to limit access to specific roles for services with multiple responsibilities, such as segregating access for billing vs. analytics. The generated bearer tokens are valid for 60 minutes and can only execute operations permitted by the permissions associated with the designated role.
 
-[Example]():
+[Example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/v2/serviceaccount/scoped_token_generation.go):
 ```go
 import (
 	"fmt"
@@ -257,7 +257,7 @@ func ScopedTokenGenerationExample() {
 
 ### Signed Data Tokens Generation
 Skyflow generates data tokens when sensitive data is inserted into the vault. These data tokens can be digitally signed using the private key of the service account credentials, adding an extra layer of protection. Signed tokens can be detokenized by providing the signed data token along with a bearer token generated from the service account credentials. The service account must have the necessary permissions and context to successfully detokenize the signed data tokens.
-[Example]():
+[Example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/v2/serviceaccount/signed_token_generation.go):
 ```go
 import (
 	"fmt"
@@ -468,7 +468,7 @@ Tokens:    true,  // Request tokenized values to be returned in the response.
 }
 ```
 
-[Insert call example](https://github.com/skyflowapi/skyflow-go/blob/main/samples/vaultapi/insert.go):
+[Insert call example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/v2/vaultapi/insert_records.go):
 
 ```go
 /**
@@ -555,7 +555,7 @@ Tokens:    true,  // Request tokenized values to be returned in the response.
 
 Skyflow returns tokens for the record that was just inserted.
 ```json
-Insert Response: {
+{
 	"insertedFields": [{
 		"card_number": "5484-7829-1702-9110",
 		"request_index": "0",
@@ -567,7 +567,7 @@ Insert Response: {
 ```
 
 
-[Insert call example with ContinueOnError option](https://github.com/skyflowapi/skyflow-go/blob/main/samples/vaultapi/insert_with_continueOnError.go):
+[Insert call example with ContinueOnError option](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/v2/vaultapi/insert_records.go):
 The `ContinueOnError` flag is a boolean that determines whether insert operation should proceed despite encountering partial errors. Set to `true` to allow the process to continue even if some errors occur.
 
 ```go
@@ -800,7 +800,7 @@ Notes:
 - `RedactionType` defaults to `RedactionType.PLAIN_TEXT`.
 - `ContinueOnError` defaults to `true`.
 
-An [example](https://github.com/skyflowapi/skyflow-go/blob/main/samples/vaultapi/detokenize.go) of a Detokenize call:
+An [example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/v2/vaultapi/detokenize.go) of a Detokenize call:
 
 ```go
 /**
@@ -878,7 +878,7 @@ Sample response:
 	"errors": []
 }
 ```
-[An example of a detokenize call with `continueOnError` option]():
+[An example of a detokenize call with `continueOnError` option](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/v2/vaultapi/detokenize.go):
 
 ```go
 /**
@@ -1007,7 +1007,7 @@ func main() {
 }
 ```
 
-An [example]() of Tokenize call
+An [example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/v2/vaultapi/tokenize_records.go) of Tokenize call
 ```go
 /**
  * This example demonstrates how to tokenize sensitive data (e.g., credit card information) using the Skyflow client.
@@ -1061,10 +1061,9 @@ Sample response:
 ```
 
 ### Get
- 
 To retrieve data using Skyflow IDs or unique column values, use the `get` method. The `GetRequest` struct is used to create a get request, where you specify parameters such as the table name, redaction type, Skyflow IDs, column names, column values, and whether to return tokens. If Skyflow IDs are provided, column names and column values cannot be used, and vice versa—if column names or column values are provided, Skyflow IDs cannot be used.
 
-Constructing your get request:
+**Constructing your get request:**
 ```go
 package vaultapi
 
@@ -1143,7 +1142,7 @@ Tokens: true, // Set to true to return tokenized values
 #### Get by skyflow IDs
 Retrieve specific records using `skyflow_ids`. Ideal for fetching exact records when IDs are known.
 
-An [example]() of a get call to retrieve data using Redaction type:
+An [example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/v2/vaultapi/get_records.go) of a get call to retrieve data using Redaction type:
 
 ```go 
 package vaultapi
@@ -1228,7 +1227,7 @@ Sample response:
 #### Get tokens
 Enable tokenization to fetch field tokens. Ideal for securely processing sensitive data while maintaining data privacy.
 
-An [example]() of get call to retrieve tokens using Skyflow IDs:
+An [example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/v2/vaultapi/get_records.go) of get call to retrieve tokens using Skyflow IDs:
 ```go
 /**
  * This example demonstrates how to retrieve data from the Skyflow vault and return tokens along with the records.
@@ -1300,7 +1299,7 @@ Sample response:
 #### Get By column name and column values
 Retrieve records by unique column values. Ideal for querying data without knowing Skyflow IDs, using alternate unique identifiers.
 
-An [example]() of get call to retrieve data using column name and column values
+An [example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/v2/vaultapi/get_column_values.go) of get call to retrieve data using column name and column values
 ```go
 package main
 
@@ -1456,7 +1455,7 @@ Tokens: true,             // Specify whether to return tokens in the response
 }
 ```
 
-An [example]() of update call
+An [example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/v2/vaultapi/update_record.go) of update call
 ```go
 package main
 
@@ -1603,7 +1602,7 @@ func main() {
 }
 ```
 
-An [example]() of delete call
+An [example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/v2/vaultapi/delete.go) of delete call
 ```go
 package main
 
@@ -1715,7 +1714,7 @@ func main() {
 ```
 Refer to Query your data and Execute Query for guidelines and restrictions on supported SQL statements, operators, and keywords.
 
-An [example]() of query call
+An [example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/v2/vaultapi/query_record.go) of query call
 ```go
 package main
 
@@ -1780,7 +1779,7 @@ Sample response:
 ```
 
 ## Connections
-Skyflow Connections is a gateway service leveraging tokenization to securely send and receive data between your systems and first- or third-party services. The [connections]() module is used to invoke both INBOUND and/or OUTBOUND connections.
+Skyflow Connections is a gateway service leveraging tokenization to securely send and receive data between your systems and first- or third-party services. The [connections](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/v2/vaultapi/invoke_connection.go) module is used to invoke both INBOUND and/or OUTBOUND connections.
 - Inbound Connections: Act as intermediaries between your client and server, tokenizing sensitive data before it reaches your backend, ensuring downstream services handle only tokenized data.
 - Outbound Connections: Enable secure extraction of data from the vault and transfer it to third-party services via your backend server.
 - 
@@ -1880,7 +1879,7 @@ func main() {
 
 `pathParams`, `queryParams`, `requestHeader`, `requestBody` are the objects represented as map, that will be sent through the connection integration url.
 
-An [example]() of invokeConnection
+An [example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/v2/vaultapi/invoke_connection.go) of invokeConnection
 package vaultapi
 ```go
 import (
