@@ -44,10 +44,11 @@ func (se *SkyflowError) GetResponseBody() map[string]interface{} {
 	return se.responseBody
 }
 func NewSkyflowError(code ErrorCodesEnum, message string) *SkyflowError {
-	return &SkyflowError{httpCode: string(code), message: message}
-}
-func NewSkyflowErrorf(code string, format string, a ...interface{}) *SkyflowError {
-	return NewSkyflowError(ErrorCodesEnum(code), fmt.Sprintf(format, a...))
+	return &SkyflowError{
+		httpCode:       string(code),
+		message:        message,
+		httpStatusCode: string("Bad Request"),
+	}
 }
 func SkyflowApiError(responseHeaders http.Response) *SkyflowError {
 	skyflowError := SkyflowError{
@@ -65,6 +66,7 @@ func SkyflowApiError(responseHeaders http.Response) *SkyflowError {
 		skyflowError.httpCode = strconv.FormatFloat(errorBody["http_code"].(float64), 'f', 0, 64)
 		skyflowError.message = errorBody["message"].(string)
 		skyflowError.grpcCode = strconv.FormatFloat(errorBody["grpc_code"].(float64), 'f', 0, 64)
+		skyflowError.httpStatusCode = errorBody["http_status"].(string)
 	} else if responseHeaders.Header.Get("Content-Type") == "text/plain" {
 		bodyBytes, err := io.ReadAll(responseHeaders.Body)
 		if err == nil {

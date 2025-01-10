@@ -64,7 +64,7 @@ func ValidateInsertRequest(request common.InsertRequest, options common.InsertOp
 		}
 		if len(options.Tokens) != len(request.Values) {
 			logger.Error(fmt.Sprintf(logs.INSUFFICIENT_TOKENS_PASSED_FOR_BYOT_ENABLE, tag))
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INSUFFICIENT_TOKENS_PASSED_FOR_BYOT_ENABLE_STRICT)
+			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.TOKENS_NOT_PASSED)
 		}
 		if err := ValidateTokensForInsertRequest(options.Tokens, request.Values, common.ENABLE); err != nil {
 			return err
@@ -293,6 +293,11 @@ func ValidateInvokeConnectionRequest(request common.InvokeConnectionRequest) *sk
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_REQUEST_BODY)
 		}
 	}
+	method := request.Method.IsValid()
+	if !method {
+		logger.Error(fmt.Sprintf(logs.INVALID_METHOD_NAME))
+		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_METHOD_NAME)
+	}
 	return nil
 }
 
@@ -356,6 +361,10 @@ func ValidateGetRequest(getRequest common.GetRequest, options common.GetOptions)
 			logger.Error(fmt.Sprintf(logs.TOKENIZATION_NOT_SUPPORTED_WITH_REDACTION, tag))
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.TOKENS_GET_COLUMN_NOT_SUPPORTED)
 		}
+	}
+	if options.ReturnTokens && options.RedactionType != "" {
+		logger.Error(fmt.Sprintf(logs.TOKENIZATION_NOT_SUPPORTED_WITH_REDACTION, tag))
+		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.REDACTION_WITH_TOKENS_NOT_SUPPORTED)
 	}
 
 	// ColumnName and ColumnValues logic

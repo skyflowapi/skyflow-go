@@ -109,13 +109,17 @@ func (v *ConnectionController) Invoke(ctx context.Context, request common.Invoke
 		logger.Error(logs.INVOKE_CONNECTION_REQUEST_REJECTED)
 		return nil, errors.NewSkyflowError(errors.INVALID_INPUT_CODE, fmt.Sprintf(errors.UNKNOWN_ERROR, invokeErr.Error()))
 	}
+	metaData := map[string]interface{}{
+		"request_id": requestId,
+	}
+
 	logger.Info(logs.INVOKE_CONNECTION_REQUEST_RESOLVED)
 	// Step 7: Parse Response
 	parseRes, parseErr := parseResponse(res, requestId)
 	if parseErr != nil {
 		return nil, parseErr
 	}
-	return &common.InvokeConnectionResponse{Response: parseRes}, nil
+	return &common.InvokeConnectionResponse{Data: parseRes, Metadata: metaData}, nil
 }
 
 // Utility Functions
@@ -262,6 +266,7 @@ func parseResponse(response *http.Response, requestId string) (map[string]interf
 	if err != nil {
 		return nil, errors.NewSkyflowError(errors.INVALID_INPUT_CODE, errors.INVALID_RESPONSE)
 	}
+	fmt.Println("resssullllt", string(data))
 	var result map[string]interface{}
 	if err1 := json.Unmarshal(data, &result); err1 != nil {
 		return nil, errors.NewSkyflowError(errors.INVALID_INPUT_CODE, errors.INVALID_RESPONSE)
