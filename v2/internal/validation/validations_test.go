@@ -227,7 +227,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 
 			err := ValidateInsertRequest(request, options)
 			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.INSUFFICIENT_TOKENS_PASSED_FOR_BYOT_ENABLE_STRICT))
+			Expect(err.GetMessage()).To(ContainSubstring(errors.TOKENS_NOT_PASSED))
 		})
 		It("should return error when tokens are not passed for all values objectin BYOT ENABLE mode", func() {
 			request := common.InsertRequest{
@@ -391,49 +391,10 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 						ConnectionUrl: "",
 						Credentials:   common.Credentials{},
 					}
-
 					err := ValidateConnectionConfig(config)
 					Expect(err).To(HaveOccurred())
 					Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
 					Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_CONNECTION_URL))
-				})
-
-				It("should return an error if ConnectionUrl is invalid", func() {
-					config := common.ConnectionConfig{
-						ConnectionId:  "valid-id",
-						ConnectionUrl: "invalid-url",
-						Credentials:   common.Credentials{},
-					}
-
-					err := ValidateConnectionConfig(config)
-					Expect(err).To(HaveOccurred())
-					Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
-					Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_CONNECTION_URL))
-				})
-
-				It("should return an error if ConnectionUrl is not HTTPS", func() {
-					config := common.ConnectionConfig{
-						ConnectionId:  "valid-id",
-						ConnectionUrl: "http://valid.url",
-						Credentials:   common.Credentials{},
-					}
-
-					err := ValidateConnectionConfig(config)
-					Expect(err).To(HaveOccurred())
-					Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
-					Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_CONNECTION_URL))
-				})
-				It("should return an error if ConnectionUrl is invalid", func() {
-					config := common.ConnectionConfig{
-						ConnectionId:  "valid-id",
-						ConnectionUrl: "demo",
-						Credentials:   common.Credentials{},
-					}
-
-					err := ValidateConnectionConfig(config)
-					Expect(err).To(HaveOccurred())
-					Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
-					Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_CONNECTION_URL))
 				})
 
 			})

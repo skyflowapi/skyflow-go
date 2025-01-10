@@ -293,10 +293,12 @@ func ValidateInvokeConnectionRequest(request common.InvokeConnectionRequest) *sk
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_REQUEST_BODY)
 		}
 	}
-	method := request.Method.IsValid()
-	if !method {
-		logger.Error(fmt.Sprintf(logs.INVALID_METHOD_NAME))
-		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_METHOD_NAME)
+	if request.Method != "" {
+		method := request.Method.IsValid()
+		if !method {
+			logger.Error(fmt.Sprintf(logs.INVALID_METHOD_NAME))
+			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_METHOD_NAME)
+		}
 	}
 	return nil
 }
@@ -435,10 +437,10 @@ func ValidateTokenizeRequest(request []common.TokenizeRequest) *skyflowError.Sky
 	} else {
 		for index, tokenize := range request {
 			if tokenize.ColumnGroup == "" {
-				logger.Error(logs.EMPTY_COLUMN_GROUP_IN_COLUMN_VALUES, index)
+				logger.Error(fmt.Sprintf(logs.EMPTY_COLUMN_GROUP_IN_COLUMN_VALUES, index))
 				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_VALUE_IN_COLUMN_VALUES)
 			} else if tokenize.Value == "" {
-				logger.Error(logs.EMPTY_OR_NULL_COLUMN_VALUE_IN_COLUMN_VALUES)
+				logger.Error(fmt.Sprintf(logs.EMPTY_OR_NULL_COLUMN_VALUE_IN_COLUMN_VALUES, "Tokenize", index))
 				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_COLUMN_VALUES)
 			}
 		}

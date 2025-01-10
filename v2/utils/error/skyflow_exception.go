@@ -56,20 +56,28 @@ func SkyflowApiError(responseHeaders http.Response) *SkyflowError {
 	}
 	if responseHeaders.Header.Get("Content-Type") == "application/json" {
 		bodyBytes, _ := io.ReadAll(responseHeaders.Body)
-
 		// Parse JSON into a struct
 		var apiError map[string]interface{}
 		if err := json.Unmarshal(bodyBytes, &apiError); err != nil {
+			return NewSkyflowError(INVALID_INPUT_CODE, "Failed to unmarhsal error")
 		}
 		skyflowError.details = apiError
-		errorBody := apiError["error"].(map[string]interface{})
-		skyflowError.httpCode = strconv.FormatFloat(errorBody["http_code"].(float64), 'f', 0, 64)
-		skyflowError.message = errorBody["message"].(string)
-		skyflowError.grpcCode = strconv.FormatFloat(errorBody["grpc_code"].(float64), 'f', 0, 64)
-		skyflowError.httpStatusCode = errorBody["http_status"].(string)
+		if errorBody, ok := apiError["error"].(map[string]interface{}); ok {
+			skyflowError.httpCode = strconv.FormatFloat(errorBody["http_code"].(float64), 'f', 0, 64)
+			skyflowError.message = errorBody["message"].(string)
+			skyflowError.grpcCode = strconv.FormatFloat(errorBody["grpc_code"].(float64), 'f', 0, 64)
+			skyflowError.httpStatusCode = errorBody["http_status"].(string)
+		} else if errBody, ok := apiError["error"].(string); ok {
+			skyflowError.message = errBody
+		} else {
+			skyflowError.message = string(bodyBytes)
+		}
+
 	} else if responseHeaders.Header.Get("Content-Type") == "text/plain" {
 		bodyBytes, err := io.ReadAll(responseHeaders.Body)
-		if err == nil {
+		if err != nil {
+			return NewSkyflowError(INVALID_INPUT_CODE, "Failed to read error")
+		} else {
 			skyflowError.message = string(bodyBytes)
 			skyflowError.httpStatusCode = responseHeaders.Status
 		}

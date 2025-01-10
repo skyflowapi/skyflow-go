@@ -158,6 +158,9 @@ func prepareRequest(request common.InvokeConnectionRequest, url string) (*http.R
 		}
 		body = strings.NewReader(string(data))
 	}
+	if request.Method == "" {
+		request.Method = common.POST
+	}
 
 	request1, err := http.NewRequest(string(request.Method), url, body)
 	if err == nil && writer != nil {
@@ -266,7 +269,6 @@ func parseResponse(response *http.Response, requestId string) (map[string]interf
 	if err != nil {
 		return nil, errors.NewSkyflowError(errors.INVALID_INPUT_CODE, errors.INVALID_RESPONSE)
 	}
-	fmt.Println("resssullllt", string(data))
 	var result map[string]interface{}
 	if err1 := json.Unmarshal(data, &result); err1 != nil {
 		return nil, errors.NewSkyflowError(errors.INVALID_INPUT_CODE, errors.INVALID_RESPONSE)
