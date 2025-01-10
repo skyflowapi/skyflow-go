@@ -40,6 +40,11 @@ jobs:
 
     - name: Set up Go
       uses: actions/setup-go@v3
+
+    - name: install packages
+      run: |
+        go mod tidy
+        go mod vendor
         
     - name: create-json
       id: create-json

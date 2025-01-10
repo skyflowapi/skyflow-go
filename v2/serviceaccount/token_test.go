@@ -2,6 +2,7 @@ package serviceaccount_test
 
 import (
 	"fmt"
+	"github.com/joho/godotenv"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -14,8 +15,6 @@ import (
 	skyflowError "github.com/skyflowapi/skyflow-go/v2/utils/error"
 
 	"github.com/golang-jwt/jwt"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 )
 
 func TestServiceAccount(t *testing.T) {
@@ -80,6 +79,8 @@ var _ = Describe("ServiceAccount Test Suite", func() {
 			helpers.GetBaseURLHelper = func(urlStr string) (string, *skyflowError.SkyflowError) {
 				return mockServer.URL, nil
 			}
+			_ = godotenv.Load(".env")
+			fmt.Println("file path is", os.Getenv("CRED_FILE_PATH"))
 			// Call the function under test
 			tokenResp, err := serviceaccount.GenerateBearerToken(os.Getenv("CRED_FILE_PATH"), options)
 			// Assert the token response

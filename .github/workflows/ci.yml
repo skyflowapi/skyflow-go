@@ -33,6 +33,11 @@ jobs:
         name: "credentials.json"
         json: ${{ secrets.CREDENTIALS_FILE_STR }}
 
+    - name : install packages
+      run: |
+        go mod tidy
+        go mod vendor
+
     - name: 'Setup .env'
       run: |
         touch .env
