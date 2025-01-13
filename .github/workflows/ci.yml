@@ -40,9 +40,9 @@ jobs:
 
     - name: 'Setup .env'
       run: |
-        touch .env
-        echo CRED_FILE_PATH=../../credentials.json >> .env
-        echo VALID_CREDS_PVT_KEY=${{secrets.VALID_CREDS_PVT_KEY}} >> .env
+        touch Local.env
+        echo CRED_FILE_PATH=../../credentials.json >> Local.env
+        echo VALID_CREDS_PVT_KEY=${{secrets.VALID_CREDS_PVT_KEY}} >> Local.env
 
     - name: Build
       run: |
