@@ -2,7 +2,6 @@ package serviceaccount_test
 
 import (
 	"fmt"
-	"github.com/joho/godotenv"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/skyflowapi/skyflow-go/v2/internal/helpers"
@@ -80,7 +79,6 @@ var _ = Describe("ServiceAccount Test Suite", func() {
 			helpers.GetBaseURLHelper = func(urlStr string) (string, *skyflowError.SkyflowError) {
 				return mockServer.URL, nil
 			}
-			_ = godotenv.Load("Local.env")
 			if os.Getenv("CRED_FILE_PATH") != "" {
 				var file = os.Getenv("CRED_FILE_PATH")
 				fmt.Println("file path is ", file)

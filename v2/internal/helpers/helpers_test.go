@@ -8,7 +8,6 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
-	"github.com/joho/godotenv"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -30,9 +29,6 @@ func TestController(t *testing.T) {
 
 var _ = Describe("Helpers", func() {
 	Describe("ParseCredentialsFile", func() {
-		BeforeEach(func() {
-			_ = godotenv.Load(".env")
-		})
 		It("should parse a valid credentials file successfully", func() {
 			credentialsContent := `{"clientID":"test-client-id", "privateKey":"test-private-key"}`
 			filePath := "test_credentials.json"
@@ -46,7 +42,6 @@ var _ = Describe("Helpers", func() {
 			Expect(credKeys).To(HaveKeyWithValue("privateKey", "test-private-key"))
 		})
 		It("should fail when invalid type of private key is passes", func() {
-			_ = godotenv.Load(".env")
 			pvtKey := os.Getenv("VALID_CREDS_PVT_KEY")
 			invalidKeyType := strings.Replace(pvtKey, "PRIVATE KEY", "PUBLIC KEY", 2)
 			var credMap = map[string]interface{}{}
@@ -76,9 +71,6 @@ var _ = Describe("Helpers", func() {
 		})
 	})
 	Describe("GetPrivateKey", func() {
-		BeforeEach(func() {
-			_ = godotenv.Load(".env")
-		})
 		It("should parse a valid private key successfully", func() {
 			pvtKey := os.Getenv("VALID_CREDS_PVT_KEY")
 			credMap := map[string]interface{}{}
@@ -265,8 +257,6 @@ MIIBAAIBADANINVALIDKEY==
 		)
 
 		BeforeEach(func() {
-			_ = godotenv.Load(".env")
-
 			// Prepare the mock credentials map
 			credKeys = map[string]interface{}{
 				"clientID":   "client_123",
@@ -544,7 +534,6 @@ func mockserver(res string) *httptest.Server {
 	return mockServers
 }
 func getValidCreds() map[string]interface{} {
-	_ = godotenv.Load(".env")
 	pvtKey := os.Getenv("VALID_CREDS_PVT_KEY")
 	credMap := map[string]interface{}{}
 	_ = json.Unmarshal([]byte(pvtKey), &credMap)
