@@ -16,6 +16,10 @@ import (
 // GenerateBearerToken Generate Bearer Token
 func GenerateBearerToken(credentialsFilePath string, options common.BearerTokenOptions) (*common.TokenResponse, *skyflowError.SkyflowError) {
 	logger.Info(logs.GENERATE_BEARER_TOKEN_TRIGGERED)
+	if credentialsFilePath == "" {
+		logger.Error(logs.EMPTY_CREDENTIALS_PATH)
+		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_CREDENTIAL_FILE_PATH)
+	}
 	credKeys, err := helpers.ParseCredentialsFile(credentialsFilePath)
 	if err != nil {
 		return nil, err
@@ -73,6 +77,10 @@ func GenerateSignedDataTokens(credentialsFilePath string, options common.SignedD
 }
 
 func GenerateSignedDataTokensFromCreds(credentials string, options common.SignedDataTokensOptions) ([]common.SignedDataTokensResponse, *skyflowError.SkyflowError) {
+	if credentials == "" {
+		logger.Error(logs.INVALID_CREDENTIALS_STRING_FORMAT)
+		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_CREDENTIALS_STRING)
+	}
 	var credKeys map[string]interface{}
 	logger.Error(logs.GENERATE_SIGNED_DATA_TOKENS_TRIGGERED)
 	if err := json.Unmarshal([]byte(credentials), &credKeys); err != nil {

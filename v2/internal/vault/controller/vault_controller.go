@@ -392,7 +392,7 @@ func (v *VaultController) Insert(ctx context.Context, request common.InsertReque
 		}
 		resp = common.InsertResponse{
 			InsertedFields: insertedFields,
-			ErrorFields:    errors,
+			Errors:         errors,
 		}
 	} else {
 		// Bulk insert handling
@@ -466,7 +466,7 @@ func (v *VaultController) Detokenize(ctx context.Context, request common.Detoken
 	}
 	return &common.DetokenizeResponse{
 		DetokenizedFields: detokenizedFields,
-		ErrorRecords:      errorFields,
+		Errors:            errorFields,
 	}, nil
 }
 
@@ -483,10 +483,12 @@ func (v *VaultController) Get(ctx context.Context, request common.GetRequest, op
 		return nil, err
 	}
 	query := v.ApiClient.RecordsAPI.RecordServiceBulkGetRecord(ctx, v.Config.VaultId, request.Table).SkyflowIds(request.Ids)
-
 	// Add conditional chaining for optional parameters
 	if options.RedactionType != "" {
 		query = query.Redaction(string(options.RedactionType))
+	}
+	if options.RedactionType == "" && !options.ReturnTokens {
+		query = query.Redaction(string(common.PLAIN_TEXT))
 	}
 	if options.Offset != "" {
 		query = query.Offset(options.Offset)
@@ -503,8 +505,18 @@ func (v *VaultController) Get(ctx context.Context, request common.GetRequest, op
 	if options.OrderBy != "" {
 		query = query.OrderBy(string(options.OrderBy))
 	}
-	query = query.Tokenization(options.ReturnTokens)
-	query.DownloadURL(options.DownloadURL)
+	if options.DownloadURL {
+		query = query.DownloadURL(options.DownloadURL)
+	}
+	if options.ReturnTokens {
+		query = query.Tokenization(options.ReturnTokens)
+	} else {
+		query = query.Tokenization(false)
+	}
+	if options.Fields != nil {
+		query = query.Fields(options.Fields)
+	}
+
 	// Execute the query
 	result, httpsRes, err1 := query.Execute()
 	if err1 != nil && httpsRes != nil {

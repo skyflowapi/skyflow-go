@@ -66,17 +66,35 @@ const (
 )
 
 type InvokeConnectionResponse struct {
-	Response map[string]interface{}
+	Data     map[string]interface{}
+	Metadata map[string]interface{}
+	Errors   map[string]interface{}
 }
 type RequestMethod string
 
 const (
 	GET    RequestMethod = "GET"
-	POST                 = "POST"
-	PUT                  = "PUT"
-	PATCH                = "PATCH"
-	DELETE               = "DELETE"
+	POST   RequestMethod = "POST"
+	PUT    RequestMethod = "PUT"
+	PATCH  RequestMethod = "PATCH"
+	DELETE RequestMethod = "DELETE"
 )
+
+func (m RequestMethod) IsValid() bool {
+	validMethods := []RequestMethod{
+		GET,
+		POST,
+		PUT,
+		PATCH,
+		DELETE,
+	}
+	for _, method := range validMethods {
+		if m == method {
+			return true
+		}
+	}
+	return false
+}
 
 type InvokeConnectionRequest struct {
 	Method      RequestMethod
@@ -130,7 +148,7 @@ type InsertRequest struct {
 type InsertResponse struct {
 	// Response fields
 	InsertedFields []map[string]interface{}
-	ErrorFields    []map[string]interface{}
+	Errors         []map[string]interface{}
 }
 
 type DetokenizeRequest struct {
@@ -143,7 +161,7 @@ type DetokenizeOptions struct {
 }
 type DetokenizeResponse struct {
 	DetokenizedFields []map[string]interface{}
-	ErrorRecords      []map[string]interface{}
+	Errors            []map[string]interface{}
 }
 
 type DeleteRequest struct {
@@ -154,7 +172,7 @@ type DeleteRequest struct {
 type DeleteResponse struct {
 	// Response fields
 	DeletedIds []string
-	Error      []map[string]interface{}
+	Errors     []map[string]interface{}
 }
 
 type UpdateRequest struct {
@@ -217,4 +235,5 @@ type TokenizeResponse struct {
 type QueryResponse struct {
 	Fields        []map[string]interface{}
 	TokenizedData []map[string]interface{}
+	Errors        []map[string]interface{}
 }

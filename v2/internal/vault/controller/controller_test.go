@@ -599,7 +599,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				Expect(res).ToNot(BeNil(), "Expected valid response")
 				Expect(len(res.InsertedFields)).To(Equal(1), "Expected exactly 1 inserted field")
 				Expect(res.InsertedFields[0]["skyflow_id"]).To(Equal("skyflowid"), "Expected the inserted field to have skyflow_id 'skyflowid'")
-				Expect(len(res.ErrorFields)).To(Equal(1), "Expected exactly 1 error field")
+				Expect(len(res.Errors)).To(Equal(1), "Expected exactly 1 error field")
 			})
 		})
 		Context("Insert with ContinueOnError False - Success Case", func() {
@@ -1412,6 +1412,7 @@ var _ = Describe("ConnectionController", func() {
 		ctrl = &ConnectionController{
 			Config: ConnectionConfig{
 				ConnectionUrl: "http://mockserver.com",
+				ConnectionId:  "demo",
 			},
 			Token: mockToken,
 		}
@@ -1420,7 +1421,8 @@ var _ = Describe("ConnectionController", func() {
 			Headers: map[string]string{
 				"Content-Type": "application/json",
 			},
-			Body: map[string]interface{}{"data": "test"},
+			Body:   map[string]interface{}{"data": "test"},
+			Method: POST,
 		}
 	})
 
@@ -1445,7 +1447,7 @@ var _ = Describe("ConnectionController", func() {
 				}
 				response, err := ctrl.Invoke(ctx, mockRequest)
 				Expect(err).To(BeNil())
-				Expect(response.Response).To(Equal(mockResponse))
+				Expect(response.Data).To(Equal(mockResponse))
 			})
 		})
 		Context("when the request fails", func() {
@@ -1532,7 +1534,7 @@ var _ = Describe("ConnectionController", func() {
 				response, err := ctrl.Invoke(ctx, request)
 				Expect(err).To(BeNil())
 				Expect(response).ToNot(BeNil())
-				Expect(response.Response).To(HaveKeyWithValue("key", "value"))
+				Expect(response.Data).To(HaveKeyWithValue("key", "value"))
 			})
 			It("should handle application/x-www-form-urlencoded content type", func() {
 				request := InvokeConnectionRequest{
@@ -1550,7 +1552,7 @@ var _ = Describe("ConnectionController", func() {
 				response, err := ctrl.Invoke(ctx, request)
 				Expect(err).To(BeNil())
 				Expect(response).ToNot(BeNil())
-				Expect(response.Response).To(HaveKeyWithValue("key", "value"))
+				Expect(response.Data).To(HaveKeyWithValue("key", "value"))
 			})
 			It("should handle multipart/form-data content type", func() {
 
@@ -1573,7 +1575,7 @@ var _ = Describe("ConnectionController", func() {
 				response, err := ctrl.Invoke(ctx, request)
 				Expect(err).To(BeNil())
 				Expect(response).ToNot(BeNil())
-				Expect(response.Response).To(HaveKeyWithValue("key", "value"))
+				Expect(response.Data).To(HaveKeyWithValue("key", "value"))
 			})
 			It("should handle when content type is not set", func() {
 				request := InvokeConnectionRequest{
@@ -1591,7 +1593,7 @@ var _ = Describe("ConnectionController", func() {
 				response, err := ctrl.Invoke(ctx, request)
 				Expect(err).To(BeNil())
 				Expect(response).ToNot(BeNil())
-				Expect(response.Response).To(HaveKeyWithValue("key", "value"))
+				Expect(response.Data).To(HaveKeyWithValue("key", "value"))
 			})
 			It("should throw error when invalid request passed", func() {
 				request := InvokeConnectionRequest{

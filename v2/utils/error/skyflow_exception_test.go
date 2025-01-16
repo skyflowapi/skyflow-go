@@ -43,7 +43,7 @@ var _ = Describe("Skyflow Error", func() {
 		})
 
 		It("should return the correct HTTP status code", func() {
-			Expect(skyflowError.GetHttpStatusCode()).To(Equal(""))
+			Expect(skyflowError.GetHttpStatusCode()).To(Equal("Bad Request"))
 		})
 
 		It("should return the correct details", func() {
@@ -66,7 +66,8 @@ var _ = Describe("Skyflow Error", func() {
 					"error": {
 						"http_code": 400,
 						"message": "Invalid Input",
-						"grpc_code": 3
+						"grpc_code": 3,
+						"http_status": "Not found"
 					}
 				}`)),
 			}
