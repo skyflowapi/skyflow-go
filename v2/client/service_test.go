@@ -206,7 +206,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				Expect(res).ToNot(BeNil(), "Expected valid response")
 				Expect(len(res.InsertedFields)).To(Equal(1), "Expected exactly 1 inserted field")
 				Expect(res.InsertedFields[0]["skyflow_id"]).To(Equal("skyflowid"), "Expected the inserted field to have skyflow_id 'skyflowid'")
-				Expect(len(res.ErrorFields)).To(Equal(1), "Expected exactly 1 error field")
+				Expect(len(res.Errors)).To(Equal(1), "Expected exactly 1 error field")
 			})
 		})
 
@@ -955,7 +955,8 @@ var _ = Describe("ConnectionController", func() {
 			Headers: map[string]string{
 				"Content-Type": "application/json",
 			},
-			Body: map[string]interface{}{"data": "test"},
+			Body:   map[string]interface{}{"data": "test"},
+			Method: POST,
 		}
 	})
 
@@ -988,7 +989,7 @@ var _ = Describe("ConnectionController", func() {
 				service, err := client.Connection("failed")
 				response, err := service.Invoke(ctx, mockRequest)
 				Expect(err).To(BeNil())
-				Expect(response.Response).To(Equal(mockResponse))
+				Expect(response.Data).To(Equal(mockResponse))
 			})
 		})
 		Context("Handling query parameters", func() {

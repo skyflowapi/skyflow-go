@@ -40,6 +40,11 @@ jobs:
 
     - name: Set up Go
       uses: actions/setup-go@v3
+
+    - name: install packages
+      run: |
+        go mod tidy
+        go mod vendor
         
     - name: create-json
       id: create-json
@@ -51,18 +56,12 @@ jobs:
     - name: 'Setup .env'
       run: |
         touch .env
-        echo CREDENTIALS_FILE_PATH=../../credentials.json >> .env
-        echo EXPIRED_TOKEN=${{secrets.EXPIRED_TOKEN}} >> .env
+        echo CRED_FILE_PATH=../../credentials.json >> .env
         echo VALID_CREDS_PVT_KEY=${{secrets.VALID_CREDS_PVT_KEY}} >> .env
-        echo CREDENTIALS_FILE_STR=${{secrets.CREDENTIALS_FILE_STR}} >> .env
 
     - name: Build
       run: |
-        cd commonutils
-        go build -v ./...
-        cd ../serviceaccount
-        go build -v ./...
-        cd ../skyflow
+        cd v2
         go build -v ./...
 
     - name: Perform CodeQL Analysis

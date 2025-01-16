@@ -27,7 +27,7 @@ func ParseCredentialsFile(credentialsFilePath string) (map[string]interface{}, *
 	file, err := os.Open(credentialsFilePath)
 	if err != nil {
 		logger.Error(fmt.Sprintf(logs.FILE_NOT_FOUND, credentialsFilePath))
-		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.FILE_NOT_FOUND)
+		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.FILE_NOT_FOUND, credentialsFilePath))
 	}
 	defer file.Close()
 

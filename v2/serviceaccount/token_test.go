@@ -1,21 +1,20 @@
 package serviceaccount_test
 
 import (
-	"encoding/json"
+	"fmt"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	"github.com/skyflowapi/skyflow-go/v2/internal/helpers"
+	"github.com/skyflowapi/skyflow-go/v2/serviceaccount"
+	"github.com/skyflowapi/skyflow-go/v2/utils/common"
+	skyflowError "github.com/skyflowapi/skyflow-go/v2/utils/error"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
 	"time"
 
-	"github.com/skyflowapi/skyflow-go/v2/internal/helpers"
-	"github.com/skyflowapi/skyflow-go/v2/serviceaccount"
-	"github.com/skyflowapi/skyflow-go/v2/utils/common"
-	skyflowError "github.com/skyflowapi/skyflow-go/v2/utils/error"
-
 	"github.com/golang-jwt/jwt"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 )
 
 func TestServiceAccount(t *testing.T) {
@@ -23,12 +22,6 @@ func TestServiceAccount(t *testing.T) {
 	RunSpecs(t, "ServiceAccount Suite")
 }
 
-func getValidCreds() map[string]interface{} {
-	pvtKey := os.Getenv("VALID_CREDS_PVT_KEY")
-	credMap := map[string]interface{}{}
-	_ = json.Unmarshal([]byte(pvtKey), &credMap)
-	return credMap
-}
 func mockserver(res string) *httptest.Server {
 	// Mock server for simulating the HTTP request/response
 	mockServers := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -86,12 +79,18 @@ var _ = Describe("ServiceAccount Test Suite", func() {
 			helpers.GetBaseURLHelper = func(urlStr string) (string, *skyflowError.SkyflowError) {
 				return mockServer.URL, nil
 			}
-			// Call the function under test
-			tokenResp, err := serviceaccount.GenerateBearerToken("/Users/bharts/Desktop/SKYFLOW-WORK/skyflow-go/validcred.json", options)
-			// Assert the token response
-			Expect(err).To(BeNil())
-			Expect(tokenResp.AccessToken).To(Equal("mockAccessToken"))
-			Expect(tokenResp.TokenType).To(Equal("bearer"))
+			if os.Getenv("CRED_FILE_PATH") != "" {
+				var file = os.Getenv("CRED_FILE_PATH")
+				fmt.Println("file path is ", file)
+				// Call the function under test
+				tokenResp, err := serviceaccount.GenerateBearerToken(file, options)
+				// Assert the token response
+				Expect(err).To(BeNil())
+				Expect(tokenResp.AccessToken).To(Equal("mockAccessToken"))
+				Expect(tokenResp.TokenType).To(Equal("bearer"))
+			} else {
+				fmt.Println("file path is not found")
+			}
 		})
 		It("should return a valid token when credentials are valid", func() {
 			mockServer = mockserver("err")
@@ -106,7 +105,7 @@ var _ = Describe("ServiceAccount Test Suite", func() {
 				return mockServer.URL, nil
 			}
 			// Call the function under test
-			tokenResp, err := serviceaccount.GenerateBearerToken("/Users/bharts/Desktop/SKYFLOW-WORK/skyflow-go/validcred.json", options)
+			tokenResp, err := serviceaccount.GenerateBearerToken(os.Getenv("CRED_FILE_PATH"), options)
 			// Assert the token response
 			Expect(err).ToNot(BeNil())
 			Expect(tokenResp).To(BeNil())
@@ -124,7 +123,7 @@ var _ = Describe("ServiceAccount Test Suite", func() {
 			// Assert the error response
 			Expect(err).ToNot(BeNil())
 			Expect(tokenResp).To(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(skyflowError.FILE_NOT_FOUND))
+			Expect(err.GetMessage()).To(ContainSubstring(fmt.Sprintf(skyflowError.FILE_NOT_FOUND, "credentials.json")))
 		})
 	})
 	Context("GenerateBearerTokenCreds success/error response", func() {
@@ -205,7 +204,7 @@ var _ = Describe("ServiceAccount Test Suite", func() {
 	Context("GenerateSignedToken success/error response", func() {
 		It("should return a valid token when credentials are valid", func() {
 			// Call the function under test
-			tokenResp, err := serviceaccount.GenerateSignedDataTokens("/Users/bharts/Desktop/SKYFLOW-WORK/skyflow-go/validcred.json", dataTokenOptions)
+			tokenResp, err := serviceaccount.GenerateSignedDataTokens(os.Getenv("CRED_FILE_PATH"), dataTokenOptions)
 			// Assert the token response
 			Expect(err).To(BeNil())
 			Expect(len(tokenResp)).To(Equal(2))
@@ -231,7 +230,7 @@ var _ = Describe("ServiceAccount Test Suite", func() {
 		It("should return a error when datatokens are empty", func() {
 			// Call the function under test
 			dataTokenOptions.DataTokens = nil
-			tokenResp, err := serviceaccount.GenerateSignedDataTokens("/Users/bharts/Desktop/SKYFLOW-WORK/skyflow-go/validcred.json", dataTokenOptions)
+			tokenResp, err := serviceaccount.GenerateSignedDataTokens(os.Getenv("CRED_FILE_PATH"), dataTokenOptions)
 			// Assert the token response
 			Expect(err).ToNot(BeNil())
 			Expect(tokenResp).To(BeNil())

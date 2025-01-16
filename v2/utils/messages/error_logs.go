@@ -99,4 +99,5 @@ const (
 	INVALID_TOKENIZE_REQUEST                                 = SDK_LOG_PREFIX + "Invalid tokenize request. Specify a tokenize request."
 	EMPTY_VAULT_ARRAY                                 string = SDK_LOG_PREFIX + "Validation error. No vault configurations passed"
 	EMPTY_CONNECTION_ARRAY                            string = SDK_LOG_PREFIX + "Validation error. No Connection configurations passed"
+	INVALID_METHOD_NAME                               string = SDK_LOG_PREFIX + "Validation error. Invalid method name. Specify a valid method name as a string."
 )

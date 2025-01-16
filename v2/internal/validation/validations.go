@@ -64,7 +64,7 @@ func ValidateInsertRequest(request common.InsertRequest, options common.InsertOp
 		}
 		if len(options.Tokens) != len(request.Values) {
 			logger.Error(fmt.Sprintf(logs.INSUFFICIENT_TOKENS_PASSED_FOR_BYOT_ENABLE, tag))
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INSUFFICIENT_TOKENS_PASSED_FOR_BYOT_ENABLE_STRICT)
+			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.TOKENS_NOT_PASSED)
 		}
 		if err := ValidateTokensForInsertRequest(options.Tokens, request.Values, common.ENABLE); err != nil {
 			return err
@@ -293,6 +293,13 @@ func ValidateInvokeConnectionRequest(request common.InvokeConnectionRequest) *sk
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_REQUEST_BODY)
 		}
 	}
+	if request.Method != "" {
+		method := request.Method.IsValid()
+		if !method {
+			logger.Error(fmt.Sprintf(logs.INVALID_METHOD_NAME))
+			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_METHOD_NAME)
+		}
+	}
 	return nil
 }
 
@@ -356,6 +363,10 @@ func ValidateGetRequest(getRequest common.GetRequest, options common.GetOptions)
 			logger.Error(fmt.Sprintf(logs.TOKENIZATION_NOT_SUPPORTED_WITH_REDACTION, tag))
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.TOKENS_GET_COLUMN_NOT_SUPPORTED)
 		}
+	}
+	if options.ReturnTokens && options.RedactionType != "" {
+		logger.Error(fmt.Sprintf(logs.TOKENIZATION_NOT_SUPPORTED_WITH_REDACTION, tag))
+		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.REDACTION_WITH_TOKENS_NOT_SUPPORTED)
 	}
 
 	// ColumnName and ColumnValues logic
@@ -426,10 +437,10 @@ func ValidateTokenizeRequest(request []common.TokenizeRequest) *skyflowError.Sky
 	} else {
 		for index, tokenize := range request {
 			if tokenize.ColumnGroup == "" {
-				logger.Error(logs.EMPTY_COLUMN_GROUP_IN_COLUMN_VALUES, index)
+				logger.Error(fmt.Sprintf(logs.EMPTY_COLUMN_GROUP_IN_COLUMN_VALUES, index))
 				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_VALUE_IN_COLUMN_VALUES)
 			} else if tokenize.Value == "" {
-				logger.Error(logs.EMPTY_OR_NULL_COLUMN_VALUE_IN_COLUMN_VALUES)
+				logger.Error(fmt.Sprintf(logs.EMPTY_OR_NULL_COLUMN_VALUE_IN_COLUMN_VALUES, "Tokenize", index))
 				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_COLUMN_VALUES)
 			}
 		}
