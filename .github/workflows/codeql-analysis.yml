@@ -56,7 +56,7 @@ jobs:
     - name: 'Setup .env'
       run: |
         touch .env
-        echo CRED_FILE_PATH=../../credentials.json >> .env
+        echo CRED_FILE_PATH=../credentials.json >> .env
         echo VALID_CREDS_PVT_KEY=${{secrets.VALID_CREDS_PVT_KEY}} >> .env
 
     - name: Build
