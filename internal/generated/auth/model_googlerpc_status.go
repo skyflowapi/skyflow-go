@@ -21,7 +21,7 @@ var _ MappedNullable = &GooglerpcStatus{}
 // GooglerpcStatus struct for GooglerpcStatus
 type GooglerpcStatus struct {
 	Code *int32 `json:"code,omitempty"`
-	Message *string `json:"message,omitempty"`
+	Message *string       `json:"message,omitempty"`
 	Details []ProtobufAny `json:"details,omitempty"`
 }
 
