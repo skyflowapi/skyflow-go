@@ -61,7 +61,6 @@ jobs:
 
     - name: Build
       run: |
-        cd v2
         go build -v ./...
 
     - name: Perform CodeQL Analysis
