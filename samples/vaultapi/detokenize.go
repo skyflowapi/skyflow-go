@@ -1,60 +1,47 @@
 /*
 Copyright (c) 2022 Skyflow, Inc.
 */
+
 package main
 
 import (
+	"context"
 	"fmt"
-
-	logger "github.com/skyflowapi/skyflow-go/commonutils/logwrapper"
-	saUtil "github.com/skyflowapi/skyflow-go/serviceaccount/util"
-	Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
-	"github.com/skyflowapi/skyflow-go/skyflow/common"
+	"github.com/skyflowapi/skyflow-go/v2/client"
+	"github.com/skyflowapi/skyflow-go/v2/utils/common"
+	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
 )
 
-var bearerToken = ""
-
-func GetToken() (string, error) {
-
-	filePath := "<file_path>"
-	if saUtil.IsExpired(bearerToken) {
-		newToken, err := saUtil.GenerateBearerToken(filePath)
-		if err != nil {
-			return "", err
-		} else {
-			bearerToken = newToken.AccessToken
-			return bearerToken, nil
-		}
-	}
-	return bearerToken, nil
-}
 func main() {
-
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Println("error: ", r)
-		}
-	}()
-
-	logger.SetLogLevel(logger.INFO) //set loglevel to INFO
-	configuration := common.Configuration{VaultID: "<vault_id>", VaultURL: "<vault_url>", TokenProvider: GetToken}
-	var client = Skyflow.Init(configuration)
-	var records = make(map[string]interface{})
-	var record1 = make(map[string]interface{})
-	record1["token"] = "<token>"
-	var record2 = make(map[string]interface{})
-	record2["token"] = "<token>"
-
-	var recordsArray []interface{}
-	recordsArray = append(recordsArray, record1)
-	recordsArray = append(recordsArray, record2)
-	records["records"] = recordsArray
-	//default value for ContinueOnError is true
-	var options = common.DetokenizeOptions{ ContinueOnError: false };
-	res, err := client.Detokenize(records, options)
-	if err == nil {
-		fmt.Println("Records : ", res.Records)
+	vaultConfig1 := common.VaultConfig{VaultId: "<VAULT_ID1>", ClusterId: "<CLUSTER_ID1>", Env: common.DEV, Credentials: common.Credentials{Token: "<BEARER_TOKEN1>"}}
+	vaultConfig2 := common.VaultConfig{VaultId: "<VAULT_ID2>", ClusterId: "<CLUSTER_ID2>", Env: common.DEV, Credentials: common.Credentials{Token: "<BEARER_TOKEN2>"}}
+	var arr []common.VaultConfig
+	arr = append(arr, vaultConfig2, vaultConfig1)
+	skyflowInstance, err := client.NewSkyflow(
+		client.WithVaults(arr...),
+		client.WithCredentials(common.Credentials{}), // pass credentials if not provided in vault config
+		client.WithLogLevel(logger.DEBUG),
+	)
+	if err != nil {
+		fmt.Println(err)
 	} else {
-		panic(err.GetMessage())
+		service, serviceError := skyflowInstance.Vault("<VAULT_ID>")
+		if serviceError != nil {
+			fmt.Println(serviceError)
+		} else {
+			ctx := context.TODO()
+			res, errDetokenize := service.Detokenize(ctx, common.DetokenizeRequest{
+				Tokens:        []string{"<TOKEN>", "<TOKEN>"},
+				RedactionType: common.REDACTED,
+			}, common.DetokenizeOptions{
+				ContinueOnError: true,
+			})
+			if errDetokenize != nil {
+				fmt.Println("ERROR: ", errDetokenize)
+			} else {
+				fmt.Println("RESPONSE: ", res)
+			}
+		}
 	}
+
 }

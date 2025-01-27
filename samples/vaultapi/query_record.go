@@ -1,4 +1,7 @@
-package vaultapi
+/*
+Copyright (c) 2022 Skyflow, Inc.
+*/
+package main
 
 import (
 	"context"
@@ -26,20 +29,13 @@ func main() {
 			fmt.Println(serviceError)
 		} else {
 			ctx := context.TODO()
-			res, getErr := service.Get(ctx, common.GetRequest{
-				Table: "persons",
-			}, common.GetOptions{
-				RedactionType: common.PLAIN_TEXT,
-				ColumnValues:  []string{"<COLUMN_VALUE_1>", "<COLUMN_VALUE_2>"},
-				ColumnName:    "<COLUMN_NAME>",
-			})
-			if getErr != nil {
-				fmt.Println("ERROR: ", getErr)
+			res, queryErr := service.Query(ctx, common.QueryRequest{Query: "SELECT * FROM demo WHERE skyflow_id='<ID>'"}) // Pass query here
+			if queryErr != nil {
+				fmt.Println("ERROR: ", *queryErr)
 			} else {
-				fmt.Println("RESPONSE", res.Data)
+				fmt.Println("RESPONSE: ", res)
 			}
 		}
-
 	}
 
 }

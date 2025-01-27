@@ -1,4 +1,7 @@
-package vaultapi
+/*
+Copyright (c) 2022 Skyflow, Inc.
+*/
+package main
 
 import (
 	"context"
@@ -26,14 +29,16 @@ func main() {
 			fmt.Println(serviceErr)
 		} else {
 			ctx := context.TODO()
-			res, deleteErr := service.Delete(ctx, common.DeleteRequest{
-				Table: "<TABLE_NAME>",
-				Ids:   []string{"<SKYFLOW_ID>"},
+			var reqArray []common.TokenizeRequest
+			reqArray = append(reqArray, common.TokenizeRequest{
+				ColumnGroup: "<COLUMN_GROUP_NAME>",
+				Value:       "<VALUE>",
 			})
-			if deleteErr != nil {
-				fmt.Println(deleteErr)
+			res, tokenizeErr := service.Tokenize(ctx, reqArray)
+			if tokenizeErr != nil {
+				fmt.Println("ERROR: ", tokenizeErr)
 			} else {
-				fmt.Println(res)
+				fmt.Println("RESPONSE: ", res)
 			}
 		}
 	}
