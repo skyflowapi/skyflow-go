@@ -1,4 +1,7 @@
-package vaultapi
+/*
+Copyright (c) 2022 Skyflow, Inc.
+*/
+package main
 
 import (
 	"context"
@@ -26,16 +29,23 @@ func main() {
 			fmt.Println(serviceError)
 		} else {
 			ctx := context.TODO()
-			res, errDetokenize := service.Detokenize(ctx, common.DetokenizeRequest{
-				Tokens:        []string{"<TOKEN>", "<TOKEN>"},
-				RedactionType: common.REDACTED,
-			}, common.DetokenizeOptions{
-				ContinueOnError: true,
+			values := make([]map[string]interface{}, 0)
+			values = append(values, map[string]interface{}{
+				"<FIELD_NAME1_1>": "<VALUE_1>",
 			})
-			if errDetokenize != nil {
-				fmt.Println("ERROR: ", errDetokenize)
+			values = append(values, map[string]interface{}{
+				"<FIELD_NAME_2>": "<VALUE_1>",
+				"<FIELD_NAME_3>": "<VALUE_2>",
+			})
+
+			insert, err4 := service.Insert(ctx, common.InsertRequest{
+				Table:  "<TABLE_NAME>",
+				Values: values,
+			}, common.InsertOptions{ContinueOnError: false, ReturnTokens: true})
+			if err4 != nil {
+				fmt.Println("ERROR: ", *err4)
 			} else {
-				fmt.Println("RESPONSE: ", res)
+				fmt.Println("RESPONSE:", insert)
 			}
 		}
 	}

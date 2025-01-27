@@ -1,4 +1,8 @@
-package vaultapi
+/*
+Copyright (c) 2022 Skyflow, Inc.
+*/
+
+package main
 
 import (
 	"context"
@@ -19,30 +23,21 @@ func main() {
 		client.WithLogLevel(logger.DEBUG),
 	)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println(*err)
 	} else {
-		service, serviceError := skyflowInstance.Vault("<VAULT_ID>")
-		if serviceError != nil {
-			fmt.Println(serviceError)
+		service, serviceErr := skyflowInstance.Vault("<VAULT_ID>")
+		if serviceErr != nil {
+			fmt.Println(serviceErr)
 		} else {
 			ctx := context.TODO()
-			values := make([]map[string]interface{}, 0)
-			values = append(values, map[string]interface{}{
-				"<FIELD_NAME1_1>": "<VALUE_1>",
+			res, deleteErr := service.Delete(ctx, common.DeleteRequest{
+				Table: "<TABLE_NAME>",
+				Ids:   []string{"<SKYFLOW_ID>"},
 			})
-			values = append(values, map[string]interface{}{
-				"<FIELD_NAME_2>": "<VALUE_1>",
-				"<FIELD_NAME_3>": "<VALUE_2>",
-			})
-
-			insert, err4 := service.Insert(ctx, common.InsertRequest{
-				Table:  "<TABLE_NAME>",
-				Values: values,
-			}, common.InsertOptions{ContinueOnError: false, ReturnTokens: true})
-			if err4 != nil {
-				fmt.Println("ERROR: ", *err4)
+			if deleteErr != nil {
+				fmt.Println(*deleteErr)
 			} else {
-				fmt.Println("RESPONSE:", insert)
+				fmt.Println(res)
 			}
 		}
 	}
