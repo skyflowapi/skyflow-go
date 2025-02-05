@@ -15,6 +15,7 @@ This go SDK is designed to help developers easily implement Skyflow into their g
     - [Requirements](#requirements)
     - [Configuration](#configuration)
     - [Service Account Token Generation](#service-account-token-generation)
+	- [Migation Guide: v1 to v2](#go-sdk-migration-guide)
     - [Vault APIs](#vault-apis)
       - [Insert data into the vault](#insert-data-into-the-vault)
       - [Detokenize](#detokenize)
@@ -90,6 +91,233 @@ func GetSkyflowBearerToken() (string, error) {
 	return bearerToken, nil
 }
 ```
+### Go SDK Migration Guide
+
+### Steps to Migrate Go SDK from V1 to V2
+
+Below are the steps to migrate the Go SDK from v1 to v2.
+
+---
+
+### 1. Authentication Options
+
+In V2, multiple authentication options are introduced. You can now provide credentials in the following ways:
+
+- **API Key (Recommended)**
+- **Environment Variable (`SKYFLOW_CREDENTIALS`) (Recommended)**
+- **Path to your credentials JSON file**
+- **Stringified JSON of your credentials**
+- **Bearer token**
+
+These options allow you to choose the authentication method that best suits your use case.
+
+### V1 (Old):
+```go
+func GetToken() (string, error) {
+ filePath := "<file_path>"
+ if saUtil.IsExpired(bearerToken) {
+  newToken, err := saUtil.GenerateBearerToken(filePath)
+  if err != nil {
+   return "", err
+  } else {
+   bearerToken = newToken.AccessToken
+   return bearerToken, nil
+  }
+ }
+ return bearerToken, nil
+}
+```
+
+### V2 (New):
+```go
+// Option 1: API Key (Recommended)
+Credentials := common.Credentials{
+    ApiKey: "<YOUR_API_KEY>",
+};
+
+// Option 2: Environment Variables (Recommended)
+// Set SKYFLOW_CREDENTIALS in your environment  
+
+// Option 3: Credentials File
+Credentials := common.Credentials{
+    Path: "<YOUR_PATH>",
+};
+
+// Option 4: Stringified JSON
+Credentials := common.Credentials{
+    CredentialsString: "<YOUR_CREDENTIALS_STRING>",
+};
+
+// Option 5: Bearer Token
+Credentials := common.Credentials{
+    Token: "<YOUR_BEARER_TOKEN>",
+};
+```
+
+#### Notes:
+- Use only **one** authentication method.
+- Environment variables take precedence over programmatic configuration.
+- **API Key or Environment Variables are recommended for production use.**
+- Secure storage of credentials is essential.
+- For overriding behavior and priority order of credentials, refer to the README.
+
+---
+
+### 2. Client Initialization
+
+V2 introduces a **functional options pattern** for client initialization and supports **multi-vault configuration**.
+
+### V1 (Old):
+```go
+configuration := common.Configuration {
+      VaultID: "<vault_id>",
+      VaultURL: "<vault_url>",
+      TokenProvider: GetToken
+}
+
+skyflowClient := Skyflow.Init(configuration)
+```
+
+### V2 (New):
+```go
+vaultConfig := common.VaultConfig{
+       VaultId: "<VAULT_ID1>",
+       ClusterId: "<CLUSTER_ID1>",
+       Env: common.DEV,
+       Credentials: common.Credentials{
+           Token: "<BEARER_TOKEN1>",
+       },
+}
+
+skyflowInstance, err := client.NewSkyflow(
+       client.WithVaults(arr),
+       client.WithCredentials(common.Credentials{}),
+       client.WithLogLevel(logger.DEBUG),
+)
+```
+
+#### Key Changes:
+- `VaultURL` replaced with `ClusterId`.
+- Added **environment specification (`Env`)**.
+- Instance-specific **log levels**.
+
+---
+
+### 3. Request & Response Structure
+
+V2 introduces **constructor parameters** for request building.
+
+### V1 (Old): Request Building
+```go
+var options = common.InsertOptions{Tokens: false}
+var records = make(map[string]interface{})
+var record = make(map[string]interface{})
+record["table"] = "cards"
+var fields = make(map[string]interface{})
+fields["cvv"] = "123"
+fields["fullname"] = "name"
+record["fields"] = fields
+var recordsArray []interface{}
+recordsArray = append(recordsArray, record)
+records["records"] = recordsArray
+res, err := client.Insert(records, options)
+```
+
+### V2 (New): Request Building
+```go
+ctx := context.TODO()
+values := make([]map[string]interface{}, 0)
+values = append(values, map[string]interface{}{
+   "<FIELD_NAME1_1>": "<VALUE_1>",
+})
+values = append(values, map[string]interface{}{
+   "<FIELD_NAME_2>": "<VALUE_1>",
+   "<FIELD_NAME_3>": "<VALUE_2>",
+})
+
+insert, err := service.Insert(ctx, common.InsertRequest{
+   Table:  "<TABLE_NAME>",
+   Values: values,
+}, common.InsertOptions{ContinueOnError: false, ReturnTokens: true})
+```
+
+### Response Structure:
+#### V1 (Old):
+```json
+{
+ "records": [
+   {
+     "request_index": 0,
+     "table": "cards",
+     "fields": {
+       "cardNumber": "f37186-e7e2-466f-91e5-48e2bcbc1",
+       "fullname": "1989cb56-63a-4482-adf-1f74cd1a5",
+       "skyflow_id": "da26de53-95d5-4bdb-99db-8d8c66a35ff9"
+     }
+   }
+ ]
+}
+```
+
+#### V2 (New):
+```json
+{
+ "insertedFields": [
+        {
+  "card_number": "5484-7829-1702-9110",
+  "request_index": "0",
+  "skyflow_id": "9fac9201-7b8a-4446-93f8-5244e1213bd1",
+  "cardholder_name": "b2308e2a-c1f5-469b-97b7-1f193159399b"
+   }
+      ],
+ "errors": []
+}
+```
+
+---
+
+### 4. Request Options
+
+### V1 (Old):
+```go
+var options = common.InsertOptions {
+    Tokens: true
+}
+```
+
+### V2 (New):
+```go
+var options = common.InsertOptions {
+    ContinueOnError: false,  
+    ReturnTokens: true,
+}
+```
+
+---
+
+### 5. Error Handling
+
+V2 provides enriched **error details** for better debugging.
+
+### V1 (Old): Error Structure
+```json
+{
+  "code": "<http_code>",
+  "description": "<description>"
+}
+```
+
+### V2 (New): Error Structure
+```json
+{
+    "httpCode": <httpCode>,
+    "message": <message>,
+    "requestId": "<requestId>",
+    "grpcCode": <grpcCode>,
+    "httpStatusCode": <httpStatusCode>
+}
+```
+
 
 
 ### Vault APIs
