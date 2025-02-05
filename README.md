@@ -310,11 +310,11 @@ V2 provides enriched **error details** for better debugging.
 ### V2 (New): Error Structure
 ```json
 {
-    "httpCode": <httpCode>,
-    "message": <message>,
+    "httpCode": "<httpCode>",
+    "message": "<message>",
     "requestId": "<requestId>",
-    "grpcCode": <grpcCode>,
-    "httpStatusCode": <httpStatusCode>
+    "grpcCode": "<grpcCode>",
+    "httpStatusCode": "<httpStatusCode>"
 }
 ```
 
