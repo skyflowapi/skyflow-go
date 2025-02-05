@@ -15,7 +15,7 @@ This go SDK is designed to help developers easily implement Skyflow into their g
     - [Requirements](#requirements)
     - [Configuration](#configuration)
     - [Service Account Token Generation](#service-account-token-generation)
-	- [Migation Guide: v1 to v2](#go-sdk-migration-guide)
+	- [Migrate from v1 to v2](#migrate-from-v1-to-v2)
     - [Vault APIs](#vault-apis)
       - [Insert data into the vault](#insert-data-into-the-vault)
       - [Detokenize](#detokenize)
@@ -91,123 +91,130 @@ func GetSkyflowBearerToken() (string, error) {
 	return bearerToken, nil
 }
 ```
-### Go SDK Migration Guide
 
-### Steps to Migrate Go SDK from V1 to V2
-
-Below are the steps to migrate the Go SDK from v1 to v2.
-
----
+## Migrate from v1 to v2
+Below are the steps to migrate the go sdk from v1 to v2.
 
 ### 1. Authentication Options
+In V2, we have introduced multiple authentication options. 
+You can now provide credentials in the following ways: 
 
-In V2, multiple authentication options are introduced. You can now provide credentials in the following ways:
-
-- **API Key (Recommended)**
-- **Environment Variable (`SKYFLOW_CREDENTIALS`) (Recommended)**
-- **Path to your credentials JSON file**
-- **Stringified JSON of your credentials**
-- **Bearer token**
+1. **API Key (Recommended)**
+2. **Environment Variables (`SKYFLOW_CREDENTIALS`) (Recommended)**
+3. **Path to your credentials JSON file**
+4. **Stringified JSON of your credentials**
+5. **Bearer token**
 
 These options allow you to choose the authentication method that best suits your use case.
 
-### V1 (Old):
+#### V1 (Old)
+Passing the `GetToken` function below as a parameter to the `TokenProvider`.
 ```go
 func GetToken() (string, error) {
- filePath := "<file_path>"
- if saUtil.IsExpired(bearerToken) {
-  newToken, err := saUtil.GenerateBearerToken(filePath)
-  if err != nil {
-   return "", err
-  } else {
-   bearerToken = newToken.AccessToken
-   return bearerToken, nil
-  }
- }
- return bearerToken, nil
+    filePath := "<file_path>"
+    if saUtil.IsExpired(bearerToken) {
+        newToken, err := saUtil.GenerateBearerToken(filePath)
+        if err != nil {
+            return "", err
+        } else {
+            bearerToken = newToken.AccessToken
+            return bearerToken, nil
+        }
+    }
+    return bearerToken, nil
 }
 ```
 
-### V2 (New):
+#### V2 (New) Passing one of the following options:
+
 ```go
 // Option 1: API Key (Recommended)
 Credentials := common.Credentials{
-    ApiKey: "<YOUR_API_KEY>",
+    ApiKey: "<YOUR_API_KEY>", // Replace <API_KEY> with your actual API key
 };
 
 // Option 2: Environment Variables (Recommended)
-// Set SKYFLOW_CREDENTIALS in your environment  
+// Set SKYFLOW_CREDENTIALS in your environment
 
 // Option 3: Credentials File
 Credentials := common.Credentials{
-    Path: "<YOUR_PATH>",
+    Path: "<YOUR_PATH>", // Bearer token for authentication with the second vault.
 };
 
 // Option 4: Stringified JSON
 Credentials := common.Credentials{
-    CredentialsString: "<YOUR_CREDENTIALS_STRING>",
+    CredentialsString: "<YOUR_CREDENTIALS_STRING>", // Bearer token for authentication with the second vault.
 };
 
 // Option 5: Bearer Token
 Credentials := common.Credentials{
-    Token: "<YOUR_BEARER_TOKEN>",
+    Token: "<YOUR_BEARER_TOKEN>", // Bearer token for authentication with the second vault.
 };
 ```
 
-#### Notes:
-- Use only **one** authentication method.
+**Notes:**
+- Use only ONE authentication method.
 - Environment variables take precedence over programmatic configuration.
-- **API Key or Environment Variables are recommended for production use.**
+- API Key or Environment Variables are recommended for production use.
 - Secure storage of credentials is essential.
-- For overriding behavior and priority order of credentials, refer to the README.
+- For overriding behavior and priority order of credentials, please refer to the README.
 
----
 
 ### 2. Client Initialization
+In V2, we have introduced a functional options pattern for client initialization and added support for multi-vault. This allows you to configure multiple vaults during client initialization.
 
-V2 introduces a **functional options pattern** for client initialization and supports **multi-vault configuration**.
+In V2, the log level is tied to each individual client instance.
 
-### V1 (Old):
+During client initialization, you can pass the following parameters: 
+- `VaultId` and `ClusterId`: These values are derived from the vault ID & vault URL. 
+- `Env`: Specify the environment (e.g., SANDBOX or PROD). 
+- `Credentials`: The necessary authentication credentials.
+
+#### V1 (Old)
 ```go
-configuration := common.Configuration {
-      VaultID: "<vault_id>",
-      VaultURL: "<vault_url>",
-      TokenProvider: GetToken
+configuration := common.Configuration{
+    VaultID: "<vault_id>", // ID of the vault the client should connect to
+    VaultURL: "<vault_url>", // URL of the vault the client should connect to
+    TokenProvider: GetToken // Helper function that retrieves a Skyflow bearer token from your backend
 }
 
 skyflowClient := Skyflow.Init(configuration)
 ```
 
-### V2 (New):
+#### V2 (New)
 ```go
 vaultConfig := common.VaultConfig{
-       VaultId: "<VAULT_ID1>",
-       ClusterId: "<CLUSTER_ID1>",
-       Env: common.DEV,
-       Credentials: common.Credentials{
-           Token: "<BEARER_TOKEN1>",
-       },
+    VaultId: "<VAULT_ID1>", // Replace with the ID of your first vault.
+    ClusterId: "<CLUSTER_ID1>", // Replace with the cluster ID of your first vault.
+    Env: common.DEV, // Specify the environment (PROD, DEV, or STAGING). Using DEV here.
+    Credentials: common.Credentials{
+        Token: "<BEARER_TOKEN1>", // Bearer token for authentication with the first vault.
+    },
 }
 
+// Initialize the Skyflow client with the configured vaults
 skyflowInstance, err := client.NewSkyflow(
-       client.WithVaults(arr),
-       client.WithCredentials(common.Credentials{}),
-       client.WithLogLevel(logger.DEBUG),
+    client.WithVaults(arr), // Add the vault configurations.
+    client.WithCredentials(common.Credentials{}), // Global credentials (used if individual vault credentials are not set).
+    client.WithLogLevel(logger.DEBUG), // Set the logging level to DEBUG for detailed logs.
 )
 ```
 
-#### Key Changes:
-- `VaultURL` replaced with `ClusterId`.
-- Added **environment specification (`Env`)**.
-- Instance-specific **log levels**.
+**Key Changes:**
+- `VaultURL` replaced by `ClusterId`.
+- Added environment specification (`Env`).
+- Instance-specific log levels.
 
 ---
 
 ### 3. Request & Response Structure
+In V2, the InsertRequest requires the following:
+- `Table`: The name of the table.
+- `Values`: An array of objects containing the data to be inserted.
 
-V2 introduces **constructor parameters** for request building.
+The response will be of type `InsertResponse`, which includes `insertedFields` and `errors`.
 
-### V1 (Old): Request Building
+#### V1 (Old) Request Building
 ```go
 var options = common.InsertOptions{Tokens: false}
 var records = make(map[string]interface{})
@@ -223,7 +230,7 @@ records["records"] = recordsArray
 res, err := client.Insert(records, options)
 ```
 
-### V2 (New): Request Building
+#### V2 (New) Request Building
 ```go
 ctx := context.TODO()
 values := make([]map[string]interface{}, 0)
@@ -236,89 +243,87 @@ values = append(values, map[string]interface{}{
 })
 
 insert, err := service.Insert(ctx, common.InsertRequest{
-   Table:  "<TABLE_NAME>",
-   Values: values,
+    Table:  "<TABLE_NAME>",
+    Values: values,
 }, common.InsertOptions{ContinueOnError: false, ReturnTokens: true})
 ```
 
-### Response Structure:
-#### V1 (Old):
+#### V1 (Old) Response Structure
 ```json
 {
- "records": [
-   {
-     "request_index": 0,
-     "table": "cards",
-     "fields": {
-       "cardNumber": "f37186-e7e2-466f-91e5-48e2bcbc1",
-       "fullname": "1989cb56-63a-4482-adf-1f74cd1a5",
-       "skyflow_id": "da26de53-95d5-4bdb-99db-8d8c66a35ff9"
-     }
-   }
- ]
+  "records": [
+    {
+      "request_index": 0,
+      "table": "cards",
+      "fields": {
+        "cardNumber": "f37186-e7e2-466f-91e5-48e2bcbc1",
+        "fullname": "1989cb56-63a-4482-adf-1f74cd1a5",
+        "skyflow_id": "da26de53-95d5-4bdb-99db-8d8c66a35ff9"
+      }
+    }
+  ]
 }
 ```
 
-#### V2 (New):
+#### V2 (New) Response Structure
 ```json
 {
- "insertedFields": [
-        {
-  "card_number": "5484-7829-1702-9110",
-  "request_index": "0",
-  "skyflow_id": "9fac9201-7b8a-4446-93f8-5244e1213bd1",
-  "cardholder_name": "b2308e2a-c1f5-469b-97b7-1f193159399b"
-   }
-      ],
- "errors": []
+  "insertedFields": [
+    {
+      "card_number": "5484-7829-1702-9110",
+      "request_index": "0",
+      "skyflow_id": "9fac9201-7b8a-4446-93f8-5244e1213bd1",
+      "cardholder_name": "b2308e2a-c1f5-469b-97b7-1f193159399b"
+    }
+  ],
+  "errors": []
 }
 ```
-
----
 
 ### 4. Request Options
-
-### V1 (Old):
+#### V1 (Old)
 ```go
-var options = common.InsertOptions {
+var options = common.InsertOptions{
     Tokens: true
 }
 ```
 
-### V2 (New):
+#### V2 (New)
 ```go
-var options = common.InsertOptions {
-    ContinueOnError: false,  
+var options = common.InsertOptions{
+    ContinueOnError: false,
     ReturnTokens: true,
 }
 ```
 
 ---
 
-### 5. Error Handling
+### 5. Enhanced Error Details
+In V2, error details have been enriched to provide better debugging capabilities. The error response includes:
 
-V2 provides enriched **error details** for better debugging.
+- `httpStatusCode`: The HTTP status code.
+- `grpcCode`: The gRPC code associated with the error.
+- `message`: A detailed description of the error.
+- `requestId`: A unique request identifier for easier debugging.
 
-### V1 (Old): Error Structure
+#### V1 (Old) Error Structure
 ```json
 {
-  "code": "<http_code>",
-  "description": "<description>"
+  code: "<http_code>",
+  description: "<description>"
 }
 ```
 
-### V2 (New): Error Structure
+#### V2 (New) Error Structure
 ```json
 {
-    "httpCode": "<httpCode>",
-    "message": "<message>",
-    "requestId": "<requestId>",
-    "grpcCode": "<grpcCode>",
-    "httpStatusCode": "<httpStatusCode>"
+  httpCode: <httpCode>,
+  message: <message>,
+  requestId: "<requestId>",
+  grpcCode: <grpcCode>,
+  httpStatusCode: <httpStatusCode>
 }
 ```
-
-
 
 ### Vault APIs
 
