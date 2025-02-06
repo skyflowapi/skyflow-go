@@ -100,7 +100,7 @@ In V2, we have introduced multiple authentication options.
 You can now provide credentials in the following ways: 
 
 1. **API Key (Recommended)**
-2. **Environment Variables (`SKYFLOW_CREDENTIALS`) (Recommended)**
+2. **Environment Variables** (`SKYFLOW_CREDENTIALS`) (**Recommended**)
 3. **Path to your credentials JSON file**
 4. **Stringified JSON of your credentials**
 5. **Bearer token**
