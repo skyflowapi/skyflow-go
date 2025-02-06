@@ -111,7 +111,7 @@ These options allow you to choose the authentication method that best suits your
 Passing the `GetToken` function below as a parameter to the `TokenProvider`.
 ```go
 func GetToken() (string, error) {
-    filePath := "<file_path>"
+    filePath := "<CREDENTIALS_FILE_PATH>"
     if saUtil.IsExpired(bearerToken) {
         newToken, err := saUtil.GenerateBearerToken(filePath)
         if err != nil {
@@ -173,8 +173,8 @@ During client initialization, you can pass the following parameters:
 #### V1 (Old)
 ```go
 configuration := common.Configuration{
-    VaultID: "<vault_id>", // ID of the vault the client should connect to
-    VaultURL: "<vault_url>", // URL of the vault the client should connect to
+    VaultID: "<VAULT_ID>", // ID of the vault the client should connect to
+    VaultURL: "<VAULT_URL>", // URL of the vault the client should connect to
     TokenProvider: GetToken // Helper function that retrieves a Skyflow bearer token from your backend
 }
 
@@ -309,19 +309,19 @@ In V2, error details have been enriched to provide better debugging capabilities
 #### V1 (Old) Error Structure
 ```json
 {
-  code: "<http_code>",
-  description: "<description>"
+  "code": "<http_code>",
+  "description": "<description>"
 }
 ```
 
 #### V2 (New) Error Structure
 ```json
 {
-  httpCode: <httpCode>,
-  message: <message>,
-  requestId: "<requestId>",
-  grpcCode: <grpcCode>,
-  httpStatusCode: <httpStatusCode>
+  "httpCode": "<httpCode>",
+  "message": "<message>",
+  "requestId": "<requestId>",
+  "grpcCode": "<grpcCode>",
+  "httpStatusCode": "<httpStatusCode>"
 }
 ```
 
