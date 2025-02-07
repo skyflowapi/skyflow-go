@@ -4,66 +4,63 @@ Copyright (c) 2022 Skyflow, Inc.
 package main
 
 import (
+	"context"
 	"fmt"
+	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
 
-	logger "github.com/skyflowapi/skyflow-go/commonutils/logwrapper"
-	saUtil "github.com/skyflowapi/skyflow-go/serviceaccount/util"
-	Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
-	"github.com/skyflowapi/skyflow-go/skyflow/common"
+	. "github.com/skyflowapi/skyflow-go/v2/client"
+	. "github.com/skyflowapi/skyflow-go/v2/utils/common"
 )
 
-var bearerToken = ""
-
-func GetToken() (string, error) {
-
-	filePath := "<file_path>"
-	if saUtil.IsExpired(bearerToken) {
-		newToken, err := saUtil.GenerateBearerToken(filePath)
-		if err != nil {
-			return "", err
-		} else {
-			bearerToken = newToken.AccessToken
-			return bearerToken, nil
-		}
-	}
-	return bearerToken, nil
-}
 func main() {
+	// Add connection configurations 1
+	connConfig1 := ConnectionConfig{ConnectionId: "<CONNECTION_ID1>", ConnectionUrl: "<CONNECTION_URL1>", Credentials: Credentials{Token: "<BEARER_TOKEN1>"}}
 
-	defer func() {
-		if err := recover(); err != nil {
-			fmt.Println("error : ", err)
-		}
-	}()
+	// Add connection configurations 2
+	connConfig2 := ConnectionConfig{ConnectionId: "<CONNECTION_ID2>", ConnectionUrl: "<CONNECTION_URL2>", Credentials: Credentials{Token: "<BEARER_TOKEN2>"}}
 
-	logger.SetLogLevel(logger.INFO) //set loglevel to INFO
-	configuration := common.Configuration{TokenProvider: GetToken}
-	var client = Skyflow.Init(configuration)
+	var arr []ConnectionConfig
+	arr = append(arr, connConfig1, connConfig2)
 
-	connectionUrl := "<CONNECTION_URL>"
-	pathParams := make(map[string]string)
-	pathParams["card_number"] = "<card_number>"
-
-	//queryParams := make(map[string]interface{})
-	//["cc"] = true
-
-	requestBody := make(map[string]interface{})
-	expiryDate := make(map[string]interface{})
-	expiryDate["mm"] = "06"
-	expiryDate["yy"] = "22"
-	requestBody["expirationDate"] = expiryDate
-
-	requestHeader := make(map[string]string)
-	requestHeader["Authorization"] = "<Your-Authorization-Value>"
-
-	var connectionConfig = common.ConnectionConfig{ConnectionURL: connectionUrl, MethodName: common.POST,
-		PathParams: pathParams, RequestBody: requestBody, RequestHeader: requestHeader}
-
-	res, err := client.InvokeConnection(connectionConfig)
-
-	if err == nil {
-		fmt.Println(res)
+	// Initialize Skyflow client
+	client1, clientError := NewSkyflow(
+		WithConnections(arr...),
+		WithLogLevel(logger.DEBUG),
+	)
+	if clientError != nil {
+		fmt.Println("Error:", clientError)
 	} else {
-		panic(err.GetMessage())
+		service, conError := client1.Connection("<CONNECTION_ID1>")
+		if conError != nil {
+			fmt.Println("Error:", conError)
+		} else {
+			ctx := context.TODO()
+			body := map[string]interface{}{ // Set your data
+				"<KEY_1>": "<VALUE_1>",
+				"<KEY_2>": "<VALUE_2>",
+			}
+			headers := map[string]string{
+				"Content-Type": "application/json", // Set the content type
+			}
+			queryParams := map[string]interface{}{ // Set your params
+				"<YOUR_QUERY_PARAM_KEY_1>": "<YOUR_QUERY_PARAM_VALUE_1>",
+				"<YOUR_QUERY_PARAM_KEY_2>": "<YOUR_QUERY_PARAM_VALUE_2>",
+			}
+			pathParams := map[string]string{"<YOUR_PATH_PARAM_KEY_1>": "<YOUR_PATH_PARAM_VALUE_1>"}
+			req := InvokeConnectionRequest{
+				Method:      POST, // set the request method
+				Headers:     headers,
+				Body:        body,
+				QueryParams: queryParams,
+				PathParams:  pathParams,
+			}
+			res, invokeError := service.Invoke(ctx, req)
+			if invokeError != nil {
+				fmt.Println("ERROR: ", *invokeError)
+			} else {
+				fmt.Println("RESPONSE", res)
+			}
+		}
 	}
+
 }
