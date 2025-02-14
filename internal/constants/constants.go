@@ -11,6 +11,6 @@ const (
 	GRANT_TYPE             = "urn:ietf:params:oauth:grant-type:jwt-bearer"
 	SDK_LOG_PREFIX         = "[ " + SDK_PREFIX + " ] "
 	SDK_NAME               = "Skyflow Go SDK "
-	SDK_VERSION            = "v2"
+	SDK_VERSION            = "v2.0.0-beta.1"
 	SDK_PREFIX             = SDK_NAME + SDK_VERSION
 )

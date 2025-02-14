@@ -17,7 +17,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/skyflowapi/skyflow-go/v2/internal/helpers"
+	. "github.com/skyflowapi/skyflow-go/v2/internal/helpers"
 	"github.com/skyflowapi/skyflow-go/v2/utils/common"
 	. "github.com/skyflowapi/skyflow-go/v2/utils/error"
 )
@@ -35,7 +35,7 @@ var _ = Describe("Helpers", func() {
 			ioutil.WriteFile(filePath, []byte(credentialsContent), 0644)
 			defer os.Remove(filePath)
 
-			credKeys, err := helpers.ParseCredentialsFile(filePath)
+			credKeys, err := ParseCredentialsFile(filePath)
 
 			Expect(err).To(BeNil())
 			Expect(credKeys).To(HaveKeyWithValue("clientID", "test-client-id"))
@@ -47,13 +47,13 @@ var _ = Describe("Helpers", func() {
 			var credMap = map[string]interface{}{}
 			_ = json.Unmarshal([]byte(invalidKeyType), &credMap)
 
-			credKeys, err1 := helpers.ParsePrivateKey(credMap["privateKey"].(string))
+			credKeys, err1 := ParsePrivateKey(credMap["privateKey"].(string))
 
 			Expect(err1).ToNot(BeNil())
 			Expect(credKeys).To(BeNil())
 		})
 		It("should return an error for an invalid file path", func() {
-			_, err := helpers.ParseCredentialsFile("invalid_path.txt")
+			_, err := ParseCredentialsFile("invalid_path.txt")
 
 			Expect(err).NotTo(BeNil())
 			Expect(err.GetCode()).To(Equal("Code: 400"))
@@ -64,7 +64,7 @@ var _ = Describe("Helpers", func() {
 			ioutil.WriteFile(filePath, []byte(""), 0644)
 			defer os.Remove(filePath)
 
-			_, err := helpers.ParseCredentialsFile(filePath)
+			_, err := ParseCredentialsFile(filePath)
 
 			Expect(err).NotTo(BeNil())
 			Expect(err.GetCode()).To(Equal("Code: 400"))
@@ -76,7 +76,7 @@ var _ = Describe("Helpers", func() {
 			credMap := map[string]interface{}{}
 			err := json.Unmarshal([]byte(pvtKey), &credMap)
 
-			privateKey, err := helpers.GetPrivateKey(credMap)
+			privateKey, err := GetPrivateKey(credMap)
 
 			Expect(err).To(BeNil())
 			Expect(privateKey).ToNot(BeNil())
@@ -86,7 +86,7 @@ var _ = Describe("Helpers", func() {
 		It("should return an error for a missing private key", func() {
 			credKeys := map[string]interface{}{}
 
-			_, err := helpers.GetPrivateKey(credKeys)
+			_, err := GetPrivateKey(credKeys)
 
 			Expect(err).NotTo(BeNil())
 			Expect(err.GetCode()).To(Equal("Code: 400"))
@@ -96,7 +96,7 @@ var _ = Describe("Helpers", func() {
 			pemKey := `INVALID PRIVATE KEY FORMAT`
 			credKeys := map[string]interface{}{"privateKey": pemKey}
 
-			_, err := helpers.GetPrivateKey(credKeys)
+			_, err := GetPrivateKey(credKeys)
 
 			Expect(err).NotTo(BeNil())
 			Expect(err.GetCode()).To(Equal("Code: 400"))
@@ -106,7 +106,7 @@ var _ = Describe("Helpers", func() {
 		It("should return a valid base URL for a valid URL string", func() {
 			urlStr := "https://example.com/some/path"
 
-			baseURL, err := helpers.GetBaseURL(urlStr)
+			baseURL, err := GetBaseURL(urlStr)
 
 			Expect(err).To(BeNil())
 			Expect(baseURL).To(Equal("https://example.com"))
@@ -115,7 +115,7 @@ var _ = Describe("Helpers", func() {
 		It("should return an error for an invalid URL string", func() {
 			urlStr := "invalid_url"
 
-			_, err := helpers.GetBaseURL(urlStr)
+			_, err := GetBaseURL(urlStr)
 
 			Expect(err).NotTo(BeNil())
 			Expect(err.GetCode()).To(Equal("Code: 400"))
@@ -124,7 +124,7 @@ var _ = Describe("Helpers", func() {
 		It("should return an error for a URL without protocol", func() {
 			urlStr := "www.example.com"
 
-			_, err := helpers.GetBaseURL(urlStr)
+			_, err := GetBaseURL(urlStr)
 
 			Expect(err).NotTo(BeNil())
 			Expect(err.GetCode()).To(Equal("Code: 400"))
@@ -136,7 +136,7 @@ var _ = Describe("Helpers", func() {
 MIIBAAIBADANINVALIDKEY==
 -----END PRIVATE KEY-----`
 			// Act
-			privateKey, err := helpers.ParsePrivateKey(pemKey)
+			privateKey, err := ParsePrivateKey(pemKey)
 
 			// Assert
 			Expect(err).ToNot(BeNil())
@@ -159,7 +159,7 @@ MIIBAAIBADANINVALIDKEY==
 			})
 
 			// Act
-			_, parseErr := helpers.ParsePrivateKey(string(pemKey))
+			_, parseErr := ParsePrivateKey(string(pemKey))
 
 			// Assert
 			Expect(parseErr).NotTo(BeNil())
@@ -182,7 +182,7 @@ MIIBAAIBADANINVALIDKEY==
 			})
 
 			// Act
-			parsedKey, parseErr := helpers.ParsePrivateKey(string(pemKey))
+			parsedKey, parseErr := ParsePrivateKey(string(pemKey))
 
 			// Assert
 			Expect(parseErr).To(BeNil())
@@ -211,7 +211,7 @@ MIIBAAIBADANINVALIDKEY==
 
 		Context("When all credential parameters are valid", func() {
 			It("should return clientID, tokenURI, keyID and no error", func() {
-				clientID, tokenURI, keyID, err := helpers.GetCredentialParams(validCredKeys)
+				clientID, tokenURI, keyID, err := GetCredentialParams(validCredKeys)
 
 				Expect(clientID).To(Equal("validClientID"))
 				Expect(tokenURI).To(Equal("validTokenURI"))
@@ -222,7 +222,7 @@ MIIBAAIBADANINVALIDKEY==
 
 		Context("When one or more credential parameters are missing", func() {
 			It("should return an error", func() {
-				clientID, tokenURI, keyID, err := helpers.GetCredentialParams(invalidCredKeys)
+				clientID, tokenURI, keyID, err := GetCredentialParams(invalidCredKeys)
 
 				Expect(clientID).To(BeEmpty())
 				Expect(tokenURI).To(BeEmpty())
@@ -236,7 +236,7 @@ MIIBAAIBADANINVALIDKEY==
 		Context("When all credential parameters are missing", func() {
 			It("should return an error", func() {
 				emptyCredKeys := make(map[string]interface{})
-				clientID, tokenURI, keyID, err := helpers.GetCredentialParams(emptyCredKeys)
+				clientID, tokenURI, keyID, err := GetCredentialParams(emptyCredKeys)
 
 				Expect(clientID).To(BeEmpty())
 				Expect(tokenURI).To(BeEmpty())
@@ -275,7 +275,7 @@ MIIBAAIBADANINVALIDKEY==
 		Context("When all credentials and options are valid", func() {
 			It("should return signed data tokens successfully", func() {
 				credKeys = getValidCreds()
-				response, err = helpers.GetSignedDataTokens(credKeys, options)
+				response, err = GetSignedDataTokens(credKeys, options)
 				Expect(err).Should(BeNil())
 				Expect(response).Should(HaveLen(2))
 				Expect(response[0].Token).Should(Equal("testToken1"))
@@ -284,7 +284,7 @@ MIIBAAIBADANINVALIDKEY==
 			It("should return signed data tokens successfully when timeToLive not passed", func() {
 				credKeys = getValidCreds()
 				options.TimeToLive = 0
-				response, err = helpers.GetSignedDataTokens(credKeys, options)
+				response, err = GetSignedDataTokens(credKeys, options)
 				Expect(err).Should(BeNil())
 				Expect(response).Should(HaveLen(2))
 				Expect(response[0].Token).Should(Equal("testToken1"))
@@ -299,7 +299,7 @@ MIIBAAIBADANINVALIDKEY==
 				credMap := map[string]interface{}{}
 				_ = json.Unmarshal([]byte(pvtKey), &credMap)
 				credMap["privateKey"] = nil // Invalidate the private key
-				response, err = helpers.GetSignedDataTokens(credMap, options)
+				response, err = GetSignedDataTokens(credMap, options)
 				Expect(response).Should(BeNil())
 				Expect(err).ShouldNot(BeNil())
 				Expect(err.GetCode()).Should(Equal("Code: 400")) // Assuming a 400 error code for this case
@@ -314,7 +314,7 @@ MIIBAAIBADANINVALIDKEY==
 				credMap := map[string]interface{}{}
 				_ = json.Unmarshal([]byte(pvtKey), &credMap)
 				credMap["clientID"] = nil // Invalidate the clientID
-				response, err = helpers.GetSignedDataTokens(credMap, options)
+				response, err = GetSignedDataTokens(credMap, options)
 				Expect(response).Should(BeNil())
 				Expect(err).ShouldNot(BeNil())
 				Expect(err.GetCode()).Should(Equal("Code: 400")) // Assuming a 400 error code for this case
@@ -326,7 +326,7 @@ MIIBAAIBADANINVALIDKEY==
 			It("should propagate the error", func() {
 				invalidPrivateKey := "invalidKey"
 				credKeys["privateKey"] = invalidPrivateKey
-				response, err = helpers.GetSignedDataTokens(credKeys, options)
+				response, err = GetSignedDataTokens(credKeys, options)
 				Expect(response).Should(BeNil())
 				Expect(err).ShouldNot(BeNil())
 				Expect(err.GetCode()).Should(Equal("Code: 400")) // Assuming 400 error for signing failure
@@ -337,20 +337,20 @@ MIIBAAIBADANINVALIDKEY==
 		Context("GetScopeUsingRoles", func() {
 			// Test case 1: roles is nil
 			It("should return an empty string when roles is nil", func() {
-				result := helpers.GetScopeUsingRoles(nil)
+				result := GetScopeUsingRoles(nil)
 				Expect(result).To(Equal(""))
 			})
 
 			// Test case 2: roles is an empty slice
 			It("should return an empty string when roles is an empty slice", func() {
-				result := helpers.GetScopeUsingRoles([]string{})
+				result := GetScopeUsingRoles([]string{})
 				Expect(result).To(Equal(""))
 			})
 
 			// Test case 3: roles contains multiple roles
 			It("should return a string with roles prefixed by ' role:'", func() {
 				roles := []string{"admin", "user", "editor"}
-				result := helpers.GetScopeUsingRoles(roles)
+				result := GetScopeUsingRoles(roles)
 				expected := " role:admin role:user role:editor"
 				Expect(result).To(Equal(expected))
 			})
@@ -358,7 +358,7 @@ MIIBAAIBADANINVALIDKEY==
 			// Test case 4: roles contains one role
 			It("should return a string with a single role", func() {
 				roles := []string{"admin"}
-				result := helpers.GetScopeUsingRoles(roles)
+				result := GetScopeUsingRoles(roles)
 				expected := " role:admin"
 				Expect(result).To(Equal(expected))
 			})
@@ -366,7 +366,7 @@ MIIBAAIBADANINVALIDKEY==
 			// Test case 5: roles contains one empty string role
 			It("should handle empty role string correctly", func() {
 				roles := []string{""}
-				result := helpers.GetScopeUsingRoles(roles)
+				result := GetScopeUsingRoles(roles)
 				expected := " role:"
 				Expect(result).To(Equal(expected))
 			})
@@ -402,15 +402,15 @@ MIIBAAIBADANINVALIDKEY==
 				credKeys = getValidCreds()
 				mockServer = mockserver("ok")
 				credKeys["tokenURI"] = mockServer.URL
-				originalGetBaseURLHelper := helpers.GetBaseURLHelper
+				originalGetBaseURLHelper := GetBaseURLHelper
 
-				defer func() { helpers.GetBaseURLHelper = originalGetBaseURLHelper }()
-				helpers.GetBaseURLHelper = func(urlStr string) (string, *SkyflowError) {
+				defer func() { GetBaseURLHelper = originalGetBaseURLHelper }()
+				GetBaseURLHelper = func(urlStr string) (string, *SkyflowError) {
 					return mockServer.URL, nil
 				}
 
 				// Call the function under test
-				response, err := helpers.GenerateBearerTokenHelper(credKeys, options)
+				response, err := GenerateBearerTokenHelper(credKeys, options)
 
 				// Assertions
 				Expect(err).Should(BeNil())
@@ -422,16 +422,16 @@ MIIBAAIBADANINVALIDKEY==
 				credKeys = getValidCreds()
 				credKeys["tokenURI"] = mockServer.URL
 				mockServer = mockserver("err")
-				originalGetBaseURLHelper := helpers.GetBaseURLHelper
+				originalGetBaseURLHelper := GetBaseURLHelper
 
-				defer func() { helpers.GetBaseURLHelper = originalGetBaseURLHelper }()
+				defer func() { GetBaseURLHelper = originalGetBaseURLHelper }()
 
-				helpers.GetBaseURLHelper = func(urlStr string) (string, *SkyflowError) {
+				GetBaseURLHelper = func(urlStr string) (string, *SkyflowError) {
 					return mockServer.URL, nil
 				}
 
 				// Call the function under test
-				response, err := helpers.GenerateBearerTokenHelper(credKeys, options)
+				response, err := GenerateBearerTokenHelper(credKeys, options)
 
 				// Assertions
 				Expect(err).ShouldNot(BeNil())
@@ -447,7 +447,7 @@ MIIBAAIBADANINVALIDKEY==
 				delete(credKeys, "privateKey")
 
 				// Call the function under test
-				response, err := helpers.GenerateBearerTokenHelper(credKeys, options)
+				response, err := GenerateBearerTokenHelper(credKeys, options)
 
 				// Assertions
 				Expect(err).ShouldNot(BeNil())
@@ -460,7 +460,7 @@ MIIBAAIBADANINVALIDKEY==
 				credKeys = getValidCreds()
 				delete(credKeys, "clientID")
 				// Call the function under test
-				response, err := helpers.GenerateBearerTokenHelper(credKeys, options)
+				response, err := GenerateBearerTokenHelper(credKeys, options)
 
 				// Assertions
 				Expect(err).ShouldNot(BeNil())
@@ -473,7 +473,7 @@ MIIBAAIBADANINVALIDKEY==
 				credKeys = getValidCreds()
 				delete(credKeys, "tokenURI")
 				// Call the function under test
-				response, err := helpers.GenerateBearerTokenHelper(credKeys, options)
+				response, err := GenerateBearerTokenHelper(credKeys, options)
 
 				// Assertions
 				Expect(err).ShouldNot(BeNil())
@@ -486,7 +486,7 @@ MIIBAAIBADANINVALIDKEY==
 				credKeys = getValidCreds()
 				delete(credKeys, "keyID")
 				// Call the function under test
-				response, err := helpers.GenerateBearerTokenHelper(credKeys, options)
+				response, err := GenerateBearerTokenHelper(credKeys, options)
 
 				// Assertions
 				Expect(err).ShouldNot(BeNil())
@@ -499,7 +499,7 @@ MIIBAAIBADANINVALIDKEY==
 				credKeys = getValidCreds()
 				credKeys["tokenURI"] = ""
 				// Call the function under test
-				response, err := helpers.GenerateBearerTokenHelper(credKeys, options)
+				response, err := GenerateBearerTokenHelper(credKeys, options)
 
 				// Assertions
 				Expect(err).ShouldNot(BeNil())
