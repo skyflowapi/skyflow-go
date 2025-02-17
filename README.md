@@ -48,7 +48,9 @@ The Skyflow Go SDK is designed to help with integrating Skyflow into a go backen
 
 ## Overview
 - Authenticate using a Skyflow service account and generate bearer tokens for secure access.
+
 - Perform Vault API operations such as inserting, retrieving, and tokenizing sensitive data with ease.
+
 - Invoke connections to third-party APIs without directly handling sensitive data, ensuring compliance and data protection.
 
 ## Install
@@ -78,15 +80,19 @@ Alternatively, `go get <package_name>` can also be used to download the required
 Below are the steps to migrate the go sdk from v1 to v2.
 
 ### **Authentication options**
-In V2, we have introduced multiple authentication options. You can now provide credentials in the following ways:
-- API Key (Recommended)
-- Passing credentials in ENV. (SKYFLOW_CREDENTIALS) (Recommended)
-- Path to your credentials JSON file
-- Stringified JSON of your credentials
-- Bearer token
-  These options allow you to choose the authentication method that best suits your use case.
+In V2, we have introduced multiple authentication options.
+You can now provide credentials in the following ways:
 
-#### v1(old):
+- **Passing credentials in ENV.** (`SKYFLOW_CREDENTIALS`) (**Recommended**)
+- **API Key**
+- **Path to your credentials JSON file**
+- **Stringified JSON of your credentials**
+- **Bearer token**
+
+These options allow you to choose the authentication method that best suits your use case.
+
+#### V1 (Old): Passing the token provider function below as a parameter to the Configuration.
+
 ```go
 package main
     
@@ -131,17 +137,17 @@ skyflowCredentials := common.Credentials{CredentialsString: "<YOUR_CREDENTIALS_S
 skyflowCredentials := common.Credentials{Token: "<BEARER_TOKEN>"} // Replace <BEARER_TOKEN> with your actual authentication token.
 ```
 
-#### Notes
-- Use only ONE authentication method.
-- API Key or environment variables are recommended for production use.
-- Secure storage of credentials is essential.
-- For overriding behavior and priority order of credentials, please refer to Initialize the client section in Quickstart.
 
 ### Initializing the client
-In V2, we have introduced a functional options design pattern for client initialization and added support for multi-vault. This allows you to configure multiple vaults during client initialization. In V2, the log level is tied to each individual client instance. During client initialization, you can pass the following parameters:
-- `vaultId` and `clusterId`: These values are derived from the vault ID & vault URL.
-- `env`: Specify the environment (e.g., SANDBOX or PROD).
-- `credentials`: The necessary authentication credentials.
+In V2, we have introduced a functional options design pattern for client initialization and added support for multi-vault. This allows you to configure multiple vaults during client initialization. 
+
+In V2, the log level is tied to each individual client instance.
+
+During client initialization, you can pass the following parameters:
+
+- `VaultID` and `VaultURL`: These values are derived from the vault ID & vault URL.
+- `Env`: Specify the environment (e.g., SANDBOX or PROD).
+- `Credentials`: The necessary authentication credentials.
 
 #### V1 (Old):
 ```go
@@ -182,18 +188,19 @@ func main() {
 	)
 }	
 ```
+
 #### Key Changes:
-- `vaultUrl` replaced with `clusterId`.
-- Added environment specification (`env`).
+- `vaultUrl` replaced with `ClusterId`.
+- Added environment specification (`Env`).
 - Instance-specific log levels.
 
 ###  Request & response structure
 In V2, we have removed the use of JSON objects from a third-party package. Instead, we have transitioned to accepting native list and map data structures. This request needs:
-- Table: The name of the table.
-- Values: An array list of objects containing the data to be inserted.
-  The response will be of type InsertResponse class, which contains insertedFields and errors.
+- **Table**: The name of the table.
+- **Values**: An array list of objects containing the data to be inserted.
+The response will be of type `InsertResponse` class, which contains `InsertedFields` and `Errors`.
 
-#### V1 (Old) :  Request building
+#### V1 (Old) :  Request Building
 ```go
 import (
     Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
@@ -286,7 +293,7 @@ if serviceError != nil {
 }
 ```
 ### Request options
-In V2, with the introduction of the builder design pattern has made handling optional fields in Java more efficient and straightforward.
+In V2, with the introduction of the Functional options design pattern has made handling optional fields in Go more efficient and straightforward.
 #### V1 (Old):
 ```go
 options := common.InsertOptions {
@@ -303,10 +310,10 @@ options := common.InsertOptions{ContinueOnError: false, ReturnTokens: true, Toke
 #### Error structure
 In V2, we have enriched the error details to provide better debugging capabilities.
 The error response now includes:
-- `httpStatus`: The HTTP status code.
-- `grpcCode`: The gRPC code associated with the error.
-- `details & message`: A detailed description of the error.
-- `requestId`: A unique request identifier for easier debugging.
+- **httpStatus**: The HTTP status code.
+- **grpcCode**: The gRPC code associated with the error.
+- **details & message**: A detailed description of the error.
+- **requestId**: A unique request identifier for easier debugging.
 
 
 #### V1 (Old): Error structure
@@ -339,17 +346,20 @@ skyflowCredentials := common.Credentials{ApiKey: "<YOUR_API_KEY>"} // Replace <A
 ### Initialize the client
 To get started, you must first initialize the skyflow client. While initializing the skyflow client, you can specify different types of credentials.
 
-1. API keys
-   A unique identifier used to authenticate and authorize requests to an API.
-2. Bearer tokens
-   A temporary access token used to authenticate API requests, typically included in the Authorization header.
-3. Service account credentials file path
-   The file path pointing to a JSON file containing credentials for a service account, used
-   for secure API access.
-4. Service account credentials string (JSON formatted)
-   A JSON-formatted string containing service account credentials, often used as an alternative to a file for programmatic authentication.
+**1. API keys**
+- A unique identifier used to authenticate and authorize requests to an API.
 
-`Note`: Only one type of credential can be used at a time. If multiple credentials are provided, the last one added will take precedence.
+**2. Bearer tokens**
+- A temporary access token used to authenticate API requests, typically included in the Authorization header.
+
+**3. Service account credentials file path**
+- The file path pointing to a JSON file containing credentials for a service account, used
+   for secure API access.
+
+**4. Service account credentials string (JSON formatted)**
+- A JSON-formatted string containing service account credentials, often used as an alternative to a file for programmatic authentication.
+
+Note: Only one type of credential can be used at a time.
 
 ```go
 package main
@@ -508,7 +518,7 @@ func main() {
 ```
 
 Skyflow returns tokens for the record that was just inserted.
-```javascript
+```Goscript
 Insert Response: {
 	"InsertedFields": [{
 		"card_number": "5484-7829-1702-9110",
@@ -526,7 +536,7 @@ Insert Response: {
 The [Vault](https://github.com/skyflowapi/skyflow-go/tree/main/skyflow/vaultapi) module performs operations on the vault, including inserting records, detokenizing tokens, and retrieving tokens associated with a `skyflow_id`.
 
 ### Insert data into the vault
-Apart from using the `insert` method to insert data into your vault covered in [Quickstart](#quickstart), you can also specify options in `InsertRequest`, such as returning tokenized data, upserting records, or continuing the operation in case of errors.
+Apart from using the `Insert` method to insert data into your vault covered in [Quickstart](#quickstart), you can also specify options in `InsertRequest`, such as returning tokenized data, upserting records, or continuing the operation in case of errors.
 
 #### Construct an insert request
 
@@ -589,7 +599,8 @@ func main() {
 ```
 
 [Insert call example with ContinueOnError option](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/vaultapi/insert_records.go):
-  The `ContinueOnError` flag is a boolean that determines whether insert operation should proceed despite encountering partial errors. Set to `true` to allow the process to continue even if some errors occur.
+  
+The `ContinueOnError` flag is a boolean that determines whether insert operation should proceed despite encountering partial errors. Set to `true` to allow the process to continue even if some errors occur.
 
 ```go
 /**
@@ -682,7 +693,8 @@ Sample response :
 }
 ```
 
-[Insert call example with upsert option]():
+**[Insert call example with upsert option]()**:
+
 An upsert operation checks for a record based on a unique column's value. If a match exists, the record is updated; otherwise, a new record is inserted.
 
 ```go
@@ -761,7 +773,7 @@ Sample response :
 ### Detokenize
 To retrieve tokens from your vault, use the `Detokenize` method. The `DetokenizeRequest` class requires a list of detokenization data as input. Additionally, you can provide optional parameters, such as the redaction type and the option to continue on error.
 
-**Construct a detokenize request**
+#### Construct a detokenize request
 
 ```go
 package vaultapi
@@ -819,7 +831,7 @@ Notes:
 - `RedactionType` defaults to `RedactionType.PLAIN_TEXT`.
 - `ContinueOnError` defaults to `true`.
 
-An [example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/vaultapi/detokenize.go) of a Detokenize call:
+#### An [example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/vaultapi/detokenize.go) of a Detokenize call:
 
 ```go
 package vaultapi
@@ -895,7 +907,7 @@ Sample response:
 }
 
 ```
-[An example of a detokenize call with `ContinueOnError` option](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/vaultapi/detokenize.go):
+#### [An example of a detokenize call with `ContinueOnError` option](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/vaultapi/detokenize.go):
 
 ```go
 package vaultapi
@@ -972,8 +984,10 @@ Sample response:
 
 ### Tokenize
 Tokenization replaces sensitive data with unique identifier tokens. This approach protects sensitive information by securely storing the original data while allowing the use of tokens within your application.
+
 To tokenize data, use the `Tokenize` method. The `TokenizeRequest` creates a tokenize request. In this request, you specify the `values` parameter, which is a list of `ColumnValue` objects. Each `ColumnValue` contains two properties: `Value` and `ColumnGroup`.
-**Constructing your Tokenize request**
+
+#### Constructing your Tokenize request
 ```go
 package vaultapi
 
@@ -1031,7 +1045,7 @@ func main() {
 }
 ```
 
-An [example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/vaultapi/tokenize_records.go) of Tokenize call
+#### An [example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/vaultapi/tokenize_records.go) of Tokenize call
 ```go
 import (
 "context"
@@ -1092,7 +1106,7 @@ Sample response:
 ### Get
 To retrieve data using Skyflow IDs or unique column values, use the `Get` method. The `GetRequest` class creates a get request, where you specify parameters such as the table name, redaction type, Skyflow IDs, column names, column values, and whether to return tokens. If you specify Skyflow IDs, you can't use column names and column values, and the inverse is true—if you specify column names and column values, you can't use Skyflow IDs.
 
-**Constructing your get request:**
+#### Constructing your get request:
 ```go
 package vaultapi
 
@@ -1184,7 +1198,7 @@ func main() {
 #### Get by skyflow IDs
 Retrieve specific records using `skyflow_ids`. Ideal for fetching exact records when IDs are known.
 
-An [example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/vaultapi/get_records.go) of a get call to retrieve data using Redaction type:
+#### An [example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/vaultapi/get_records.go) of a get call to retrieve data using Redaction type:
 
 ```go 
 package vaultapi
@@ -1271,7 +1285,7 @@ Sample response:
 #### Get tokens
 Return tokens for records. Ideal for securely processing sensitive data while maintaining data privacy.
 
-An [example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/vaultapi/get_records.go) of get call to retrieve tokens using Skyflow IDs:
+#### An [example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/vaultapi/get_records.go) of get call to retrieve tokens using Skyflow IDs:
 ```go
 /**
  * This example demonstrates how to retrieve data from the Skyflow vault and return tokens along with the records.
@@ -1344,7 +1358,7 @@ Sample response:
 #### Get By column name and column values
 Retrieve records by unique column values. Ideal for querying data without knowing Skyflow IDs, using alternate unique identifiers.
 
-An [example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/vaultapi/get_column_values.go) of get call to retrieve data using column name and column values
+#### An [example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/vaultapi/get_column_values.go) of get call to retrieve data using column name and column values
 ```go
 package main
 
@@ -1437,7 +1451,7 @@ Redaction types determine how sensitive data is displayed when retrieved from th
 ### Update
 To update data in your vault, use the `Update` method. The `UpdateRequest` class creates an update request, where you specify parameters such as the table name, data (as a map of key-value pairs), tokens, `ReturnTokens`, and `TokenMode`. If `ReturnTokens` is set to true, Skyflow returns tokens for the updated records. If `ReturnTokens` is set to false, Skyflow returns IDs for the updated records.
 
-**Construct an update request**
+#### Construct an update request
 ```go
 package main
 
@@ -1499,7 +1513,7 @@ func main() {
 }
 ```
 
-An [example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/vaultapi/update_record.go) of update call
+#### An [example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/vaultapi/update_record.go) of update call
 ```go
 package main
 
@@ -1576,8 +1590,9 @@ When `ReturnTokens` is set to `true`
   "card_number": "4315-7650-1359-9681"
 }
 ```
+Sample response
+- When `ReturnTokens` is set to `false`
 
-When `ReturnTokens` is set to `false`
 ```json
 {
   "skyflowId": "5b699e2c-4301-4f9f-bcff-0a8fd3057413"
@@ -1586,7 +1601,8 @@ When `ReturnTokens` is set to `false`
 
 ### Delete
 To delete records using Skyflow IDs, use the `Delete` method. The `DeleteRequest` struct accepts a list of Skyflow IDs that you want to delete, as shown below:
-**Construct a delete request**
+
+#### Construct a delete request
 ```go
 package main
 
@@ -1641,7 +1657,7 @@ func main() {
 }
 ```
 
-An [example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/vaultapi/delete.go) of delete call
+#### An [example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/vaultapi/delete.go) of delete call
 ```go
 package main
 
@@ -1711,7 +1727,7 @@ Sample response:
 ### Query
 To retrieve data with SQL queries, use the `Query` method. The `QueryRequest` struct accepts a `query` parameter, as shown below.
 
-**Construct a query request**
+#### Construct a query request
 Refer to [Query your data](https://docs.skyflow.com/query-data/) and [Execute Query](https://docs.skyflow.com/record/#QueryService_ExecuteQuery) for guidelines and restrictions on supported SQL statements, operators, and keywords.
 ```go
 package main
@@ -1760,7 +1776,7 @@ func main() {
 }
 ```
 
-An [example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/vaultapi/query_record.go) of query call
+#### An [example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/vaultapi/query_record.go) of query call
 ```go
 package main
 
@@ -1835,7 +1851,7 @@ Skyflow Connections is a gateway service leveraging tokenization to securely sen
 ### Invoke Connection
 To invoke a connection, use the `Invoke` method of the Skyflow client.
 
-**Construct an invoke connection request**
+#### Construct an invoke connection request
 ```go
 package vaultapi
 
@@ -1914,9 +1930,9 @@ func main() {
 - PATCH
 - DELETE
 
-`PathParams`, `QueryParams`, `RequestHeader`, `RequestBody` are the objects represented as map, that will be sent through the connection integration url.
+**`PathParams`, `QueryParams`, `RequestHeader`, `RequestBody`** are the objects represented as map, that will be sent through the connection integration url.
 
-An [example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/vaultapi/invoke_connection.go) of invokeConnection
+#### An [example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/vaultapi/invoke_connection.go) of invokeConnection
 ```go
 import (
 "context"
@@ -2016,13 +2032,14 @@ Sample response:
 
 ## Authenticate with bearer tokens
 This section covers methods for generating and managing tokens to authenticate API calls:
-1. **Generate a bearer token**:
+
+- **Generate a bearer token**:
 Enable the creation of bearer tokens using service account credentials. These tokens, valid for 60 minutes, provide secure access to Vault services and management APIs based on the service account's permissions. Use this for general API calls when you only need basic authentication without additional context or role-based restrictions.
-2. **Generate a bearer token with context**:
+- **Generate a bearer token with context**:
 Support embedding context values into bearer tokens, enabling dynamic access control and the ability to track end-user identity. These tokens include context claims and allow flexible authorization for Vault services. Use this when policies depend on specific contextual attributes or when tracking end-user identity is required.
-3. **Generate a scoped bearer token**:
+- **Generate a scoped bearer token**:
 Facilitate the creation of bearer tokens with role-specific access, ensuring permissions are limited to the operations allowed by the designated role. This is particularly useful for service accounts with multiple roles. Use this to enforce fine-grained role-based access control, ensuring tokens only grant permissions for a specific role.
-4. **Generate signed data tokens**:
+- **Generate signed data tokens**:
 Add an extra layer of security by digitally signing data tokens with the service account's private key. These signed tokens can be securely detokenized, provided the necessary bearer token and permissions are available. Use this to add cryptographic protection to sensitive data, enabling secure detokenization with verified integrity and authenticity.
 
 ### Generate a bearer token
@@ -2030,7 +2047,7 @@ The [Service Account]() go module is designed to generate service account tokens
 
 The **GenerateBearerToken(filepath)** utility provides functionality for generating bearer tokens using a credentials JSON file. Alternatively, you can pass the credentials as a string to achieve the same result.
 
-[Example](https://github.com/skyflowapi/skyflow-go/blob/main/samples/serviceaccount/token/main/service_account_token.go):
+#### [Example](https://github.com/skyflowapi/skyflow-go/blob/main/samples/serviceaccount/token/main/service_account_token.go):
 
 ```go
 import (
@@ -2094,7 +2111,7 @@ func BearerTokenGenerationExample() {
 `Context-Aware Authorization`  embeds context values into a bearer token during its generation and so you can reference those values in your policies. This enables more flexible access controls, such as helping you track end-user identity when making API calls using service accounts, and facilitates using signed data tokens during detokenization.
 A service account with the `context_id` identifier generates bearer tokens containing context information, represented as a JWT claim in a Skyflow-generated bearer token. Tokens generated from such service accounts include a `context_identifier` claim, are valid for 60 minutes, and can be used to make API calls to the Data and Management APIs, depending on the service account's permissions.
 
-[Example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/serviceaccount/token_generation_with_context.go)
+#### [Example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/serviceaccount/token_generation_with_context.go)
 ```go
 import (
 "fmt"
@@ -2200,13 +2217,11 @@ func ScopedTokenGenerationExample() {
     fmt.Println(scopedToken);
 }
 ```
-Notes:
-- You can pass either the file path of a service account key credentials file or the service account key credentials as a string to the methods `GenerateBearerToken` and `GenerateBearerTokenFromCreds`.
 
 ### Generate signed data tokens
 Skyflow generates data tokens when sensitive data is inserted into the vault. These data tokens can be digitally signed with a service account's private key, adding an extra layer of protection. Signed tokens can only be detokenized by providing the signed data token along with a bearer token generated from the service account's credentials. The service account must have the necessary permissions and context to successfully detokenize the signed data tokens.
 
-[Example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/serviceaccount/signed_token_generation.go):
+#### [Example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/serviceaccount/signed_token_generation.go):
 ```go
 import (
 "fmt"
@@ -2285,7 +2300,7 @@ Response:
 ```
 
 Notes:
-- The **time to live (TTL)** value should be specified in seconds.
+- The `time to live (TTL)` value should be specified in seconds.
 - By default, the TTL value is set to 60 seconds.
 
 ## Logging
@@ -2293,17 +2308,20 @@ The Skyflow Go SDK provides useful logging using go's built-in logging library. 
 
 Currently, the following five log levels are supported:
 - `DEBUG`:
+  
   When `LogLevel.DEBUG` is passed, logs at all levels will be printed (DEBUG, INFO, WARN, ERROR).
 - `INFO`:
+   
   When `LogLevel.INFO` is passed, INFO logs for every event that occurs during SDK flow execution will be printed, along with WARN and ERROR logs.
 - `WARN`:
+ 
   When `LogLevel.WARN` is passed, only WARN and ERROR logs will be printed.
 - `ERROR`:
+  
   When `LogLevel.ERROR` is passed, only ERROR logs will be printed.
-- `OFF`:
-  `LogLevel.OFF` can be used to turn off all logging from the Skyflow Go SDK.
+- `OFF`: `LogLevel.OFF` can be used to turn off all logging from the Skyflow Go SDK.
 
-`Note`: The ranking of logging levels is as follows: `DEBUG` < `INFO` < `WARN` < `ERROR` < `OFF`.
+**Note**: The ranking of logging levels is as follows: `DEBUG` < `INFO` < `WARN` < `ERROR` < `OFF`.
 
 ```go
 package main
@@ -2369,6 +2387,5 @@ func main() {
 }
 ```
 
-
 ## Reporting a Vulnerability
-If you discover a potential security issue in this project, please reach out to us at security@skyflow.com. Please refrain from creating public GitHub issues or pull requests, as malicious actors could potentially view them.
+If you discover a potential security issue in this project, please reach out to us at **security@skyflow.com**. Please refrain from creating public GitHub issues or pull requests, as malicious actors could potentially view them.
