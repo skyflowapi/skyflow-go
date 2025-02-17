@@ -353,13 +353,10 @@ To get started, you must first initialize the skyflow client. While initializing
 
 ```go
 package main
-
 import (
-	"context"
-	"fmt"
-	"github.com/skyflowapi/skyflow-go/v2/client"
-	"github.com/skyflowapi/skyflow-go/v2/utils/common"
-	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
+  "github.com/skyflowapi/skyflow-go/v2/client"
+  "github.com/skyflowapi/skyflow-go/v2/utils/common"
+  "github.com/skyflowapi/skyflow-go/v2/utils/logger"
 )
 /**
  * Example program to initialize the Skyflow client with various configurations.
@@ -368,63 +365,71 @@ import (
  */
 
 func main() {
-    // Step 1: Define the primary credentials for authentication.
-    // Note: Only one type of credential can be used at a time. You can choose between: 
-	// - API key
-    //  - Bearer token
-   //   - A credentials string (JSON-formatted)
-   //   - A file path to a credentials file.
+  // Step 1: Define the primary credentials for authentication.
+  // Note: Only one type of credential can be used at a time. You can choose between: 
+  // - API key
+  //  - Bearer token
+  //   - A credentials string (JSON-formatted)
+  //   - A file path to a credentials file.
   // Initialize primary credentials using a Bearer token for authentication.
-  primaryCredentials := common.Credentials{Token: "<BEARER_TOKEN1>"} // Replace <BEARER_TOKEN> with your actual authentication token.
-  
-	// Step 2: Configure the primary vault details.
+  primaryCredentials := common.Credentials {
+    Token: "<BEARER_TOKEN1>",
+  } // Replace <BEARER_TOKEN> with your actual authentication token.
+
+  // Step 2: Configure the primary vault details.
   // VaultConfig stores all necessary details to connect to a specific Skyflow vault.
-  primaryConfig := common.VaultConfig{
-	  VaultId: "<PRIMARY_VAULT_ID>", // Replace with your primary vault's ID.
-      ClusterId: "<CLUSTER_ID>", // Replace with the cluster ID (part of the vault URL, e.g., https://{clusterId}.vault.skyflowapis.com).
-      Env: common.DEV,           // Set the environment (PROD, SANDBOX, STAGE, DEV).
-      Credentials: primaryCredentials,       // Attach the primary credentials to this vault configuration.
+  primaryConfig: = common.VaultConfig {
+    VaultId: "<PRIMARY_VAULT_ID>", // Replace with your primary vault's ID.
+    ClusterId: "<CLUSTER_ID>", // Replace with the cluster ID (part of the vault URL, e.g., https://{clusterId}.vault.skyflowapis.com).
+    Env: common.DEV, // Set the environment (PROD, SANDBOX, STAGE, DEV).
+    Credentials: primaryCredentials, // Attach the primary credentials to this vault configuration.
   }
-  
+
   // Step 3: Create credentials as a JSON object (if a Bearer Token is not provided).
   // Demonstrates an alternate approach to authenticate with Skyflow using a credentials object.
-    credentialsObject = `<CREDS_JSON_OBJECT>`
+  credentialsObject := `<CREDS_JSON_OBJECT>`
   // Step 4: Use credentials string.
-    skyflowCredentials = common.Credentials{CredentialsString: credentialsObject}
+  skyflowCredentials = common.Credentials {
+    CredentialsString: credentialsObject,
+  }
 
   // Step 5: Define secondary credentials (API key-based authentication as an example).
   // Demonstrates a different type of authentication mechanism for Skyflow vaults.
-  secondaryCredentials := common.Credentials{ApiKey: "<API_KEY>"} // Replace with your API Key for authentication.
-  
+  secondaryCredentials := common.Credentials {
+    ApiKey: "<API_KEY>",
+  } // Replace with your API Key for authentication.
+
   // Step 6: Configure the secondary vault details.
   // A secondary vault configuration can be used for operations involving multiple vaults.
-  secondaryConfig := common.VaultConfig{
-		VaultId: "<SECONDARY_VAULT_ID>", // Replace with your secondary vault's ID.
-        ClusterId: "<CLUSTER_ID>", // Replace with the corresponding cluster ID.
-      Env: common.SANDBOX,  // Set the environment for this vault.
-      Credentials: secondaryCredentials, // Attach the secondary credentials to this configuration.
-    }
-  
-	// Step 7: Define tertiary credentials using a path to a credentials JSON file.
+  secondaryConfig := common.VaultConfig {
+    VaultId: "<SECONDARY_VAULT_ID>", // Replace with your secondary vault's ID.
+    ClusterId: "<CLUSTER_ID>", // Replace with the corresponding cluster ID.
+    Env: common.SANDBOX, // Set the environment for this vault.
+    Credentials: secondaryCredentials, // Attach the secondary credentials to this configuration.
+  }
+
+  // Step 7: Define tertiary credentials using a path to a credentials JSON file.
   // This method demonstrates an alternative authentication method.
-  tertiaryCredentials := common.Credentials{Path: "<PATH_TO_YOUR_CREDENTIALS_JSON_FILE>"}
+  tertiaryCredentials := common.Credentials {
+    Path: "<PATH_TO_YOUR_CREDENTIALS_JSON_FILE>",
+  }
 
   // Step 8: Configure the tertiary vault details.
-  tertiaryConfig := common.VaultConfig{
+  tertiaryConfig := common.VaultConfig {
     VaultId: "<TERTIARY_VAULT_ID>", // Replace with your tertiary vault's ID.
     ClusterId: "<CLUSTER_ID>", // Replace with the corresponding cluster ID.
-    Env: common.SANDBOX,  // Set the environment for this vault.
+    Env: common.SANDBOX, // Set the environment for this vault.
     Credentials: tertiaryCredentials, // Attach the secondary credentials to this configuration.
   }
   // Step 9: Build and initialize the Skyflow client.
   // Skyflow client is configured with multiple vaults and credentials.
-  
-  var arr []common.VaultConfig
-	arr = append(arr, primaryConfig, secondaryConfig, tertiaryConfig)
-  skyflowClient, err := client.NewSkyflow(
-		client.WithVaults(arr...),
-		client.WithCredentials(skyflowCredentials), // Add JSON-formatted credentials if applicable.
-        client.WithLogLevel(logger.DEBUG), // Set log level for debugging or monitoring purposes.
+
+  var arr[] common.VaultConfig
+  arr = append(arr, primaryConfig, secondaryConfig, tertiaryConfig)
+  skyflowClient, err: = client.NewSkyflow(
+    client.WithVaults(arr...),
+    client.WithCredentials(skyflowCredentials), // Add JSON-formatted credentials if applicable.
+    client.WithLogLevel(logger.DEBUG), // Set log level for debugging or monitoring purposes.
   )
   // The Skyflow client is now fully initialized.
   // Use the `skyflowClient` object to perform secure operations such as:
@@ -434,6 +439,7 @@ func main() {
   // within the configured Skyflow vaults.
 }
 ```
+
 #### Notes:
 - If both Skyflow common credentials and individual credentials at the configuration level are specified, the individual credentials at the configuration level will take precedence.
 - If neither Skyflow common credentials nor individual configuration-level credentials are provided, the SDK attempts to retrieve credentials from the `SKYFLOW_CREDENTIALS` environment variable.
@@ -1027,6 +1033,12 @@ func main() {
 
 An [example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/vaultapi/tokenize_records.go) of Tokenize call
 ```go
+import (
+"context"
+"fmt"
+"github.com/skyflowapi/skyflow-go/v2/utils/common"
+)
+
 /**
  * This example demonstrates how to tokenize sensitive data (e.g., credit card information) using the Skyflow client.
  *
@@ -1035,40 +1047,38 @@ An [example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/vaultapi/t
  * 3. Builds a tokenize request with the column value to be tokenized.
  * 4. Sends the request to the Skyflow vault for tokenization.
  * 5. Prints the tokenization response, which includes the token or errors.
-**/
-
+ **/
 func main() {
-// Initialize Skyflow client
-// Step 1: Initialize a array of column values to be tokenized (replace with actual sensitive data)
-  ctx := context.TODO()
-  var reqArray []common.TokenizeRequest
+    // Initialize Skyflow client
+    // Step 1: Initialize a array of column values to be tokenized (replace with actual sensitive data)
+    ctx := context.TODO()
+    var reqArray []common.TokenizeRequest
 
-// Step 2: Create a column value for the sensitive data (e.g., card number with its column group)
-columnValue := common.TokenizeRequest{
-ColumnGroup: "card_number_cg",              // Replace with actual column group name
-Value:       "4111111111111111",            // Replace with the actual sensitive data (e.g., card number)
-}
-//Step 3:  Add the created column value to the list
-reqArray = append(reqArray, columnValue)
-ctx := context.TODO()
+    // Step 2: Create a column value for the sensitive data (e.g., card number with its column group)
+    columnValue := common.TokenizeRequest{
+        ColumnGroup: "card_number_cg",   // Replace with actual column group name
+        Value:       "4111111111111111", // Replace with the actual sensitive data (e.g., card number)
+    }
+    //Step 3:  Add the created column value to the list
+    reqArray = append(reqArray, columnValue)
 
-// Access the vault
-service, serviceErr := skyflowClient.Vault("9f27764a10f7946fe56b3258e117") // Replace "9f27764a10f7946fe56b3258e117" with your actual Skyflow vault ID
+    // Access the vault
+    service, serviceErr := skyflowClient.Vault("9f27764a10f7946fe56b3258e117") // Replace "9f27764a10f7946fe56b3258e117" with your actual Skyflow vault ID
 
-if serviceErr != nil {
-//  Handle error accessing the vault
-fmt.Println(serviceErr)
-} else {
-// Step 4 : Call the Skyflow vault to tokenize the sensitive data
-res, tokenizeErr := service.Tokenize(ctx, reqArray)
-if tokenizeErr != nil {
-// Handle error during the tokenization process
-fmt.Println("Error occurred ", tokenizeErr)
-} else {
-// Step 5: Print the tokenization response, which contains the generated tokens or errors 
-fmt.Println("RESPONSE: ", res)
-}
-}
+    if serviceErr != nil {
+        //  Handle error accessing the vault
+    fmt.Println(serviceErr)
+    } else {
+        // Step 4 : Call the Skyflow vault to tokenize the sensitive data
+        res, tokenizeErr := service.Tokenize(ctx, reqArray)
+        if tokenizeErr != nil {
+        // Handle error during the tokenization process
+            fmt.Println("Error occurred ", tokenizeErr)
+        } else {
+             // Step 5: Print the tokenization response, which contains the generated tokens or errors
+            fmt.Println("RESPONSE: ", res)
+        }
+    }
 }
 ```
 
@@ -1271,45 +1281,45 @@ An [example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/vaultapi/g
  * 3. Prints the response to display the retrieved records along with the tokens.
  */
 func main() {
-// Initialize Skyflow client
-// Step 1: Initialize a list of Skyflow IDs (replace with actual Skyflow IDs)
-ids := []string{
-    "a581d205-1969-4350-acbe-a2a13eb871a6", // Replace with actual Skyflow ID
-    "5ff887c3-b334-4294-9acc-70e78ae5164a", // Replace with actual Skyflow ID
+    // Initialize Skyflow client
+    // Step 1: Initialize a list of Skyflow IDs (replace with actual Skyflow IDs)
+    ids := []string{
+        "a581d205-1969-4350-acbe-a2a13eb871a6", // Replace with actual Skyflow ID
+        "5ff887c3-b334-4294-9acc-70e78ae5164a", // Replace with actual Skyflow ID
     }
-// Step 2: Create a GetRequest to retrieve records based on Skyflow IDs
-// The request specifies:
-// - `ids`: The list of Skyflow IDs to retrieve
-// - `table`: The table from which the records will be retrieved
-getRequest := common.GetRequest{
-Table: "table1", // Replace with the actual table name
-Ids: ids,
-}
-// Specify options for the request
-// - `returnTokens`: Set to true, meaning tokens will be included in the response	
-getOptions := common.GetOptions{
-Tokens: true, // Tokens will be returned
-}
+    // Step 2: Create a GetRequest to retrieve records based on Skyflow IDs
+    // The request specifies:
+    // - `ids`: The list of Skyflow IDs to retrieve
+    // - `table`: The table from which the records will be retrieved
+    getRequest := common.GetRequest{
+        Table: "table1", // Replace with the actual table name
+        Ids: ids,
+    }
+    // Specify options for the request
+    // - `returnTokens`: Set to true, meaning tokens will be included in the response	
+    getOptions := common.GetOptions{
+        Tokens: true, // Tokens will be returned
+    }
 
-// Prepare the context for the request
-ctx := context.TODO()
+    // Prepare the context for the request
+    ctx := context.TODO()
 
-// Initialize the Skyflow service
-// Replace <VAULT_ID> with your actual Skyflow vault ID
-service, serviceError := skyflowClient.Vault("<VAULT_ID>")
-if serviceError != nil {
-// Handle any errors that occur during the initialization process
-fmt.Println("Error occurred while initializing Skyflow service:", serviceError)
-}
-// Step 3: Send the request to the Skyflow vault and retrieve the records with tokens
-res, getErr := service.Get(ctx, getRequest, getOptions)
-if getErr != nil {
-// Step 4: Handle any errors that occur during the data retrieval process
-fmt.Println("Error occurred while retrieving records:", getErr)
-} else {
-// Step 5: Print the retrieved records from the response
-fmt.Println("Response:", res.Data)
-}
+    // Initialize the Skyflow service
+    // Replace <VAULT_ID> with your actual Skyflow vault ID
+    service, serviceError := skyflowClient.Vault("<VAULT_ID>")
+    if serviceError != nil {
+        // Handle any errors that occur during the initialization process
+        fmt.Println("Error occurred while initializing Skyflow service:", serviceError)
+    }
+    // Step 3: Send the request to the Skyflow vault and retrieve the records with tokens
+    res, getErr := service.Get(ctx, getRequest, getOptions)
+    if getErr != nil {
+        // Step 4: Handle any errors that occur during the data retrieval process
+        fmt.Println("Error occurred while retrieving records:", getErr)
+    } else {
+        // Step 5: Print the retrieved records from the response
+        fmt.Println("Response:", res.Data)
+    }
 }
 ```
 
@@ -1927,66 +1937,66 @@ import (
  */
 
 func main() {
-// Initialize Skyflow client 
-// Step 1: Set up credentials and connection configuration
-// Load credentials from a JSON file (you need to provide the correct path)
-credentials := Credentials{Path: "../cred.json"}
+    // Initialize Skyflow client 
+    // Step 1: Set up credentials and connection configuration
+    // Load credentials from a JSON file (you need to provide the correct path)
+    credentials := Credentials{Path: "../cred.json"}
 
-// Define the connection configuration (URL and credentials)
-connConfig1 := ConnectionConfig{
-	ConnectionId: "<CONNECTION_ID1>", // Replace with actual connection ID
-    ConnectionUrl: "https://connection.url.com", // Replace with actual connection URL
-    Credentials: credentials, // Set credentials for the connection
-}
-// Add connection configurations to an array
-var arr []ConnectionConfig
-arr = append(arr, connConfig1)
+    // Define the connection configuration (URL and credentials)
+    connConfig1 := ConnectionConfig{
+    	ConnectionId: "<CONNECTION_ID1>", // Replace with actual connection ID
+        ConnectionUrl: "https://connection.url.com", // Replace with actual connection URL
+        Credentials: credentials, // Set credentials for the connection
+    }
+    // Add connection configurations to an array
+    var arr []ConnectionConfig
+    arr = append(arr, connConfig1)
 
-// Initialize the Skyflow client with the connection configuration
-skyflowClient, clientError := NewSkyflow(
-WithConnections(arr...),       // Add the connection configurations to the client
-WithLogLevel(logger.DEBUG),    // Set log level to DEBUG for detailed logs
-)
-if clientError != nil {
-// Handle any errors that occur during Skyflow client initialization
-fmt.Println("Error:", clientError)
-} else {
-// Replace "<CONNECTION_ID1>" with the actual connection ID
-service, conError := skyflowClient.Connection("<CONNECTION_ID1>")
-if conError != nil {
-// Handle errors that occur during the connection setup
-fmt.Println("Error:", conError)
-} else {
-// Step 2: Define the request body and headers
-// Map for request body parameters
-ctx := context.TODO() // Define the context for the API call
-body := map[string]interface{}{ // Set your request data
-"card_number": "4337-1696-5866-0865", // Example card number
-"ssn": "524-41-4248",                // Example SSN
-}
-// Map for request headers
-headers := map[string]string{ // Set the request headers
-"Content-Type": "application/json", // Specify the content type for the request
-}
-// Step 3: Build the InvokeConnectionRequest with required parameters
-// Set HTTP method to POST, include the request body and headers
-req := InvokeConnectionRequest{
-Method:      POST,    // Set the HTTP method to POST
-Headers:     headers, // Add request headers
-Body:        body,    // Add the body with request data
-}
+    // Initialize the Skyflow client with the connection configuration
+    skyflowClient, clientError := NewSkyflow(
+                    WithConnections(arr...),       // Add the connection configurations to the client
+                    WithLogLevel(logger.DEBUG),    // Set log level to DEBUG for detailed logs
+                    )
+    if clientError != nil {
+        // Handle any errors that occur during Skyflow client initialization
+        fmt.Println("Error:", clientError)
+    } else {
+        // Replace "<CONNECTION_ID1>" with the actual connection ID
+        service, conError := skyflowClient.Connection("<CONNECTION_ID1>")
+        if conError != nil {
+        // Handle errors that occur during the connection setup
+            fmt.Println("Error:", conError)
+        } else {
+            // Step 2: Define the request body and headers
+            // Map for request body parameters
+            ctx := context.TODO() // Define the context for the API call
+            body := map[string]interface{}{ // Set your request data
+                    "card_number": "4337-1696-5866-0865", // Example card number
+                    "ssn": "524-41-4248",                // Example SSN
+			}
+        // Map for request headers
+        headers := map[string]string{ // Set the request headers
+            "Content-Type": "application/json", // Specify the content type for the request
+        }
+        // Step 3: Build the InvokeConnectionRequest with required parameters
+        // Set HTTP method to POST, include the request body and headers
+        req := InvokeConnectionRequest{
+            Method:      POST,    // Set the HTTP method to POST
+            Headers:     headers, // Add request headers
+            Body:        body,    // Add the body with request data
+        }
 
-// Step 4: Invoke the connection and capture the response
-res, invokeError := service.Invoke(ctx, req)
-if invokeError != nil {
-// Handle any errors that occur during the connection invocation
-fmt.Println("Error occurred ", *invokeError)
-} else {
-// Step 8: Print the response from the connection invocation
-fmt.Println("RESPONSE", res)
-}
-}
-}
+        // Step 4: Invoke the connection and capture the response
+        res, invokeError := service.Invoke(ctx, req)
+        if invokeError != nil {
+            // Handle any errors that occur during the connection invocation
+            fmt.Println("Error occurred ", *invokeError)
+        } else {
+            // Step 8: Print the response from the connection invocation
+            fmt.Println("RESPONSE", res)
+        }
+        }
+    }
 }
 ```
 Sample response:
@@ -2036,49 +2046,48 @@ saUtil "github.com/skyflowapi/skyflow-go/v2/serviceaccount"
  * 2. Using the JSON content of the credentials file as a string.
  */
 func BearerTokenGenerationExample() {
-// Variable to store the generated token
-var token string
+    // Variable to store the generated token
+    var token string
 
-// Example 1: Generate Bearer Token using a credentials.json file
-// Specify the full file path to the credentials.json file
-var filePath = "<YOUR_CREDENTIALS_FILE_PATH>"
+    // Example 1: Generate Bearer Token using a credentials.json file
+    // Specify the full file path to the credentials.json file
+    var filePath = "<YOUR_CREDENTIALS_FILE_PATH>"
 
-// Check if the token is either not initialized or has expired
-if saUtil.IsExpired(token) {
-// Create a BearerToken using the credentials file
-res, err := saUtil.GenerateBearerToken(filePath, common.BearerTokenOptions{
-LogLevel: logger.DEBUG,
-})
-if err != nil {
-fmt.Println("errors", *err)
-} else {
-token = res.AccessToken
-}
-}
+    // Check if the token is either not initialized or has expired
+    if saUtil.IsExpired(token) {
+        // Create a BearerToken using the credentials file
+        res, err := saUtil.GenerateBearerToken(filePath, common.BearerTokenOptions{
+                LogLevel: logger.DEBUG,
+                })
+        if err != nil {
+            fmt.Println("errors", *err)
+        } else {
+            token = res.AccessToken
+        }
+    }
 
-// Print the generated Bearer Token to the console
-fmt.Println("Generated Bearer Token (from file): " + token)
+    // Print the generated Bearer Token to the console
+    fmt.Println("Generated Bearer Token (from file): " + token)
 
-// Example 2: Generate Bearer Token using the credentials JSON as a string
-// Provide the credentials JSON content as a string
-var fileContents = "<YOUR_CREDENTIALS_FILE_CONTENTS_AS_STRING>"
+    // Example 2: Generate Bearer Token using the credentials JSON as a string
+    // Provide the credentials JSON content as a string
+    var fileContents = "<YOUR_CREDENTIALS_FILE_CONTENTS_AS_STRING>"
 
-// Check if the token is either not initialized or has expired
-if saUtil.IsExpired(token) {
-// Create a BearerToken using the credentials string
-res, err := saUtil.GenerateBearerTokenFromCreds(fileContents, common.BearerTokenOptions{
-LogLevel: logger.DEBUG,
-})
-if err != nil {
-fmt.Println("Errors", *err)
-} else {
-fmt.Println("Token", res.AccessToken)
-}
-token = res.AccessToken
-}
-
-// Print the generated Bearer Token to the console
-fmt.Println("Generated Bearer Token: " + token)
+    // Check if the token is either not initialized or has expired
+    if saUtil.IsExpired(token) {
+    // Create a BearerToken using the credentials string
+        res, err := saUtil.GenerateBearerTokenFromCreds(fileContents, common.BearerTokenOptions{
+            LogLevel: logger.DEBUG,
+            })
+        if err != nil {
+            fmt.Println("Errors", *err)
+        } else {
+            fmt.Println("Token", res.AccessToken)
+        }
+        token = res.AccessToken
+    }
+    // Print the generated Bearer Token to the console
+    fmt.Println("Generated Bearer Token: " + token)
 }
 ```
 ### Generate bearer tokens with context
@@ -2101,48 +2110,48 @@ saUtil "github.com/skyflowapi/skyflow-go/v2/serviceaccount"
  */
 
 func BearerTokenGenerationWithContextExample() {
-// Variable to store the generated Bearer Token
-var bearerToken = "";
+    // Variable to store the generated Bearer Token
+    var bearerToken = "";
 
-// Approach 1: Generate Bearer Token by specifying the path to the credentials.json file
-// Replace <YOUR_CREDENTIALS_FILE_PATH> with the full path to your credentials.json file
-var filePath = "<YOUR_CREDENTIALS_FILE_PATH>";
+    // Approach 1: Generate Bearer Token by specifying the path to the credentials.json file
+    // Replace <YOUR_CREDENTIALS_FILE_PATH> with the full path to your credentials.json file
+    var filePath = "<YOUR_CREDENTIALS_FILE_PATH>";
 
-// Create a BearerToken using the file path
-res, err := saUtil.GenerateBearerToken(filePath, // Set credentials using a File object
-common.BearerTokenOptions{
-	LogLevel: logger.DEBUG, 
-	Ctx: "<CONTEXT>" // Set context string (example: "abc")
-})
+    // Create a BearerToken using the file path
+    res, err := saUtil.GenerateBearerToken(filePath, // Set credentials using a File object
+        common.BearerTokenOptions{
+	        LogLevel: logger.DEBUG, 
+	        Ctx: "<CONTEXT>" // Set context string (example: "abc")
+        })
 
-if err != nil {
-// Handle exceptions specific to Skyflow operations
-fmt.Println("errors:", *err)
-} else {
-// Print the generated Bearer Token to the console
-bearerToken = res.AccessToken
-fmt.Println("Token", res.AccessToken)
-}
-// Print the generated Bearer Token to the console
-fmt.Println(bearerToken);
+    if err != nil {
+        // Handle exceptions specific to Skyflow operations
+        fmt.Println("errors:", *err)
+    } else {
+        // Print the generated Bearer Token to the console
+        bearerToken = res.AccessToken
+        fmt.Println("Token", res.AccessToken)
+    }
+        // Print the generated Bearer Token to the console
+        fmt.Println(bearerToken);
 
-// Approach 2: Generate Bearer Token by specifying the contents of credentials.json as a string
-// Replace <YOUR_CREDENTIALS_FILE_CONTENTS_AS_STRING> with the actual contents of your credentials.json file
-var fileContents = "<YOUR_CREDENTIALS_FILE_CONTENTS_AS_STRING>";
+    // Approach 2: Generate Bearer Token by specifying the contents of credentials.json as a string
+	// Replace <YOUR_CREDENTIALS_FILE_CONTENTS_AS_STRING> with the actual contents of your credentials.json file
+    var fileContents = "<YOUR_CREDENTIALS_FILE_CONTENTS_AS_STRING>";
 
-// Create a BearerToken object using the file contents as a string
-res, err = saUtil.GenerateBearerTokenFromCreds(fileContents, common.BearerTokenOptions{LogLevel: logger.DEBUG, Ctx: "<CONTEXT>"})
+    // Create a BearerToken object using the file contents as a string
+    res, err = saUtil.GenerateBearerTokenFromCreds(fileContents, common.BearerTokenOptions{LogLevel: logger.DEBUG, Ctx: "<CONTEXT>"})
 
-if err != nil {
-fmt.Println("errors:", *err)
-} else {
-// Retrieve the Bearer Token as a string
-bearerToken = res.AccessToken
-// Print the generated Bearer Token to the console
-fmt.Println("Token", res.AccessToken)
-}
-// Handle exceptions specific to Skyflow operations
-fmt.Println(bearerToken);
+    if err != nil {
+        fmt.Println("errors:", *err)
+    } else {
+        // Retrieve the Bearer Token as a string
+        bearerToken = res.AccessToken
+        // Print the generated Bearer Token to the console
+        fmt.Println("Token", res.AccessToken)
+    }
+    // Handle exceptions specific to Skyflow operations
+    fmt.Println(bearerToken);
 }
 ```
 
@@ -2164,31 +2173,31 @@ saUtil "github.com/skyflowapi/skyflow-go/v2/serviceaccount"
  * and specifying roles associated with the token.
  */
 func ScopedTokenGenerationExample() {
-// Variable to store the generated scoped token
-var scopedToken interface{}
+    // Variable to store the generated scoped token
+    var scopedToken interface{}
 
-// Example: Generate Scoped Token by specifying the credentials.json file path
-// Create a list of roles that the generated token will be scoped to
-var roles = []string{"<ROLE_ID_1>", "<ROLE_ID_2>", "<ROLE_ID_3>"}
+    // Example: Generate Scoped Token by specifying the credentials.json file path
+    // Create a list of roles that the generated token will be scoped to
+    var roles = []string{"<ROLE_ID_1>", "<ROLE_ID_2>", "<ROLE_ID_3>"}
 
-// Specify the full file path to the service account's credentials.json file
-var filePath = "<YOUR_CREDENTIALS_FILE_PATH>"
+    // Specify the full file path to the service account's credentials.json file
+    var filePath = "<YOUR_CREDENTIALS_FILE_PATH>"
 
-// Create a BearerToken using the credentials file and associated roles
-res, err := saUtil.GenerateBearerToken(filePath, common.BearerTokenOptions{LogLevel: logger.DEBUG, RoleIDs: roles}) // Set the roles that the token should be scoped to
+    // Create a BearerToken using the credentials file and associated roles
+    res, err := saUtil.GenerateBearerToken(filePath, common.BearerTokenOptions{LogLevel: logger.DEBUG, RoleIDs: roles}) // Set the roles that the token should be scoped to
 
-if err != nil {
-fmt.Println("Errors", *err)
-} else {
-// retrieve token
-fmt.Println("Token", res.AccessToken)
-}
+    if err != nil {
+        fmt.Println("Errors", *err)
+	} else {
+        // retrieve token
+        fmt.Println("Token", res.AccessToken)
+    }
 
-// Retrieve the generated scoped token
-scopedToken = res.AccessToken
+    // Retrieve the generated scoped token
+    scopedToken = res.AccessToken
 
-// Print the generated scoped token to the console
-fmt.Println(scopedToken);
+    // Print the generated scoped token to the console
+    fmt.Println(scopedToken);
 }
 ```
 Notes:
@@ -2211,57 +2220,57 @@ saUtil "github.com/skyflowapi/skyflow-go/v2/serviceaccount"
 // 1. By specifying the file path to the credentials.json file.
 // 2. By providing the credentials as a JSON string.
 func SignedTokenGenerationExample() {
-// Example 1: Generate Signed Data Tokens by specifying the credentials.json file path
-// File path to the service account's credentials.json file
-var filePath = "<YOUR_CREDENTIALS_FILE_PATH>";
+    // Example 1: Generate Signed Data Tokens by specifying the credentials.json file path
+    // File path to the service account's credentials.json file
+    var filePath = "<YOUR_CREDENTIALS_FILE_PATH>";
 
-// Context value to associate with the token
-var context = "abc";
+    // Context value to associate with the token
+    var context = "abc";
 
-var tokens []string
-tokens = append(tokens, "<TOKEN>") // List of data tokens to sign; replace with your actual data tokens
+    var tokens []string
+    tokens = append(tokens, "<TOKEN>") // List of data tokens to sign; replace with your actual data tokens
 
-// Build the SignedDataTokensOptions object using the file path and required configurations
-options := common.SignedDataTokensOptions{
-Ctx: context, // Set the context value
-DataTokens: tokens,  // Set the data tokens to be signed
-TimeToLive: 60, // Set the token's time-to-live (TTL) in seconds
-LogLevel: logger.ERROR,
-}
-// Generate and retrieve the signed data tokens
-res, err := saUtil.GenerateSignedDataTokens(filePath, options)
-if err != nil {
-fmt.Println("Error occurred ", err)
-} else {
-// retrieve the signed data tokens 
-fmt.Println("RESPONSE:", res)
-}
+    // Build the SignedDataTokensOptions object using the file path and required configurations
+    options := common.SignedDataTokensOptions{
+        Ctx: context, // Set the context value
+        DataTokens: tokens,  // Set the data tokens to be signed
+        TimeToLive: 60, // Set the token's time-to-live (TTL) in seconds
+        LogLevel: logger.ERROR,
+    }
+    // Generate and retrieve the signed data tokens
+    res, err := saUtil.GenerateSignedDataTokens(filePath, options)
+    if err != nil {
+        fmt.Println("Error occurred ", err)
+    } else {
+        // retrieve the signed data tokens 
+        fmt.Println("RESPONSE:", res)
+    }
 
-// Example 2: Generate Signed Data Tokens by specifying credentials as a JSON string
-// Provide the credentials JSON content as a string
-var fileContents = "<YOUR_CREDENTIALS_FILE_CONTENTS_AS_STRING>";
+    // Example 2: Generate Signed Data Tokens by specifying credentials as a JSON string
+    // Provide the credentials JSON content as a string
+    var fileContents = "<YOUR_CREDENTIALS_FILE_CONTENTS_AS_STRING>";
 
-// Context value to associate with the token
-context = "abc";
+    // Context value to associate with the token
+    context = "abc";
 
-tokens = nil
-tokens = append(tokens, "<TOKEN>")
+    tokens = nil
+    tokens = append(tokens, "<TOKEN>")
 
-// Create the SignedDataTokensOptions object using the required configurations
-options = common.SignedDataTokensOptions{
-DataTokens: tokens,  // Set the data tokens to be signed
-TimeToLive: 60, // in seconds
-LogLevel: logger.ERROR,
-}
-// Generate and retrieve the signed data tokens
-res, err = saUtil.GenerateSignedDataTokensFromCreds(fileContents, options)
+    // Create the SignedDataTokensOptions object using the required configurations
+    options = common.SignedDataTokensOptions{
+        DataTokens: tokens,  // Set the data tokens to be signed
+        TimeToLive: 60, // in seconds
+        LogLevel: logger.ERROR,
+    }
+    // Generate and retrieve the signed data tokens
+    res, err = saUtil.GenerateSignedDataTokensFromCreds(fileContents, options)
 
-if err != nil {
-fmt.Println("Error occurred ", err)
-} else {
-// retrieve the signed data tokens 
-fmt.Println("RESPONSE: ", res)
-}
+    if err != nil {
+        fmt.Println("Error occurred ", err)
+    } else {
+        // retrieve the signed data tokens 
+        fmt.Println("RESPONSE: ", res)
+    }
 }
 ```
 
