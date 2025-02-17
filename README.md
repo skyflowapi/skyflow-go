@@ -310,21 +310,21 @@ The error response now includes:
 
 
 #### V1 (Old): Error structure
-```go
+```json
 {
-  code: "<http_code>",
-  description: "<description>",
+  "code": "<http_code>",
+  "description": "<description>",
 }
 ```
 #### V2 (New): Error structure
-```json
+```js
 {
-    httpStatus: "<http_status>",
-    grpcCode: <grpc_code>,
-    httpCode: <http_code>,
-    message: "<message>",
-    requestId: "<request_ID>",
-    details: [ "<details>" ],
+  "httpStatus": "<http_status>",
+  "grpcCode": "<grpc_code>",
+  "httpCode": "<http_code>",
+  "message": "<message>",
+  "requestId": "<request_id>",
+  "details": ["<details>"]
 }
 ```
 ## Quickstart
