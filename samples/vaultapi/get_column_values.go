@@ -1,4 +1,7 @@
-package vaultapi
+/*
+Copyright (c) 2022 Skyflow, Inc.
+*/
+package main
 
 import (
 	"context"
@@ -21,23 +24,25 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	} else {
-		service, serviceErr := skyflowInstance.Vault("<VAULT_ID>")
-		if serviceErr != nil {
-			fmt.Println(serviceErr)
+		service, serviceError := skyflowInstance.Vault("<VAULT_ID>")
+		if serviceError != nil {
+			fmt.Println(serviceError)
 		} else {
 			ctx := context.TODO()
-			var reqArray []common.TokenizeRequest
-			reqArray = append(reqArray, common.TokenizeRequest{
-				ColumnGroup: "<COLUMN_GROUP_NAME>",
-				Value:       "<VALUE>",
+			res, getErr := service.Get(ctx, common.GetRequest{
+				Table: "persons",
+			}, common.GetOptions{
+				RedactionType: common.PLAIN_TEXT,
+				ColumnValues:  []string{"<COLUMN_VALUE_1>", "<COLUMN_VALUE_2>"},
+				ColumnName:    "<COLUMN_NAME>",
 			})
-			res, tokenizeErr := service.Tokenize(ctx, reqArray)
-			if tokenizeErr != nil {
-				fmt.Println("ERROR: ", tokenizeErr)
+			if getErr != nil {
+				fmt.Println("ERROR: ", getErr)
 			} else {
-				fmt.Println("RESPONSE: ", res)
+				fmt.Println("RESPONSE", res.Data)
 			}
 		}
+
 	}
 
 }

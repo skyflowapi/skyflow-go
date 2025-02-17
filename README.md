@@ -52,7 +52,6 @@ The Skyflow Go SDK is designed to help with integrating Skyflow into a go backen
 - Invoke connections to third-party APIs without directly handling sensitive data, ensuring compliance and data protection.
 
 ## Install
-
 ### Requirements
 - go 1.22.0 and above
 
