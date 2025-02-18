@@ -26,7 +26,7 @@ jobs:
         run: |
           # Ensure that semgrep is being run within the activated virtual environment
           source .venv/bin/activate
-          semgrep --config ./customRule --config auto --severity ERROR --json . > results.json
+          semgrep --config .semgreprule/customRule.yml --config auto --severity ERROR --json . > results.json
           cat results.json | jq .results > pretty-results.json
           
       - name: Display Raw Semgrep JSON Output
