@@ -1,4 +1,4 @@
-name: "Gosec scan"
+name: "GoSec Scan"
 
 # Run workflow each time code is pushed to your repository and on a schedule.
 on:
@@ -17,10 +17,20 @@ jobs:
     - name: Extract Go version from go.mod
       id: go_version
       run: |
-        # Extract the Go version from the go.mod file
-        VERSION=$(grep -oP '^go \K[0-9]+\.[0-9]+\.[0-9]+' go.mod)
-        echo "GO_VERSION=$VERSION" >> $GITHUB_ENV
-        echo "Go version extracted: $VERSION"
+        # Check if go.mod exists before trying to extract the Go version
+        if [ -f go.mod ]; then
+          # Extract the Go version in the format "go 1.13"
+          VERSION=$(grep -oP '^go \K[0-9]+\.[0-9]+' go.mod)
+          if [ -z "$VERSION" ]; then
+            echo "Error: Go version not found in go.mod file"
+            exit 1
+          fi
+          echo "GO_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Go version extracted: $VERSION"
+        else
+          echo "Error: go.mod file not found in the repository."
+          exit 1
+        fi
 
     - name: Set up Go with the extracted version
       uses: actions/setup-go@v3
