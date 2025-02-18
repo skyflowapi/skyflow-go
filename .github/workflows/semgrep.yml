@@ -1,13 +1,12 @@
+
 name: Semgrep
 
 # Run workflow each time code is pushed to your repository.
 on:
-  push:
-    branches:
-      - main
   pull_request:
     branches:
       - main
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -16,20 +15,22 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Install Semgrep
-        run: pip install semgrep
-
+        run: |
+          # Install python3-venv and create a virtual environment
+          sudo apt install python3-venv
+          python3 -m venv .venv
+          # Activate the virtual environment and install semgrep
+          source .venv/bin/activate
+          pip install semgrep
+          
       - name: Run Semgrep
         run: |
-          semgrep --config .semgreprule/customRule.yml --config auto --severity ERROR --sarif . > results.sarif
-
-      - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          # Path to SARIF file relative to the root of the repository
-          sarif_file: results.sarif
-
-      - name: Upload results
-        uses: actions/upload-artifact@v4
-        with:
-          name: semgrep-results
-          path: results.sarif
+          # Ensure that semgrep is being run within the activated virtual environment
+          source .venv/bin/activate
+          semgrep --config .semgreprule/customRule.yml --config auto --severity ERROR --json . > results.json
+          cat results.json | jq .results > pretty-results.json
+          
+      - name: Display Raw Semgrep JSON Output
+        run: |
+          echo "Displaying raw Semgrep results..."
+          cat pretty-results.json
