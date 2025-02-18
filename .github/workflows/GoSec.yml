@@ -2,7 +2,9 @@ name: "Gosec scan"
 
 # Run workflow each time code is pushed to your repository and on a schedule.
 on:
-  workflow_call:
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
