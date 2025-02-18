@@ -5,6 +5,7 @@ on:
   pull_request:
     branches:
       - main
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -14,17 +15,21 @@ jobs:
 
       - name: Install Semgrep
         run: |
+          # Install python3-venv and create a virtual environment
           sudo apt install python3-venv
           python3 -m venv .venv
-          .venv/bin/pip install semgrep
-
+          # Activate the virtual environment and install semgrep
+          source .venv/bin/activate
+          pip install semgrep
+          
       - name: Run Semgrep
         run: |
+          # Ensure that semgrep is being run within the activated virtual environment
+          source .venv/bin/activate
           semgrep --config ./Semgrep_Customrule.yml --config auto --severity ERROR --json . > results.json
-           cat results.json | jq .results > pretty-results.json
+          cat results.json | jq .results > pretty-results.json
           
       - name: Display Raw Semgrep JSON Output
         run: |
-         echo "Displaying raw Semgrep results..."
-         cat pretty-results.json
-        
+          echo "Displaying raw Semgrep results..."
+          cat pretty-results.json
