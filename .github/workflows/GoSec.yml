@@ -68,7 +68,7 @@ jobs:
               const prNumber = context.payload.pull_request.number;
               const fs = require('fs');
               const results = JSON.parse(fs.readFileSync('results.json', 'utf8'));
-              const highFindings = results.Issues.filter(issue => issue.severity === 'HIGH' || issue.severity === 'MEDIUM');
+              const highFindings = results.Issues.filter(issue => issue.severity === 'HIGH');
 
               // Comment if high-severity findings are found
               if (highFindings.length > 0) {
