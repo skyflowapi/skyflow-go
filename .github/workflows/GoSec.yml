@@ -1,10 +1,14 @@
-name: "GoSec Scan"
+name: GoSec Scan
 
-# Run workflow each time code is pushed to your repository and on a schedule.
+# Run workflow each time code is pushed to your repository.
 on:
   pull_request:
     branches:
       - main
+
+permissions:
+  issues: write  # Grant permission to write comments on issues and PRs
+  pull-requests: write  # Grant permission to write comments on PRs
 
 jobs:
   build:
@@ -54,3 +58,27 @@ jobs:
         # Let's display the 'Issues' array to understand its structure
         echo "Inspecting the Issues structure..."
         jq '.Issues' results.json
+        
+    - name: Add comment on PR if findings are found
+      uses: actions/github-script@v6
+      with:
+          script: |
+            // Ensure the context has a pull_request
+            if (context.payload.pull_request) {
+              const prNumber = context.payload.pull_request.number;
+              const fs = require('fs');
+              const results = JSON.parse(fs.readFileSync('results.json', 'utf8'));
+              const highFindings = results.Issues.filter(issue => issue.severity === 'HIGH' || issue.severity === 'MEDIUM');
+
+              // Comment if high-severity findings are found
+              if (highFindings.length > 0) {
+                const comment = `**GoSec Findings:** Vulnerabilities are found in the code. Please address them before merging.`;
+                await github.rest.issues.createComment({
+                  ...context.repo,
+                  issue_number: prNumber,
+                  body: comment
+                });
+              }
+            } else {
+              console.log("This workflow wasn't triggered by a pull request, so no comment will be added.");
+            }
