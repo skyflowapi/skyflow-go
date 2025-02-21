@@ -72,20 +72,20 @@ jobs:
 
               // Comment if high-severity findings are found
               if (highFindings.length > 0) {
-                const comment = `**GoSec Findings:** High Severity Vulnerabilities are found in the code. Please address them before merging.`;
+                const comment = `**GoSec Findings:** Vulnerabilities are found in the code. Please address them before merging.`;
                 await github.rest.issues.createComment({
                   ...context.repo,
                   issue_number: prNumber,
                   body: comment
                 });
-              }
-             else
-              const comment = `**GoSec Findings:** No Issues found, Good to merge.`;
-              await github.rest.issues.createComment({
-                ...context.repo,
-                issue_number: prNumber,
-                body: comment
+              } else {
+                const noIssuesComment = "**GoSec Findings:** No issues found, Good to merge.";
+                await github.rest.issues.createComment({
+                  ...context.repo,
+                  issue_number: prNumber,
+                  body: noIssuesComment
                 });
+              }
             } else {
               console.log("This workflow wasn't triggered by a pull request, so no comment will be added.");
             }
