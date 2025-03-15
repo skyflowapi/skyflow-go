@@ -30,10 +30,17 @@ func main() {
 			fmt.Println(serviceError)
 		} else {
 			ctx := context.TODO()
-			res, errDetokenize := service.Detokenize(ctx, common.DetokenizeRequest{
-				Tokens:        []string{"<TOKEN>", "<TOKEN>"},
-				RedactionType: common.REDACTED,
-			}, common.DetokenizeOptions{
+			req := common.DetokenizeRequest{DetokenizeData: []common.DetokenizeData{
+				{
+					Token:         "<TOKEN1>",
+					RedactionType: common.REDACTED,
+				},
+				{
+					Token:         "<TOKEN2>",
+					RedactionType: common.MASKED,
+				},
+			}}
+			res, errDetokenize := service.Detokenize(ctx, req, common.DetokenizeOptions{
 				ContinueOnError: true,
 			})
 			if errDetokenize != nil {
