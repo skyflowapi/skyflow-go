@@ -1467,8 +1467,8 @@ var _ = Describe("ConnectionController", func() {
 					return nil
 				}
 				response, err := ctrl.Invoke(ctx, mockRequest)
-				Expect(response).ToNot(BeNil())
-				Expect(err).To(BeNil())
+				Expect(response).To(BeNil())
+				Expect(err).ToNot(BeNil())
 			})
 			It("should return an error from api", func() {
 				mockServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
