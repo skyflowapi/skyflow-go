@@ -389,6 +389,7 @@ func (v *VaultController) Insert(ctx context.Context, request common.InsertReque
 			if formattedRecord["skyflow_id"] != nil {
 				insertedFields = append(insertedFields, formattedRecord)
 			} else {
+				formattedRecord["requestId"] = httpsRes.Header.Get(constants.REQUEST_KEY)
 				errors = append(errors, formattedRecord)
 			}
 		}
@@ -452,6 +453,7 @@ func (v *VaultController) Detokenize(ctx context.Context, request common.Detoken
 					"Token":     record.GetToken(),
 					"Value":     record.GetValue(),
 					"Error":     record.GetError(),
+					"requestId": httpsRes.Header.Get(constants.REQUEST_KEY),
 				}
 				errorFields = append(errorFields, er1)
 			} else {
