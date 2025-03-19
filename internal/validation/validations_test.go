@@ -606,16 +606,16 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 	Context("when validating tokens", func() {
 		It("should return an error if tokens are nil", func() {
 			request := common.DetokenizeRequest{
-				Tokens: nil,
+				DetokenizeData: nil,
 			}
 			err := ValidateDetokenizeRequest(request)
 			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_DATA_TOKENS))
+			Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_DETOKENIZE_DATA))
 		})
 
 		It("should return an error if tokens are empty", func() {
 			request := common.DetokenizeRequest{
-				Tokens: []string{},
+				DetokenizeData: []common.DetokenizeData{},
 			}
 			err := ValidateDetokenizeRequest(request)
 			Expect(err).ToNot(BeNil())
@@ -624,16 +624,21 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 
 		It("should return an error if any token is empty", func() {
 			request := common.DetokenizeRequest{
-				Tokens: []string{"validToken", ""},
+				DetokenizeData: []common.DetokenizeData{
+					{Token: ""},
+				},
 			}
 			err := ValidateDetokenizeRequest(request)
 			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_TOKEN_IN_DATA_TOKEN))
+			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_TOKEN_IN_DETOKENIZE_DATA))
 		})
 
 		It("should not return an error if all tokens are valid", func() {
 			request := common.DetokenizeRequest{
-				Tokens: []string{"token1", "token2"},
+				DetokenizeData: []common.DetokenizeData{
+					{Token: "token1"},
+					{Token: "token2"},
+				},
 			}
 			err := ValidateDetokenizeRequest(request)
 			Expect(err).To(BeNil())

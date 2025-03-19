@@ -152,7 +152,10 @@ type InsertResponse struct {
 }
 
 type DetokenizeRequest struct {
-	Tokens        []string
+	DetokenizeData []DetokenizeData
+}
+type DetokenizeData struct {
+	Token         string
 	RedactionType RedactionType
 }
 type DetokenizeOptions struct {

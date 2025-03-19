@@ -773,8 +773,12 @@ var _ = Describe("Vault controller Test cases", func() {
 			// Initialize context, request, and options
 			ctx = context.Background()
 			request = DetokenizeRequest{
-				Tokens:        []string{"token1", "token2"},
-				RedactionType: MASKED,
+				DetokenizeData: []DetokenizeData{
+					{
+						Token:         "token1",
+						RedactionType: MASKED,
+					},
+				},
 			}
 			options = DetokenizeOptions{
 				ContinueOnError: true,
@@ -798,8 +802,13 @@ var _ = Describe("Vault controller Test cases", func() {
 				{
 					name: "Test with valid tokens and redaction type",
 					request: DetokenizeRequest{
-						Tokens:        []string{"token1", "token2"},
-						RedactionType: MASKED,
+						DetokenizeData: []DetokenizeData{{
+							Token:         "token1",
+							RedactionType: MASKED,
+						}, {
+							Token:         "token2",
+							RedactionType: MASKED,
+						}},
 					},
 					options: DetokenizeOptions{
 						ContinueOnError: true,
@@ -821,8 +830,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				{
 					name: "Test with no tokens",
 					request: DetokenizeRequest{
-						Tokens:        nil,
-						RedactionType: MASKED,
+						DetokenizeData: nil,
 					},
 					options: DetokenizeOptions{
 						ContinueOnError: false,
@@ -900,7 +908,7 @@ var _ = Describe("Vault controller Test cases", func() {
 			})
 			It("should return detokenized data with errors", func() {
 				ctx = context.Background()
-				request.Tokens = nil
+				request.DetokenizeData = nil
 				// Call the Detokenize function
 				res, err := vaultController.Detokenize(ctx, request, options)
 				// Validate the response

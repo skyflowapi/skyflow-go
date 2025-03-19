@@ -222,10 +222,12 @@ func GetDetokenizePayload(request common.DetokenizeRequest, options common.Detok
 	payload.SetContinueOnError(options.ContinueOnError)
 	var reqArray []vaultapi.V1DetokenizeRecordRequest
 
-	for index := range request.Tokens {
+	for index := range request.DetokenizeData {
 		req := vaultapi.V1DetokenizeRecordRequest{}
-		req.SetToken(request.Tokens[index])
-		req.SetRedaction(vaultapi.RedactionEnumREDACTION(request.RedactionType))
+		req.SetToken(request.DetokenizeData[index].Token)
+		if request.DetokenizeData[index].RedactionType != "" {
+			req.SetRedaction(vaultapi.RedactionEnumREDACTION(request.DetokenizeData[index].RedactionType))
+		}
 		reqArray = append(reqArray, req)
 	}
 	if len(reqArray) > 0 {

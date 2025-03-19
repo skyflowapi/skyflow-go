@@ -374,8 +374,11 @@ var _ = Describe("Vault controller Test cases", func() {
 
 			// Initialize context, request, and options
 			request = DetokenizeRequest{
-				Tokens:        []string{"token1", "token2"},
-				RedactionType: MASKED,
+				DetokenizeData: []DetokenizeData{
+					{Token: "token1",
+						RedactionType: MASKED,
+					},
+				},
 			}
 			options = DetokenizeOptions{
 				ContinueOnError: true,
@@ -436,7 +439,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				Expect(res).To(BeNil())
 			})
 			It("should return detokenized data with errors", func() {
-				request.Tokens = nil
+				request.DetokenizeData = nil
 				// Call the Detokenize function
 				ctx := context.Background()
 				var service, err1 = client.Vault()
