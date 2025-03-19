@@ -305,17 +305,17 @@ func ValidateInvokeConnectionRequest(request common.InvokeConnectionRequest) *sk
 
 func ValidateDetokenizeRequest(request common.DetokenizeRequest) *skyflowError.SkyflowError {
 	tag := "DetokenizeRequest"
-	if request.Tokens == nil {
-		logger.Error(fmt.Sprintf(logs.TOKENS_REQUIRED, tag))
-		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_DATA_TOKENS)
-	} else if len(request.Tokens) == 0 {
-		logger.Error(logs.EMPTY_TOKENS_IN_DETOKENIZE)
-		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_TOKENS_DETOKENIZE)
+	if request.DetokenizeData == nil {
+		logger.Error(fmt.Sprintf(logs.DETOKENIZE_DATA_REQUIRED, tag))
+		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_DETOKENIZE_DATA)
+	} else if len(request.DetokenizeData) == 0 {
+		logger.Error(fmt.Sprintf(logs.EMPTY_DETOKENIZE_DATA, tag))
+		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_DETOKENIZE_DATA)
 	} else {
-		for index, token := range request.Tokens {
-			if token == "" {
-				logger.Error(fmt.Sprintf(logs.EMPTY_OR_NULL_TOKEN_IN_TOKENS, tag, index))
-				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_TOKEN_IN_DATA_TOKEN)
+		for index, token := range request.DetokenizeData {
+			if token.Token == "" {
+				logger.Error(fmt.Sprintf(logs.EMPTY_OR_NULL_TOKEN_IN_DETOKENIZE_DATA, tag, index))
+				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_TOKEN_IN_DETOKENIZE_DATA)
 			}
 		}
 	}
