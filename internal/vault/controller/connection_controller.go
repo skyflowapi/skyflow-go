@@ -115,11 +115,14 @@ func (v *ConnectionController) Invoke(ctx context.Context, request common.Invoke
 
 	logger.Info(logs.INVOKE_CONNECTION_REQUEST_RESOLVED)
 	// Step 7: Parse Response
-	parseRes, parseErr := parseResponse(res, requestId)
-	if parseErr != nil {
-		return nil, parseErr
+	if res.StatusCode >= http.StatusOK && res.StatusCode < http.StatusMultipleChoices {
+		parseRes, parseErr := parseResponse(res)
+		if parseErr != nil {
+			return nil, parseErr
+		}
+		return &common.InvokeConnectionResponse{Data: parseRes, Metadata: metaData}, nil
 	}
-	return &common.InvokeConnectionResponse{Data: parseRes, Metadata: metaData}, nil
+	return nil, errors.SkyflowApiError(*res)
 }
 
 // Utility Functions
@@ -264,7 +267,7 @@ func sendRequest(request *http.Request) (*http.Response, string, error) {
 	}
 	return response, requestId, nil
 }
-func parseResponse(response *http.Response, requestId string) (map[string]interface{}, *errors.SkyflowError) {
+func parseResponse(response *http.Response) (map[string]interface{}, *errors.SkyflowError) {
 	data, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		return nil, errors.NewSkyflowError(errors.INVALID_INPUT_CODE, errors.INVALID_RESPONSE)
