@@ -222,10 +222,12 @@ func GetDetokenizePayload(request common.DetokenizeRequest, options common.Detok
 	payload.SetContinueOnError(options.ContinueOnError)
 	var reqArray []vaultapi.V1DetokenizeRecordRequest
 
-	for index := range request.Tokens {
+	for index := range request.DetokenizeData {
 		req := vaultapi.V1DetokenizeRecordRequest{}
-		req.SetToken(request.Tokens[index])
-		req.SetRedaction(vaultapi.RedactionEnumREDACTION(request.RedactionType))
+		req.SetToken(request.DetokenizeData[index].Token)
+		if request.DetokenizeData[index].RedactionType != "" {
+			req.SetRedaction(vaultapi.RedactionEnumREDACTION(request.DetokenizeData[index].RedactionType))
+		}
 		reqArray = append(reqArray, req)
 	}
 	if len(reqArray) > 0 {
@@ -387,6 +389,7 @@ func (v *VaultController) Insert(ctx context.Context, request common.InsertReque
 			if formattedRecord["skyflow_id"] != nil {
 				insertedFields = append(insertedFields, formattedRecord)
 			} else {
+				formattedRecord["requestId"] = httpsRes.Header.Get(constants.REQUEST_KEY)
 				errors = append(errors, formattedRecord)
 			}
 		}
@@ -450,6 +453,7 @@ func (v *VaultController) Detokenize(ctx context.Context, request common.Detoken
 					"Token":     record.GetToken(),
 					"Value":     record.GetValue(),
 					"Error":     record.GetError(),
+					"requestId": httpsRes.Header.Get(constants.REQUEST_KEY),
 				}
 				errorFields = append(errorFields, er1)
 			} else {

@@ -60,6 +60,7 @@ var _ = Describe("Skyflow Error", func() {
 			header := http.Header{}
 			header.Set("Content-Type", "application/json")
 			header.Set("x-request-id", "req-12345")
+			header.Set("error-from-client", "true")
 			response := http.Response{
 				Header: header,
 				Body: io.NopCloser(strings.NewReader(`{
@@ -76,6 +77,59 @@ var _ = Describe("Skyflow Error", func() {
 			Expect(skyflowError.GetCode()).To(Equal("Code: 400"))
 			Expect(skyflowError.GetMessage()).To(Equal("Message: Invalid Input"))
 			Expect(skyflowError.GetGrpcCode()).To(Equal("3"))
+			Expect(skyflowError.GetRequestId()).To(Equal("req-12345"))
+			Expect(skyflowError.GetDetails()["errorFromClient"]).To(Equal("true"))
+		})
+		It("should parse error response correctly when error is string type", func() {
+			header := http.Header{}
+			header.Set("Content-Type", "application/json")
+			header.Set("x-request-id", "req-12345")
+			response := http.Response{
+				Header: header,
+				Body: io.NopCloser(strings.NewReader(`{
+					"error": "error occurred"
+				}`)),
+			}
+			response.StatusCode = 400
+			skyflowError := SkyflowApiError(response)
+			Expect(skyflowError.GetMessage()).To(Equal("Message: error occurred"))
+			Expect(skyflowError.GetRequestId()).To(Equal("req-12345"))
+		})
+
+		It("should parse JSON response correctly when error keys is missing from body", func() {
+			header := http.Header{}
+			header.Set("Content-Type", "application/json")
+			header.Set("x-request-id", "req-12345")
+			response := http.Response{
+				Header: header,
+				Body: io.NopCloser(strings.NewReader(`{
+					"error": {
+					}
+				}`)),
+			}
+			response.StatusCode = 400
+			skyflowError := SkyflowApiError(response)
+			Expect(skyflowError.GetCode()).To(Equal("Code: 400"))
+			Expect(skyflowError.GetMessage()).To(Equal("Message: Unknown error"))
+			Expect(skyflowError.GetGrpcCode()).To(Equal(""))
+			Expect(skyflowError.GetRequestId()).To(Equal("req-12345"))
+		})
+
+		It("should parse JSON response correctly when message is missing", func() {
+			header := http.Header{}
+			header.Set("Content-Type", "application/json")
+			header.Set("x-request-id", "req-12345")
+			response := http.Response{
+				Header: header,
+				Body: io.NopCloser(strings.NewReader(`{
+					"error": {
+					}
+				}`)),
+			}
+			skyflowError := SkyflowApiError(response)
+			Expect(skyflowError.GetCode()).To(Equal("Code: 0"))
+			Expect(skyflowError.GetMessage()).To(Equal("Message: Unknown error"))
+			Expect(skyflowError.GetGrpcCode()).To(Equal(""))
 			Expect(skyflowError.GetRequestId()).To(Equal("req-12345"))
 		})
 

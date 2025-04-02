@@ -374,8 +374,11 @@ var _ = Describe("Vault controller Test cases", func() {
 
 			// Initialize context, request, and options
 			request = DetokenizeRequest{
-				Tokens:        []string{"token1", "token2"},
-				RedactionType: MASKED,
+				DetokenizeData: []DetokenizeData{
+					{Token: "token1",
+						RedactionType: MASKED,
+					},
+				},
 			}
 			options = DetokenizeOptions{
 				ContinueOnError: true,
@@ -413,7 +416,7 @@ var _ = Describe("Vault controller Test cases", func() {
 			})
 			It("should return detokenized data with errors", func() {
 				response := make(map[string]interface{})
-				mockJSONResponse := `{"error":{"grpc_code":5,"http_code":404,"message":"Detokenize failed. All tokens are invalid. Specify valid tokens.","http_status":"Not Found","details":[]}}`
+				mockJSONResponse := `{"error":{"grpc_code":5,"http_code":404,"X-Request-Id": "123455","message":"Detokenize failed. All tokens are invalid. Specify valid tokens.","http_status":"Not Found","details":[]}}`
 				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
 				// Set the mock server URL in the controller's client
 				ts := setupMockServer(response, "err", "/vaults/v1/vaults/")
@@ -433,10 +436,37 @@ var _ = Describe("Vault controller Test cases", func() {
 				Expect(err1).To(BeNil())
 				res, err := service.Detokenize(ctx, request, options) // Validate the response
 				Expect(err).ToNot(BeNil())
+				Expect(err.GetRequestId()).To(Equal("123456"))
+				Expect(res).To(BeNil())
+			})
+			It("should return detokenized data with errors when continue on error is false", func() {
+				response := make(map[string]interface{})
+				options.ContinueOnError = false
+				mockJSONResponse := `{"error":{"grpc_code":5,"http_code":404,"x-request-Id": "123455","message":"Detokenize failed. All tokens are invalid. Specify valid tokens.","http_status":"Not Found","details":[]}}`
+				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
+				// Set the mock server URL in the controller's client
+				ts := setupMockServer(response, "err", "/vaults/v1/vaults/")
+
+				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+					configuration := vaultapi2.NewConfiguration()
+					configuration.AddDefaultHeader("Authorization", "Bearer token")
+					configuration.AddDefaultHeader("Content-Type", "application/json")
+					configuration.Servers[0].URL = ts.URL + "/vaults"
+					apiClient := vaultapi2.NewAPIClient(configuration)
+					v.ApiClient = *apiClient
+					return nil
+				}
+				// Call the Detokenize function
+				ctx := context.Background()
+				var service, err1 = client.Vault()
+				Expect(err1).To(BeNil())
+				res, err := service.Detokenize(ctx, request, options) // Validate the response
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetRequestId()).To(Equal("123456"))
 				Expect(res).To(BeNil())
 			})
 			It("should return detokenized data with errors", func() {
-				request.Tokens = nil
+				request.DetokenizeData = nil
 				// Call the Detokenize function
 				ctx := context.Background()
 				var service, err1 = client.Vault()
@@ -1057,6 +1087,7 @@ func setupMockServer(mockResponse map[string]interface{}, status string, path st
 	// Define the handler for "/vaults/v1/vaults/"
 	mockServer.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("X-Request-Id", "123456")
 		jsonData, _ := json.Marshal(mockResponse)
 		// Write the response
 		switch status {

@@ -3,6 +3,9 @@ package errors
 import (
 	"encoding/json"
 	"fmt"
+
+	constants "github.com/skyflowapi/skyflow-go/v2/internal/constants"
+
 	"io"
 	"net/http"
 	"strconv"
@@ -61,12 +64,26 @@ func SkyflowApiError(responseHeaders http.Response) *SkyflowError {
 		if err := json.Unmarshal(bodyBytes, &apiError); err != nil {
 			return NewSkyflowError(INVALID_INPUT_CODE, "Failed to unmarhsal error")
 		}
-		skyflowError.details = apiError
 		if errorBody, ok := apiError["error"].(map[string]interface{}); ok {
-			skyflowError.httpCode = strconv.FormatFloat(errorBody["http_code"].(float64), 'f', 0, 64)
-			skyflowError.message = errorBody["message"].(string)
-			skyflowError.grpcCode = strconv.FormatFloat(errorBody["grpc_code"].(float64), 'f', 0, 64)
-			skyflowError.httpStatusCode = errorBody["http_status"].(string)
+			if httpCode, exists := errorBody["http_code"].(float64); exists {
+				skyflowError.httpCode = strconv.FormatFloat(httpCode, 'f', 0, 64)
+			} else {
+				skyflowError.httpCode = strconv.Itoa(responseHeaders.StatusCode)
+			}
+			if message, exists := errorBody["message"].(string); exists {
+				skyflowError.message = message
+			} else {
+				skyflowError.message = "Unknown error"
+			}
+			if grpcCode, exists := errorBody["grpc_code"].(float64); exists {
+				skyflowError.grpcCode = strconv.FormatFloat(grpcCode, 'f', 0, 64)
+			}
+			if httpStatus, exists := errorBody["http_status"].(string); exists {
+				skyflowError.httpStatusCode = httpStatus
+			}
+			if details, exists := errorBody["details"].(map[string]interface{}); exists {
+				skyflowError.details = details
+			}
 		} else if errBody, ok := apiError["error"].(string); ok {
 			skyflowError.message = errBody
 		} else {
@@ -81,6 +98,13 @@ func SkyflowApiError(responseHeaders http.Response) *SkyflowError {
 			skyflowError.message = string(bodyBytes)
 			skyflowError.httpStatusCode = responseHeaders.Status
 		}
+	}
+
+	if responseHeaders.Header.Get(constants.ERROR_FROM_CLIENT) != "" {
+		if skyflowError.details == nil {
+			skyflowError.details = make(map[string]interface{})
+		}
+		skyflowError.details["errorFromClient"] = responseHeaders.Header.Get(constants.ERROR_FROM_CLIENT)
 	}
 	return &skyflowError
 }
