@@ -6,6 +6,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/skyflowapi/skyflow-go/v2/client"
+	client2 "github.com/skyflowapi/skyflow-go/v2/internal/generated/vaultapi/client"
+	"github.com/skyflowapi/skyflow-go/v2/internal/generated/vaultapi/option"
 	vaultapi2 "github.com/skyflowapi/skyflow-go/v2/internal/generated/vaultapi"
 	. "github.com/skyflowapi/skyflow-go/v2/internal/vault/controller"
 	. "github.com/skyflowapi/skyflow-go/v2/utils/common"
@@ -49,13 +51,15 @@ var _ = Describe("Vault controller Test cases", func() {
 
 				// Setup mock server
 				ts = setupMockServer(response, "ok", "/vaults/v1/vaults/")
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
 				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
-					configuration := vaultapi2.NewConfiguration()
-					configuration.AddDefaultHeader("Authorization", "Bearer token")
-					configuration.AddDefaultHeader("Content-Type", "application/json")
-					configuration.Servers[0].URL = ts.URL + "/vaults"
-					apiClient := vaultapi2.NewAPIClient(configuration)
-					v.ApiClient = *apiClient
+					client := client2.NewClient(
+						option.WithBaseURL(ts.URL+"/vaults"),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					v.Client = *client
 					return nil
 				}
 			})
@@ -113,13 +117,15 @@ var _ = Describe("Vault controller Test cases", func() {
 				defer ts.Close()
 
 				// Set the mock server URL in the controller's client
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
 				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
-					configuration := vaultapi2.NewConfiguration()
-					configuration.AddDefaultHeader("Authorization", "Bearer token")
-					configuration.AddDefaultHeader("Content-Type", "application/json")
-					configuration.Servers[0].URL = ts.URL + "/vaults"
-					apiClient := vaultapi2.NewAPIClient(configuration)
-					v.ApiClient = *apiClient
+					client := client2.NewClient(
+						option.WithBaseURL(ts.URL+"/vaults"),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					v.Client = *client
 					return nil
 				}
 
@@ -185,13 +191,15 @@ var _ = Describe("Vault controller Test cases", func() {
 				ts := setupMockServer(response, "ok", "/vaults/v1/vaults/")
 				defer ts.Close()
 				// Set the mock server URL in the controller's client
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
 				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
-					configuration := vaultapi2.NewConfiguration()
-					configuration.AddDefaultHeader("Authorization", "Bearer token")
-					configuration.AddDefaultHeader("Content-Type", "application/json")
-					configuration.Servers[0].URL = ts.URL + "/vaults"
-					apiClient := vaultapi2.NewAPIClient(configuration)
-					v.ApiClient = *apiClient
+					client := client2.NewClient(
+						option.WithBaseURL(ts.URL+"/vaults"),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					v.Client = *client
 					return nil
 				}
 
@@ -235,13 +243,15 @@ var _ = Describe("Vault controller Test cases", func() {
 
 				// Set up the mock server
 				ts = setupMockServer(response, "ok", "/vaults/v1/vaults/")
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
 				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
-					configuration := vaultapi2.NewConfiguration()
-					configuration.AddDefaultHeader("Authorization", "Bearer token")
-					configuration.AddDefaultHeader("Content-Type", "application/json")
-					configuration.Servers[0].URL = ts.URL + "/vaults"
-					apiClient := vaultapi2.NewAPIClient(configuration)
-					v.ApiClient = *apiClient
+					client := client2.NewClient(
+						option.WithBaseURL(ts.URL+"/vaults"),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					v.Client = *client
 					return nil
 				}
 
@@ -287,13 +297,15 @@ var _ = Describe("Vault controller Test cases", func() {
 				defer ts.Close()
 
 				// Set the mock server URL in the controller's client
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
 				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
-					configuration := vaultapi2.NewConfiguration()
-					configuration.AddDefaultHeader("Authorization", "Bearer token")
-					configuration.AddDefaultHeader("Content-Type", "application/json")
-					configuration.Servers[0].URL = ts.URL + "/vaults"
-					apiClient := vaultapi2.NewAPIClient(configuration)
-					v.ApiClient = *apiClient
+					client := client2.NewClient(
+						option.WithBaseURL(ts.URL+"/vaults"),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					v.Client = *client
 					return nil
 				}
 
@@ -658,13 +670,15 @@ var _ = Describe("Vault controller Test cases", func() {
 				// Set the mock server URL in the controller's client
 				ts := setupMockServer(response, "ok", "/vaults/v1/vaults/")
 
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
 				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
-					configuration := vaultapi2.NewConfiguration()
-					configuration.AddDefaultHeader("Authorization", "Bearer token")
-					configuration.AddDefaultHeader("Content-Type", "application/json")
-					configuration.Servers[0].URL = ts.URL + "/vaults"
-					apiClient := vaultapi2.NewAPIClient(configuration)
-					v.ApiClient = *apiClient
+					client := client2.NewClient(
+						option.WithBaseURL(ts.URL+"/vaults"),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					v.Client = *client
 					return nil
 				}
 				service, _ := client.Vault()
@@ -680,13 +694,15 @@ var _ = Describe("Vault controller Test cases", func() {
 				// Set the mock server URL in the controller's client
 				ts := setupMockServer(response, "err", "/vaults/v1/vaults/")
 
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
 				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
-					configuration := vaultapi2.NewConfiguration()
-					configuration.AddDefaultHeader("Authorization", "Bearer token")
-					configuration.AddDefaultHeader("Content-Type", "application/json")
-					configuration.Servers[0].URL = ts.URL + "/vaults"
-					apiClient := vaultapi2.NewAPIClient(configuration)
-					v.ApiClient = *apiClient
+					client := client2.NewClient(
+						option.WithBaseURL(ts.URL+"/vaults"),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					v.Client = *client
 					return nil
 				}
 				service, _ := client.Vault()
@@ -825,13 +841,15 @@ var _ = Describe("Vault controller Test cases", func() {
 				// Set the mock server URL in the controller's client
 				ts := setupMockServer(response, "ok", "/vaults/v1/vaults/")
 
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
 				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
-					configuration := vaultapi2.NewConfiguration()
-					configuration.AddDefaultHeader("Authorization", "Bearer token")
-					configuration.AddDefaultHeader("Content-Type", "application/json")
-					configuration.Servers[0].URL = ts.URL + "/vaults"
-					apiClient := vaultapi2.NewAPIClient(configuration)
-					v.ApiClient = *apiClient
+					client := client2.NewClient(
+						option.WithBaseURL(ts.URL+"/vaults"),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					v.Client = *client
 					return nil
 				}
 				service, _ := client.Vault()
@@ -850,13 +868,15 @@ var _ = Describe("Vault controller Test cases", func() {
 				// Set the mock server URL in the controller's client
 				ts := setupMockServer(response, "err", "/vaults/v1/vaults/")
 				request.Tokens = map[string]interface{}{"name": "token"}
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
 				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
-					configuration := vaultapi2.NewConfiguration()
-					configuration.AddDefaultHeader("Authorization", "Bearer token")
-					configuration.AddDefaultHeader("Content-Type", "application/json")
-					configuration.Servers[0].URL = ts.URL + "/vaults"
-					apiClient := vaultapi2.NewAPIClient(configuration)
-					v.ApiClient = *apiClient
+					client := client2.NewClient(
+						option.WithBaseURL(ts.URL+"/vaults"),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					v.Client = *client
 					return nil
 				}
 				service, _ := client.Vault()
