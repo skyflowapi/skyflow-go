@@ -32,8 +32,8 @@ func GenerateBearerToken(credentialsFilePath string, options common.BearerTokenO
 
 	logger.Info(logs.GENERATE_BEARER_TOKEN_SUCCESS)
 	return &common.TokenResponse{
-		AccessToken: token.GetAccessToken(),
-		TokenType:   token.GetTokenType(),
+		AccessToken: *token.GetAccessToken(),
+		TokenType:   *token.GetTokenType(),
 	}, nil
 }
 
@@ -52,15 +52,15 @@ func GenerateBearerTokenFromCreds(credentials string, options common.BearerToken
 	}
 	logger.Info(logs.GENERATE_BEARER_TOKEN_SUCCESS)
 	return &common.TokenResponse{
-		AccessToken: token.GetAccessToken(),
-		TokenType:   token.GetTokenType(),
+		AccessToken: *token.GetAccessToken(),
+		TokenType:   *token.GetTokenType(),
 	}, nil
 }
 
 // GenerateSignedDataTokens Generate Signed Data Tokens
 func GenerateSignedDataTokens(credentialsFilePath string, options common.SignedDataTokensOptions) ([]common.SignedDataTokensResponse, *skyflowError.SkyflowError) {
 	// validate data
-	logger.Error(logs.GENERATE_SIGNED_DATA_TOKENS_TRIGGERED)
+	logger.Info(logs.GENERATE_SIGNED_DATA_TOKENS_TRIGGERED)
 	if credentialsFilePath == "" {
 		logger.Error(logs.EMPTY_CREDENTIALS_PATH)
 		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_CREDENTIAL_FILE_PATH)
@@ -82,7 +82,7 @@ func GenerateSignedDataTokensFromCreds(credentials string, options common.Signed
 		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_CREDENTIALS_STRING)
 	}
 	var credKeys map[string]interface{}
-	logger.Error(logs.GENERATE_SIGNED_DATA_TOKENS_TRIGGERED)
+	logger.Info(logs.GENERATE_SIGNED_DATA_TOKENS_TRIGGERED)
 	if err := json.Unmarshal([]byte(credentials), &credKeys); err != nil {
 		logger.Error(logs.INVALID_CREDENTIALS_STRING_FORMAT)
 		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_CREDENTIALS)

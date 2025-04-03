@@ -982,5 +982,37 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			Expect(err).To(BeNil())
 		})
 	})
+	Context("Validate the deidentify text request", func() {
+		It("should return error when Text is empty", func() {
+			req := common.DeidentifyTextRequest{
+				Text: "",
+			}
+			err := ValidateDeidentifyTextRequest(req)
+			Expect(err).ToNot(BeNil())
+        Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+		fmt.Println(err.GetMessage(), errors.INVALID_TEXT_IN_DEIDENTIFY)
+        Expect(err.GetMessage()).To(ContainSubstring(fmt.Sprintf(errors.INVALID_TEXT_IN_DEIDENTIFY)))
+    })
+
+    It("should return error when Text is only whitespace", func() {
+        req := common.DeidentifyTextRequest{
+            Text: "   ",
+        }
+        err := ValidateDeidentifyTextRequest(req)
+        Expect(err).ToNot(BeNil())
+		Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+
+        Expect(err.GetMessage()).To(ContainSubstring(fmt.Sprintf(errors.INVALID_TEXT_IN_DEIDENTIFY)))
+    })
+
+    It("should return nil when Text is non-empty", func() {
+        req := common.DeidentifyTextRequest{
+            Text: "valid text",
+        }
+        err := ValidateDeidentifyTextRequest(req)
+        Expect(err).To(BeNil())
+    })
+
+	})
 
 })
