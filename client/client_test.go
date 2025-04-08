@@ -1,7 +1,6 @@
 package client_test
 
 import (
-	"fmt"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
