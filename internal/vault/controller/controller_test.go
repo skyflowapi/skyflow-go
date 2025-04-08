@@ -1787,14 +1787,14 @@ var _ = Describe("VaultController", func() {
 		})
 		It("should create token if the current token is expired", func() {
 			vaultController.Config.Credentials.Token = os.Getenv("EXPIRED_TOKEN")
-			vaultController.Config.Credentials.Path = os.Getenv("CRED_FILE_PATH")
+			vaultController.Config.Credentials.Path = "../../" + os.Getenv("CRED_FILE_PATH")
 
 			err := SetBearerTokenForVaultController(vaultController)
 			Expect(err).To(BeNil())
 		})
 		It("should generate token if file path is provided", func() {
 			vaultController.Token = ""
-			vaultController.Config.Credentials.Path = os.Getenv("CRED_FILE_PATH")
+			vaultController.Config.Credentials.Path = "../../" + os.Getenv("CRED_FILE_PATH")
 
 			err := SetBearerTokenForVaultController(vaultController)
 			Expect(err).To(BeNil())
@@ -1802,7 +1802,7 @@ var _ = Describe("VaultController", func() {
 		})
 		It("should reuse token if valid token is provided", func() {
 			vaultController.Token = ""
-			vaultController.Config.Credentials.Path = os.Getenv("CRED_FILE_PATH")
+			vaultController.Config.Credentials.Path = "../../" + os.Getenv("CRED_FILE_PATH")
 
 			err := SetBearerTokenForVaultController(vaultController)
 			Expect(err).To(BeNil())
@@ -1836,7 +1836,7 @@ var _ = Describe("VaultController", func() {
 
 	Context("CreateRequestClient", func() {
 		It("should create an API client with a valid token", func() {
-			vaultController.Config.Credentials.Path = os.Getenv("CRED_FILE_PATH")
+			vaultController.Config.Credentials.Path = "../../" + os.Getenv("CRED_FILE_PATH")
 			err1 := SetBearerTokenForVaultController(vaultController)
 			Expect(err1).To(BeNil())
 
@@ -1849,7 +1849,7 @@ var _ = Describe("VaultController", func() {
 			Expect(vaultController.ApiClient).ToNot(BeNil())
 		})
 		It("should create an API client with a valid token generation", func() {
-			vaultController.Config.Credentials.Path = os.Getenv("CRED_FILE_PATH")
+			vaultController.Config.Credentials.Path = "../../" + os.Getenv("CRED_FILE_PATH")
 			vaultController.Token = ""
 			vaultController.Config.Credentials.Token = ""
 			vaultController.Config.Credentials.CredentialsString = ""
@@ -1881,7 +1881,7 @@ var _ = Describe("VaultController", func() {
 			Expect(err).ToNot(BeNil())
 			Expect(err.GetCode()).To(Equal(fmt.Sprintf("Code: %v", skyflowError.INVALID_INPUT_CODE)))
 			vaultController.Config.Credentials.Token = os.Getenv("EXPIRED_TOKEN")
-			vaultController.Config.Credentials.Path = os.Getenv("CRED_FILE_PATH")
+			vaultController.Config.Credentials.Path = "../../" + os.Getenv("CRED_FILE_PATH")
 
 			err1 := SetBearerTokenForVaultController(vaultController)
 			Expect(err1).To(BeNil())
