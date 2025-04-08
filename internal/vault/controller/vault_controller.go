@@ -505,10 +505,7 @@ func (v *VaultController) Get(ctx context.Context, request common.GetRequest, op
 		redaction, _ := vaultapis.NewRecordServiceBulkGetRecordRequestRedactionFromString(string(options.RedactionType))
 		req.Redaction = &redaction
 	}
-	if options.RedactionType == "" && !options.ReturnTokens {
-		redaction, _ := vaultapis.NewRecordServiceBulkGetRecordRequestRedactionFromString(string(common.PLAIN_TEXT))
-		req.Redaction = &redaction
-	}
+
 	if options.Offset != "" {
 		req.Offset = &options.Offset
 	}

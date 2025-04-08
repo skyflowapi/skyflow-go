@@ -199,7 +199,6 @@ var _ = Describe("Skyflow Error", func() {
 			err := errors.New("API Error: " + errorJSON)
 
 			skyflowErr := SkyflowErrorApi(err)
-			fmt.Println("==>", skyflowErr)
 			Expect(skyflowErr.GetMessage()).To(Equal("Message: Something went wrong"))
 		})
 	})
