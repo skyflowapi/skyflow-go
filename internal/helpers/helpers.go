@@ -8,6 +8,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"github.com/skyflowapi/skyflow-go/v2/internal/generated/option"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -16,7 +17,6 @@ import (
 	"time"
 
 	"github.com/skyflowapi/skyflow-go/v2/internal/generated/core"
-	"github.com/skyflowapi/skyflow-go/v2/internal/generated/option"
 
 	"github.com/golang-jwt/jwt"
 	constants "github.com/skyflowapi/skyflow-go/v2/internal/constants"
