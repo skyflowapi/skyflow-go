@@ -14,10 +14,10 @@ import (
 
 func main() {
 	// Add connection configurations 1
-	connConfig1 := ConnectionConfig{ConnectionId: "<CONNECTION_ID1>", ConnectionUrl: "<CONNECTION_URL1>", Credentials: Credentials{Token: "<BEARER_TOKEN1>"}}
+	connConfig1 := ConnectionConfig{ConnectionId: "<CONNECTION_ID1>", ConnectionUrl: "<CONNECTION_URL1>", Credentials: Credentials{CredentialsString: "<STRINGIFIED_JSON_VALUE>"}}
 
 	// Add connection configurations 2
-	connConfig2 := ConnectionConfig{ConnectionId: "<CONNECTION_ID2>", ConnectionUrl: "<CONNECTION_URL2>", Credentials: Credentials{Token: "<BEARER_TOKEN2>"}}
+	connConfig2 := ConnectionConfig{ConnectionId: "<CONNECTION_ID2>", ConnectionUrl: "<CONNECTION_URL2>", Credentials: Credentials{CredentialsString: "<STRINGIFIED_JSON_VALUE>"}}
 
 	var arr []ConnectionConfig
 	arr = append(arr, connConfig1, connConfig2)
