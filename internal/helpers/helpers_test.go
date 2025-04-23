@@ -343,13 +343,19 @@ MIIBAAIBADANINVALIDKEY==
 
 			// Test case 2: roles is an empty slice
 			It("should return an empty string when roles is an empty slice", func() {
-				result := GetScopeUsingRoles([]string{})
+				result := GetScopeUsingRoles([]*string{})
 				Expect(result).To(Equal(""))
 			})
 
 			// Test case 3: roles contains multiple roles
 			It("should return a string with roles prefixed by ' role:'", func() {
-				roles := []string{"admin", "user", "editor"}
+				role1 := "admin"
+				role2 := "user"
+				role3 := "editor"
+				roles := []*string{}
+				roles = append(roles, &role1)
+				roles = append(roles, &role2)
+				roles = append(roles, &role3)
 				result := GetScopeUsingRoles(roles)
 				expected := " role:admin role:user role:editor"
 				Expect(result).To(Equal(expected))
@@ -357,7 +363,9 @@ MIIBAAIBADANINVALIDKEY==
 
 			// Test case 4: roles contains one role
 			It("should return a string with a single role", func() {
-				roles := []string{"admin"}
+				role1 := "admin"
+				roles := []*string{}
+				roles = append(roles, &role1)
 				result := GetScopeUsingRoles(roles)
 				expected := " role:admin"
 				Expect(result).To(Equal(expected))
@@ -365,7 +373,9 @@ MIIBAAIBADANINVALIDKEY==
 
 			// Test case 5: roles contains one empty string role
 			It("should handle empty role string correctly", func() {
-				roles := []string{""}
+				role := ""
+				roles := []*string{}
+				roles = append(roles, &role)
 				result := GetScopeUsingRoles(roles)
 				expected := " role:"
 				Expect(result).To(Equal(expected))

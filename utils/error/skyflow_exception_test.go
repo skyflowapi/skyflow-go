@@ -1,15 +1,16 @@
 package errors_test
 
 import (
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
 	"testing"
 
-	. "github.com/skyflowapi/skyflow-go/v2/utils/error"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "github.com/skyflowapi/skyflow-go/v2/utils/error"
 )
 
 func TestServiceAccount(t *testing.T) {
@@ -147,4 +148,59 @@ var _ = Describe("Skyflow Error", func() {
 			Expect(skyflowError.GetHttpStatusCode()).To(Equal("400"))
 		})
 	})
+
+	Context("SkyflowErrorApi", func() {
+		It("should correctly parse a valid API error message", func() {
+			errorJSON := `{"error": {"http_code": 400, "message": "Invalid request", "grpc_code": 3, "http_status": "Bad Request", "details": {"demo": "demo"}}}`
+			err := errors.New("API Error: " + errorJSON)
+
+			skyflowErr := SkyflowErrorApi(err)
+
+			Expect(skyflowErr).ToNot(BeNil())
+			Expect(skyflowErr.GetCode()).To(Equal("Code: 400"))
+			Expect(skyflowErr.GetMessage()).To(Equal("Message: Invalid request"))
+			Expect(skyflowErr.GetGrpcCode()).To(Equal("3"))
+			Expect(skyflowErr.GetHttpStatusCode()).To(Equal("Bad Request"))
+		})
+
+		It("should return an error when JSON parsing fails", func() {
+			err := errors.New("API Error: {invalid_json}")
+
+			skyflowErr := SkyflowErrorApi(err)
+
+			Expect(skyflowErr).ToNot(BeNil())
+			Expect(skyflowErr.GetMessage()).To(Equal(fmt.Sprintf(`Message: %s`, err.Error())))
+		})
+
+		It("should return an error when the message doesn't contain a colon", func() {
+			err := errors.New("Invalid API response")
+
+			skyflowErr := SkyflowErrorApi(err)
+
+			Expect(skyflowErr).ToNot(BeNil())
+			Expect(skyflowErr.GetMessage()).To(Equal("Message: Invalid API response"))
+		})
+
+		It("should handle an error message without required fields", func() {
+			errorJSON := `{"error": {}}`
+			err := errors.New("API Error: " + errorJSON)
+
+			skyflowErr := SkyflowErrorApi(err)
+
+			Expect(skyflowErr).ToNot(BeNil())
+			Expect(skyflowErr.GetMessage()).To(Equal("Message: Unknown error"))
+			Expect(skyflowErr.GetCode()).To(Equal("Code: "))
+			Expect(skyflowErr.GetGrpcCode()).To(BeEmpty())
+			Expect(skyflowErr.GetHttpStatusCode()).To(BeEmpty())
+		})
+
+		It("should handle an error message where error is a string", func() {
+			errorJSON := `{"error": "Something went wrong"}`
+			err := errors.New("API Error: " + errorJSON)
+
+			skyflowErr := SkyflowErrorApi(err)
+			Expect(skyflowErr.GetMessage()).To(Equal("Message: Something went wrong"))
+		})
+	})
+
 })

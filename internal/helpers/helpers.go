@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
+	"github.com/skyflowapi/skyflow-go/v2/internal/generated/option"
 	"io/ioutil"
 	"net/url"
 	"os"
@@ -15,7 +16,8 @@ import (
 
 	"github.com/golang-jwt/jwt"
 	constants "github.com/skyflowapi/skyflow-go/v2/internal/constants"
-	internalAuthApi "github.com/skyflowapi/skyflow-go/v2/internal/generated/auth"
+	internal "github.com/skyflowapi/skyflow-go/v2/internal/generated"
+	internalAuthApi "github.com/skyflowapi/skyflow-go/v2/internal/generated/authentication"
 	. "github.com/skyflowapi/skyflow-go/v2/utils/common"
 	skyflowError "github.com/skyflowapi/skyflow-go/v2/utils/error"
 	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
@@ -144,7 +146,7 @@ func ParsePrivateKey(pemKey string) (*rsa.PrivateKey, *skyflowError.SkyflowError
 var GetBaseURLHelper = GetBaseURL
 
 // GenerateBearerTokenHelper  helper functions
-func GenerateBearerTokenHelper(credKeys map[string]interface{}, options BearerTokenOptions) (*internalAuthApi.V1GetAuthTokenResponse, *skyflowError.SkyflowError) {
+func GenerateBearerTokenHelper(credKeys map[string]interface{}, options BearerTokenOptions) (*internal.V1GetAuthTokenResponse, *skyflowError.SkyflowError) {
 	privateKey := credKeys["privateKey"]
 	if privateKey == nil {
 		logger.Error(fmt.Sprintf(logs.PRIVATE_KEY_NOT_FOUND))
@@ -175,37 +177,43 @@ func GenerateBearerTokenHelper(credKeys map[string]interface{}, options BearerTo
 		return nil, e
 	}
 	// 1. config
-	config := internalAuthApi.NewConfiguration()
+	//config := internal.V1GetAuthTokenRequest{}
 	var err *skyflowError.SkyflowError
-	config.Servers[0].URL, err = GetBaseURLHelper(tokenURI)
+	var url string
+	url, err = GetBaseURLHelper(tokenURI)
 	if err != nil {
 		return nil, err
 	}
 	// 2. client
-	client := internalAuthApi.NewAPIClient(config)
-	//3. auth api
-	authApi := client.AuthenticationAPI.AuthenticationServiceGetAuthToken(context.TODO())
-	// 4. request
-	body := internalAuthApi.V1GetAuthTokenRequest{}
-	body.SetGrantType(constants.GRANT_TYPE)
-	body.SetAssertion(signedUserJWT)
+	//client := internalAuthApi.NewAPIClient(config)
+	client := internalAuthApi.NewClient(option.WithBaseURL(url))
+	//3. request
+	body := internal.V1GetAuthTokenRequest{}
+	body.GrantType = constants.GRANT_TYPE
+	body.Assertion = signedUserJWT
 	if len(options.RoleIDs) > 0 {
-		body.SetScope(GetScopeUsingRoles(options.RoleIDs))
+		var roles []*string
+		for _, roleID := range options.RoleIDs {
+			roles = append(roles, &roleID)
+		}
+		roleString := GetScopeUsingRoles(roles)
+		body.Scope = &roleString
 	}
 	// 5. send request
-	res, r, err2 := authApi.Body(body).Execute()
-	if err2 != nil && r != nil {
-		return nil, skyflowError.SkyflowApiError(*r)
-	} else if err2 != nil {
-		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.UNKNOWN_ERROR, err2))
+	authApi, apiErr := client.AuthenticationServiceGetAuthToken(context.Background(), &body)
+	//if apiErr != nil {
+	//	return nil, skyflowError.SkyflowApiError(*r)
+	//} else
+	if apiErr != nil {
+		return nil, skyflowError.SkyflowErrorApi(apiErr)
 	}
-	return res, nil
+	return authApi, nil
 }
-func GetScopeUsingRoles(roles []string) string {
+func GetScopeUsingRoles(roles []*string) string {
 	scope := ""
 	if roles != nil {
 		for _, role := range roles {
-			scope += " role:" + role
+			scope += " role:" + *role
 		}
 	}
 	return scope
