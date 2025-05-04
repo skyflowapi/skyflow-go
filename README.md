@@ -1,4 +1,4 @@
-# Description
+# Skyflow Go SDK
 This go SDK is designed to help developers easily implement Skyflow into their go backend. 
 
 [![CI](https://img.shields.io/static/v1?label=CI&message=passing&color=green?style=plastic&logo=github)](https://github.com/skyflowapi/skyflow-go/actions)
@@ -8,7 +8,6 @@ This go SDK is designed to help developers easily implement Skyflow into their g
 
 # Table of Contents
 
-- [Description](#description)
 - [Table of Contents](#table-of-contents)
   - [Features](#features)
   - [Installation](#installation)
@@ -90,8 +89,39 @@ func GetSkyflowBearerToken() (string, error) {
 	return bearerToken, nil
 }
 ```
+[Example using cred json string](https://github.com/skyflowapi/skyflow-go/blob/main/samples/serviceaccount/token/main/service_account_token_using_cred_string.go):
+```go
+package main
 
+import (
+	"fmt"
 
+	logger "github.com/skyflowapi/skyflow-go/commonutils/logwrapper"
+	saUtil "github.com/skyflowapi/skyflow-go/serviceaccount/util"
+)
+
+var token = ""
+
+func main() {
+
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Println("error : ", err)
+		}
+	}()
+	logger.SetLogLevel(logger.INFO) //set loglevel to INFO
+	credentials:= "<credentials_in_string_format>"
+	if saUtil.IsExpired(token) {
+		newToken, err := saUtil.GenerateBearerTokenFromCreds(credentials)
+		if err != nil {
+			panic(err)
+		} else {
+			token = newToken.AccessToken
+		}
+		fmt.Println("%v", token)
+	}
+}
+```
 ### Vault APIs
 
 The [Vault](https://github.com/skyflowapi/skyflow-go/tree/main/skyflow/vaultapi) Go module is used to perform operations on the vault such as inserting records, detokenizing tokens, retrieving tokens for a skyflow_id and to invoke a connection.
