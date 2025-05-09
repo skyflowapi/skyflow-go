@@ -1,6 +1,5 @@
 module github.com/skyflowapi/skyflow-go
 
-
 go 1.23.8
 
 require (
