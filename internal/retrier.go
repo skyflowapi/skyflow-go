@@ -5,7 +5,6 @@ import (
 	"math/big"
 	"net/http"
 	"time"
-	"fmt"
 )
 
 const (

@@ -5,6 +5,8 @@ import (
     "fmt"
     "github.com/skyflowapi/skyflow-go/flowservice"
     "github.com/skyflowapi/skyflow-go/api"
+    "github.com/skyflowapi/skyflow-go/option"
+    "net/http"
 )
 
 // getRecords retrieves records from a specified table in the vault.

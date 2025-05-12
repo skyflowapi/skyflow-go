@@ -4,12 +4,11 @@ package flowservice
 
 import (
 	context "context"
-	generatedgo "github.com/skyflowapi/skyflow-go"
+	generatedgo "github.com/skyflowapi/skyflow-go/api"
 	core "github.com/skyflowapi/skyflow-go/core"
 	internal "github.com/skyflowapi/skyflow-go/internal"
 	option "github.com/skyflowapi/skyflow-go/option"
 	http "net/http"
-	"fmt"
 )
 
 type Client struct {

@@ -5,6 +5,8 @@ import (
     "fmt"
     "github.com/skyflowapi/skyflow-go/flowservice"
     "github.com/skyflowapi/skyflow-go/api"
+    "github.com/skyflowapi/skyflow-go/option"
+    "net/http"
 )
 
 // insertRecords inserts new records into a specified table in the vault.
