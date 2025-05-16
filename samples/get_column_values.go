@@ -7,6 +7,7 @@ import (
     "github.com/skyflowapi/skyflow-go/flowservice"
     "github.com/skyflowapi/skyflow-go/api"
     "github.com/skyflowapi/skyflow-go/option"
+    SkyflowClient "github.com/skyflowapi/skyflow-go/client"
 )
 
 // getRecords retrieves records from a specified table in the vault.
@@ -29,13 +30,16 @@ func getRecords(client *flowservice.Client) {
             Redaction:  stringPtr("redacted"),
         },
     }
-
+    limit := 10 // Set the limit for the number of records to fetch
+    offset := 2 // Set the offset 
     // Create the V1GetRequest object
     request := &api.V1GetRequest{
         VaultId:          &vaultID,
         TableName:        &tableName,
         Columns:          columns,
         ColumnRedactions: columnRedactions,
+        Limit:           &limit,
+        Offset:          &offset,
     }
 
     // Call the Get function
@@ -55,14 +59,15 @@ func stringPtr(s string) *string {
 
 func main() {
     // Initialize the client
-    client := flowservice.NewClient(
+    skyflowClient := SkyflowClient.NewClient(
         option.WithBaseURL("<BASE_URL>"), // base URL
 		option.WithMaxAttempts(1),
         option.WithHTTPHeader(http.Header{
             "Authorization": []string{"Bearer <ACCESS_TOKEN>"},
         }),
     )
+    var flowserviceClient *flowservice.Client = skyflowClient.Flowservice
 
     // Call the getRecords function
-    getRecords(client)
+    getRecords(flowserviceClient)
 }

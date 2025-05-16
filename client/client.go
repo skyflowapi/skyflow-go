@@ -7,6 +7,7 @@ import (
 	flowservice "github.com/skyflowapi/skyflow-go/flowservice"
 	internal "github.com/skyflowapi/skyflow-go/internal"
 	option "github.com/skyflowapi/skyflow-go/option"
+	records "github.com/skyflowapi/skyflow-go/records"
 	http "net/http"
 )
 
@@ -15,6 +16,7 @@ type Client struct {
 	caller  *internal.Caller
 	header  http.Header
 
+	Records     *records.Client
 	Flowservice *flowservice.Client
 }
 
@@ -29,6 +31,7 @@ func NewClient(opts ...option.RequestOption) *Client {
 			},
 		),
 		header:      options.ToHeader(),
+		Records:     records.NewClient(opts...),
 		Flowservice: flowservice.NewClient(opts...),
 	}
 }

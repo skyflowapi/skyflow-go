@@ -3,8 +3,8 @@
 package client
 
 import (
-	assert "github.com/stretchr/testify/assert"
 	option "github.com/skyflowapi/skyflow-go/option"
+	assert "github.com/stretchr/testify/assert"
 	http "net/http"
 	testing "testing"
 	time "time"

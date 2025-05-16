@@ -44,6 +44,10 @@ type V1GetRequest struct {
 	ColumnRedactions []*V1ColumnRedactions `json:"columnRedactions,omitempty" url:"-"`
 	// List of columns to be fetched.
 	Columns []string `json:"columns,omitempty" url:"-"`
+	// Limit for the number of records to be fetched
+	Limit *int `json:"limit,omitempty" url:"-"`
+	// Offset for the number of records to be fetched
+	Offset *int `json:"offset,omitempty" url:"-"`
 }
 
 type V1InsertRequest struct {
@@ -506,6 +510,8 @@ type V1FlowDetokenizeResponseObject struct {
 	Error *string `json:"error,omitempty" url:"error,omitempty"`
 	// HTTP status code of the response
 	HttpCode *int `json:"httpCode,omitempty" url:"httpCode,omitempty"`
+	// Additional metadata associated with the token, such as tableName or skyflowID
+	Metadata map[string]interface{} `json:"metadata,omitempty" url:"metadata,omitempty"`
 
 	extraProperties map[string]interface{}
 	rawJSON         json.RawMessage
@@ -544,6 +550,13 @@ func (v *V1FlowDetokenizeResponseObject) GetHttpCode() *int {
 		return nil
 	}
 	return v.HttpCode
+}
+
+func (v *V1FlowDetokenizeResponseObject) GetMetadata() map[string]interface{} {
+	if v == nil {
+		return nil
+	}
+	return v.Metadata
 }
 
 func (v *V1FlowDetokenizeResponseObject) GetExtraProperties() map[string]interface{} {

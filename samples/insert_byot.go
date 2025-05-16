@@ -6,6 +6,7 @@ import (
     "github.com/skyflowapi/skyflow-go/flowservice"
     "github.com/skyflowapi/skyflow-go/api"
     "github.com/skyflowapi/skyflow-go/option"
+     SkyflowClient "github.com/skyflowapi/skyflow-go/client"
     "net/http"
 )
 
@@ -48,14 +49,15 @@ func insertRecords(client *flowservice.Client) {
 
 func main() {
 	// Initialize the client
-	client := flowservice.NewClient(
+	skyflowClient := SkyflowClient.NewClient(
 		option.WithBaseURL("<VAULT_URL>"), // vault url
 		option.WithHTTPHeader(http.Header{
 			"Authorization": []string{"Bearer " + "<BEARER_TOKEN>"}, // Bearer token
 		}),
 		option.WithMaxAttempts(1),
 	)
+    var flowserviceClient *flowservice.Client = skyflowClient.Flowservice
 
 	// Call the insertRecords function
-	insertRecords(client)
+	insertRecords(flowserviceClient)
 }

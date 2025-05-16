@@ -6,7 +6,8 @@ import (
     "github.com/skyflowapi/skyflow-go/flowservice"
     "github.com/skyflowapi/skyflow-go/api"
     "github.com/skyflowapi/skyflow-go/option"
-        "net/http"
+    "github.com/skyflowapi/skyflow-go/client"
+    "net/http"
 
 )
 
@@ -34,15 +35,14 @@ func deleteRecords(client *flowservice.Client) {
 }
 func main() {
 	// Initialize the client
-	client := flowservice.NewClient(
+	SkyflowClient := client.NewClient(
 		option.WithBaseURL("<VAULT_URL>"), // vault url
 		option.WithHTTPHeader(http.Header{
 			"Authorization": []string{"Bearer "+ "<BEARER_TOKEN>"}, // Bearer token
 		}),
 		option.WithMaxAttempts(1),
-		
 	)
-
+    var flowserviceClient *flowservice.Client= SkyflowClient.Flowservice
 	// Call the deleteRecords function
-	deleteRecords(client)
+	deleteRecords(flowserviceClient)
 }
