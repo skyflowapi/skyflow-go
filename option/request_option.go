@@ -3,10 +3,9 @@
 package option
 
 import (
+	core "github.com/skyflowapi/skyflow-go/core"
 	http "net/http"
 	url "net/url"
-
-	core "github.com/skyflowapi/skyflow-go/core"
 )
 
 // RequestOption adapts the behavior of an individual request.

@@ -184,44 +184,6 @@ func (c *Client) Update(
 	return response, nil
 }
 
-func (c *Client) Deletetoken(
-	ctx context.Context,
-	request *skyflowgo.V1DeleteTokenRequest,
-	opts ...option.RequestOption,
-) (*skyflowgo.V1DeleteTokenResponse, error) {
-	options := core.NewRequestOptions(opts...)
-	baseURL := internal.ResolveBaseURL(
-		options.BaseURL,
-		c.baseURL,
-		"",
-	)
-	endpointURL := baseURL + "/v2/tokens/delete"
-	headers := internal.MergeHeaders(
-		c.header.Clone(),
-		options.ToHeader(),
-	)
-	headers.Set("Content-Type", "application/json")
-
-	var response *skyflowgo.V1DeleteTokenResponse
-	if err := c.caller.Call(
-		ctx,
-		&internal.CallParams{
-			URL:             endpointURL,
-			Method:          http.MethodPost,
-			Headers:         headers,
-			MaxAttempts:     options.MaxAttempts,
-			BodyProperties:  options.BodyProperties,
-			QueryParameters: options.QueryParameters,
-			Client:          options.HTTPClient,
-			Request:         request,
-			Response:        &response,
-		},
-	); err != nil {
-		return nil, err
-	}
-	return response, nil
-}
-
 func (c *Client) Detokenize(
 	ctx context.Context,
 	request *skyflowgo.V1DetokenizeRequest,
@@ -279,6 +241,43 @@ func (c *Client) Tokenize(
 	headers.Set("Content-Type", "application/json")
 
 	var response *skyflowgo.V1TokenizeResponse
+	if err := c.caller.Call(
+		ctx,
+		&internal.CallParams{
+			URL:             endpointURL,
+			Method:          http.MethodPost,
+			Headers:         headers,
+			MaxAttempts:     options.MaxAttempts,
+			BodyProperties:  options.BodyProperties,
+			QueryParameters: options.QueryParameters,
+			Client:          options.HTTPClient,
+			Request:         request,
+			Response:        &response,
+		},
+	); err != nil {
+		return nil, err
+	}
+	return response, nil
+}
+func (c *Client) DeleteToken(
+	ctx context.Context,
+	request *skyflowgo.V1DeleteTokenRequest,
+	opts ...option.RequestOption,
+) (*skyflowgo.V1DeleteTokenResponse, error) {
+	options := core.NewRequestOptions(opts...)
+	baseURL := internal.ResolveBaseURL(
+		options.BaseURL,
+		c.baseURL,
+		"",
+	)
+	endpointURL := baseURL + "/v2/tokens/delete"
+	headers := internal.MergeHeaders(
+		c.header.Clone(),
+		options.ToHeader(),
+	)
+	headers.Set("Content-Type", "application/json")
+
+	var response *skyflowgo.V1DeleteTokenResponse
 	if err := c.caller.Call(
 		ctx,
 		&internal.CallParams{

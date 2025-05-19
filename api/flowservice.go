@@ -5,7 +5,6 @@ package api
 import (
 	json "encoding/json"
 	fmt "fmt"
-
 	internal "github.com/skyflowapi/skyflow-go/internal"
 )
 
@@ -16,13 +15,6 @@ type V1DeleteRequest struct {
 	TableName *string `json:"tableName,omitempty" url:"-"`
 	// Skyflow ID for the record to be deleted
 	SkyflowIDs []string `json:"skyflowIDs,omitempty" url:"-"`
-}
-
-type V1DeleteTokenRequest struct {
-	// Vault ID
-	VaultId *string `json:"vaultID,omitempty" url:"-"`
-	// Token value
-	Tokens []string `json:"tokens,omitempty" url:"-"`
 }
 
 type V1DetokenizeRequest struct {
@@ -331,71 +323,6 @@ func (v *V1DeleteResponseObject) UnmarshalJSON(data []byte) error {
 }
 
 func (v *V1DeleteResponseObject) String() string {
-	if len(v.rawJSON) > 0 {
-		if value, err := internal.StringifyJSON(v.rawJSON); err == nil {
-			return value
-		}
-	}
-	if value, err := internal.StringifyJSON(v); err == nil {
-		return value
-	}
-	return fmt.Sprintf("%#v", v)
-}
-
-type V1DeleteTokenResponseObject struct {
-	// Token value
-	Value *string `json:"value,omitempty" url:"value,omitempty"`
-	// Error if deletion failed
-	Error *string `json:"error,omitempty" url:"error,omitempty"`
-	// HTTP status code of the response
-	HttpCode *int `json:"httpCode,omitempty" url:"httpCode,omitempty"`
-
-	extraProperties map[string]interface{}
-	rawJSON         json.RawMessage
-}
-
-func (v *V1DeleteTokenResponseObject) GetValue() *string {
-	if v == nil {
-		return nil
-	}
-	return v.Value
-}
-
-func (v *V1DeleteTokenResponseObject) GetError() *string {
-	if v == nil {
-		return nil
-	}
-	return v.Error
-}
-
-func (v *V1DeleteTokenResponseObject) GetHttpCode() *int {
-	if v == nil {
-		return nil
-	}
-	return v.HttpCode
-}
-
-func (v *V1DeleteTokenResponseObject) GetExtraProperties() map[string]interface{} {
-	return v.extraProperties
-}
-
-func (v *V1DeleteTokenResponseObject) UnmarshalJSON(data []byte) error {
-	type unmarshaler V1DeleteTokenResponseObject
-	var value unmarshaler
-	if err := json.Unmarshal(data, &value); err != nil {
-		return err
-	}
-	*v = V1DeleteTokenResponseObject(value)
-	extraProperties, err := internal.ExtractExtraProperties(data, *v)
-	if err != nil {
-		return err
-	}
-	v.extraProperties = extraProperties
-	v.rawJSON = json.RawMessage(data)
-	return nil
-}
-
-func (v *V1DeleteTokenResponseObject) String() string {
 	if len(v.rawJSON) > 0 {
 		if value, err := internal.StringifyJSON(v.rawJSON); err == nil {
 			return value
@@ -797,53 +724,6 @@ func (v *V1UpdateResponse) UnmarshalJSON(data []byte) error {
 }
 
 func (v *V1UpdateResponse) String() string {
-	if len(v.rawJSON) > 0 {
-		if value, err := internal.StringifyJSON(v.rawJSON); err == nil {
-			return value
-		}
-	}
-	if value, err := internal.StringifyJSON(v); err == nil {
-		return value
-	}
-	return fmt.Sprintf("%#v", v)
-}
-
-type V1DeleteTokenResponse struct {
-	// Tokens data for Delete
-	Tokens []*V1DeleteTokenResponseObject `json:"tokens,omitempty" url:"tokens,omitempty"`
-
-	extraProperties map[string]interface{}
-	rawJSON         json.RawMessage
-}
-
-func (v *V1DeleteTokenResponse) GetTokens() []*V1DeleteTokenResponseObject {
-	if v == nil {
-		return nil
-	}
-	return v.Tokens
-}
-
-func (v *V1DeleteTokenResponse) GetExtraProperties() map[string]interface{} {
-	return v.extraProperties
-}
-
-func (v *V1DeleteTokenResponse) UnmarshalJSON(data []byte) error {
-	type unmarshaler V1DeleteTokenResponse
-	var value unmarshaler
-	if err := json.Unmarshal(data, &value); err != nil {
-		return err
-	}
-	*v = V1DeleteTokenResponse(value)
-	extraProperties, err := internal.ExtractExtraProperties(data, *v)
-	if err != nil {
-		return err
-	}
-	v.extraProperties = extraProperties
-	v.rawJSON = json.RawMessage(data)
-	return nil
-}
-
-func (v *V1DeleteTokenResponse) String() string {
 	if len(v.rawJSON) > 0 {
 		if value, err := internal.StringifyJSON(v.rawJSON); err == nil {
 			return value
