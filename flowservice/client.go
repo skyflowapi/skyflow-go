@@ -4,11 +4,12 @@ package flowservice
 
 import (
 	context "context"
+	http "net/http"
+
 	skyflowgo "github.com/skyflowapi/skyflow-go/api"
 	core "github.com/skyflowapi/skyflow-go/core"
 	internal "github.com/skyflowapi/skyflow-go/internal"
 	option "github.com/skyflowapi/skyflow-go/option"
-	http "net/http"
 )
 
 type Client struct {
@@ -185,9 +186,9 @@ func (c *Client) Update(
 
 func (c *Client) Deletetoken(
 	ctx context.Context,
-	request *skyflowgo.V1FlowDeleteTokenRequest,
+	request *skyflowgo.V1DeleteTokenRequest,
 	opts ...option.RequestOption,
-) (*skyflowgo.V1FlowDeleteTokenResponse, error) {
+) (*skyflowgo.V1DeleteTokenResponse, error) {
 	options := core.NewRequestOptions(opts...)
 	baseURL := internal.ResolveBaseURL(
 		options.BaseURL,
@@ -201,7 +202,7 @@ func (c *Client) Deletetoken(
 	)
 	headers.Set("Content-Type", "application/json")
 
-	var response *skyflowgo.V1FlowDeleteTokenResponse
+	var response *skyflowgo.V1DeleteTokenResponse
 	if err := c.caller.Call(
 		ctx,
 		&internal.CallParams{
@@ -223,9 +224,9 @@ func (c *Client) Deletetoken(
 
 func (c *Client) Detokenize(
 	ctx context.Context,
-	request *skyflowgo.V1FlowDetokenizeRequest,
+	request *skyflowgo.V1DetokenizeRequest,
 	opts ...option.RequestOption,
-) (*skyflowgo.V1FlowDetokenizeResponse, error) {
+) (*skyflowgo.V1DetokenizeResponse, error) {
 	options := core.NewRequestOptions(opts...)
 	baseURL := internal.ResolveBaseURL(
 		options.BaseURL,
@@ -239,7 +240,7 @@ func (c *Client) Detokenize(
 	)
 	headers.Set("Content-Type", "application/json")
 
-	var response *skyflowgo.V1FlowDetokenizeResponse
+	var response *skyflowgo.V1DetokenizeResponse
 	if err := c.caller.Call(
 		ctx,
 		&internal.CallParams{
@@ -261,9 +262,9 @@ func (c *Client) Detokenize(
 
 func (c *Client) Tokenize(
 	ctx context.Context,
-	request *skyflowgo.V1FlowTokenizeRequest,
+	request *skyflowgo.V1TokenizeRequest,
 	opts ...option.RequestOption,
-) (*skyflowgo.V1FlowTokenizeResponse, error) {
+) (*skyflowgo.V1TokenizeResponse, error) {
 	options := core.NewRequestOptions(opts...)
 	baseURL := internal.ResolveBaseURL(
 		options.BaseURL,
@@ -277,7 +278,7 @@ func (c *Client) Tokenize(
 	)
 	headers.Set("Content-Type", "application/json")
 
-	var response *skyflowgo.V1FlowTokenizeResponse
+	var response *skyflowgo.V1TokenizeResponse
 	if err := c.caller.Call(
 		ctx,
 		&internal.CallParams{

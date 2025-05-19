@@ -3,12 +3,13 @@
 package client
 
 import (
+	http "net/http"
+
 	core "github.com/skyflowapi/skyflow-go/core"
 	flowservice "github.com/skyflowapi/skyflow-go/flowservice"
 	internal "github.com/skyflowapi/skyflow-go/internal"
 	option "github.com/skyflowapi/skyflow-go/option"
 	records "github.com/skyflowapi/skyflow-go/records"
-	http "net/http"
 )
 
 type Client struct {

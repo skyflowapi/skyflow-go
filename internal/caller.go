@@ -117,6 +117,7 @@ func (c *Caller) Call(ctx context.Context, params *CallParams) error {
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return decodeError(resp, params.ErrorDecoder)
 	}
+
 	// Mutate the response parameter in-place.
 	if params.Response != nil {
 		if writer, ok := params.Response.(io.Writer); ok {

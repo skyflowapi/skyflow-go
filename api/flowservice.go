@@ -5,6 +5,7 @@ package api
 import (
 	json "encoding/json"
 	fmt "fmt"
+
 	internal "github.com/skyflowapi/skyflow-go/internal"
 )
 
@@ -17,14 +18,14 @@ type V1DeleteRequest struct {
 	SkyflowIDs []string `json:"skyflowIDs,omitempty" url:"-"`
 }
 
-type V1FlowDeleteTokenRequest struct {
+type V1DeleteTokenRequest struct {
 	// Vault ID
 	VaultId *string `json:"vaultID,omitempty" url:"-"`
 	// Token value
 	Tokens []string `json:"tokens,omitempty" url:"-"`
 }
 
-type V1FlowDetokenizeRequest struct {
+type V1DetokenizeRequest struct {
 	// ID of the vault where detokenizing
 	VaultId *string `json:"vaultID,omitempty" url:"-"`
 	// Token to be detokenized
@@ -61,45 +62,45 @@ type V1InsertRequest struct {
 	Upsert []string `json:"upsert,omitempty" url:"-"`
 }
 
-type V1FlowTokenizeRequest struct {
+type V1TokenizeRequest struct {
 	// Vault ID.
 	VaultId *string `json:"vaultID,omitempty" url:"-"`
 	// Data to be tokenized
-	Data []*V1FlowTokenizeRequestObject `json:"data,omitempty" url:"-"`
+	Data []*V1TokenizeRequestObject `json:"data,omitempty" url:"-"`
 }
 
-type FlowEnumDataType string
+type EnumDataType string
 
 const (
-	FlowEnumDataTypeUndefinedDatatype FlowEnumDataType = "UNDEFINED_DATATYPE"
-	FlowEnumDataTypeString            FlowEnumDataType = "STRING"
-	FlowEnumDataTypeNumber            FlowEnumDataType = "NUMBER"
-	FlowEnumDataTypeBool              FlowEnumDataType = "BOOL"
-	FlowEnumDataTypeJson              FlowEnumDataType = "JSON"
+	EnumDataTypeUndefinedDatatype EnumDataType = "UNDEFINED_DATATYPE"
+	EnumDataTypeString            EnumDataType = "STRING"
+	EnumDataTypeNumber            EnumDataType = "NUMBER"
+	EnumDataTypeBool              EnumDataType = "BOOL"
+	EnumDataTypeJson              EnumDataType = "JSON"
 )
 
-func NewFlowEnumDataTypeFromString(s string) (FlowEnumDataType, error) {
+func NewEnumDataTypeFromString(s string) (EnumDataType, error) {
 	switch s {
 	case "UNDEFINED_DATATYPE":
-		return FlowEnumDataTypeUndefinedDatatype, nil
+		return EnumDataTypeUndefinedDatatype, nil
 	case "STRING":
-		return FlowEnumDataTypeString, nil
+		return EnumDataTypeString, nil
 	case "NUMBER":
-		return FlowEnumDataTypeNumber, nil
+		return EnumDataTypeNumber, nil
 	case "BOOL":
-		return FlowEnumDataTypeBool, nil
+		return EnumDataTypeBool, nil
 	case "JSON":
-		return FlowEnumDataTypeJson, nil
+		return EnumDataTypeJson, nil
 	}
-	var t FlowEnumDataType
+	var t EnumDataType
 	return "", fmt.Errorf("%s is not a valid %T", s, t)
 }
 
-func (f FlowEnumDataType) Ptr() *FlowEnumDataType {
-	return &f
+func (e EnumDataType) Ptr() *EnumDataType {
+	return &e
 }
 
-type FlowTokenizeResponseObjectToken struct {
+type TokenizeResponseObjectToken struct {
 	// Token group Name
 	TokenGroupName *string `json:"tokenGroupName,omitempty" url:"tokenGroupName,omitempty"`
 	// Token value
@@ -113,64 +114,64 @@ type FlowTokenizeResponseObjectToken struct {
 	rawJSON         json.RawMessage
 }
 
-func (f *FlowTokenizeResponseObjectToken) GetTokenGroupName() *string {
-	if f == nil {
+func (t *TokenizeResponseObjectToken) GetTokenGroupName() *string {
+	if t == nil {
 		return nil
 	}
-	return f.TokenGroupName
+	return t.TokenGroupName
 }
 
-func (f *FlowTokenizeResponseObjectToken) GetToken() *string {
-	if f == nil {
+func (t *TokenizeResponseObjectToken) GetToken() *string {
+	if t == nil {
 		return nil
 	}
-	return f.Token
+	return t.Token
 }
 
-func (f *FlowTokenizeResponseObjectToken) GetError() *string {
-	if f == nil {
+func (t *TokenizeResponseObjectToken) GetError() *string {
+	if t == nil {
 		return nil
 	}
-	return f.Error
+	return t.Error
 }
 
-func (f *FlowTokenizeResponseObjectToken) GetHttpCode() *int {
-	if f == nil {
+func (t *TokenizeResponseObjectToken) GetHttpCode() *int {
+	if t == nil {
 		return nil
 	}
-	return f.HttpCode
+	return t.HttpCode
 }
 
-func (f *FlowTokenizeResponseObjectToken) GetExtraProperties() map[string]interface{} {
-	return f.extraProperties
+func (t *TokenizeResponseObjectToken) GetExtraProperties() map[string]interface{} {
+	return t.extraProperties
 }
 
-func (f *FlowTokenizeResponseObjectToken) UnmarshalJSON(data []byte) error {
-	type unmarshaler FlowTokenizeResponseObjectToken
+func (t *TokenizeResponseObjectToken) UnmarshalJSON(data []byte) error {
+	type unmarshaler TokenizeResponseObjectToken
 	var value unmarshaler
 	if err := json.Unmarshal(data, &value); err != nil {
 		return err
 	}
-	*f = FlowTokenizeResponseObjectToken(value)
-	extraProperties, err := internal.ExtractExtraProperties(data, *f)
+	*t = TokenizeResponseObjectToken(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *t)
 	if err != nil {
 		return err
 	}
-	f.extraProperties = extraProperties
-	f.rawJSON = json.RawMessage(data)
+	t.extraProperties = extraProperties
+	t.rawJSON = json.RawMessage(data)
 	return nil
 }
 
-func (f *FlowTokenizeResponseObjectToken) String() string {
-	if len(f.rawJSON) > 0 {
-		if value, err := internal.StringifyJSON(f.rawJSON); err == nil {
+func (t *TokenizeResponseObjectToken) String() string {
+	if len(t.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(t.rawJSON); err == nil {
 			return value
 		}
 	}
-	if value, err := internal.StringifyJSON(f); err == nil {
+	if value, err := internal.StringifyJSON(t); err == nil {
 		return value
 	}
-	return fmt.Sprintf("%#v", f)
+	return fmt.Sprintf("%#v", t)
 }
 
 type V1ColumnRedactions struct {
@@ -395,356 +396,6 @@ func (v *V1DeleteTokenResponseObject) UnmarshalJSON(data []byte) error {
 }
 
 func (v *V1DeleteTokenResponseObject) String() string {
-	if len(v.rawJSON) > 0 {
-		if value, err := internal.StringifyJSON(v.rawJSON); err == nil {
-			return value
-		}
-	}
-	if value, err := internal.StringifyJSON(v); err == nil {
-		return value
-	}
-	return fmt.Sprintf("%#v", v)
-}
-
-type V1FlowDeleteTokenResponse struct {
-	// Tokens data for Delete
-	Tokens []*V1DeleteTokenResponseObject `json:"tokens,omitempty" url:"tokens,omitempty"`
-
-	extraProperties map[string]interface{}
-	rawJSON         json.RawMessage
-}
-
-func (v *V1FlowDeleteTokenResponse) GetTokens() []*V1DeleteTokenResponseObject {
-	if v == nil {
-		return nil
-	}
-	return v.Tokens
-}
-
-func (v *V1FlowDeleteTokenResponse) GetExtraProperties() map[string]interface{} {
-	return v.extraProperties
-}
-
-func (v *V1FlowDeleteTokenResponse) UnmarshalJSON(data []byte) error {
-	type unmarshaler V1FlowDeleteTokenResponse
-	var value unmarshaler
-	if err := json.Unmarshal(data, &value); err != nil {
-		return err
-	}
-	*v = V1FlowDeleteTokenResponse(value)
-	extraProperties, err := internal.ExtractExtraProperties(data, *v)
-	if err != nil {
-		return err
-	}
-	v.extraProperties = extraProperties
-	v.rawJSON = json.RawMessage(data)
-	return nil
-}
-
-func (v *V1FlowDeleteTokenResponse) String() string {
-	if len(v.rawJSON) > 0 {
-		if value, err := internal.StringifyJSON(v.rawJSON); err == nil {
-			return value
-		}
-	}
-	if value, err := internal.StringifyJSON(v); err == nil {
-		return value
-	}
-	return fmt.Sprintf("%#v", v)
-}
-
-type V1FlowDetokenizeResponse struct {
-	// Detokenized data
-	Response []*V1FlowDetokenizeResponseObject `json:"response,omitempty" url:"response,omitempty"`
-
-	extraProperties map[string]interface{}
-	rawJSON         json.RawMessage
-}
-
-func (v *V1FlowDetokenizeResponse) GetResponse() []*V1FlowDetokenizeResponseObject {
-	if v == nil {
-		return nil
-	}
-	return v.Response
-}
-
-func (v *V1FlowDetokenizeResponse) GetExtraProperties() map[string]interface{} {
-	return v.extraProperties
-}
-
-func (v *V1FlowDetokenizeResponse) UnmarshalJSON(data []byte) error {
-	type unmarshaler V1FlowDetokenizeResponse
-	var value unmarshaler
-	if err := json.Unmarshal(data, &value); err != nil {
-		return err
-	}
-	*v = V1FlowDetokenizeResponse(value)
-	extraProperties, err := internal.ExtractExtraProperties(data, *v)
-	if err != nil {
-		return err
-	}
-	v.extraProperties = extraProperties
-	v.rawJSON = json.RawMessage(data)
-	return nil
-}
-
-func (v *V1FlowDetokenizeResponse) String() string {
-	if len(v.rawJSON) > 0 {
-		if value, err := internal.StringifyJSON(v.rawJSON); err == nil {
-			return value
-		}
-	}
-	if value, err := internal.StringifyJSON(v); err == nil {
-		return value
-	}
-	return fmt.Sprintf("%#v", v)
-}
-
-type V1FlowDetokenizeResponseObject struct {
-	// Token to be detokenized
-	Token *string     `json:"token,omitempty" url:"token,omitempty"`
-	Value interface{} `json:"value,omitempty" url:"value,omitempty"`
-	// Token group name
-	TokenGroupName *string `json:"tokenGroupName,omitempty" url:"tokenGroupName,omitempty"`
-	// Error if detokenization failed
-	Error *string `json:"error,omitempty" url:"error,omitempty"`
-	// HTTP status code of the response
-	HttpCode *int `json:"httpCode,omitempty" url:"httpCode,omitempty"`
-	// Additional metadata associated with the token, such as tableName or skyflowID
-	Metadata map[string]interface{} `json:"metadata,omitempty" url:"metadata,omitempty"`
-
-	extraProperties map[string]interface{}
-	rawJSON         json.RawMessage
-}
-
-func (v *V1FlowDetokenizeResponseObject) GetToken() *string {
-	if v == nil {
-		return nil
-	}
-	return v.Token
-}
-
-func (v *V1FlowDetokenizeResponseObject) GetValue() interface{} {
-	if v == nil {
-		return nil
-	}
-	return v.Value
-}
-
-func (v *V1FlowDetokenizeResponseObject) GetTokenGroupName() *string {
-	if v == nil {
-		return nil
-	}
-	return v.TokenGroupName
-}
-
-func (v *V1FlowDetokenizeResponseObject) GetError() *string {
-	if v == nil {
-		return nil
-	}
-	return v.Error
-}
-
-func (v *V1FlowDetokenizeResponseObject) GetHttpCode() *int {
-	if v == nil {
-		return nil
-	}
-	return v.HttpCode
-}
-
-func (v *V1FlowDetokenizeResponseObject) GetMetadata() map[string]interface{} {
-	if v == nil {
-		return nil
-	}
-	return v.Metadata
-}
-
-func (v *V1FlowDetokenizeResponseObject) GetExtraProperties() map[string]interface{} {
-	return v.extraProperties
-}
-
-func (v *V1FlowDetokenizeResponseObject) UnmarshalJSON(data []byte) error {
-	type unmarshaler V1FlowDetokenizeResponseObject
-	var value unmarshaler
-	if err := json.Unmarshal(data, &value); err != nil {
-		return err
-	}
-	*v = V1FlowDetokenizeResponseObject(value)
-	extraProperties, err := internal.ExtractExtraProperties(data, *v)
-	if err != nil {
-		return err
-	}
-	v.extraProperties = extraProperties
-	v.rawJSON = json.RawMessage(data)
-	return nil
-}
-
-func (v *V1FlowDetokenizeResponseObject) String() string {
-	if len(v.rawJSON) > 0 {
-		if value, err := internal.StringifyJSON(v.rawJSON); err == nil {
-			return value
-		}
-	}
-	if value, err := internal.StringifyJSON(v); err == nil {
-		return value
-	}
-	return fmt.Sprintf("%#v", v)
-}
-
-type V1FlowTokenizeRequestObject struct {
-	Value    interface{}       `json:"value,omitempty" url:"value,omitempty"`
-	DataType *FlowEnumDataType `json:"dataType,omitempty" url:"dataType,omitempty"`
-	// List of token group names
-	TokenGroupNames []string `json:"tokenGroupNames,omitempty" url:"tokenGroupNames,omitempty"`
-
-	extraProperties map[string]interface{}
-	rawJSON         json.RawMessage
-}
-
-func (v *V1FlowTokenizeRequestObject) GetValue() interface{} {
-	if v == nil {
-		return nil
-	}
-	return v.Value
-}
-
-func (v *V1FlowTokenizeRequestObject) GetDataType() *FlowEnumDataType {
-	if v == nil {
-		return nil
-	}
-	return v.DataType
-}
-
-func (v *V1FlowTokenizeRequestObject) GetTokenGroupNames() []string {
-	if v == nil {
-		return nil
-	}
-	return v.TokenGroupNames
-}
-
-func (v *V1FlowTokenizeRequestObject) GetExtraProperties() map[string]interface{} {
-	return v.extraProperties
-}
-
-func (v *V1FlowTokenizeRequestObject) UnmarshalJSON(data []byte) error {
-	type unmarshaler V1FlowTokenizeRequestObject
-	var value unmarshaler
-	if err := json.Unmarshal(data, &value); err != nil {
-		return err
-	}
-	*v = V1FlowTokenizeRequestObject(value)
-	extraProperties, err := internal.ExtractExtraProperties(data, *v)
-	if err != nil {
-		return err
-	}
-	v.extraProperties = extraProperties
-	v.rawJSON = json.RawMessage(data)
-	return nil
-}
-
-func (v *V1FlowTokenizeRequestObject) String() string {
-	if len(v.rawJSON) > 0 {
-		if value, err := internal.StringifyJSON(v.rawJSON); err == nil {
-			return value
-		}
-	}
-	if value, err := internal.StringifyJSON(v); err == nil {
-		return value
-	}
-	return fmt.Sprintf("%#v", v)
-}
-
-type V1FlowTokenizeResponse struct {
-	// Tokenized data
-	Response []*V1FlowTokenizeResponseObject `json:"response,omitempty" url:"response,omitempty"`
-
-	extraProperties map[string]interface{}
-	rawJSON         json.RawMessage
-}
-
-func (v *V1FlowTokenizeResponse) GetResponse() []*V1FlowTokenizeResponseObject {
-	if v == nil {
-		return nil
-	}
-	return v.Response
-}
-
-func (v *V1FlowTokenizeResponse) GetExtraProperties() map[string]interface{} {
-	return v.extraProperties
-}
-
-func (v *V1FlowTokenizeResponse) UnmarshalJSON(data []byte) error {
-	type unmarshaler V1FlowTokenizeResponse
-	var value unmarshaler
-	if err := json.Unmarshal(data, &value); err != nil {
-		return err
-	}
-	*v = V1FlowTokenizeResponse(value)
-	extraProperties, err := internal.ExtractExtraProperties(data, *v)
-	if err != nil {
-		return err
-	}
-	v.extraProperties = extraProperties
-	v.rawJSON = json.RawMessage(data)
-	return nil
-}
-
-func (v *V1FlowTokenizeResponse) String() string {
-	if len(v.rawJSON) > 0 {
-		if value, err := internal.StringifyJSON(v.rawJSON); err == nil {
-			return value
-		}
-	}
-	if value, err := internal.StringifyJSON(v); err == nil {
-		return value
-	}
-	return fmt.Sprintf("%#v", v)
-}
-
-type V1FlowTokenizeResponseObject struct {
-	Value interface{} `json:"value,omitempty" url:"value,omitempty"`
-	// Token value
-	Tokens []*FlowTokenizeResponseObjectToken `json:"tokens,omitempty" url:"tokens,omitempty"`
-
-	extraProperties map[string]interface{}
-	rawJSON         json.RawMessage
-}
-
-func (v *V1FlowTokenizeResponseObject) GetValue() interface{} {
-	if v == nil {
-		return nil
-	}
-	return v.Value
-}
-
-func (v *V1FlowTokenizeResponseObject) GetTokens() []*FlowTokenizeResponseObjectToken {
-	if v == nil {
-		return nil
-	}
-	return v.Tokens
-}
-
-func (v *V1FlowTokenizeResponseObject) GetExtraProperties() map[string]interface{} {
-	return v.extraProperties
-}
-
-func (v *V1FlowTokenizeResponseObject) UnmarshalJSON(data []byte) error {
-	type unmarshaler V1FlowTokenizeResponseObject
-	var value unmarshaler
-	if err := json.Unmarshal(data, &value); err != nil {
-		return err
-	}
-	*v = V1FlowTokenizeResponseObject(value)
-	extraProperties, err := internal.ExtractExtraProperties(data, *v)
-	if err != nil {
-		return err
-	}
-	v.extraProperties = extraProperties
-	v.rawJSON = json.RawMessage(data)
-	return nil
-}
-
-func (v *V1FlowTokenizeResponseObject) String() string {
 	if len(v.rawJSON) > 0 {
 		if value, err := internal.StringifyJSON(v.rawJSON); err == nil {
 			return value
@@ -1146,6 +797,356 @@ func (v *V1UpdateResponse) UnmarshalJSON(data []byte) error {
 }
 
 func (v *V1UpdateResponse) String() string {
+	if len(v.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(v.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(v); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", v)
+}
+
+type V1DeleteTokenResponse struct {
+	// Tokens data for Delete
+	Tokens []*V1DeleteTokenResponseObject `json:"tokens,omitempty" url:"tokens,omitempty"`
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (v *V1DeleteTokenResponse) GetTokens() []*V1DeleteTokenResponseObject {
+	if v == nil {
+		return nil
+	}
+	return v.Tokens
+}
+
+func (v *V1DeleteTokenResponse) GetExtraProperties() map[string]interface{} {
+	return v.extraProperties
+}
+
+func (v *V1DeleteTokenResponse) UnmarshalJSON(data []byte) error {
+	type unmarshaler V1DeleteTokenResponse
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*v = V1DeleteTokenResponse(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *v)
+	if err != nil {
+		return err
+	}
+	v.extraProperties = extraProperties
+	v.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (v *V1DeleteTokenResponse) String() string {
+	if len(v.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(v.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(v); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", v)
+}
+
+type V1DetokenizeResponse struct {
+	// Detokenized data
+	Response []*V1DetokenizeResponseObject `json:"response,omitempty" url:"response,omitempty"`
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (v *V1DetokenizeResponse) GetResponse() []*V1DetokenizeResponseObject {
+	if v == nil {
+		return nil
+	}
+	return v.Response
+}
+
+func (v *V1DetokenizeResponse) GetExtraProperties() map[string]interface{} {
+	return v.extraProperties
+}
+
+func (v *V1DetokenizeResponse) UnmarshalJSON(data []byte) error {
+	type unmarshaler V1DetokenizeResponse
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*v = V1DetokenizeResponse(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *v)
+	if err != nil {
+		return err
+	}
+	v.extraProperties = extraProperties
+	v.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (v *V1DetokenizeResponse) String() string {
+	if len(v.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(v.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(v); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", v)
+}
+
+type V1DetokenizeResponseObject struct {
+	// Token to be detokenized
+	Token *string     `json:"token,omitempty" url:"token,omitempty"`
+	Value interface{} `json:"value,omitempty" url:"value,omitempty"`
+	// Token group name
+	TokenGroupName *string `json:"tokenGroupName,omitempty" url:"tokenGroupName,omitempty"`
+	// Error if detokenization failed
+	Error *string `json:"error,omitempty" url:"error,omitempty"`
+	// HTTP status code of the response
+	HttpCode *int `json:"httpCode,omitempty" url:"httpCode,omitempty"`
+	// Additional metadata associated with the token, such as tableName or skyflowID
+	Metadata map[string]interface{} `json:"metadata,omitempty" url:"metadata,omitempty"`
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (v *V1DetokenizeResponseObject) GetToken() *string {
+	if v == nil {
+		return nil
+	}
+	return v.Token
+}
+
+func (v *V1DetokenizeResponseObject) GetValue() interface{} {
+	if v == nil {
+		return nil
+	}
+	return v.Value
+}
+
+func (v *V1DetokenizeResponseObject) GetTokenGroupName() *string {
+	if v == nil {
+		return nil
+	}
+	return v.TokenGroupName
+}
+
+func (v *V1DetokenizeResponseObject) GetError() *string {
+	if v == nil {
+		return nil
+	}
+	return v.Error
+}
+
+func (v *V1DetokenizeResponseObject) GetHttpCode() *int {
+	if v == nil {
+		return nil
+	}
+	return v.HttpCode
+}
+
+func (v *V1DetokenizeResponseObject) GetMetadata() map[string]interface{} {
+	if v == nil {
+		return nil
+	}
+	return v.Metadata
+}
+
+func (v *V1DetokenizeResponseObject) GetExtraProperties() map[string]interface{} {
+	return v.extraProperties
+}
+
+func (v *V1DetokenizeResponseObject) UnmarshalJSON(data []byte) error {
+	type unmarshaler V1DetokenizeResponseObject
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*v = V1DetokenizeResponseObject(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *v)
+	if err != nil {
+		return err
+	}
+	v.extraProperties = extraProperties
+	v.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (v *V1DetokenizeResponseObject) String() string {
+	if len(v.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(v.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(v); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", v)
+}
+
+type V1TokenizeRequestObject struct {
+	Value    interface{}   `json:"value,omitempty" url:"value,omitempty"`
+	DataType *EnumDataType `json:"dataType,omitempty" url:"dataType,omitempty"`
+	// List of token group names
+	TokenGroupNames []string `json:"tokenGroupNames,omitempty" url:"tokenGroupNames,omitempty"`
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (v *V1TokenizeRequestObject) GetValue() interface{} {
+	if v == nil {
+		return nil
+	}
+	return v.Value
+}
+
+func (v *V1TokenizeRequestObject) GetDataType() *EnumDataType {
+	if v == nil {
+		return nil
+	}
+	return v.DataType
+}
+
+func (v *V1TokenizeRequestObject) GetTokenGroupNames() []string {
+	if v == nil {
+		return nil
+	}
+	return v.TokenGroupNames
+}
+
+func (v *V1TokenizeRequestObject) GetExtraProperties() map[string]interface{} {
+	return v.extraProperties
+}
+
+func (v *V1TokenizeRequestObject) UnmarshalJSON(data []byte) error {
+	type unmarshaler V1TokenizeRequestObject
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*v = V1TokenizeRequestObject(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *v)
+	if err != nil {
+		return err
+	}
+	v.extraProperties = extraProperties
+	v.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (v *V1TokenizeRequestObject) String() string {
+	if len(v.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(v.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(v); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", v)
+}
+
+type V1TokenizeResponse struct {
+	// Tokenized data
+	Response []*V1TokenizeResponseObject `json:"response,omitempty" url:"response,omitempty"`
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (v *V1TokenizeResponse) GetResponse() []*V1TokenizeResponseObject {
+	if v == nil {
+		return nil
+	}
+	return v.Response
+}
+
+func (v *V1TokenizeResponse) GetExtraProperties() map[string]interface{} {
+	return v.extraProperties
+}
+
+func (v *V1TokenizeResponse) UnmarshalJSON(data []byte) error {
+	type unmarshaler V1TokenizeResponse
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*v = V1TokenizeResponse(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *v)
+	if err != nil {
+		return err
+	}
+	v.extraProperties = extraProperties
+	v.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (v *V1TokenizeResponse) String() string {
+	if len(v.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(v.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(v); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", v)
+}
+
+type V1TokenizeResponseObject struct {
+	Value interface{} `json:"value,omitempty" url:"value,omitempty"`
+	// Token value
+	Tokens []*TokenizeResponseObjectToken `json:"tokens,omitempty" url:"tokens,omitempty"`
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (v *V1TokenizeResponseObject) GetValue() interface{} {
+	if v == nil {
+		return nil
+	}
+	return v.Value
+}
+
+func (v *V1TokenizeResponseObject) GetTokens() []*TokenizeResponseObjectToken {
+	if v == nil {
+		return nil
+	}
+	return v.Tokens
+}
+
+func (v *V1TokenizeResponseObject) GetExtraProperties() map[string]interface{} {
+	return v.extraProperties
+}
+
+func (v *V1TokenizeResponseObject) UnmarshalJSON(data []byte) error {
+	type unmarshaler V1TokenizeResponseObject
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*v = V1TokenizeResponseObject(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *v)
+	if err != nil {
+		return err
+	}
+	v.extraProperties = extraProperties
+	v.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (v *V1TokenizeResponseObject) String() string {
 	if len(v.rawJSON) > 0 {
 		if value, err := internal.StringifyJSON(v.rawJSON); err == nil {
 			return value
