@@ -5,7 +5,6 @@ package api
 import (
 	json "encoding/json"
 	fmt "fmt"
-
 	internal "github.com/skyflowapi/skyflow-go/internal"
 )
 

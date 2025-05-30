@@ -17,6 +17,13 @@ type V1DeleteRequest struct {
 	SkyflowIDs []string `json:"skyflowIDs,omitempty" url:"-"`
 }
 
+type V1DeleteTokenRequest struct {
+	// Vault ID
+	VaultId *string `json:"vaultID,omitempty" url:"-"`
+	// Token value
+	Tokens []string `json:"tokens,omitempty" url:"-"`
+}
+
 type V1DetokenizeRequest struct {
 	// ID of the vault where detokenizing
 	VaultId *string `json:"vaultID,omitempty" url:"-"`
@@ -50,8 +57,7 @@ type V1InsertRequest struct {
 	TableName *string `json:"tableName,omitempty" url:"-"`
 	// List of data row wise that is to be inserted in the vault
 	Records []*V1InsertRecordData `json:"records,omitempty" url:"-"`
-	// Name of a unique columns in the table. Uses upsert operations to check if a record exists based on the unique column's value. If a matching record exists, the record updates with the values you provide. If a matching record doesn't exist, the upsert operation inserts a new record.
-	Upsert []string `json:"upsert,omitempty" url:"-"`
+	Upsert  *V1Upsert             `json:"upsert,omitempty" url:"-"`
 }
 
 type V1TokenizeRequest struct {
@@ -90,6 +96,28 @@ func NewEnumDataTypeFromString(s string) (EnumDataType, error) {
 
 func (e EnumDataType) Ptr() *EnumDataType {
 	return &e
+}
+
+type EnumUpdateType string
+
+const (
+	EnumUpdateTypeUpdate  EnumUpdateType = "UPDATE"
+	EnumUpdateTypeReplace EnumUpdateType = "REPLACE"
+)
+
+func NewEnumUpdateTypeFromString(s string) (EnumUpdateType, error) {
+	switch s {
+	case "UPDATE":
+		return EnumUpdateTypeUpdate, nil
+	case "REPLACE":
+		return EnumUpdateTypeReplace, nil
+	}
+	var t EnumUpdateType
+	return "", fmt.Errorf("%s is not a valid %T", s, t)
+}
+
+func (f EnumUpdateType) Ptr() *EnumUpdateType {
+	return &f
 }
 
 type TokenizeResponseObjectToken struct {
@@ -334,6 +362,71 @@ func (v *V1DeleteResponseObject) String() string {
 	return fmt.Sprintf("%#v", v)
 }
 
+type V1DeleteTokenResponseObject struct {
+	// Token value
+	Value *string `json:"value,omitempty" url:"value,omitempty"`
+	// Error if deletion failed
+	Error *string `json:"error,omitempty" url:"error,omitempty"`
+	// HTTP status code of the response
+	HttpCode *int `json:"httpCode,omitempty" url:"httpCode,omitempty"`
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (v *V1DeleteTokenResponseObject) GetValue() *string {
+	if v == nil {
+		return nil
+	}
+	return v.Value
+}
+
+func (v *V1DeleteTokenResponseObject) GetError() *string {
+	if v == nil {
+		return nil
+	}
+	return v.Error
+}
+
+func (v *V1DeleteTokenResponseObject) GetHttpCode() *int {
+	if v == nil {
+		return nil
+	}
+	return v.HttpCode
+}
+
+func (v *V1DeleteTokenResponseObject) GetExtraProperties() map[string]interface{} {
+	return v.extraProperties
+}
+
+func (v *V1DeleteTokenResponseObject) UnmarshalJSON(data []byte) error {
+	type unmarshaler V1DeleteTokenResponseObject
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*v = V1DeleteTokenResponseObject(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *v)
+	if err != nil {
+		return err
+	}
+	v.extraProperties = extraProperties
+	v.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (v *V1DeleteTokenResponseObject) String() string {
+	if len(v.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(v.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(v); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", v)
+}
+
 type V1GetResponse struct {
 	// List of fetched records with skyflow ID, tokens, data, and any partial errors
 	Records []*V1RecordResponseObject `json:"records,omitempty" url:"records,omitempty"`
@@ -491,6 +584,8 @@ type V1RecordResponseObject struct {
 	Tokens map[string]interface{} `json:"tokens,omitempty" url:"tokens,omitempty"`
 	// Columns names and values
 	Data map[string]interface{} `json:"data,omitempty" url:"data,omitempty"`
+	// Hashed Data for the columns if any
+	HashedData map[string]interface{} `json:"hashedData,omitempty" url:"hashedData,omitempty"`
 	// Partial Error message if any
 	Error *string `json:"error,omitempty" url:"error,omitempty"`
 	// HTTP status code of the response
@@ -519,6 +614,13 @@ func (v *V1RecordResponseObject) GetData() map[string]interface{} {
 		return nil
 	}
 	return v.Data
+}
+
+func (v *V1RecordResponseObject) GetHashedData() map[string]interface{} {
+	if v == nil {
+		return nil
+	}
+	return v.HashedData
 }
 
 func (v *V1RecordResponseObject) GetError() *string {
@@ -689,7 +791,7 @@ func (v *V1UpdateRecordData) String() string {
 }
 
 type V1UpdateResponse struct {
-	// List of updated records with skyflow ID, tokens, data, and any partial errors
+	// List of updated records with sky ID, tokens, data, and any partial errors
 	Records []*V1RecordResponseObject `json:"records,omitempty" url:"records,omitempty"`
 
 	extraProperties map[string]interface{}
@@ -724,6 +826,108 @@ func (v *V1UpdateResponse) UnmarshalJSON(data []byte) error {
 }
 
 func (v *V1UpdateResponse) String() string {
+	if len(v.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(v.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(v); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", v)
+}
+
+type V1Upsert struct {
+	UpdateType *EnumUpdateType `json:"updateType,omitempty" url:"updateType,omitempty"`
+	// Name of a unique columns in the table. Uses upsert operations to check if a record exists based on the unique column's value. If a matching record exists, the record updates with the values you provide. If a matching record doesn't exist, the upsert operation inserts a new record.
+	UniqueColumns []string `json:"uniqueColumns,omitempty" url:"uniqueColumns,omitempty"`
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (v *V1Upsert) GetUpdateType() *EnumUpdateType {
+	if v == nil {
+		return nil
+	}
+	return v.UpdateType
+}
+
+func (v *V1Upsert) GetUniqueColumns() []string {
+	if v == nil {
+		return nil
+	}
+	return v.UniqueColumns
+}
+
+func (v *V1Upsert) GetExtraProperties() map[string]interface{} {
+	return v.extraProperties
+}
+
+func (v *V1Upsert) UnmarshalJSON(data []byte) error {
+	type unmarshaler V1Upsert
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*v = V1Upsert(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *v)
+	if err != nil {
+		return err
+	}
+	v.extraProperties = extraProperties
+	v.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (v *V1Upsert) String() string {
+	if len(v.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(v.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(v); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", v)
+}
+
+type V1DeleteTokenResponse struct {
+	// Tokens data for Delete
+	Tokens []*V1DeleteTokenResponseObject `json:"tokens,omitempty" url:"tokens,omitempty"`
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (v *V1DeleteTokenResponse) GetTokens() []*V1DeleteTokenResponseObject {
+	if v == nil {
+		return nil
+	}
+	return v.Tokens
+}
+
+func (v *V1DeleteTokenResponse) GetExtraProperties() map[string]interface{} {
+	return v.extraProperties
+}
+
+func (v *V1DeleteTokenResponse) UnmarshalJSON(data []byte) error {
+	type unmarshaler V1DeleteTokenResponse
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*v = V1DeleteTokenResponse(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *v)
+	if err != nil {
+		return err
+	}
+	v.extraProperties = extraProperties
+	v.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (v *V1DeleteTokenResponse) String() string {
 	if len(v.rawJSON) > 0 {
 		if value, err := internal.StringifyJSON(v.rawJSON); err == nil {
 			return value
@@ -1044,5 +1248,6 @@ type V1UpdateRequest struct {
 	// Name of the table where data is being updated
 	TableName *string `json:"tableName,omitempty" url:"-"`
 	// List of data row wise that is to be updated in the vault
-	Records []*V1UpdateRecordData `json:"records,omitempty" url:"-"`
+	Records    []*V1UpdateRecordData `json:"records,omitempty" url:"-"`
+	UpdateType *EnumUpdateType   `json:"updateType,omitempty" url:"-"`
 }
