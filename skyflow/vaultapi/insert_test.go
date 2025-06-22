@@ -255,13 +255,6 @@ func TestValidRequestWithTokens(t *testing.T) {
 	records := constructInsertRecordsWithTokens()
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: true}}
 	json := `{
-		"Header" : {
-			"x-request-id": "reqId-123"
-		},
-		"StatusCode": "200",
-		"vaultID": "123",
-		"responses": [
-			{
 				"records": [
 					{
 						"skyflow_id": "id1",
@@ -276,9 +269,7 @@ func TestValidRequestWithTokens(t *testing.T) {
 						}
 					}
 				]
-			}
-		]
-	}`
+			}`
 	r := ioutil.NopCloser(bytes.NewReader([]byte(json)))
 	mocks.GetDoFunc = func(*http.Request) (*http.Response, error) {
 		return &http.Response{
@@ -343,13 +334,7 @@ func TestValidRequestWithContext(t *testing.T) {
 	var upsertOption = common.UpsertOptions{Table: "table1", Column: "column"}
 	upsertArray = append(upsertArray, upsertOption)
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: true, Upsert: upsertArray}}
-	json := `{
-		"Header" : {
-			"x-request-id": "reqId-123"
-		},
-		"StatusCode": "200",
-		"vaultID": "123",
-		"responses": [
+	json := `
 			{
 				"records": [
 					{
@@ -365,9 +350,7 @@ func TestValidRequestWithContext(t *testing.T) {
 						}
 					}
 				]
-			}
-		]
-	}`
+			}`
 	r := ioutil.NopCloser(bytes.NewReader([]byte(json)))
 	mocks.GetDoFunc = func(*http.Request) (*http.Response, error) {
 		return &http.Response{
@@ -387,27 +370,18 @@ func TestValidRequest(t *testing.T) {
 	upsertArray = append(upsertArray, upsertOption)
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: true, Upsert: upsertArray}}
 	json := `{
-		"Header" : {
-			"x-request-id": "reqId-123"
-		},
-		"StatusCode": "200",
-		"vaultID": "123",
-		"responses": [
+		"records": [
 			{
-				"records": [
-					{
-						"skyflow_id": "id1",
-						"tokens": {
-							"first_name": "token1",
-							"primary_card": {
-								"*": "id2",
-								"card_number": "token2",
-								"cvv": "token3",
-								"expiry_date": "token4"
-							}
-						}
+				"skyflow_id": "id1",
+				"tokens": {
+					"first_name": "token1",
+					"primary_card": {
+						"*": "id2",
+						"card_number": "token2",
+						"cvv": "token3",
+						"expiry_date": "token4"
 					}
-				]
+				}
 			}
 		]
 	}`
@@ -426,22 +400,14 @@ func TestValidRequestWithTokensFalse(t *testing.T) {
 	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.google.com", TokenProvider: GetToken}
 	records := constructInsertRecords()
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
-	jsonResp := `{
-		"Header" : {
-			"x-request-id": "reqId-123"
-		},
-		"StatusCode": "200",
-		"vaultID": "123",
-		"responses": [
+	jsonResp := `
 			{
 				"records": [
 					{
 						"skyflow_id": "id1"
 					}
 				]
-			}
-		]
-	}`
+			}`
 	r := ioutil.NopCloser(bytes.NewReader([]byte(jsonResp)))
 	mocks.GetDoFunc = func(*http.Request) (*http.Response, error) {
 		return &http.Response{
@@ -462,7 +428,7 @@ func TestValidRequestWithTokensFalse(t *testing.T) {
 func TestInsertFailure(t *testing.T) {
 	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.google.com", TokenProvider: GetToken}
 	records := constructInsertRecords()
-	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false}}
+	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: false, ContinueOnError: true}}
 	jsonResp := `{
 		"Header" : {
 			"x-request-id": "reqId-123"
@@ -474,8 +440,8 @@ func TestInsertFailure(t *testing.T) {
 			"http_code": "400",
 			"http_status": "Bad Request",
 			"message": "Object Name cards was not found for Vault 123"
-		}
-	}`
+	}
+	`
 	r := ioutil.NopCloser(bytes.NewReader([]byte(jsonResp)))
 	mocks.GetDoFunc = func(*http.Request) (*http.Response, error) {
 		return &http.Response{
@@ -496,7 +462,7 @@ func TestValidRequestWithContinueOnError(t *testing.T) {
 	var upsertOption = common.UpsertOptions{Table: "table1", Column: "column"}
 	upsertArray = append(upsertArray, upsertOption)
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: true, Upsert: upsertArray, ContinueOnError: true}}
-	json := `{
+	jsonStr := `{
 		"Header" : {
 			"x-request-id": "reqId-123"
 		},
@@ -504,8 +470,8 @@ func TestValidRequestWithContinueOnError(t *testing.T) {
 		"vaultID": "123",
 		"responses": [
 			{
-			"Body": {
-				"records": [
+				"Body": {
+			    "records": [
 					{
 						"skyflow_id": "id1",
 						"tokens": {
@@ -519,11 +485,11 @@ func TestValidRequestWithContinueOnError(t *testing.T) {
 						}
 					}
 				]
+				}
 			}
-		}
 		]
 	}`
-	r := ioutil.NopCloser(bytes.NewReader([]byte(json)))
+	r := ioutil.NopCloser(bytes.NewReader([]byte(jsonStr)))
 	mocks.GetDoFunc = func(*http.Request) (*http.Response, error) {
 		return &http.Response{
 			StatusCode: 200,
@@ -591,30 +557,19 @@ func TestBuildResponseWithContinueOnErrorCase(t *testing.T) {
 	upsertArray = append(upsertArray, upsertOption)
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: true, Upsert: upsertArray, ContinueOnError: true}}
 	jsonStr := `{
-		"Header" : {
-			"x-request-id": "reqId-123"
-		},
-		"StatusCode": "200",
-		"vaultID": "123",
-		"responses": [
+		"records": [
 			{
-			"Body": {
-				"records": [
-					{
-						"skyflow_id": "id1",
-						"tokens": {
-							"first_name": "token1",
-							"primary_card": {
-								"*": "id2",
-								"card_number": "token2",
-								"cvv": "token3",
-								"expiry_date": "token4"
-							}
-						}
+				"skyflow_id": "id1",
+				"tokens": {
+					"first_name": "token1",
+					"primary_card": {
+						"*": "id2",
+						"card_number": "token2",
+						"cvv": "token3",
+						"expiry_date": "token4"
 					}
-				]
+				}
 			}
-		}
 		]
 	}`
 	var data map[string]interface{}
@@ -746,13 +701,6 @@ func TestBuildResponseWithoutContinueOnErrorCase(t *testing.T) {
 	upsertArray = append(upsertArray, upsertOption)
 	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: true, Upsert: upsertArray, ContinueOnError: false}}
 	jsonStr := `{
-		"Header" : {
-			"x-request-id": "reqId-123"
-		},
-		"StatusCode": "200",
-		"vaultID": "123",
-		"responses": [
-			{
 				"records": [
 					{
 						"skyflow_id": "id1",
@@ -767,9 +715,7 @@ func TestBuildResponseWithoutContinueOnErrorCase(t *testing.T) {
 						}
 					}
 				]
-			}
-		]
-	}`
+			}`
 	var data map[string]interface{}
 
 	err := json.Unmarshal([]byte(jsonStr), &data)
@@ -798,14 +744,351 @@ func TestBuildResponseWithoutContinueOnErrorCase(t *testing.T) {
 	jsonRecord, _ := json.Marshal(records)
 	var insertRecord common.InsertRecords
 	if err := json.Unmarshal(jsonRecord, &insertRecord); err == nil {
-		if responses, ok := data["responses"].([]interface{}); ok {
-			actualResponse := insertApi.buildResponseWithoutContinueOnErr(responses, insertRecord)
+		if responses, ok := data["responses"].(map[string]interface{}); ok {
+			actualResponse := insertApi.buildResponseWithoutContinueOnErr(responses, "table", records["records"].([]map[string]interface{}))
 			expectedJSON, _ := json.Marshal(expectedResponse)
 			actualJSON, _ := json.Marshal(actualResponse)
 			check(string(expectedJSON), string(actualJSON), t)
 		}
 	}
+}
+func TestArrangeRecords(t *testing.T) {
+	configuration := common.Configuration{VaultID: "123", VaultURL: "https://www.google.com", TokenProvider: GetToken}
+	records := constructInsertRecords()
+	var upsertArray []common.UpsertOptions
+	var upsertOption = common.UpsertOptions{Table: "table1", Column: "column"}
+	upsertArray = append(upsertArray, upsertOption)
+	insertApi := InsertApi{Configuration: configuration, Records: records, Options: common.InsertOptions{Tokens: true, Upsert: upsertArray, ContinueOnError: false}}
 
+	testCase := struct {
+		recordsArray []interface{}
+		expected     map[string]interface{}
+	}{
+		recordsArray: []interface{}{
+			map[string]interface{}{
+				"table": "credit_card",
+				"fields": map[string]interface{}{
+					"card_number": "4111111111111142",
+				},
+				"tokens": map[string]interface{}{
+					"card_number": "9991-3466-6577-4760",
+				},
+			},
+			map[string]interface{}{
+				"table": "credit_cards",
+				"fields": map[string]interface{}{
+					"card_number": "4111011111111114",
+				},
+			},
+			map[string]interface{}{
+				"table": "credit_cardss",
+				"fields": map[string]interface{}{
+					"cvv": "1234",
+				},
+			},
+			map[string]interface{}{
+				"table": "table3",
+				"fields": map[string]interface{}{
+					"card_pin":    "3888",
+					"card_number": "4101111111111164",
+				},
+			},
+			map[string]interface{}{
+				"table": "credit_cards",
+				"fields": map[string]interface{}{
+					"card_number": "4111011111111114",
+				},
+			},
+		},
+		expected: map[string]interface{}{
+			"RECORDS": map[string]interface{}{
+				"credit_card": []interface{}{
+					map[string]interface{}{
+						"fields": map[string]interface{}{
+							"card_number": "4111111111111142",
+						},
+						"tokens": map[string]interface{}{
+							"card_number": "9991-3466-6577-4760",
+						},
+						"request_index": 0,
+					},
+				},
+				"credit_cards": []interface{}{
+					map[string]interface{}{
+						"fields": map[string]interface{}{
+							"card_number": "4111011111111114",
+						},
+						"request_index": 1,
+					},
+					map[string]interface{}{
+						"fields": map[string]interface{}{
+							"card_number": "4111011111111114",
+						},
+						"request_index": 4,
+					},
+				},
+				"credit_cardss": []interface{}{
+					map[string]interface{}{
+						"fields": map[string]interface{}{
+							"cvv": "1234",
+						},
+						"request_index": 2,
+					},
+				},
+				"table3": []interface{}{
+					map[string]interface{}{
+						"fields": map[string]interface{}{
+							"card_pin":    "3888",
+							"card_number": "4101111111111164",
+						},
+						"request_index": 3,
+					},
+				},
+			},
+		},
+	}
+
+	result := insertApi.arrangeRecords(testCase.recordsArray)
+
+	expectedJSON, _ := json.Marshal(testCase.expected)
+	actualJSON, _ := json.Marshal(result)
+	check(string(expectedJSON), string(actualJSON), t)
+
+}
+func TestBuildResponseWithoutContinueOnErrWithTokensAsFalse(t *testing.T) {
+
+	// Test case : Records without tokens
+	testCase := struct {
+		responseJson map[string]interface{}
+		tableName    string
+		insertRecord []map[string]interface{}
+		expected     common.ResponseBody
+	}{
+		responseJson: map[string]interface{}{
+			"records": []interface{}{
+				map[string]interface{}{
+					"skyflow_id": "id1",
+				},
+				map[string]interface{}{
+					"skyflow_id": "id2",
+				},
+			},
+		},
+		tableName: "credit_cards",
+		insertRecord: []map[string]interface{}{
+			{
+				"fields":        map[string]interface{}{"card_number": "4111011111111114"},
+				"request_index": 1,
+			},
+			{
+				"fields":        map[string]interface{}{"card_number": "4111011111111114"},
+				"request_index": 4,
+			},
+		},
+		expected: common.ResponseBody{
+			"records": []interface{}{
+				map[string]interface{}{
+					"request_index": 1,
+					"fields": map[string]interface{}{
+						"skyflow_id": "id1",
+					},
+					"table": "credit_cards",
+				},
+				map[string]interface{}{
+					"request_index": 4,
+					"fields": map[string]interface{}{
+						"skyflow_id": "id2",
+					},
+					"table": "credit_cards",
+				},
+			},
+		},
+	}
+	insertApi := &InsertApi{
+		Options: common.InsertOptions{
+			Tokens:          false,
+			ContinueOnError: false,
+		},
+	}
+
+	result := insertApi.buildResponseWithoutContinueOnErr(testCase.responseJson, testCase.tableName, testCase.insertRecord)
+
+	expectedJSON, _ := json.Marshal(testCase.expected)
+	actualJSON, _ := json.Marshal(result)
+	check(string(expectedJSON), string(actualJSON), t)
+
+}
+func TestBuildResponseWithoutContinueOnErr(t *testing.T) {
+	// Test case : Records with tokens
+	testCase1 := struct {
+		responseJson map[string]interface{}
+		tableName    string
+		insertRecord []map[string]interface{}
+		expected     common.ResponseBody
+	}{
+		responseJson: map[string]interface{}{
+			"records": []interface{}{
+				map[string]interface{}{
+					"skyflow_id": "id1",
+					"tokens": map[string]interface{}{
+						"card_number": "token1",
+					},
+				},
+				map[string]interface{}{
+					"skyflow_id": "id2",
+					"tokens": map[string]interface{}{
+						"card_number": "token2",
+					},
+				},
+			},
+		},
+		tableName: "credit_cards",
+		insertRecord: []map[string]interface{}{
+			{
+				"fields":        map[string]interface{}{"card_number": "4111011111111114"},
+				"request_index": 1,
+			},
+			{
+				"fields":        map[string]interface{}{"card_number": "4111011111111114"},
+				"request_index": 4,
+			},
+		},
+		expected: common.ResponseBody{
+			"records": []interface{}{
+				map[string]interface{}{
+					"request_index": 1,
+					"fields": map[string]interface{}{
+						"card_number": "token1",
+						"skyflow_id":  "id1",
+					},
+					"table": "credit_cards",
+				},
+				map[string]interface{}{
+					"request_index": 4,
+					"fields": map[string]interface{}{
+						"card_number": "token2",
+						"skyflow_id":  "id2",
+					},
+					"table": "credit_cards",
+				},
+			},
+		},
+	}
+
+	runTestCase(t, testCase1)
+}
+
+func runTestCase(t *testing.T, testCase struct {
+	responseJson map[string]interface{}
+	tableName    string
+	insertRecord []map[string]interface{}
+	expected     common.ResponseBody
+}) {
+	insertApi := &InsertApi{
+		Options: common.InsertOptions{
+			Tokens:          true,
+			ContinueOnError: false,
+		},
+	}
+
+	result := insertApi.buildResponseWithoutContinueOnErr(testCase.responseJson, testCase.tableName, testCase.insertRecord)
+
+	expectedJSON, _ := json.Marshal(testCase.expected)
+	actualJSON, _ := json.Marshal(result)
+	check(string(expectedJSON), string(actualJSON), t)
+}
+
+func TestAddIndexInErrorObject(t *testing.T) {
+	// Test case 1: Error object with multiple errors
+	testCase1 := struct {
+		error        map[string]interface{}
+		insertRecord []map[string]interface{}
+		expected     common.ResponseBody
+	}{
+		error: map[string]interface{}{
+			"error": map[string]interface{}{
+				"code":        400,
+				"description": "Object Name credit_cardss was not found for Vault s41b985164cf4145bbfc2a136f968186 - requestId : a3b8fd62-8d61-9b16-9285-837f80c9c625",
+			},
+		},
+		insertRecord: []map[string]interface{}{
+			{
+				"fields":        map[string]interface{}{"card_number": "4111011111111114"},
+				"request_index": 1,
+			},
+			{
+				"fields":        map[string]interface{}{"card_number": "4111011111111114"},
+				"request_index": 4,
+			},
+		},
+		expected: common.ResponseBody{
+			"errors": []interface{}{
+				map[string]interface{}{
+					"error": map[string]interface{}{
+						"code":          400,
+						"description":   "Object Name credit_cardss was not found for Vault s41b985164cf4145bbfc2a136f968186 - requestId : a3b8fd62-8d61-9b16-9285-837f80c9c625",
+						"request_index": 1,
+					},
+				},
+				map[string]interface{}{
+					"error": map[string]interface{}{
+						"code":          400,
+						"description":   "Object Name credit_cardss was not found for Vault s41b985164cf4145bbfc2a136f968186 - requestId : a3b8fd62-8d61-9b16-9285-837f80c9c625",
+						"request_index": 4,
+					},
+				},
+			},
+		},
+	}
+
+	// Test case 2: Error object with a single error
+	testCase2 := struct {
+		error        map[string]interface{}
+		insertRecord []map[string]interface{}
+		expected     common.ResponseBody
+	}{
+		error: map[string]interface{}{
+			"error": map[string]interface{}{
+				"code":        404,
+				"description": "Object Name user_not_found was not found for Vault s41b985164cf4145bbfc2a136f968186 - requestId : a3b8fd62-8d61-9b16-9285-837f80c9c625",
+			},
+		},
+		insertRecord: []map[string]interface{}{
+			{
+				"fields":        map[string]interface{}{"card_number": "4111011111111114"},
+				"request_index": 1,
+			},
+		},
+		expected: common.ResponseBody{
+			"errors": []interface{}{
+				map[string]interface{}{
+					"error": map[string]interface{}{
+						"code":          404,
+						"description":   "Object Name user_not_found was not found for Vault s41b985164cf4145bbfc2a136f968186 - requestId : a3b8fd62-8d61-9b16-9285-837f80c9c625",
+						"request_index": 1,
+					},
+				},
+			},
+		},
+	}
+
+	// Run the test cases
+	runTestCase2(t, testCase1)
+	runTestCase2(t, testCase2)
+}
+
+func runTestCase2(t *testing.T, testCase struct {
+	error        map[string]interface{}
+	insertRecord []map[string]interface{}
+	expected     common.ResponseBody
+}) {
+	insertApi := &InsertApi{}
+
+	result := insertApi.addIndexInErrorObject(testCase.error, testCase.insertRecord)
+
+	if !reflect.DeepEqual(result, testCase.expected) {
+		t.Errorf("AddIndexInErrorObject result does not match the expected output.\nExpected: %v\nActual: %v", testCase.expected, result)
+	}
 }
 func constructInsertRecords() map[string]interface{} {
 	records := make(map[string]interface{})
