@@ -1,6 +1,6 @@
 module github.com/skyflowapi/skyflow-go/samples
 
-go 1.13
+go 1.18
 
 require (
 	github.com/skyflowapi/skyflow-go/commonutils v0.0.0-20231031082702-92eed6eb74b5

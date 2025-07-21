@@ -1,6 +1,6 @@
 module github.com/skyflowapi/skyflow-go/skyflow
 
-go 1.13
+go 1.18
 
 require (
 	github.com/cristalhq/jwt/v3 v3.1.0
