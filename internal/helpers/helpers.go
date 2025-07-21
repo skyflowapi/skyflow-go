@@ -13,7 +13,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v4"
 	constants "github.com/skyflowapi/skyflow-go/v2/internal/constants"
 	internalAuthApi "github.com/skyflowapi/skyflow-go/v2/internal/generated/auth"
 	. "github.com/skyflowapi/skyflow-go/v2/utils/common"
