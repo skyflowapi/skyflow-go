@@ -10,3 +10,11 @@ require (
 	github.com/skyflowapi/skyflow-go/serviceaccount v0.0.0-20250717121939-a83549f30eaf
 	github.com/stretchr/testify v1.2.2
 )
+
+require (
+	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/sirupsen/logrus v1.8.1 // indirect
+	golang.org/x/sys v0.0.0-20191026070338-33540a1f6037 // indirect
+)
