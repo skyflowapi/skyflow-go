@@ -10,13 +10,24 @@ import (
     "net/http"
 )
 
+/*
+Example demonstrating how to use the Skyflow Go SDK to insert records into a Vault.
+Steps:
+1. Configure the skyflow client.
+2. Get the flowservice client.
+3. Prepare records data for insertion.
+4. Call the insert API with the records.
+5. Handle and print the response.
+*/
+
 // insertRecords inserts new records into a specified table in the vault.
 func insertRecords(client *flowservice.Client) {
+    // Step 1: Set up the context, vault ID, and table name
     ctx := context.Background()
     vaultID := "<VAULT_ID>"
     tableName := "<TABLE_NAME>"
 
-    // Create the records to insert
+    // Step 2: Create records with data
     records := []*api.V1InsertRecordData{
         {
             Data: map[string]interface{}{
@@ -27,7 +38,7 @@ func insertRecords(client *flowservice.Client) {
         },
     }
 
-    // Create the insert request
+    // Step 3: Create and execute the insert request
     request := &api.V1InsertRequest{
         VaultId:   &vaultID,
         TableName: &tableName,
@@ -41,19 +52,22 @@ func insertRecords(client *flowservice.Client) {
         return
     }
 
+    // Step 4: Handle response
     fmt.Println("Insert response:", response)
 }
+
 func main() {
-	// Initialize the client
+	// Step 1: Configure the skyflow client.
 	skyflowClient := SkyflowClient.NewClient(
-		option.WithBaseURL("<VAULT_URL>"), // vault url
+		option.WithBaseURL("<VAULT_URL>"), // Vault URL
 		option.WithHTTPHeader(http.Header{
 			"Authorization": []string{"Bearer " + "<BEARER_TOKEN>"}, // Bearer token
 		}),
 		option.WithMaxAttempts(1),
 	)
+    // Step 2: Get the flowservice client
     var flowserviceClient *flowservice.Client = skyflowClient.Flowservice
 
-	// Call the insertRecords function
+    // Step 3: Call the insertRecords function
 	insertRecords(flowserviceClient)
 }

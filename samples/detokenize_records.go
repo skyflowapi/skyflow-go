@@ -11,12 +11,21 @@ import (
 	"github.com/skyflowapi/skyflow-go/option"
 )
 
+/*
+Example demonstrating how to use the Skyflow Go SDK to detokenize records from a Vault.
+Steps:
+1. Configure the skyflow client.
+2. Get the flowservice client.
+3. Call the detokenize API and handle response.
+*/
+
 // detokenizeRecords detokenizes tokens to retrieve original data.
 func detokenizeRecords(client *flowservice.Client) {
+	// Step 1: Set up context and vault ID
 	ctx := context.Background()
 	vaultID := "<VAULT_ID>"
 
-	// Tokens to detokenize
+	// Step 2: Configure tokens to detokenize and redactions
 	tokens := []string{"<TOKEN_1>", "<TOKEN_2>", "<TOKEN_3>"}
 
 	// Optional token group redactions
@@ -34,7 +43,7 @@ func detokenizeRecords(client *flowservice.Client) {
 		TokenGroupRedactions: tokenGroupRedactions,
 	}
 
-	// Call the Detokenize function
+	// Step 3: Call the Detokenize function
 	response, err := client.Detokenize(ctx, request)
 	if err != nil {
 		fmt.Println("Error during detokenize:", err)
@@ -47,8 +56,9 @@ func detokenizeRecords(client *flowservice.Client) {
 func stringPtr(s string) *string {
 	return &s
 }
+
 func main() {
-	// Initialize the client
+	// Step 1: Initialize the skyflow client
 	skyflowClient := SkyflowClient.NewClient(
 		option.WithBaseURL("<VAULT_URL>"), // vault url
 		option.WithHTTPHeader(http.Header{
@@ -56,8 +66,9 @@ func main() {
 		}),
 		option.WithMaxAttempts(1),
 	)
+	// Step 2: Get the flowservice client
 	var flowserviceClient *flowservice.Client = skyflowClient.Flowservice
 
-	// Call the deleteRecords function
+	// Step 3: Call the detokenize API and handle response
 	detokenizeRecords(flowserviceClient)
 }

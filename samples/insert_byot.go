@@ -10,12 +10,23 @@ import (
     "net/http"
 )
 
+/*
+Example demonstrating how to use the Skyflow Go SDK to insert records with BYOT.
+Steps:
+1. Configure the skyflow client.
+2. Get the flowservice client.
+3. Call the insert API.
+4. Handle the response.
+*/
+
 // insertRecords inserts new records into a specified table in the vault.
 func insertRecords(client *flowservice.Client) {
+    // Step 1: Set up context
     ctx := context.Background()
     vaultID := "<VAULT_ID>"
     tableName := "<TABLE_NAME>"
 
+    // Step 2: Create records with BYOT data
     // Create the records to insert
     records := []*api.V1InsertRecordData{
         {
@@ -37,6 +48,7 @@ func insertRecords(client *flowservice.Client) {
         Records:   records,
     }
 
+    // Step 3: Execute insert request
     // Call the Insert function
     response, err := client.Insert(ctx, request)
     if err != nil {
@@ -44,20 +56,22 @@ func insertRecords(client *flowservice.Client) {
         return
     }
 
+    // Step 4: Handle the response
     fmt.Println("Insert response:", response)
 }
 
 func main() {
-	// Initialize the client
+	// Step 1: Configure the skyflow client.
 	skyflowClient := SkyflowClient.NewClient(
-		option.WithBaseURL("<VAULT_URL>"), // vault url
+		option.WithBaseURL("<VAULT_URL>"), // Vault URL
 		option.WithHTTPHeader(http.Header{
 			"Authorization": []string{"Bearer " + "<BEARER_TOKEN>"}, // Bearer token
 		}),
 		option.WithMaxAttempts(1),
 	)
+    // Step 2: Get the flowservice client
     var flowserviceClient *flowservice.Client = skyflowClient.Flowservice
 
-	// Call the insertRecords function
+	// Step 3: Call the insert record API
 	insertRecords(flowserviceClient)
 }

@@ -10,12 +10,24 @@ import (
     SkyflowClient "github.com/skyflowapi/skyflow-go/client"
 )
 
+/*
+Example demonstrating how to use the Skyflow Go SDK to retrieve specific column values with redaction.
+Steps:
+1. Configure the skyflow client.
+2. Configure columns and redaction rules.
+3. Set pagination parameters (limit and offset).
+4. Call the get API and handle the response.
+*/
+
+
 // getRecords retrieves records from a specified table in the vault.
 func getRecords(client *flowservice.Client) {
+    // Step 1: Set up context, vault ID, and table name
     ctx := context.Background()
     vaultID := "<VAULT_ID>"
     tableName := "<TABLE_NAME>"
 
+    // Step 2: Configure columns and redactions
     // Define the columns to fetch
     columns := []string{"<COLUMN_1>", "<COLUMN_2>", "<COLUMN_3>"}
 
@@ -42,8 +54,10 @@ func getRecords(client *flowservice.Client) {
         Offset:          &offset,
     }
 
-    // Call the Get function
+    // Step 3: Execute get request with pagination
     response, err := client.Get(ctx, request)
+
+    // Step 4: Handle and print the response
     if err != nil {
         fmt.Println("Error during get:", err)
         return
@@ -58,7 +72,7 @@ func stringPtr(s string) *string {
 }
 
 func main() {
-    // Initialize the client
+    // Step 1: Configure the skyflow client.
     skyflowClient := SkyflowClient.NewClient(
         option.WithBaseURL("<BASE_URL>"), // base URL
 		option.WithMaxAttempts(1),
@@ -66,8 +80,9 @@ func main() {
             "Authorization": []string{"Bearer <ACCESS_TOKEN>"},
         }),
     )
+    // Step 2: Get the flowservice client
     var flowserviceClient *flowservice.Client = skyflowClient.Flowservice
 
-    // Call the getRecords function
+    // Step 3: Call the getRecords function
     getRecords(flowserviceClient)
 }

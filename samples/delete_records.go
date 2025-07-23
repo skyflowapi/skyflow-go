@@ -10,39 +10,53 @@ import (
     "net/http"
 
 )
+/*
+Example demonstrating how to use the Skyflow Go SDK to delete records from a Vault using Skyflow IDs.
+Steps:
+1. Configure the skyflow client.
+2. Get the flowservice client.
+3. Call the delete API with vault ID and Skyflow IDs.
+4. Handle and print the response.
+*/
+
 
 // deleteRecords deletes records from a specified table in the vault.
 func deleteRecords(client *flowservice.Client) {
+    // Step 1: Set up the context, vault ID, and table name
     ctx := context.Background()
     vaultID := "<VAULT_ID>"
     tableName := "<TABLE_NAME>"
 
-    // Create the delete request
+    // Step 2: Create the delete request with Skyflow IDs
     request := &api.V1DeleteRequest{
         VaultId:    &vaultID,
         TableName:  &tableName,
         SkyflowIDs: []string{"<SKYFLOW_ID_1>", "<SKYFLOW_ID_2>"},
     }
 
-    // Call the Delete function
+    // Step 3: Call the Delete API
     response, err := client.Delete(ctx, request)
     if err != nil {
         fmt.Println("Error during delete:", err)
         return
     }
 
+    // Step 4: Handle the response
     fmt.Println("Delete response:", response)
 }
+
 func main() {
-	// Initialize the client
+	// Step1: Configure the skyflow client.
 	SkyflowClient := client.NewClient(
-		option.WithBaseURL("<VAULT_URL>"), // vault url
+		option.WithBaseURL("<VAULT_URL>"), // Vault URL
 		option.WithHTTPHeader(http.Header{
 			"Authorization": []string{"Bearer "+ "<BEARER_TOKEN>"}, // Bearer token
 		}),
 		option.WithMaxAttempts(1),
 	)
+    // Step 2: Get the flowservice client
     var flowserviceClient *flowservice.Client= SkyflowClient.Flowservice
-	// Call the deleteRecords function
+
+	// Step 3: Call the deleteRecords function
 	deleteRecords(flowserviceClient)
 }

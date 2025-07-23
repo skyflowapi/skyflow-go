@@ -1,4 +1,4 @@
-module flowdbsamples
+module vault-lh-sample
 
 go 1.23.8
 
