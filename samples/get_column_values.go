@@ -11,7 +11,7 @@ import (
 )
 
 /*
-Example demonstrating how to use the Skyflow Go SDK to retrieve specific column values with redaction.
+Example demonstrating how to use the Skyflow Go SDK to retrieve specific column values with redaction from the vault.
 Steps:
 1. Configure the skyflow client.
 2. Configure columns and redaction rules.
@@ -80,9 +80,8 @@ func main() {
             "Authorization": []string{"Bearer <ACCESS_TOKEN>"},
         }),
     )
-    // Step 2: Get the flowservice client
     var flowserviceClient *flowservice.Client = skyflowClient.Flowservice
 
-    // Step 3: Call the getRecords function
+    // Step 2: Call the getRecords function
     getRecords(flowserviceClient)
 }

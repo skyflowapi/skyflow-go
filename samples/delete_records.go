@@ -14,9 +14,8 @@ import (
 Example demonstrating how to use the Skyflow Go SDK to delete records from a Vault using Skyflow IDs.
 Steps:
 1. Configure the skyflow client.
-2. Get the flowservice client.
-3. Call the delete API with vault ID and Skyflow IDs.
-4. Handle and print the response.
+2. Call the delete API with vault ID and Skyflow IDs.
+3. Handle and print the response.
 */
 
 
@@ -54,9 +53,8 @@ func main() {
 		}),
 		option.WithMaxAttempts(1),
 	)
-    // Step 2: Get the flowservice client
     var flowserviceClient *flowservice.Client= SkyflowClient.Flowservice
 
-	// Step 3: Call the deleteRecords function
+	// Step 2: Call the deleteRecords function
 	deleteRecords(flowserviceClient)
 }

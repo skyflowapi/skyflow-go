@@ -14,8 +14,8 @@ import (
 Example demonstrating how to use the Skyflow Go SDK to retrieve records from a Vault using Skyflow IDs.
 Steps:
 1. Configure the skyflow client.
-2. Get the flowservice client.
-3. Call the get API with vault ID and Skyflow IDs.
+2. Call the get API with vault ID and Skyflow IDs.
+3. Handle and print the response.
 */
 
 // getRecords retrieves records from a specified table in the vault.
@@ -34,6 +34,8 @@ func getRecords(client *flowservice.Client) {
 
     // Step 3: Execute get request and handle response
     response, err := client.Get(ctx, request)
+
+    // Step 4: Handle and print the response
     if err != nil {
         fmt.Println("Error during get:", err)
         return
@@ -51,9 +53,8 @@ func main() {
 		option.WithMaxAttempts(1),
 		
 	)
-    // Step 2: Get the flowservice client
     var flowserviceClient *flowservice.Client = skyflowClient.Flowservice
 
-    // Step 3: Call the get API with vault ID and Skyflow IDs.
+    // Step 2: Call the get API with vault ID and Skyflow IDs.
 	getRecords(flowserviceClient)
 }

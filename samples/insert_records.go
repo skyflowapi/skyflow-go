@@ -14,10 +14,9 @@ import (
 Example demonstrating how to use the Skyflow Go SDK to insert records into a Vault.
 Steps:
 1. Configure the skyflow client.
-2. Get the flowservice client.
-3. Prepare records data for insertion.
-4. Call the insert API with the records.
-5. Handle and print the response.
+2. Prepare records data for insertion.
+3. Call the insert API with the records.
+4. Handle and print the response.
 */
 
 // insertRecords inserts new records into a specified table in the vault.
@@ -47,12 +46,13 @@ func insertRecords(client *flowservice.Client) {
 
     // Call the Insert function
     response, err := client.Insert(ctx, request)
+
+    // Step 4: Handle and print the response.
     if err != nil {
         fmt.Println("Error during insert:", err)
         return
     }
 
-    // Step 4: Handle response
     fmt.Println("Insert response:", response)
 }
 
@@ -65,9 +65,8 @@ func main() {
 		}),
 		option.WithMaxAttempts(1),
 	)
-    // Step 2: Get the flowservice client
     var flowserviceClient *flowservice.Client = skyflowClient.Flowservice
 
-    // Step 3: Call the insertRecords function
+    // Step 2: Call the insertRecords function
 	insertRecords(flowserviceClient)
 }

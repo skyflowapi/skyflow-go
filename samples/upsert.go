@@ -13,9 +13,8 @@ import (
 Example demonstrating how to use the Skyflow Go SDK to upsert records in a Vault.
 Steps:
 1. Configure the skyflow client.
-2. Get the flowservice client.
-3. Call the upsert API with records data.
-4. Handle and print the response.
+2. Call the upsert API with records data.
+3. Handle and print the response.
 */
 
 // insertRecords inserts new records into a specified table in the vault.
@@ -54,6 +53,8 @@ func upsertRecords(client *flowservice.Client) {
 
     // Step 4: Call the Insert API
     response, err := client.Insert(ctx, request)
+
+    // Step 5: Handle and print the response.
     if err != nil {
         fmt.Println("Error during insert:", err)
         return
@@ -70,9 +71,8 @@ func main() {
 		}),
 		option.WithMaxAttempts(1),
 	)
-    // Step 2: Get the flowservice client
     var flowserviceClient *flowservice.Client = skyflowClient.Flowservice
 
-    // Step 3: Call the upsertRecords function
+    // Step 2: Call the upsertRecords function
 	upsertRecords(flowserviceClient)
 }

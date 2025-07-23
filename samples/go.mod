@@ -1,4 +1,4 @@
-module vault-lh-sample
+module vault-lh-samples
 
 go 1.23.8
 

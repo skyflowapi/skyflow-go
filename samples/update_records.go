@@ -14,8 +14,8 @@ import (
 Example demonstrating how to use the Skyflow Go SDK to update existing records in a Vault.
 Steps:
 1. Configure the skyflow client.
-2. Get the flowservice client.
-3. Specify records to update using Skyflow IDs.
+2. Specify records to update using Skyflow IDs.
+3. Prepare the update request with new values.
 4. Call the update API with the new values.
 5. Handle and print the response.
 */
@@ -27,7 +27,7 @@ func updateRecords(client *flowservice.Client) {
     vaultID := "<VAULT_ID>"
     tableName := "<TABLE_NAME>"
 
-    // Step 2: Create records with data to update
+    // Step 2: Specify records to update using Skyflow IDs.
     records := []*api.V1UpdateRecordData{
         {
             SkyflowId: stringPtr("<SKYFLOW_ID>"),
@@ -50,8 +50,10 @@ func updateRecords(client *flowservice.Client) {
         Records:   records,
     }
 
-    // Step 4: Call the Update API
+    // Step 4: Call the Update API with the new values
     response, err := client.Update(ctx, request)
+
+    // Step 5: Handle and print the response.
     if err != nil {
         fmt.Println("Error during update:", err)
         return
@@ -73,9 +75,8 @@ func main() {
 		}),
 		option.WithMaxAttempts(1),
 	)
-    // Step 2: Get the flowservice client.
     var flowserviceClient *flowservice.Client = skyflowClient.Flowservice
 
-    // Step 3: Call the updateRecords function
+    // Step 2: Call the updateRecords function
 	updateRecords(flowserviceClient)
 }

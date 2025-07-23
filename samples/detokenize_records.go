@@ -15,8 +15,8 @@ import (
 Example demonstrating how to use the Skyflow Go SDK to detokenize records from a Vault.
 Steps:
 1. Configure the skyflow client.
-2. Get the flowservice client.
-3. Call the detokenize API and handle response.
+2. Call the detokenize API.
+3. Handle and print the response.
 */
 
 // detokenizeRecords detokenizes tokens to retrieve original data.
@@ -45,6 +45,8 @@ func detokenizeRecords(client *flowservice.Client) {
 
 	// Step 3: Call the Detokenize function
 	response, err := client.Detokenize(ctx, request)
+
+	// Step 4: Handle and print the response.
 	if err != nil {
 		fmt.Println("Error during detokenize:", err)
 		return
@@ -66,9 +68,8 @@ func main() {
 		}),
 		option.WithMaxAttempts(1),
 	)
-	// Step 2: Get the flowservice client
 	var flowserviceClient *flowservice.Client = skyflowClient.Flowservice
 
-	// Step 3: Call the detokenize API and handle response
+	// Step 2: Call the detokenize API and handle response
 	detokenizeRecords(flowserviceClient)
 }
