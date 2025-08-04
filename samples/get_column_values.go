@@ -1,13 +1,14 @@
 package main
 
 import (
-    "context"
-    "fmt"
-    "net/http"
-    "github.com/skyflowapi/skyflow-go/flowservice"
-    "github.com/skyflowapi/skyflow-go/api"
-    "github.com/skyflowapi/skyflow-go/option"
-    SkyflowClient "github.com/skyflowapi/skyflow-go/client"
+	"context"
+	"fmt"
+	"net/http"
+
+	"github.com/skyflowapi/skyflow-go/api"
+	SkyflowClient "github.com/skyflowapi/skyflow-go/client"
+	"github.com/skyflowapi/skyflow-go/option"
+	"github.com/skyflowapi/skyflow-go/recordservice"
 )
 
 /*
@@ -19,9 +20,8 @@ Steps:
 4. Call the get API and handle the response.
 */
 
-
 // getRecords retrieves records from a specified table in the vault.
-func getRecords(client *flowservice.Client) {
+func getRecords(client *recordservice.Client) {
     // Step 1: Set up context, vault ID, and table name
     ctx := context.Background()
     vaultID := "<VAULT_ID>"
@@ -32,7 +32,7 @@ func getRecords(client *flowservice.Client) {
     columns := []string{"<COLUMN_1>", "<COLUMN_2>", "<COLUMN_3>"}
 
     // Define column redactions (optional)
-    columnRedactions := []*api.V1ColumnRedactions{
+    columnRedactions := []*api.ColumnRedactions{
         {
             ColumnName: stringPtr("<COLUMN_1>"),
             Redaction:  stringPtr("plain_text"),
@@ -44,8 +44,8 @@ func getRecords(client *flowservice.Client) {
     }
     limit := 10 // Set the limit for the number of records to fetch
     offset := 2 // Set the offset 
-    // Create the V1GetRequest object
-    request := &api.V1GetRequest{
+	// Create the GetRequest object
+	request := &api.GetRequest{
         VaultId:          &vaultID,
         TableName:        &tableName,
         Columns:          columns,
@@ -80,8 +80,8 @@ func main() {
             "Authorization": []string{"Bearer <ACCESS_TOKEN>"},
         }),
     )
-    var flowserviceClient *flowservice.Client = skyflowClient.Flowservice
+	var recordserviceClient *recordservice.Client = skyflowClient.Recordservice
 
-    // Step 2: Call the getRecords function
-    getRecords(flowserviceClient)
+	// Step 2: Call the getRecords function
+	getRecords(recordserviceClient)
 }

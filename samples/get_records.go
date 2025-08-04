@@ -3,7 +3,7 @@ package main
 import (
     "context"
     "fmt"
-    "github.com/skyflowapi/skyflow-go/flowservice"
+	"github.com/skyflowapi/skyflow-go/recordservice"
     "github.com/skyflowapi/skyflow-go/api"
     "github.com/skyflowapi/skyflow-go/option"
     SkyflowClient "github.com/skyflowapi/skyflow-go/client"
@@ -19,14 +19,14 @@ Steps:
 */
 
 // getRecords retrieves records from a specified table in the vault.
-func getRecords(client *flowservice.Client) {
+func getRecords(client *recordservice.Client) {
     // Step 1: Set up the context, vault ID, and table name
     ctx := context.Background()
     vaultID := "<VAULT_ID>"
     tableName := "<TABLE_NAME>"
 
     // Step 2: Create get request with Skyflow IDs
-    request := &api.V1GetRequest{
+	request := &api.GetRequest{
         VaultId:    &vaultID,
         TableName:  &tableName,
         SkyflowIDs: []string{"<SKYFLOW_ID_1>", "<SKYFLOW_ID_2>"},
@@ -53,8 +53,8 @@ func main() {
 		option.WithMaxAttempts(1),
 		
 	)
-    var flowserviceClient *flowservice.Client = skyflowClient.Flowservice
+	var recordserviceClient *recordservice.Client = skyflowClient.Recordservice
 
     // Step 2: Call the get API with vault ID and Skyflow IDs.
-	getRecords(flowserviceClient)
+	getRecords(recordserviceClient)
 }

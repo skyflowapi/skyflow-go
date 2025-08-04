@@ -7,8 +7,8 @@ import (
 
 	"github.com/skyflowapi/skyflow-go/api"
 	SkyflowClient "github.com/skyflowapi/skyflow-go/client"
-	"github.com/skyflowapi/skyflow-go/flowservice"
 	"github.com/skyflowapi/skyflow-go/option"
+	"github.com/skyflowapi/skyflow-go/recordservice"
 )
 
 /*
@@ -20,7 +20,7 @@ Steps:
 */
 
 // detokenizeRecords detokenizes tokens to retrieve original data.
-func detokenizeRecords(client *flowservice.Client) {
+func detokenizeRecords(client *recordservice.Client) {
 	// Step 1: Set up context and vault ID
 	ctx := context.Background()
 	vaultID := "<VAULT_ID>"
@@ -29,7 +29,7 @@ func detokenizeRecords(client *flowservice.Client) {
 	tokens := []string{"<TOKEN_1>", "<TOKEN_2>", "<TOKEN_3>"}
 
 	// Optional token group redactions
-	tokenGroupRedactions := []*api.V1TokenGroupRedactions{
+	tokenGroupRedactions := []*api.TokenGroupRedactions{
 		{
 			TokenGroupName: stringPtr("<TOKEN_GROUP_1>"),
 			Redaction:      stringPtr("<REDACTION_TYPE_1>"),
@@ -37,7 +37,7 @@ func detokenizeRecords(client *flowservice.Client) {
 	}
 
 	// Create the detokenize request
-	request := &api.V1DetokenizeRequest{
+	request := &api.DetokenizeRequest{
 		VaultId:              &vaultID,
 		Tokens:               tokens,
 		TokenGroupRedactions: tokenGroupRedactions,
@@ -68,8 +68,8 @@ func main() {
 		}),
 		option.WithMaxAttempts(1),
 	)
-	var flowserviceClient *flowservice.Client = skyflowClient.Flowservice
+	var recordserviceClient *recordservice.Client = skyflowClient.Recordservice
 
 	// Step 2: Call the detokenize API and handle response
-	detokenizeRecords(flowserviceClient)
+	detokenizeRecords(recordserviceClient)
 }

@@ -3,10 +3,10 @@ package main
 import (
     "context"
     "fmt"
-    "github.com/skyflowapi/skyflow-go/flowservice"
     "github.com/skyflowapi/skyflow-go/api"
+	"github.com/skyflowapi/skyflow-go/client"
     "github.com/skyflowapi/skyflow-go/option"
-    "github.com/skyflowapi/skyflow-go/client"
+    "github.com/skyflowapi/skyflow-go/recordservice"
     "net/http"
 
 )
@@ -20,18 +20,18 @@ Steps:
 
 
 // deleteRecords deletes records from a specified table in the vault.
-func deleteRecords(client *flowservice.Client) {
+func deleteRecords(client *recordservice.Client) {
     // Step 1: Set up the context, vault ID, and table name
     ctx := context.Background()
     vaultID := "<VAULT_ID>"
     tableName := "<TABLE_NAME>"
 
     // Step 2: Create the delete request with Skyflow IDs
-    request := &api.V1DeleteRequest{
+    request := &api.DeleteRequest{
         VaultId:    &vaultID,
         TableName:  &tableName,
         SkyflowIDs: []string{"<SKYFLOW_ID_1>", "<SKYFLOW_ID_2>"},
-    }
+	}
 
     // Step 3: Call the Delete API
     response, err := client.Delete(ctx, request)
@@ -53,8 +53,8 @@ func main() {
 		}),
 		option.WithMaxAttempts(1),
 	)
-    var flowserviceClient *flowservice.Client= SkyflowClient.Flowservice
+	var recordserviceClient *recordservice.Client= SkyflowClient.Recordservice
 
 	// Step 2: Call the deleteRecords function
-	deleteRecords(flowserviceClient)
+	deleteRecords(recordserviceClient)
 }

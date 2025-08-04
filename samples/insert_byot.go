@@ -3,7 +3,7 @@ package main
 import (
     "context"
     "fmt"
-    "github.com/skyflowapi/skyflow-go/flowservice"
+    "github.com/skyflowapi/skyflow-go/recordservice"
     "github.com/skyflowapi/skyflow-go/api"
     "github.com/skyflowapi/skyflow-go/option"
      SkyflowClient "github.com/skyflowapi/skyflow-go/client"
@@ -19,14 +19,14 @@ Steps:
 */
 
 // insertRecords inserts new records into a specified table in the vault.
-func insertRecords(client *flowservice.Client) {
+func insertRecords(client *recordservice.Client) {
     // Step 1: Set up context
     ctx := context.Background()
     vaultID := "<VAULT_ID>"
     tableName := "<TABLE_NAME>"
 
     // Step 2: Create the records to insert
-    records := []*api.V1InsertRecordData{
+	records := []*api.InsertRecordData{
         {
             Data: map[string]interface{}{
                 "<COLUMN_NAME_1>":       "<COLUMN_VALUE_1>",
@@ -40,7 +40,7 @@ func insertRecords(client *flowservice.Client) {
     }}
 
     // Create the insert request
-    request := &api.V1InsertRequest{
+	request := &api.InsertRequest{
         VaultId:   &vaultID,
         TableName: &tableName,
         Records:   records,
@@ -66,8 +66,8 @@ func main() {
 		}),
 		option.WithMaxAttempts(1),
 	)
-    var flowserviceClient *flowservice.Client = skyflowClient.Flowservice
+	var recordserviceClient *recordservice.Client = skyflowClient.Recordservice
 
 	// Step 2: Call the insert record API
-	insertRecords(flowserviceClient)
+	insertRecords(recordserviceClient)
 }

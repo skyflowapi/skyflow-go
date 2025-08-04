@@ -3,7 +3,7 @@ package main
 import (
     "context"
     "fmt"
-    "github.com/skyflowapi/skyflow-go/flowservice"
+"github.com/skyflowapi/skyflow-go/recordservice"
     "github.com/skyflowapi/skyflow-go/api"
     "github.com/skyflowapi/skyflow-go/option"
     SkyflowClient "github.com/skyflowapi/skyflow-go/client"
@@ -21,14 +21,14 @@ Steps:
 */
 
 // updateRecords updates existing records in a specified table in the vault.
-func updateRecords(client *flowservice.Client) {
+func updateRecords(client *recordservice.Client) {
     // Step 1: Set up context, vault ID, and table name
     ctx := context.Background()
     vaultID := "<VAULT_ID>"
     tableName := "<TABLE_NAME>"
 
-    // Step 2: Specify records to update using Skyflow IDs.
-    records := []*api.V1UpdateRecordData{
+	// Step 2: Specify records to update using Skyflow IDs.
+	records := []*api.UpdateRecordData{
         {
             SkyflowId: stringPtr("<SKYFLOW_ID>"),
             Data: map[string]interface{}{
@@ -44,7 +44,7 @@ func updateRecords(client *flowservice.Client) {
     }
 
     // Step 3: Configure Create the update request & parameters
-    request := &api.V1UpdateRequest{
+	request := &api.UpdateRequest{
         VaultId:   &vaultID,
         TableName: &tableName,
         Records:   records,
@@ -75,8 +75,8 @@ func main() {
 		}),
 		option.WithMaxAttempts(1),
 	)
-    var flowserviceClient *flowservice.Client = skyflowClient.Flowservice
+	var recordserviceClient *recordservice.Client = skyflowClient.Recordservice
 
-    // Step 2: Call the updateRecords function
-	updateRecords(flowserviceClient)
+	// Step 2: Call the updateRecords function
+	updateRecords(recordserviceClient)
 }
