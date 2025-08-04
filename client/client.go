@@ -6,13 +6,11 @@ import (
 	core "github.com/skyflowapi/skyflow-go/core"
 	internal "github.com/skyflowapi/skyflow-go/internal"
 	option "github.com/skyflowapi/skyflow-go/option"
-	records "github.com/skyflowapi/skyflow-go/records"
 	recordservice "github.com/skyflowapi/skyflow-go/recordservice"
 	http "net/http"
 )
 
 type Client struct {
-	Records       *records.Client
 	Recordservice *recordservice.Client
 
 	baseURL string
@@ -23,7 +21,6 @@ type Client struct {
 func NewClient(opts ...option.RequestOption) *Client {
 	options := core.NewRequestOptions(opts...)
 	return &Client{
-		Records:       records.NewClient(opts...),
 		Recordservice: recordservice.NewClient(opts...),
 		baseURL:       options.BaseURL,
 		caller: internal.NewCaller(

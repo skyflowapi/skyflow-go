@@ -35,6 +35,23 @@ func NewClient(opts ...option.RequestOption) *Client {
 	}
 }
 
+// Executes a query on the specified vault.
+func (c *Client) Executequery(
+	ctx context.Context,
+	request *skyflow.ExecuteQueryRequest,
+	opts ...option.RequestOption,
+) (*skyflow.ExecuteQueryResponse, error) {
+	response, err := c.WithRawResponse.Executequery(
+		ctx,
+		request,
+		opts...,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return response.Body, nil
+}
+
 func (c *Client) Delete(
 	ctx context.Context,
 	request *skyflow.DeleteRequest,

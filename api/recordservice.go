@@ -33,6 +33,13 @@ type DetokenizeRequest struct {
 	TokenGroupRedactions []*TokenGroupRedactions `json:"tokenGroupRedactions,omitempty" url:"-"`
 }
 
+type ExecuteQueryRequest struct {
+	// ID of the vault where data is being inserted
+	VaultId *string `json:"vaultID,omitempty" url:"-"`
+	// Query to execute.
+	Query *string `json:"query,omitempty" url:"-"`
+}
+
 type GetRequest struct {
 	// ID of the vault where data is being fetched
 	VaultId *string `json:"vaultID,omitempty" url:"-"`
@@ -536,6 +543,100 @@ func NewEnumUpdateTypeFromString(s string) (EnumUpdateType, error) {
 
 func (e EnumUpdateType) Ptr() *EnumUpdateType {
 	return &e
+}
+
+type ExecuteQueryRecordResponse struct {
+	// Fields and values for the record. For example, `{'field_1':'value_1', 'field_2':'value_2'}`.
+	Data map[string]interface{} `json:"data,omitempty" url:"data,omitempty"`
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (e *ExecuteQueryRecordResponse) GetData() map[string]interface{} {
+	if e == nil {
+		return nil
+	}
+	return e.Data
+}
+
+func (e *ExecuteQueryRecordResponse) GetExtraProperties() map[string]interface{} {
+	return e.extraProperties
+}
+
+func (e *ExecuteQueryRecordResponse) UnmarshalJSON(data []byte) error {
+	type unmarshaler ExecuteQueryRecordResponse
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*e = ExecuteQueryRecordResponse(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *e)
+	if err != nil {
+		return err
+	}
+	e.extraProperties = extraProperties
+	e.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (e *ExecuteQueryRecordResponse) String() string {
+	if len(e.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(e.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(e); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", e)
+}
+
+type ExecuteQueryResponse struct {
+	// Records corresponding to the specified query.
+	Records []*ExecuteQueryRecordResponse `json:"records,omitempty" url:"records,omitempty"`
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (e *ExecuteQueryResponse) GetRecords() []*ExecuteQueryRecordResponse {
+	if e == nil {
+		return nil
+	}
+	return e.Records
+}
+
+func (e *ExecuteQueryResponse) GetExtraProperties() map[string]interface{} {
+	return e.extraProperties
+}
+
+func (e *ExecuteQueryResponse) UnmarshalJSON(data []byte) error {
+	type unmarshaler ExecuteQueryResponse
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*e = ExecuteQueryResponse(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *e)
+	if err != nil {
+		return err
+	}
+	e.extraProperties = extraProperties
+	e.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (e *ExecuteQueryResponse) String() string {
+	if len(e.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(e.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(e); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", e)
 }
 
 type GetResponse struct {
