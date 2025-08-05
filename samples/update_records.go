@@ -3,21 +3,32 @@ package main
 import (
     "context"
     "fmt"
-    "github.com/skyflowapi/skyflow-go/flowservice"
+"github.com/skyflowapi/skyflow-go/recordservice"
     "github.com/skyflowapi/skyflow-go/api"
     "github.com/skyflowapi/skyflow-go/option"
     SkyflowClient "github.com/skyflowapi/skyflow-go/client"
     "net/http"
 )
 
+/*
+Example demonstrating how to use the Skyflow Go SDK to update existing records in a Vault.
+Steps:
+1. Configure the skyflow client.
+2. Specify records to update using Skyflow IDs.
+3. Prepare the update request with new values.
+4. Call the update API with the new values.
+5. Handle and print the response.
+*/
+
 // updateRecords updates existing records in a specified table in the vault.
-func updateRecords(client *flowservice.Client) {
+func updateRecords(client *recordservice.Client) {
+    // Step 1: Set up context, vault ID, and table name
     ctx := context.Background()
     vaultID := "<VAULT_ID>"
     tableName := "<TABLE_NAME>"
 
-    // Create the records to update
-    records := []*api.V1UpdateRecordData{
+	// Step 2: Specify records to update using Skyflow IDs.
+	records := []*api.UpdateRecordData{
         {
             SkyflowId: stringPtr("<SKYFLOW_ID>"),
             Data: map[string]interface{}{
@@ -32,15 +43,17 @@ func updateRecords(client *flowservice.Client) {
         },
     }
 
-    // Create the update request
-    request := &api.V1UpdateRequest{
+    // Step 3: Configure Create the update request & parameters
+	request := &api.UpdateRequest{
         VaultId:   &vaultID,
         TableName: &tableName,
         Records:   records,
     }
 
-    // Call the Update function
+    // Step 4: Call the Update API with the new values
     response, err := client.Update(ctx, request)
+
+    // Step 5: Handle and print the response.
     if err != nil {
         fmt.Println("Error during update:", err)
         return
@@ -49,8 +62,12 @@ func updateRecords(client *flowservice.Client) {
     fmt.Println("Update response:", response)
 }
 
+func stringPtr(s string) *string {
+	return &s
+}
+
 func main() {
-	// Initialize the client
+    // Step 1: Configure the skyflow client.
 	skyflowClient := SkyflowClient.NewClient(
 		option.WithBaseURL("<VAULT_URL>"), // vault url
 		option.WithHTTPHeader(http.Header{
@@ -58,8 +75,8 @@ func main() {
 		}),
 		option.WithMaxAttempts(1),
 	)
-    var flowserviceClient *flowservice.Client = skyflowClient.Flowservice
+	var recordserviceClient *recordservice.Client = skyflowClient.Recordservice
 
-	// Call the insertRecords function
-	updateRecords(flowserviceClient)
+	// Step 2: Call the updateRecords function
+	updateRecords(recordserviceClient)
 }

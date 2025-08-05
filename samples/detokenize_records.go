@@ -7,20 +7,29 @@ import (
 
 	"github.com/skyflowapi/skyflow-go/api"
 	SkyflowClient "github.com/skyflowapi/skyflow-go/client"
-	"github.com/skyflowapi/skyflow-go/flowservice"
 	"github.com/skyflowapi/skyflow-go/option"
+	"github.com/skyflowapi/skyflow-go/recordservice"
 )
 
+/*
+Example demonstrating how to use the Skyflow Go SDK to detokenize records from a Vault.
+Steps:
+1. Configure the skyflow client.
+2. Call the detokenize API.
+3. Handle and print the response.
+*/
+
 // detokenizeRecords detokenizes tokens to retrieve original data.
-func detokenizeRecords(client *flowservice.Client) {
+func detokenizeRecords(client *recordservice.Client) {
+	// Step 1: Set up context and vault ID
 	ctx := context.Background()
 	vaultID := "<VAULT_ID>"
 
-	// Tokens to detokenize
+	// Step 2: Configure tokens to detokenize and redactions
 	tokens := []string{"<TOKEN_1>", "<TOKEN_2>", "<TOKEN_3>"}
 
 	// Optional token group redactions
-	tokenGroupRedactions := []*api.V1TokenGroupRedactions{
+	tokenGroupRedactions := []*api.TokenGroupRedactions{
 		{
 			TokenGroupName: stringPtr("<TOKEN_GROUP_1>"),
 			Redaction:      stringPtr("<REDACTION_TYPE_1>"),
@@ -28,14 +37,16 @@ func detokenizeRecords(client *flowservice.Client) {
 	}
 
 	// Create the detokenize request
-	request := &api.V1DetokenizeRequest{
+	request := &api.DetokenizeRequest{
 		VaultId:              &vaultID,
 		Tokens:               tokens,
 		TokenGroupRedactions: tokenGroupRedactions,
 	}
 
-	// Call the Detokenize function
+	// Step 3: Call the Detokenize function
 	response, err := client.Detokenize(ctx, request)
+
+	// Step 4: Handle and print the response.
 	if err != nil {
 		fmt.Println("Error during detokenize:", err)
 		return
@@ -47,8 +58,9 @@ func detokenizeRecords(client *flowservice.Client) {
 func stringPtr(s string) *string {
 	return &s
 }
+
 func main() {
-	// Initialize the client
+	// Step 1: Initialize the skyflow client
 	skyflowClient := SkyflowClient.NewClient(
 		option.WithBaseURL("<VAULT_URL>"), // vault url
 		option.WithHTTPHeader(http.Header{
@@ -56,8 +68,8 @@ func main() {
 		}),
 		option.WithMaxAttempts(1),
 	)
-	var flowserviceClient *flowservice.Client = skyflowClient.Flowservice
+	var recordserviceClient *recordservice.Client = skyflowClient.Recordservice
 
-	// Call the deleteRecords function
-	detokenizeRecords(flowserviceClient)
+	// Step 2: Call the detokenize API and handle response
+	detokenizeRecords(recordserviceClient)
 }

@@ -1,26 +1,38 @@
 package main
 
 import (
-    "context"
-    "fmt"
-    "net/http"
-    "github.com/skyflowapi/skyflow-go/flowservice"
-    "github.com/skyflowapi/skyflow-go/api"
-    "github.com/skyflowapi/skyflow-go/option"
-    SkyflowClient "github.com/skyflowapi/skyflow-go/client"
+	"context"
+	"fmt"
+	"net/http"
+
+	"github.com/skyflowapi/skyflow-go/api"
+	SkyflowClient "github.com/skyflowapi/skyflow-go/client"
+	"github.com/skyflowapi/skyflow-go/option"
+	"github.com/skyflowapi/skyflow-go/recordservice"
 )
 
+/*
+Example demonstrating how to use the Skyflow Go SDK to retrieve specific column values with redaction from the vault.
+Steps:
+1. Configure the skyflow client.
+2. Configure columns and redaction rules.
+3. Set pagination parameters (limit and offset).
+4. Call the get API and handle the response.
+*/
+
 // getRecords retrieves records from a specified table in the vault.
-func getRecords(client *flowservice.Client) {
+func getRecords(client *recordservice.Client) {
+    // Step 1: Set up context, vault ID, and table name
     ctx := context.Background()
     vaultID := "<VAULT_ID>"
     tableName := "<TABLE_NAME>"
 
+    // Step 2: Configure columns and redactions
     // Define the columns to fetch
     columns := []string{"<COLUMN_1>", "<COLUMN_2>", "<COLUMN_3>"}
 
     // Define column redactions (optional)
-    columnRedactions := []*api.V1ColumnRedactions{
+    columnRedactions := []*api.ColumnRedactions{
         {
             ColumnName: stringPtr("<COLUMN_1>"),
             Redaction:  stringPtr("plain_text"),
@@ -32,8 +44,8 @@ func getRecords(client *flowservice.Client) {
     }
     limit := 10 // Set the limit for the number of records to fetch
     offset := 2 // Set the offset 
-    // Create the V1GetRequest object
-    request := &api.V1GetRequest{
+	// Create the GetRequest object
+	request := &api.GetRequest{
         VaultId:          &vaultID,
         TableName:        &tableName,
         Columns:          columns,
@@ -42,8 +54,10 @@ func getRecords(client *flowservice.Client) {
         Offset:          &offset,
     }
 
-    // Call the Get function
+    // Step 3: Execute get request with pagination
     response, err := client.Get(ctx, request)
+
+    // Step 4: Handle and print the response
     if err != nil {
         fmt.Println("Error during get:", err)
         return
@@ -58,7 +72,7 @@ func stringPtr(s string) *string {
 }
 
 func main() {
-    // Initialize the client
+    // Step 1: Configure the skyflow client.
     skyflowClient := SkyflowClient.NewClient(
         option.WithBaseURL("<BASE_URL>"), // base URL
 		option.WithMaxAttempts(1),
@@ -66,8 +80,8 @@ func main() {
             "Authorization": []string{"Bearer <ACCESS_TOKEN>"},
         }),
     )
-    var flowserviceClient *flowservice.Client = skyflowClient.Flowservice
+	var recordserviceClient *recordservice.Client = skyflowClient.Recordservice
 
-    // Call the getRecords function
-    getRecords(flowserviceClient)
+	// Step 2: Call the getRecords function
+	getRecords(recordserviceClient)
 }
