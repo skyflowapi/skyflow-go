@@ -18,18 +18,129 @@ type TokenResponse struct {
 	TokenType   string `json:"tokenType"`
 }
 type DeidentifyTextRequest struct {
-	Text string
-	Entities []string
-	AllowRegexList []string
-	RestrictRegexList []string
-	TokenFormat string
-	Transformations []string
+	Text               string
+	// ConfigurationId    *ConfigurationId
+	Entities           *DetectEntities
+	TokenFormat        *TokenFormat
+	AllowRegexList      []string
+	RestrictRegexList   []string
+	Transformations    *Transformations
+}
+// type AllowRegex = []string
+
+// type RestrictRegex = []string
+
+type Transformations struct {
+	ShiftDates *DateTransformation 
+}
+type TokenFormat struct {
+	DefaultType       *TokenTypeDefault
+	VaultToken        []DetectEntities
+	EntityUnqCounter  []DetectEntities
+	EntityOnly        []DetectEntities
 }
 
-type DeidentifyTextResponse struct {
-	DeidentifiedText string   `json:"deidentifiedText"`
-	Errors           []string `json:"errors,omitempty"`
+type TokenTypeDefault string
+
+const (
+	TokenTypeDefaultEntityOnly       TokenTypeDefault = "entity_only"
+	TokenTypeDefaultEntityUnqCounter TokenTypeDefault = "entity_unq_counter"
+	TokenTypeDefaultVaultToken       TokenTypeDefault = "vault_token"
+)
+type DateTransformation struct {
+	MaxDays    *int
+	MinDays    *int
+	Entities   []TransformationsShiftDatesEntityTypesItem
 }
+
+type TransformationsShiftDatesEntityTypesItem string
+
+const (
+	TransformationsShiftDatesEntityTypesItemDate         TransformationsShiftDatesEntityTypesItem = "date"
+	TransformationsShiftDatesEntityTypesItemDateInterval TransformationsShiftDatesEntityTypesItem = "date_interval"
+	TransformationsShiftDatesEntityTypesItemDob          TransformationsShiftDatesEntityTypesItem = "dob"
+)
+
+type DetectEntities string
+
+const (
+	AccountNumber               DetectEntities = "account_number"
+	Age                         DetectEntities = "age"
+	All                         DetectEntities = "all"
+	BankAccount                 DetectEntities = "bank_account"
+	BloodType                   DetectEntities = "blood_type"
+	Condition                   DetectEntities = "condition"
+	CorporateAction             DetectEntities = "corporate_action"
+	CreditCard                  DetectEntities = "credit_card"
+	CreditCardExpiration        DetectEntities = "credit_card_expiration"
+	Cvv                         DetectEntities = "cvv"
+	Date                        DetectEntities = "date"
+	Day                         DetectEntities = "day"
+	DateInterval                DetectEntities = "date_interval"
+	Dob                         DetectEntities = "dob"
+	Dose                        DetectEntities = "dose"
+	DriverLicense               DetectEntities = "driver_license"
+	Drug                        DetectEntities = "drug"
+	Duration                    DetectEntities = "duration"
+	Effect                      DetectEntities = "effect"
+	EmailAddress                DetectEntities = "email_address"
+	Event                       DetectEntities = "event"
+	Filename                    DetectEntities = "filename"
+	FinancialMetric             DetectEntities = "financial_metric"
+	Gender                      DetectEntities = "gender"
+	HealthcareNumber            DetectEntities = "healthcare_number"
+	Injury                      DetectEntities = "injury"
+	IpAddress                   DetectEntities = "ip_address"
+	Language                    DetectEntities = "language"
+	Location                    DetectEntities = "location"
+	LocationAddress             DetectEntities = "location_address"
+	LocationAddressStreet       DetectEntities = "location_address_street"
+	LocationCity                DetectEntities = "location_city"
+	LocationCoordinate          DetectEntities = "location_coordinate"
+	LocationCountry             DetectEntities = "location_country"
+	LocationState               DetectEntities = "location_state"
+	LocationZip                 DetectEntities = "location_zip"
+	MaritalStatus               DetectEntities = "marital_status"
+	MedicalCode                 DetectEntities = "medical_code"
+	MedicalProcess              DetectEntities = "medical_process"
+	Money                       DetectEntities = "money"
+	Month                       DetectEntities = "month"
+	Name                        DetectEntities = "name"
+	NameFamily                  DetectEntities = "name_family"
+	NameGiven                   DetectEntities = "name_given"
+	NameMedicalProfessional     DetectEntities = "name_medical_professional"
+	NumericalPii                DetectEntities = "numerical_pii"
+	Occupation                  DetectEntities = "occupation"
+	Organization                DetectEntities = "organization"
+	OrganizationId              DetectEntities = "organization_id"
+	OrganizationMedicalFacility DetectEntities = "organization_medical_facility"
+	Origin                      DetectEntities = "origin"
+	PassportNumber              DetectEntities = "passport_number"
+	Password                    DetectEntities = "password"
+	PhoneNumber                 DetectEntities = "phone_number"
+	Project                     DetectEntities = "project"
+	PhysicalAttribute           DetectEntities = "physical_attribute"
+	PoliticalAffiliation        DetectEntities = "political_affiliation"
+	Product                     DetectEntities = "product"
+	Religion                    DetectEntities = "religion"
+	RoutingNumber               DetectEntities = "routing_number"
+	Sexuality                   DetectEntities = "sexuality"
+	Ssn                         DetectEntities = "ssn"
+	Statistics                  DetectEntities = "statistics"
+	Time                        DetectEntities = "time"
+	Trend                       DetectEntities = "trend"
+	Url                         DetectEntities = "url"
+	Username                    DetectEntities = "username"
+	VehicleId                   DetectEntities = "vehicle_id"
+	Year                        DetectEntities = "year"
+	ZodiacSign                  DetectEntities = "zodiac_sign"
+)
+
+
+// type DeidentifyTextResponse struct {
+// 	DeidentifiedText string   `json:"deidentifiedText"`
+// 	Errors           []string `json:"errors,omitempty"`
+// }
 
 type BearerTokenOptions struct {
 	Ctx      string
@@ -99,6 +210,38 @@ const (
 	DELETE RequestMethod = "DELETE"
 )
 
+type DeidentifyTextResponse struct {
+	ProcessedText  string
+	Entities       []*EntityInfo
+	WordCount      int
+	CharacterCount int
+}
+
+type EntityInfo struct {
+	Token *string
+	Value *string
+	Entity *string
+	Scores map[string]float64
+	// Location *EntityLocation
+	ProcessedIndex *TextIndex
+	TextIndex      *TextIndex
+}
+type TextIndex struct {
+	StartIndex *int	
+	EndIndex   *int
+}
+type ReidentifyTextResponse struct {
+	ProcessedText *string
+}
+
+type ReidentifyTextRequest struct {
+	Text string
+	RedactedEntities        *DetectEntities
+	MaskedEntities          *DetectEntities
+	PlainTextEntities       *DetectEntities
+}
+
+
 func (m RequestMethod) IsValid() bool {
 	validMethods := []RequestMethod{
 		GET,
@@ -145,9 +288,9 @@ type RedactionType string
 // Constants for RedactionType
 const (
 	PLAIN_TEXT RedactionType = "PLAIN_TEXT"
-	DEFAULT                  = "DEFAULT"
-	MASKED                   = "MASKED"
-	REDACTED                 = "REDACTED"
+	DEFAULT RedactionType = "DEFAULT"
+	MASKED RedactionType = "MASKED"
+	REDACTED RedactionType = "REDACTED"
 )
 
 type InsertOptions struct {
