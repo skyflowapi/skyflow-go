@@ -17,6 +17,19 @@ type TokenResponse struct {
 	AccessToken string `json:"accessToken"`
 	TokenType   string `json:"tokenType"`
 }
+type DeidentifyTextRequest struct {
+	Text string
+	Entities []string
+	AllowRegexList []string
+	RestrictRegexList []string
+	TokenFormat string
+	Transformations []string
+}
+
+type DeidentifyTextResponse struct {
+	DeidentifiedText string   `json:"deidentifiedText"`
+	Errors           []string `json:"errors,omitempty"`
+}
 
 type BearerTokenOptions struct {
 	Ctx      string
@@ -55,6 +68,12 @@ type ConnectionConfig struct {
 	ConnectionId  string
 	ConnectionUrl string
 	Credentials   Credentials
+}
+type DetectConfig struct {
+	VaultId     string
+	ClusterId   string
+	Env         Env
+	Credentials Credentials
 }
 
 type BYOT string

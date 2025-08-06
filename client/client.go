@@ -14,6 +14,7 @@ import (
 type Skyflow struct {
 	vaultServices      map[string]*vaultService
 	connectionServices map[string]*connectionService
+    detectServices     map[string]*detectService
 	credentials        *vaultutils.Credentials
 	logLevel           logger.LogLevel
 }
@@ -184,6 +185,37 @@ func (s *Skyflow) Connection(connectionId ...string) (*connectionService, *error
 	return connectionService, nil
 }
 
+func (s *Skyflow) Detect(vaultID ...string) (*detectService, *error.SkyflowError) {
+		// get vaultapi config if available in vaultapi configs, skyflow or env
+	config, err := getDetectConfig(s.detectServices, vaultID...)
+	if err != nil {
+		return nil, err
+	}
+
+	err = setDetectCredentials(config, s.credentials)
+	if err != nil {
+		return nil, err
+	}
+	err1 := validation.ValidateDetectConfig(*config)
+	if err1 != nil {
+		return nil, err1
+	}
+	detectService := &detectService{}
+	// Get the VaultController from the builder's vaultServices map
+	detectService, exists := s.detectServices[config.VaultId]
+	if !exists {
+		detectService.config = config
+		detectService.logLevel = &s.logLevel
+	}
+	// Update the config in the vaultapi service
+	detectService.controller = &controller.DetectController{
+		Config:   *config,
+		Loglevel: &s.logLevel,
+	}
+	detectService.config = config
+	return detectService, nil
+}
+
 func (s *Skyflow) GetVault(vaultId string) (*vaultutils.VaultConfig, *error.SkyflowError) {
 	config, exist := s.vaultServices[vaultId]
 	if !exist {
@@ -191,6 +223,7 @@ func (s *Skyflow) GetVault(vaultId string) (*vaultutils.VaultConfig, *error.Skyf
 	}
 	return config.config, nil
 }
+
 func (s *Skyflow) GetConnection(connId string) (*vaultutils.ConnectionConfig, *error.SkyflowError) {
 	config, exist := s.connectionServices[connId]
 	if !exist {
@@ -347,6 +380,28 @@ func getVaultConfig(builder map[string]*vaultService, vaultID ...string) (*vault
 
 	return nil, error.NewSkyflowError(error.ErrorCodesEnum(error.INVALID_INPUT_CODE), error.VAULT_ID_NOT_IN_CONFIG_LIST)
 }
+func getDetectConfig(builder map[string]*detectService, vaultID ...string) (*vaultutils.DetectConfig, *error.SkyflowError) {
+	// if vaultapi configs are empty
+	if len(builder) == 0 {
+		return nil, error.NewSkyflowError(error.ErrorCodesEnum(error.INVALID_INPUT_CODE), error.EMPTY_VAULT_CONFIG)
+	}
+
+	// if vaultapi is passed
+	if len(vaultID) > 0 && len(builder) > 0 {
+		config, exists := builder[vaultID[0]]
+		if !exists {
+			return nil, error.NewSkyflowError(error.ErrorCodesEnum(error.INVALID_INPUT_CODE), error.VAULT_ID_NOT_IN_CONFIG_LIST)
+		}
+		return config.config, nil
+	}
+
+	// No vaultapi ID passed, return the first vaultapi config available
+	for _, cfg := range builder {
+		return cfg.config, nil
+	}
+
+	return nil, error.NewSkyflowError(error.ErrorCodesEnum(error.INVALID_INPUT_CODE), error.VAULT_ID_NOT_IN_CONFIG_LIST)
+}
 func setVaultCredentials(config *vaultutils.VaultConfig, builderCreds *vaultutils.Credentials) *error.SkyflowError {
 	// here if credentials are empty in the vaultapi config
 	if config == nil || isCredentialsEmpty(config.Credentials) {
@@ -369,6 +424,20 @@ func isCredentialsEmpty(creds vaultutils.Credentials) bool {
 		creds.Token == "" && creds.ApiKey == ""
 }
 func setConnectionCredentials(config *vaultutils.ConnectionConfig, builderCreds *vaultutils.Credentials) *error.SkyflowError {
+	// here if credentials are empty in the vaultapi config
+	if config == nil || isCredentialsEmpty(config.Credentials) {
+		// here if builder credentials are available
+		if !isCredentialsEmpty(*builderCreds) {
+			config.Credentials = *builderCreds
+		} else if envCreds := os.Getenv("SKYFLOW_CREDENTIALS"); envCreds != "" {
+			config.Credentials.CredentialsString = envCreds
+		} else {
+			return error.NewSkyflowError(error.ErrorCodesEnum(error.INVALID_INPUT_CODE), error.EMPTY_CREDENTIALS)
+		}
+	}
+	return nil
+}
+func setDetectCredentials(config *vaultutils.DetectConfig, builderCreds *vaultutils.Credentials) *error.SkyflowError {
 	// here if credentials are empty in the vaultapi config
 	if config == nil || isCredentialsEmpty(config.Credentials) {
 		// here if builder credentials are available

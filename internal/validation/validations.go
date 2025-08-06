@@ -163,6 +163,18 @@ func ValidateVaultConfig(vaultConfig common.VaultConfig) *skyflowError.SkyflowEr
 	return nil
 }
 
+func ValidateDetectConfig(vaultConfig common.DetectConfig) *skyflowError.SkyflowError {
+	// Validate VaultId
+	if vaultConfig.VaultId == "" {
+		logger.Error(logs.VAULT_ID_IS_REQUIRED)
+		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_VAULT_ID)
+	} else if vaultConfig.ClusterId == "" {
+		logger.Error(logs.CLUSTER_ID_IS_REQUIRED)
+		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_CLUSTER_ID)
+	}
+	return nil
+}
+
 // ValidateConnectionConfig validates the ConnectionConfig struct
 func ValidateConnectionConfig(config common.ConnectionConfig) *skyflowError.SkyflowError {
 	if config.ConnectionId == "" {
