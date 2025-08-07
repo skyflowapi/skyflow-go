@@ -19,22 +19,22 @@ type TokenResponse struct {
 }
 type DeidentifyTextRequest struct {
 	Text               string
-	// ConfigurationId    *ConfigurationId
-	Entities           *DetectEntities
-	TokenFormat        *TokenFormat
+	// ConfigurationId    ConfigurationId
+	Entities           DetectEntities
+	TokenFormat        TokenFormat
 	AllowRegexList      []string
 	RestrictRegexList   []string
-	Transformations    *Transformations
+	Transformations    Transformations
 }
 // type AllowRegex = []string
 
 // type RestrictRegex = []string
 
 type Transformations struct {
-	ShiftDates *DateTransformation 
+	ShiftDates DateTransformation 
 }
 type TokenFormat struct {
-	DefaultType       *TokenTypeDefault
+	DefaultType       TokenTypeDefault
 	VaultToken        []DetectEntities
 	EntityUnqCounter  []DetectEntities
 	EntityOnly        []DetectEntities
@@ -48,8 +48,8 @@ const (
 	TokenTypeDefaultVaultToken       TokenTypeDefault = "vault_token"
 )
 type DateTransformation struct {
-	MaxDays    *int
-	MinDays    *int
+	MaxDays    int
+	MinDays    int
 	Entities   []TransformationsShiftDatesEntityTypesItem
 }
 
@@ -212,33 +212,33 @@ const (
 
 type DeidentifyTextResponse struct {
 	ProcessedText  string
-	Entities       []*EntityInfo
+	Entities       []EntityInfo
 	WordCount      int
 	CharacterCount int
 }
 
 type EntityInfo struct {
-	Token *string
-	Value *string
-	Entity *string
+	Token string
+	Value string
+	Entity string
 	Scores map[string]float64
-	// Location *EntityLocation
-	ProcessedIndex *TextIndex
-	TextIndex      *TextIndex
+	// Location EntityLocation
+	ProcessedIndex TextIndex
+	TextIndex      TextIndex
 }
 type TextIndex struct {
-	StartIndex *int	
-	EndIndex   *int
+	StartIndex int	
+	EndIndex   int
 }
 type ReidentifyTextResponse struct {
-	ProcessedText *string
+	ProcessedText string
 }
 
 type ReidentifyTextRequest struct {
 	Text string
-	RedactedEntities        *DetectEntities
-	MaskedEntities          *DetectEntities
-	PlainTextEntities       *DetectEntities
+	RedactedEntities        DetectEntities
+	MaskedEntities          DetectEntities
+	PlainTextEntities       DetectEntities
 }
 
 
