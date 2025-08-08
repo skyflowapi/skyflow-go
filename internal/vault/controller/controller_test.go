@@ -1910,7 +1910,7 @@ var _ = Describe("DetectController", func() {
 
 		BeforeEach(func() {
 			detectController = &DetectController{
-				Config: DetectConfig{
+				Config: VaultConfig{
 					Credentials: Credentials{
 						Path: "test/path",
 					},

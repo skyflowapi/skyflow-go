@@ -20,7 +20,7 @@ import (
 )
 
 type DetectController struct {
-	Config         common.DetectConfig
+	Config         common.VaultConfig
 	Loglevel       *logger.LogLevel
 	Token          string
 	ApiKey         string
