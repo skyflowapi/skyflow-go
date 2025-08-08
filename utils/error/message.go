@@ -86,4 +86,5 @@ const (
 	ERROR_OCCURRED                     string = SDK_PREFIX + " API error. Error occurred."
 	UNKNOWN_ERROR                      string = SDK_PREFIX + " Error occurred. %s"
 	INVALID_BYOT                       string = SDK_PREFIX + " Validation error. Invalid BYOT."
+	INVALID_TEXT_IN_DEIDENTIFY        string = SDK_PREFIX + " Validation error. The text field is required and must be a non-empty string. Specify a valid text."
 )
