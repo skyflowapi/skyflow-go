@@ -1,6 +1,8 @@
 package client
 
 import (
+	"context"
+
 	"github.com/skyflowapi/skyflow-go/v2/internal/vault/controller"
 	"github.com/skyflowapi/skyflow-go/v2/utils/common"
 	skyflowError "github.com/skyflowapi/skyflow-go/v2/utils/error"
@@ -8,13 +10,13 @@ import (
 )
 
 type detectService struct {
-	config     *common.DetectConfig
+	config     *common.VaultConfig
 	logLevel   *logger.LogLevel
 	controller *controller.DetectController
 }
 
-func (d *detectService) DeidentifyText(request common.DeidentifyTextRequest) (*common.DeidentifyTextResponse, *skyflowError.SkyflowError) {
-	res, err := d.controller.DeidentifyText(request)
+func (d *detectService) DeidentifyText(ctx context.Context, request common.DeidentifyTextRequest) (*common.DeidentifyTextResponse, *skyflowError.SkyflowError) {
+	res, err := d.controller.DeidentifyText(ctx, request)
 	if err != nil {
 		return nil, err
 	}

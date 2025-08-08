@@ -10,6 +10,16 @@ import (
 	"strings"
 )
 
+// ValidateDeidentifyTextRequest validates the required fields of DeidentifyTextRequest.
+func ValidateDeidentifyTextRequest(req common.DeidentifyTextRequest) *skyflowError.SkyflowError {
+    if strings.TrimSpace(req.Text) == "" {
+		logger.Error(fmt.Sprintf(logs.INVALID_TEXT_IN_DEIDENTIFY, "DeidentifyTextRequest"))
+        // You can replace the error message with your custom error type if needed.
+		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_TEXT_IN_DEIDENTIFY)
+    }
+    return nil
+}
+
 func ValidateInsertRequest(request common.InsertRequest, options common.InsertOptions) *skyflowError.SkyflowError {
 	// Validate table
 	tag := "Insert"
@@ -152,18 +162,6 @@ func validateTokenForStrict(tokens map[string]interface{}, values map[string]int
 
 // validateVaultConfig function
 func ValidateVaultConfig(vaultConfig common.VaultConfig) *skyflowError.SkyflowError {
-	// Validate VaultId
-	if vaultConfig.VaultId == "" {
-		logger.Error(logs.VAULT_ID_IS_REQUIRED)
-		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_VAULT_ID)
-	} else if vaultConfig.ClusterId == "" {
-		logger.Error(logs.CLUSTER_ID_IS_REQUIRED)
-		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_CLUSTER_ID)
-	}
-	return nil
-}
-
-func ValidateDetectConfig(vaultConfig common.DetectConfig) *skyflowError.SkyflowError {
 	// Validate VaultId
 	if vaultConfig.VaultId == "" {
 		logger.Error(logs.VAULT_ID_IS_REQUIRED)
