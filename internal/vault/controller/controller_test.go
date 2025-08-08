@@ -1904,6 +1904,301 @@ var _ = Describe("VaultController", func() {
 
 	})
 })
+var _ = Describe("DetectController", func() {
+	Describe("Detect client creation", func() {
+		var detectController *DetectController
+
+		BeforeEach(func() {
+			detectController = &DetectController{
+				Config: DetectConfig{
+					Credentials: Credentials{
+						Path: "test/path",
+					},
+				},
+			}
+		})
+
+		Context("SetBearerTokenForDetectController", func() {
+			It("should throw error if the current token is expired", func() {
+				detectController.Config.Credentials.Token = os.Getenv("EXPIRED_TOKEN")
+				detectController.Config.Credentials.Path = ""
+				detectController.Config.Credentials.Roles = []string{"demo"}
+				detectController.Config.Credentials.Context = "demo"
+
+				err := SetBearerTokenForDetectController(detectController)
+				Expect(err).ToNot(BeNil())
+			})
+			It("should create token if the current token is expired", func() {
+				detectController.Config.Credentials.Token = os.Getenv("EXPIRED_TOKEN")
+				detectController.Config.Credentials.Path = "../../" + os.Getenv("CRED_FILE_PATH")
+
+				err := SetBearerTokenForDetectController(detectController)
+				Expect(err).To(BeNil())
+			})
+			It("should generate token if file path is provided", func() {
+				detectController.Token = ""
+				detectController.Config.Credentials.Path = "../../" + os.Getenv("CRED_FILE_PATH")
+
+				err := SetBearerTokenForDetectController(detectController)
+				Expect(err).To(BeNil())
+				Expect(detectController.Token).ToNot(BeNil())
+			})
+			It("should reuse token if valid token is provided", func() {
+				detectController.Token = ""
+				detectController.Config.Credentials.Path = "../../" + os.Getenv("CRED_FILE_PATH")
+
+				err := SetBearerTokenForDetectController(detectController)
+				Expect(err).To(BeNil())
+				Expect(detectController.Token).ToNot(BeNil())
+
+				detectController.Config.Credentials.Path = ""
+				errs := SetBearerTokenForDetectController(detectController)
+				Expect(errs).To(BeNil())
+				Expect(detectController.Token).ToNot(BeNil())
+			})
+			It("should generate token if file creds as string is provided", func() {
+				detectController.Token = ""
+				detectController.Config.Credentials.Path = ""
+				detectController.Config.Credentials.ApiKey = ""
+				detectController.Config.Credentials.CredentialsString = os.Getenv("VALID_CREDS_PVT_KEY")
+
+				err := SetBearerTokenForDetectController(detectController)
+				Expect(err).To(BeNil())
+				Expect(detectController.Token).ToNot(BeNil())
+			})
+			It("should generate token if wrong creds string is provided", func() {
+				detectController.Token = ""
+				detectController.Config.Credentials.Path = ""
+				detectController.Config.Credentials.ApiKey = ""
+				detectController.Config.Credentials.CredentialsString = "{demo}"
+
+				err := SetBearerTokenForDetectController(detectController)
+				Expect(err).ToNot(BeNil())
+			})
+		})
+
+		Context("Create Detect Request Client", func() {
+			It("should create an API client with a valid token", func() {
+				detectController.Config.Credentials.Path = "../../" + os.Getenv("CRED_FILE_PATH")
+				err1 := SetBearerTokenForDetectController(detectController)
+				Expect(err1).To(BeNil())
+
+				detectController.Config.Credentials.Token = detectController.Token
+				detectController.Config.Env = DEV
+				detectController.Config.ClusterId = "test-cluster"
+
+				err := CreateDetectRequestClient(detectController)
+				Expect(err).To(BeNil())
+				Expect(detectController.TextApiClient).ToNot(BeNil())
+				Expect(detectController.FilesApiClient).ToNot(BeNil())
+
+			})
+			It("should create an API client with a valid token generation", func() {
+				detectController.Config.Credentials.Path = "../../" + os.Getenv("CRED_FILE_PATH")
+				detectController.Token = ""
+				detectController.Config.Credentials.Token = ""
+				detectController.Config.Credentials.CredentialsString = ""
+
+				detectController.Config.Env = DEV
+				detectController.Config.ClusterId = "test-cluster"
+
+				err := CreateDetectRequestClient(detectController)
+				Expect(err).To(BeNil())
+				Expect(detectController.TextApiClient).ToNot(BeNil())
+				Expect(detectController.FilesApiClient).ToNot(BeNil())
+			})
+			It("should throw an error with a invalid path", func() {
+				detectController.Config.Credentials.Path = "invalid_path.json"
+				detectController.Token = ""
+				detectController.Config.Credentials.Token = ""
+				detectController.Config.Credentials.CredentialsString = ""
+
+				detectController.Config.Env = DEV
+				detectController.Config.ClusterId = "test-cluster"
+
+				err := CreateDetectRequestClient(detectController)
+				Expect(err).ToNot(BeNil())
+			})
+			It("should return an error if the token is expired", func() {
+				detectController.Config.Credentials.Token = os.Getenv("EXPIRED_TOKEN")
+				err := CreateDetectRequestClient(detectController)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(Equal(fmt.Sprintf("Code: %v", skyflowError.INVALID_INPUT_CODE)))
+				detectController.Config.Credentials.Token = os.Getenv("EXPIRED_TOKEN")
+				detectController.Config.Credentials.Path = "../../" + os.Getenv("CRED_FILE_PATH")
+
+				err1 := SetBearerTokenForDetectController(detectController)
+				Expect(err1).To(BeNil())
+
+				err2 := CreateDetectRequestClient(detectController)
+				Expect(err2).ToNot(BeNil())
+				Expect(err2.GetCode()).To(Equal(fmt.Sprintf("Code: %v", skyflowError.INVALID_INPUT_CODE)))
+
+			})
+			It("should add apikey", func() {
+				//detectController.Config.Credentials.Token = os.Getenv("EXPIRED_TOKEN")
+				detectController.Config.Credentials.Token = ""
+				detectController.Config.Credentials.Path = ""
+				detectController.Config.Credentials.ApiKey = "sky-abcde-1234567890abcdef1234567890abcdef"
+
+				err := CreateDetectRequestClient(detectController)
+				Expect(err).To(BeNil())
+			})
+
+		})
+	})
+	Describe("CreateDeidentifyTextRequest", func() {
+		Context("when given valid input", func() {
+			It("should create a valid payload", func() {
+				req := DeidentifyTextRequest{
+					Text:              "Sensitive text",
+					Entities:          []DetectEntities{Name},
+					AllowRegexList:    []string{"demo"},
+					RestrictRegexList: []string{"demo"},
+					TokenFormat: TokenFormat{
+						DefaultType: TokenTypeDefaultEntityOnly,
+					},
+					Transformations: Transformations{
+						ShiftDates: DateTransformation{
+							MaxDays: 10,
+							MinDays: 1,
+							Entities: []TransformationsShiftDatesEntityTypesItem{
+								TransformationsShiftDatesEntityTypesItemDate,
+							},
+						},
+					},
+				}
+
+				payload, err := CreateDeidentifyTextRequest(req)
+				Expect(err).To(BeNil())
+				Expect(payload).ToNot(BeNil())
+				Expect(payload.Text).To(Equal(req.Text))
+				Expect(payload.AllowRegex).ToNot(BeNil())
+				Expect(payload.RestrictRegex).ToNot(BeNil())
+				Expect(payload.EntityTypes).ToNot(BeNil())
+				Expect(payload.TokenType.Default).ToNot(BeNil())
+				Expect(payload.Transformations.ShiftDates.MaxDays).ToNot(BeNil())
+				Expect(payload.Transformations.ShiftDates.MinDays).ToNot(BeNil())
+				Expect(payload.Transformations.ShiftDates.EntityTypes).ToNot(BeNil())
+			})
+		})
+
+		Context("when given an invalid entity", func() {
+			It("should return an error", func() {
+				req := DeidentifyTextRequest{
+					Text:     "Sensitive text",
+					Entities: []DetectEntities{"invalid_entity"},
+				}
+				payload, err := CreateDeidentifyTextRequest(req)
+				Expect(payload).To(BeNil())
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(Equal("Code: 400"))
+			})
+		})
+
+		Context("when given an invalid token format", func() {
+			It("should return an error", func() {
+				req := DeidentifyTextRequest{
+					Text: "Sensitive text",
+					TokenFormat: TokenFormat{
+						DefaultType: "invalid_token_type",
+					},
+				}
+				payload, err := CreateDeidentifyTextRequest(req)
+				Expect(payload).To(BeNil())
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(Equal("Code: 400"))
+			})
+		})
+
+		Context("when AllowRegexList and RestrictRegexList are empty", func() {
+			It("should not set AllowRegex or RestrictRegex in payload", func() {
+				req := DeidentifyTextRequest{
+					Text: "Sensitive text",
+				}
+				payload, err := CreateDeidentifyTextRequest(req)
+				Expect(err).To(BeNil())
+				Expect(payload).ToNot(BeNil())
+				Expect(payload.AllowRegex).To(BeNil())
+				Expect(payload.RestrictRegex).To(BeNil())
+			})
+		})
+
+		Context("when TokenFormat.EntityOnly contains invalid entity", func() {
+			It("should return an error", func() {
+				req := DeidentifyTextRequest{
+					Text: "Sensitive text",
+					TokenFormat: TokenFormat{
+						EntityOnly: []DetectEntities{"invalid_entity"},
+					},
+				}
+				payload, err := CreateDeidentifyTextRequest(req)
+				Expect(payload).To(BeNil())
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(Equal("Code: 400"))
+			})
+		})
+
+		Context("when TokenFormat.VaultToken contains invalid entity", func() {
+			It("should return an error", func() {
+				req := DeidentifyTextRequest{
+					Text: "Sensitive text",
+					TokenFormat: TokenFormat{
+						VaultToken: []DetectEntities{"invalid_entity"},
+					},
+				}
+				payload, err := CreateDeidentifyTextRequest(req)
+				Expect(payload).To(BeNil())
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(Equal("Code: 400"))
+			})
+		})
+
+		Context("when ShiftDates.Entities is empty", func() {
+			It("should not set Transformations.ShiftDates in payload", func() {
+				req := DeidentifyTextRequest{
+					Text: "Sensitive text",
+					Transformations: Transformations{
+						ShiftDates: DateTransformation{
+							MaxDays:  5,
+							MinDays:  2,
+							Entities: []TransformationsShiftDatesEntityTypesItem{},
+						},
+					},
+				}
+				payload, err := CreateDeidentifyTextRequest(req)
+				Expect(err).To(BeNil())
+				Expect(payload).ToNot(BeNil())
+				if payload.Transformations != nil {
+					Expect(payload.Transformations.ShiftDates).To(BeNil())
+				}
+			})
+		})
+
+		Context("when ShiftDates.MaxDays and MinDays are zero", func() {
+			It("should not set MaxDays or MinDays in payload", func() {
+				req := DeidentifyTextRequest{
+					Text: "Sensitive text",
+					Transformations: Transformations{
+						ShiftDates: DateTransformation{
+							MaxDays: 0,
+							MinDays: 0,
+							Entities: []TransformationsShiftDatesEntityTypesItem{
+								TransformationsShiftDatesEntityTypesItemDate,
+							},
+						},
+					},
+				}
+				payload, err := CreateDeidentifyTextRequest(req)
+				Expect(err).To(BeNil())
+				Expect(payload).ToNot(BeNil())
+				Expect(payload.Transformations.ShiftDates.MaxDays).To(BeNil())
+				Expect(payload.Transformations.ShiftDates.MinDays).To(BeNil())
+			})
+		})
+
+	})
+})
 
 func setupMockServer(mockResponse map[string]interface{}, status string, path string) *httptest.Server {
 	// Create a mock server

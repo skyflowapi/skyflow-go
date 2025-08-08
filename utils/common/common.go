@@ -20,7 +20,7 @@ type TokenResponse struct {
 type DeidentifyTextRequest struct {
 	Text               string
 	// ConfigurationId    ConfigurationId
-	Entities           DetectEntities
+	Entities           []DetectEntities
 	TokenFormat        TokenFormat
 	AllowRegexList      []string
 	RestrictRegexList   []string

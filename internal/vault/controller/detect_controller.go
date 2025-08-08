@@ -20,14 +20,16 @@ import (
 )
 
 type DetectController struct {
-	Config    common.DetectConfig
-	Loglevel  *logger.LogLevel
-	Token     string
-	ApiKey    string
-	TextApiClient text.Client
+	Config         common.DetectConfig
+	Loglevel       *logger.LogLevel
+	Token          string
+	ApiKey         string
+	TextApiClient  text.Client
 	FilesApiClient files.Client
 }
+
 var CreateDetectRequestClientFunc = CreateDetectRequestClient
+
 // CreateRequestClient initializes the API client with the appropriate authorization header.
 func CreateDetectRequestClient(v *DetectController) *skyflowError.SkyflowError {
 	token := ""
@@ -90,87 +92,177 @@ func SetBearerTokenForDetectController(v *DetectController) *skyflowError.Skyflo
 	}
 	return nil
 }
+
 func CreateDeidentifyTextRequest(request common.DeidentifyTextRequest) (*vaultapis.DeidentifyStringRequest, *skyflowError.SkyflowError) {
-	// Create the API request object
 	payload := vaultapis.DeidentifyStringRequest{}
+
 	// text
 	if request.Text != "" {
 		payload.Text = request.Text
-	} 
+	}
+
 	// allowRegexList
-	if (request.AllowRegexList != nil && len(request.AllowRegexList) > 0) {
+	if len(request.AllowRegexList) > 0 {
 		allowRegex := vaultapis.AllowRegex{}
 		allowRegex = request.AllowRegexList
 		payload.AllowRegex = &allowRegex
 	}
+
 	// Entities
 	if len(request.Entities) > 0 {
 		entities := vaultapis.EntityTypes{}
 		for _, entity := range request.Entities {
-			entityStr := fmt.Sprintf("%v", entity)
-			entityType, err := vaultapis.NewEntityTypeFromString(entityStr)
+			entityType, err := vaultapis.NewEntityTypeFromString(string(entity))
 			if err != nil {
-				return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "Invalid entity type: "+entityStr)
+				return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "Invalid entity run: "+string(entity))
 			}
 			entities = append(entities, entityType)
 		}
 		payload.EntityTypes = &entities
 	}
+
 	// TokenFormat
 	if request.TokenFormat.DefaultType != "" {
 		tokenFormat, err := vaultapis.NewTokenTypeDefaultFromString(string(request.TokenFormat.DefaultType))
 		if err != nil {
 			return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "Invalid token format: "+string(request.TokenFormat.DefaultType))
 		}
-		payload.TokenType.Default = &tokenFormat
+		payload.TokenType = &vaultapis.TokenType{
+			Default: &tokenFormat,
+		}
 	}
+
+	if len(request.TokenFormat.EntityOnly) > 0 || len(request.TokenFormat.VaultToken) > 0 {
+		if payload.TokenType == nil {
+			payload.TokenType = &vaultapis.TokenType{}
+		}
+	}
+
 	if len(request.TokenFormat.EntityOnly) > 0 {
-		tokenFormat := []vaultapis.EntityType{}
+		entityOnly := []vaultapis.EntityType{}
 		for _, entity := range request.TokenFormat.EntityOnly {
-			entity, err := vaultapis.NewEntityTypeFromString(string(entity))
+			entityType, err := vaultapis.NewEntityTypeFromString(string(entity))
 			if err != nil {
-				return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "Invalid entity type: "+string(entity))
+				return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "Invalid entity only type: "+string(entity))
 			}
-			tokenFormat = append(tokenFormat, entity)
+			entityOnly = append(entityOnly, entityType)
 		}
-		payload.TokenType.EntityOnly = tokenFormat
+		payload.TokenType.EntityOnly = entityOnly
 	}
-	if request.TokenFormat.VaultToken != nil {
-		tokenFormat := []vaultapis.EntityType{}
+
+	if len(request.TokenFormat.VaultToken) > 0 {
+		vaultToken := []vaultapis.EntityType{}
 		for _, entity := range request.TokenFormat.VaultToken {
-			entity, err := vaultapis.NewEntityTypeFromString(string(entity))
+			entityType, err := vaultapis.NewEntityTypeFromString(string(entity))
 			if err != nil {
 				return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "Invalid entity type: "+string(entity))
 			}
-			tokenFormat = append(tokenFormat, entity)
+			vaultToken = append(vaultToken, entityType)
 		}
-		payload.TokenType.VaultToken = tokenFormat
+		payload.TokenType.VaultToken = vaultToken
 	}
+
 	// RestrictRegexList
-	if request.RestrictRegexList != nil && len(request.RestrictRegexList) > 0 {
+	if len(request.RestrictRegexList) > 0 {
 		restrictRegex := vaultapis.RestrictRegex{}
 		restrictRegex = request.RestrictRegexList
 		payload.RestrictRegex = &restrictRegex
 	}
+
 	// transformations
-	if request.Transformations.ShiftDates.Entities != nil && len(request.Transformations.ShiftDates.Entities) > 0 {
+	if len(request.Transformations.ShiftDates.Entities) > 0 {
 		entities := make([]vaultapis.TransformationsShiftDatesEntityTypesItem, len(request.Transformations.ShiftDates.Entities))
 		for i, v := range request.Transformations.ShiftDates.Entities {
 			entities[i] = vaultapis.TransformationsShiftDatesEntityTypesItem(v)
 		}
-		payload.Transformations.ShiftDates.EntityTypes = entities
+		if payload.Transformations == nil {
+			payload.Transformations = &vaultapis.Transformations{}
+		}
+		payload.Transformations.ShiftDates = &vaultapis.TransformationsShiftDates{
+			EntityTypes: entities,
+		}
 	}
-	if request.Transformations.ShiftDates.MaxDays != 0 {
-		payload.Transformations.ShiftDates.MaxDays = &request.Transformations.ShiftDates.MaxDays
-	}
-	if request.Transformations.ShiftDates.MinDays != 0 {
-		payload.Transformations.ShiftDates.MinDays = &request.Transformations.ShiftDates.MinDays
+
+	if payload.Transformations != nil && payload.Transformations.ShiftDates != nil {
+		if request.Transformations.ShiftDates.MaxDays != 0 {
+			payload.Transformations.ShiftDates.MaxDays = &request.Transformations.ShiftDates.MaxDays
+		}
+		if request.Transformations.ShiftDates.MinDays != 0 {
+			payload.Transformations.ShiftDates.MinDays = &request.Transformations.ShiftDates.MinDays
+		}
 	}
 	return &payload, nil
 }
 
-// // create client for DetectController
-// // create deidentifyText request
-// // process the response
+// DeidentifyText handles the de-identification of text using the DetectController.
+func (d *DetectController) DeidentifyText(ctx context.Context, request common.DeidentifyTextRequest) (*common.DeidentifyTextResponse, *skyflowError.SkyflowError) {
+	// Log the start of the operation
+	logger.Info(logs.DEIDENTIFY_TEXT_TRIGGERED)
+	logger.Info(logs.VALIDATE_DEIDENTIFY_TEXT_REQUEST)
 
+	// Validate the deidentify text request
+	if err := validation.ValidateDeidentifyTextRequest(request); err != nil {
+		return nil, err
+	}
 
+	// Create the API client if needed
+	if err := CreateDetectRequestClientFunc(d); err != nil {
+		logger.Error(logs.BEARER_TOKEN_REJECTED, err)
+		return nil, err
+	}
+
+	// Ensure the bearer token is valid
+	if err := SetBearerTokenForDetectController(d); err != nil {
+		logger.Error(logs.BEARER_TOKEN_REJECTED, err)
+		return nil, err
+	}
+
+	// Prepare the API request payload
+	apiRequest, err := CreateDeidentifyTextRequest(request)
+	if err != nil {
+		return nil, err
+	}
+
+	// Call the API
+	response, apiError := d.TextApiClient.WithRawResponse.DeidentifyString(ctx, apiRequest)
+	if apiError != nil {
+		logger.Error(fmt.Sprintf(logs.DEIDENTIFY_TEXT_REQUEST_FAILED, apiError.Error()))
+		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, apiError.Error())
+	}
+
+	// Check for empty response
+	if response == nil || response.Body == nil {
+		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "Deidentify text response is empty")
+	}
+
+	// Map the API response to the common.DeidentifyTextResponse struct
+	deidentifiedTextResponse := common.DeidentifyTextResponse{
+		ProcessedText:  response.Body.ProcessedText,
+		WordCount:      response.Body.WordCount,
+		CharacterCount: response.Body.CharacterCount,
+	}
+
+	// Map entities if present
+	if response.Body.Entities != nil {
+		for _, entity := range response.Body.Entities {
+			entityInfo := common.EntityInfo{
+				Token:  *entity.Token,
+				Value:  *entity.Value,
+				Entity: *entity.EntityType,
+				Scores: entity.EntityScores,
+				TextIndex: common.TextIndex{
+					StartIndex: *entity.Location.StartIndex,
+					EndIndex:   *entity.Location.EndIndex,
+				},
+				ProcessedIndex: common.TextIndex{
+					StartIndex: *entity.Location.StartIndexProcessed,
+					EndIndex:   *entity.Location.EndIndexProcessed,
+				},
+			}
+			deidentifiedTextResponse.Entities = append(deidentifiedTextResponse.Entities, entityInfo)
+		}
+	}
+
+	logger.Info(logs.DEIDENTIFY_TEXT_SUCCESS)
+	return &deidentifiedTextResponse, nil
+}
