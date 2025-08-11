@@ -93,6 +93,19 @@ func SetBearerTokenForDetectController(v *DetectController) *skyflowError.Skyflo
 	return nil
 }
 
+// validateAndCreateEntityTypes validates and creates a EntityType array from the provided entities.
+func validateAndCreateEntityTypes(entities []common.DetectEntities) ([]vaultapis.EntityType, *skyflowError.SkyflowError) {
+	entityTypes := []vaultapis.EntityType{}
+	for _, entity := range entities {
+		entityType, err := vaultapis.NewEntityTypeFromString(string(entity))
+		if err != nil {
+			return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, logs.INVALID_ENTITY_TYPE_IN_DETECT_ENTITIES+string(entity))
+		}
+		entityTypes = append(entityTypes, entityType)
+	}
+	return entityTypes, nil
+}
+
 func CreateDeidentifyTextRequest(request common.DeidentifyTextRequest) (*vaultapis.DeidentifyStringRequest, *skyflowError.SkyflowError) {
 	payload := vaultapis.DeidentifyStringRequest{}
 
@@ -194,6 +207,47 @@ func CreateDeidentifyTextRequest(request common.DeidentifyTextRequest) (*vaultap
 	return &payload, nil
 }
 
+func CreateReidentifyTextRequest(request common.ReidentifyTextRequest, config common.VaultConfig) (*vaultapis.ReidentifyStringRequest, *skyflowError.SkyflowError) {
+	payload := vaultapis.ReidentifyStringRequest{
+		VaultId: config.VaultId,
+		Format:  &vaultapis.ReidentifyStringRequestFormat{},
+	}
+
+	// text
+	if request.Text != "" {
+		payload.Text = request.Text
+	}
+
+	// RedactedEntities
+	if len(request.RedactedEntities) > 0 {
+		redactedEntities, err := validateAndCreateEntityTypes(request.RedactedEntities)
+		if err != nil {
+			return nil, err
+		}
+		payload.Format.Redacted = redactedEntities
+	}
+
+	// MaskedEntities
+	if len(request.MaskedEntities) > 0 {
+		maskedEntities, err := validateAndCreateEntityTypes(request.MaskedEntities)
+		if err != nil {
+			return nil, err
+		}
+		payload.Format.Masked = maskedEntities
+	}
+
+	// PlainTextEntities
+	if len(request.PlainTextEntities) > 0 {
+		plainTextEntities, err := validateAndCreateEntityTypes(request.PlainTextEntities)
+		if err != nil {
+			return nil, err
+		}
+		payload.Format.Plaintext = plainTextEntities
+	}
+
+	return &payload, nil
+}
+
 // DeidentifyText handles the de-identification of text using the DetectController.
 func (d *DetectController) DeidentifyText(ctx context.Context, request common.DeidentifyTextRequest) (*common.DeidentifyTextResponse, *skyflowError.SkyflowError) {
 	// Log the start of the operation
@@ -265,4 +319,51 @@ func (d *DetectController) DeidentifyText(ctx context.Context, request common.De
 
 	logger.Info(logs.DEIDENTIFY_TEXT_SUCCESS)
 	return &deidentifiedTextResponse, nil
+}
+
+// ReidentifyText handles the re-identification of text using the DetectController.
+func (d *DetectController) ReidentifyText(ctx context.Context, request common.ReidentifyTextRequest) (*common.ReidentifyTextResponse, *skyflowError.SkyflowError) {
+	// Log the start of the operation
+	logger.Info(logs.REIDENTIFY_TEXT_TRIGGERED)
+	logger.Info(logs.VALIDATE_REIDENTIFY_TEXT_REQUEST)
+
+	// Validate the deidentify text request
+	if err := validation.ValidateReidentifyTextRequest(request); err != nil {
+		return nil, err
+	}
+
+	// Create the API client if needed
+	if err := CreateDetectRequestClientFunc(d); err != nil {
+		logger.Error(logs.BEARER_TOKEN_REJECTED, err)
+		return nil, err
+	}
+
+	// Ensure the bearer token is valid
+	if err := SetBearerTokenForDetectController(d); err != nil {
+		logger.Error(logs.BEARER_TOKEN_REJECTED, err)
+		return nil, err
+	}
+
+	// Prepare the API request payload
+	apiRequest, err := CreateReidentifyTextRequest(request, d.Config)
+	if err != nil {
+		return nil, err
+	}
+
+	// Call the API
+	response, apiError := d.TextApiClient.WithRawResponse.ReidentifyString(ctx, apiRequest)
+	if apiError != nil {
+		logger.Error(fmt.Sprintf(logs.REIDENTIFY_TEXT_REQUEST_FAILED, apiError.Error()))
+		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, apiError.Error())
+	}
+
+	// Map the API response to the common.ReidentifyTextResponse struct
+	reidentifiedTextResponse := common.ReidentifyTextResponse{}
+
+	if body := response.Body; body != nil && body.Text != nil {
+		reidentifiedTextResponse.ProcessedText = *body.Text
+	}
+
+	logger.Info(logs.REIDENTIFY_TEXT_SUCCESS)
+	return &reidentifiedTextResponse, nil
 }

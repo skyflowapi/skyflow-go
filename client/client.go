@@ -26,6 +26,7 @@ func NewSkyflow(opts ...Option) (*Skyflow, *error.SkyflowError) {
 	client := &Skyflow{
 		vaultServices:      make(map[string]*vaultService),
 		connectionServices: make(map[string]*connectionService),
+		detectServices:     make(map[string]*detectService),
 		credentials:        nil,
 	}
 

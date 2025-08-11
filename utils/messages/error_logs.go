@@ -102,5 +102,8 @@ const (
 	EMPTY_CONNECTION_ARRAY                                    = SDK_LOG_PREFIX + "Validation error. No Connection configurations passed"
 	INVALID_METHOD_NAME                                       = SDK_LOG_PREFIX + "Validation error. Invalid method name. Specify a valid method name as a string."
 	INVALID_TEXT_IN_DEIDENTIFY                                = SDK_LOG_PREFIX + "Invalid %s request. The text field is required and must be a non-empty string. Specify a valid text."
+	INVALID_TEXT_IN_REIDENTIFY                                = SDK_LOG_PREFIX + "Invalid %s request. The text field is required and must be a non-empty string. Specify a valid text."
 	DEIDENTIFY_TEXT_REQUEST_FAILED                            = SDK_LOG_PREFIX + "Deidentify text request failed. Error: %v"
+	REIDENTIFY_TEXT_REQUEST_FAILED                            = SDK_LOG_PREFIX + "Reidentify text request failed. Error: %v"
+	INVALID_ENTITY_TYPE_IN_DETECT_ENTITIES                    = SDK_LOG_PREFIX + "Invalid %s request. Invalid entity type "
 )
