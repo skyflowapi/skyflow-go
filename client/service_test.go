@@ -1046,21 +1046,21 @@ var _ = Describe("Detect controller Test cases", func() {
 		Context("when request is valid", func() {
 			It("should successfully reidentify text", func() {
 				response := make(map[string]interface{})
-				mockJSONResponse := `{"ProcessedText": "My SSN is 123-45-6789 and my card is *REDACTED*."}`
+				mockJSONResponse := `{"text": "My SSN is 123-45-6789 and my card is *REDACTED*."}`
 				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
 
-				ts := setupMockServer(response, "ok", "/strings/v1/detect/reidentify")
+				ts := setupMockServer(response, "ok", "/v1/detect/reidentify/string")
 				defer ts.Close()
 
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateDetectRequestClientFunc = func(v *DetectController) *skyflowError.SkyflowError {
+				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
 					client := client2.NewClient(
-						option.WithBaseURL(ts.URL+"/string"),
+						option.WithBaseURL(ts.URL),
 						option.WithToken("token"),
 						option.WithHTTPHeader(header),
 					)
-					v.TextApiClient = *client.Strings
+					d.TextApiClient = *client.Strings
 					return nil
 				}
 
@@ -1073,7 +1073,7 @@ var _ = Describe("Detect controller Test cases", func() {
 						CreditCard,
 					},
 				}
-				SetBearerTokenForDetectControllerFunc = func(v *DetectController) *skyflowError.SkyflowError {
+				SetBearerTokenForDetectControllerFunc = func(d *DetectController) *skyflowError.SkyflowError {
 					return nil
 				}
 
@@ -1120,18 +1120,18 @@ var _ = Describe("Detect controller Test cases", func() {
 				mockJSONResponse := `{"error":{"grpc_code":3,"http_code":400,"message":"Invalid request","http_status":"Bad Request","details":[]}}`
 				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
 
-				ts := setupMockServer(response, "err", "/strings/v1/detect/reidentify")
+				ts := setupMockServer(response, "err", "/v1/detect/reidentify/string")
 				defer ts.Close()
 
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateDetectRequestClientFunc = func(v *DetectController) *skyflowError.SkyflowError {
+				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
 					client := client2.NewClient(
-						option.WithBaseURL(ts.URL+"/string"),
+						option.WithBaseURL(ts.URL),
 						option.WithToken("token"),
 						option.WithHTTPHeader(header),
 					)
-					v.TextApiClient = *client.Strings
+					d.TextApiClient = *client.Strings
 					return nil
 				}
 

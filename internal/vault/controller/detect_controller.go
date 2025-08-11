@@ -32,7 +32,6 @@ var CreateDetectRequestClientFunc = CreateDetectRequestClient
 
 var SetBearerTokenForDetectControllerFunc = setBearerTokenForDetectController
 
-
 // CreateRequestClient initializes the API client with the appropriate authorization header.
 func CreateDetectRequestClient(v *DetectController) *skyflowError.SkyflowError {
 	token := ""
@@ -94,19 +93,6 @@ func setBearerTokenForDetectController(v *DetectController) *skyflowError.Skyflo
 		logger.Info(logs.REUSE_BEARER_TOKEN)
 	}
 	return nil
-}
-
-// validateAndCreateEntityTypes validates and creates a EntityType array from the provided entities.
-func validateAndCreateEntityTypes(entities []common.DetectEntities) ([]vaultapis.EntityType, *skyflowError.SkyflowError) {
-	entityTypes := []vaultapis.EntityType{}
-	for _, entity := range entities {
-		entityType, err := vaultapis.NewEntityTypeFromString(string(entity))
-		if err != nil {
-			return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, logs.INVALID_ENTITY_TYPE_IN_DETECT_ENTITIES+string(entity))
-		}
-		entityTypes = append(entityTypes, entityType)
-	}
-	return entityTypes, nil
 }
 
 func CreateDeidentifyTextRequest(request common.DeidentifyTextRequest) (*vaultapis.DeidentifyStringRequest, *skyflowError.SkyflowError) {
@@ -223,7 +209,7 @@ func CreateReidentifyTextRequest(request common.ReidentifyTextRequest, config co
 
 	// RedactedEntities
 	if len(request.RedactedEntities) > 0 {
-		redactedEntities, err := validateAndCreateEntityTypes(request.RedactedEntities)
+		redactedEntities, err := helpers.ValidateAndCreateEntityTypes(request.RedactedEntities)
 		if err != nil {
 			return nil, err
 		}
@@ -232,7 +218,7 @@ func CreateReidentifyTextRequest(request common.ReidentifyTextRequest, config co
 
 	// MaskedEntities
 	if len(request.MaskedEntities) > 0 {
-		maskedEntities, err := validateAndCreateEntityTypes(request.MaskedEntities)
+		maskedEntities, err := helpers.ValidateAndCreateEntityTypes(request.MaskedEntities)
 		if err != nil {
 			return nil, err
 		}
@@ -241,7 +227,7 @@ func CreateReidentifyTextRequest(request common.ReidentifyTextRequest, config co
 
 	// PlainTextEntities
 	if len(request.PlainTextEntities) > 0 {
-		plainTextEntities, err := validateAndCreateEntityTypes(request.PlainTextEntities)
+		plainTextEntities, err := helpers.ValidateAndCreateEntityTypes(request.PlainTextEntities)
 		if err != nil {
 			return nil, err
 		}

@@ -520,6 +520,68 @@ MIIBAAIBADANINVALIDKEY==
 
 		})
 	})
+	Describe("ValidateAndCreateEntityTypes", func() {
+		Context("when valid entities are provided", func() {
+			It("should successfully convert all valid entities", func() {
+				entities := []common.DetectEntities{
+					common.Ssn,
+					common.CreditCard,
+					common.EmailAddress,
+				}
+
+				result, err := ValidateAndCreateEntityTypes(entities)
+
+				Expect(err).To(BeNil())
+				Expect(result).To(HaveLen(3))
+				Expect(string(result[0])).To(Equal("ssn"))
+				Expect(string(result[1])).To(Equal("credit_card"))
+				Expect(string(result[2])).To(Equal("email_address"))
+			})
+		})
+
+		Context("when invalid entities are provided", func() {
+			It("should return error for invalid entity type", func() {
+				invalidEntities := []common.DetectEntities{
+					"INVALID_ENTITY_TYPE",
+				}
+
+				result, err := ValidateAndCreateEntityTypes(invalidEntities)
+
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(Equal("Code: 400"))
+				Expect(err.GetMessage()).To(ContainSubstring("Invalid entity type INVALID_ENTITY_TYPE"))
+				Expect(result).To(BeNil())
+			})
+		})
+
+		Context("when empty entities array is provided", func() {
+			It("should return empty result with no error", func() {
+				emptyEntities := []common.DetectEntities{}
+
+				result, err := ValidateAndCreateEntityTypes(emptyEntities)
+
+				Expect(err).To(BeNil())
+				Expect(result).To(BeEmpty())
+			})
+		})
+
+		Context("when mix of valid and invalid entities are provided", func() {
+			It("should return error on first invalid entity", func() {
+				mixedEntities := []common.DetectEntities{
+					common.Ssn,
+					"INVALID_ENTITY_TYPE",
+					common.EmailAddress,
+				}
+
+				result, err := ValidateAndCreateEntityTypes(mixedEntities)
+
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(Equal("Code: 400"))
+				Expect(err.GetMessage()).To(ContainSubstring("Invalid entity type INVALID_ENTITY_TYPE"))
+				Expect(result).To(BeNil())
+			})
+		})
+	})
 })
 
 func mockserver(res string) *httptest.Server {
