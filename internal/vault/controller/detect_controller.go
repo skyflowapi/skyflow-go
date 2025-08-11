@@ -30,6 +30,8 @@ type DetectController struct {
 
 var CreateDetectRequestClientFunc = CreateDetectRequestClient
 
+var SetBearerTokenForDetectControllerFunc = setBearerTokenForDetectController
+
 // CreateRequestClient initializes the API client with the appropriate authorization header.
 func CreateDetectRequestClient(v *DetectController) *skyflowError.SkyflowError {
 	token := ""
@@ -45,7 +47,7 @@ func CreateDetectRequestClient(v *DetectController) *skyflowError.SkyflowError {
 			v.Token = v.Config.Credentials.Token
 		}
 	} else {
-		err := SetBearerTokenForDetectController(v)
+		err := setBearerTokenForDetectController(v)
 		if err != nil {
 			return err
 		}
@@ -78,7 +80,7 @@ func CreateDetectRequestClient(v *DetectController) *skyflowError.SkyflowError {
 }
 
 // SetBearerTokenForDetectController checks and updates the token if necessary.
-func SetBearerTokenForDetectController(v *DetectController) *skyflowError.SkyflowError {
+func setBearerTokenForDetectController(v *DetectController) *skyflowError.SkyflowError {
 	// Validate token or generate a new one if expired or not set.
 	if v.Token == "" || serviceaccount.IsExpired(v.Token) {
 		logger.Info(logs.GENERATE_BEARER_TOKEN_TRIGGERED)
@@ -93,8 +95,10 @@ func SetBearerTokenForDetectController(v *DetectController) *skyflowError.Skyflo
 	return nil
 }
 
-func CreateDeidentifyTextRequest(request common.DeidentifyTextRequest) (*vaultapis.DeidentifyStringRequest, *skyflowError.SkyflowError) {
-	payload := vaultapis.DeidentifyStringRequest{}
+func CreateDeidentifyTextRequest(request common.DeidentifyTextRequest, config common.VaultConfig) (*vaultapis.DeidentifyStringRequest, *skyflowError.SkyflowError) {
+	payload := vaultapis.DeidentifyStringRequest{
+		VaultId: config.VaultId,
+	}
 
 	// text
 	if request.Text != "" {
@@ -194,6 +198,47 @@ func CreateDeidentifyTextRequest(request common.DeidentifyTextRequest) (*vaultap
 	return &payload, nil
 }
 
+func CreateReidentifyTextRequest(request common.ReidentifyTextRequest, config common.VaultConfig) (*vaultapis.ReidentifyStringRequest, *skyflowError.SkyflowError) {
+	payload := vaultapis.ReidentifyStringRequest{
+		VaultId: config.VaultId,
+		Format:  &vaultapis.ReidentifyStringRequestFormat{},
+	}
+
+	// text
+	if request.Text != "" {
+		payload.Text = request.Text
+	}
+
+	// RedactedEntities
+	if len(request.RedactedEntities) > 0 {
+		redactedEntities, err := helpers.ValidateAndCreateEntityTypes(request.RedactedEntities)
+		if err != nil {
+			return nil, err
+		}
+		payload.Format.Redacted = redactedEntities
+	}
+
+	// MaskedEntities
+	if len(request.MaskedEntities) > 0 {
+		maskedEntities, err := helpers.ValidateAndCreateEntityTypes(request.MaskedEntities)
+		if err != nil {
+			return nil, err
+		}
+		payload.Format.Masked = maskedEntities
+	}
+
+	// PlainTextEntities
+	if len(request.PlainTextEntities) > 0 {
+		plainTextEntities, err := helpers.ValidateAndCreateEntityTypes(request.PlainTextEntities)
+		if err != nil {
+			return nil, err
+		}
+		payload.Format.Plaintext = plainTextEntities
+	}
+
+	return &payload, nil
+}
+
 // DeidentifyText handles the de-identification of text using the DetectController.
 func (d *DetectController) DeidentifyText(ctx context.Context, request common.DeidentifyTextRequest) (*common.DeidentifyTextResponse, *skyflowError.SkyflowError) {
 	// Log the start of the operation
@@ -212,13 +257,13 @@ func (d *DetectController) DeidentifyText(ctx context.Context, request common.De
 	}
 
 	// Ensure the bearer token is valid
-	if err := SetBearerTokenForDetectController(d); err != nil {
+	if err := SetBearerTokenForDetectControllerFunc(d); err != nil {
 		logger.Error(logs.BEARER_TOKEN_REJECTED, err)
 		return nil, err
 	}
 
 	// Prepare the API request payload
-	apiRequest, err := CreateDeidentifyTextRequest(request)
+	apiRequest, err := CreateDeidentifyTextRequest(request, d.Config)
 	if err != nil {
 		return nil, err
 	}
@@ -265,4 +310,50 @@ func (d *DetectController) DeidentifyText(ctx context.Context, request common.De
 
 	logger.Info(logs.DEIDENTIFY_TEXT_SUCCESS)
 	return &deidentifiedTextResponse, nil
+}
+
+// ReidentifyText handles the re-identification of text using the DetectController.
+func (d *DetectController) ReidentifyText(ctx context.Context, request common.ReidentifyTextRequest) (*common.ReidentifyTextResponse, *skyflowError.SkyflowError) {
+	// Log the start of the operation
+	logger.Info(logs.REIDENTIFY_TEXT_TRIGGERED)
+	logger.Info(logs.VALIDATE_REIDENTIFY_TEXT_REQUEST)
+
+	// Validate the deidentify text request
+	if err := validation.ValidateReidentifyTextRequest(request); err != nil {
+		return nil, err
+	}
+
+	// Create the API client if needed
+	if err := CreateDetectRequestClientFunc(d); err != nil {
+		return nil, err
+	}
+
+	// Ensure the bearer token is valid
+	if err := SetBearerTokenForDetectControllerFunc(d); err != nil {
+		logger.Error(logs.BEARER_TOKEN_REJECTED, err)
+		return nil, err
+	}
+
+	// Prepare the API request payload
+	apiRequest, err := CreateReidentifyTextRequest(request, d.Config)
+	if err != nil {
+		return nil, err
+	}
+
+	// Call the API
+	response, apiError := d.TextApiClient.WithRawResponse.ReidentifyString(ctx, apiRequest)
+	if apiError != nil {
+		logger.Error(fmt.Sprintf(logs.REIDENTIFY_TEXT_REQUEST_FAILED, apiError.Error()))
+		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, apiError.Error())
+	}
+
+	// Map the API response to the common.ReidentifyTextResponse struct
+	reidentifiedTextResponse := common.ReidentifyTextResponse{}
+
+	if body := response.Body; body != nil && body.Text != nil {
+		reidentifiedTextResponse.ProcessedText = *body.Text
+	}
+
+	logger.Info(logs.REIDENTIFY_TEXT_SUCCESS)
+	return &reidentifiedTextResponse, nil
 }
