@@ -93,8 +93,10 @@ func SetBearerTokenForDetectController(v *DetectController) *skyflowError.Skyflo
 	return nil
 }
 
-func CreateDeidentifyTextRequest(request common.DeidentifyTextRequest) (*vaultapis.DeidentifyStringRequest, *skyflowError.SkyflowError) {
-	payload := vaultapis.DeidentifyStringRequest{}
+func CreateDeidentifyTextRequest(request common.DeidentifyTextRequest, config common.VaultConfig) (*vaultapis.DeidentifyStringRequest, *skyflowError.SkyflowError) {
+	payload := vaultapis.DeidentifyStringRequest{
+		VaultId: config.VaultId,
+	}
 
 	// text
 	if request.Text != "" {
@@ -218,7 +220,7 @@ func (d *DetectController) DeidentifyText(ctx context.Context, request common.De
 	}
 
 	// Prepare the API request payload
-	apiRequest, err := CreateDeidentifyTextRequest(request)
+	apiRequest, err := CreateDeidentifyTextRequest(request, d.Config)
 	if err != nil {
 		return nil, err
 	}
