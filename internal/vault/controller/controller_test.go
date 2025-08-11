@@ -1918,28 +1918,28 @@ var _ = Describe("DetectController", func() {
 			}
 		})
 
-		Context("SetBearerTokenForDetectController", func() {
+		Context("SetBearerTokenForDetectControllerFunc", func() {
 			It("should throw error if the current token is expired", func() {
 				detectController.Config.Credentials.Token = os.Getenv("EXPIRED_TOKEN")
 				detectController.Config.Credentials.Path = ""
 				detectController.Config.Credentials.Roles = []string{"demo"}
 				detectController.Config.Credentials.Context = "demo"
 
-				err := SetBearerTokenForDetectController(detectController)
+				err := SetBearerTokenForDetectControllerFunc(detectController)
 				Expect(err).ToNot(BeNil())
 			})
 			It("should create token if the current token is expired", func() {
 				detectController.Config.Credentials.Token = os.Getenv("EXPIRED_TOKEN")
 				detectController.Config.Credentials.Path = "../../" + os.Getenv("CRED_FILE_PATH")
 
-				err := SetBearerTokenForDetectController(detectController)
+				err := SetBearerTokenForDetectControllerFunc(detectController)
 				Expect(err).To(BeNil())
 			})
 			It("should generate token if file path is provided", func() {
 				detectController.Token = ""
 				detectController.Config.Credentials.Path = "../../" + os.Getenv("CRED_FILE_PATH")
 
-				err := SetBearerTokenForDetectController(detectController)
+				err := SetBearerTokenForDetectControllerFunc(detectController)
 				Expect(err).To(BeNil())
 				Expect(detectController.Token).ToNot(BeNil())
 			})
@@ -1947,12 +1947,12 @@ var _ = Describe("DetectController", func() {
 				detectController.Token = ""
 				detectController.Config.Credentials.Path = "../../" + os.Getenv("CRED_FILE_PATH")
 
-				err := SetBearerTokenForDetectController(detectController)
+				err := SetBearerTokenForDetectControllerFunc(detectController)
 				Expect(err).To(BeNil())
 				Expect(detectController.Token).ToNot(BeNil())
 
 				detectController.Config.Credentials.Path = ""
-				errs := SetBearerTokenForDetectController(detectController)
+				errs := SetBearerTokenForDetectControllerFunc(detectController)
 				Expect(errs).To(BeNil())
 				Expect(detectController.Token).ToNot(BeNil())
 			})
@@ -1962,7 +1962,7 @@ var _ = Describe("DetectController", func() {
 				detectController.Config.Credentials.ApiKey = ""
 				detectController.Config.Credentials.CredentialsString = os.Getenv("VALID_CREDS_PVT_KEY")
 
-				err := SetBearerTokenForDetectController(detectController)
+				err := SetBearerTokenForDetectControllerFunc(detectController)
 				Expect(err).To(BeNil())
 				Expect(detectController.Token).ToNot(BeNil())
 			})
@@ -1972,7 +1972,7 @@ var _ = Describe("DetectController", func() {
 				detectController.Config.Credentials.ApiKey = ""
 				detectController.Config.Credentials.CredentialsString = "{demo}"
 
-				err := SetBearerTokenForDetectController(detectController)
+				err := SetBearerTokenForDetectControllerFunc(detectController)
 				Expect(err).ToNot(BeNil())
 			})
 		})
@@ -1980,7 +1980,7 @@ var _ = Describe("DetectController", func() {
 		Context("Create Detect Request Client", func() {
 			It("should create an API client with a valid token", func() {
 				detectController.Config.Credentials.Path = "../../" + os.Getenv("CRED_FILE_PATH")
-				err1 := SetBearerTokenForDetectController(detectController)
+				err1 := SetBearerTokenForDetectControllerFunc(detectController)
 				Expect(err1).To(BeNil())
 
 				detectController.Config.Credentials.Token = detectController.Token
@@ -2027,7 +2027,7 @@ var _ = Describe("DetectController", func() {
 				detectController.Config.Credentials.Token = os.Getenv("EXPIRED_TOKEN")
 				detectController.Config.Credentials.Path = "../../" + os.Getenv("CRED_FILE_PATH")
 
-				err1 := SetBearerTokenForDetectController(detectController)
+				err1 := SetBearerTokenForDetectControllerFunc(detectController)
 				Expect(err1).To(BeNil())
 
 				err2 := CreateDetectRequestClient(detectController)

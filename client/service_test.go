@@ -1024,6 +1024,131 @@ var _ = Describe("Vault controller Test cases", func() {
 	})
 })
 
+var _ = Describe("Detect controller Test cases", func() {
+	var (
+		client *Skyflow
+		ctx    context.Context
+	)
+
+	BeforeEach(func() {
+		client, _ = NewSkyflow(WithVaults(VaultConfig{
+			VaultId:   "vault123",
+			ClusterId: "cluster123",
+			Env:       0,
+			Credentials: Credentials{
+				ApiKey: "sky-abcde-1234567890abcdef1234567890abcdef",
+			},
+		}))
+		ctx = context.Background()
+	})
+
+	Describe("Test ReidentifyText function", func() {
+		Context("when request is valid", func() {
+			It("should successfully reidentify text", func() {
+				response := make(map[string]interface{})
+				mockJSONResponse := `{"ProcessedText": "My SSN is 123-45-6789 and my card is *REDACTED*."}`
+				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
+
+				ts := setupMockServer(response, "ok", "/strings/v1/detect/reidentify")
+				defer ts.Close()
+
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
+				CreateDetectRequestClientFunc = func(v *DetectController) *skyflowError.SkyflowError {
+					client := client2.NewClient(
+						option.WithBaseURL(ts.URL+"/string"),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					v.TextApiClient = *client.Strings
+					return nil
+				}
+
+				request := ReidentifyTextRequest{
+					Text: "My SSN is [SSN_IWdexZe] and my card is [CREDIT_CARD_rUzMjdQ].",
+					PlainTextEntities: []DetectEntities{
+						Ssn,
+					},
+					RedactedEntities: []DetectEntities{
+						CreditCard,
+					},
+				}
+				SetBearerTokenForDetectControllerFunc = func(v *DetectController) *skyflowError.SkyflowError {
+					return nil
+				}
+
+				service, _ := client.Detect()
+				res, err := service.ReidentifyText(ctx, request)
+
+				Expect(err).To(BeNil())
+				Expect(res).ToNot(BeNil())
+				Expect(res.ProcessedText).To(Equal("My SSN is 123-45-6789 and my card is *REDACTED*."))
+			})
+		})
+
+		Context("when request validation fails", func() {
+			It("should return error for empty text", func() {
+				request := ReidentifyTextRequest{
+					Text: "",
+				}
+
+				service, _ := client.Detect()
+				res, err := service.ReidentifyText(ctx, request)
+
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
+				Expect(err.GetMessage()).To(ContainSubstring(skyflowError.INVALID_TEXT_IN_REIDENTIFY))
+			})
+
+			It("should return error for whitespace-only text", func() {
+				request := ReidentifyTextRequest{
+					Text: "    ",
+				}
+
+				service, _ := client.Detect()
+				res, err := service.ReidentifyText(ctx, request)
+
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
+				Expect(err.GetMessage()).To(ContainSubstring(skyflowError.INVALID_TEXT_IN_REIDENTIFY))
+			})
+		})
+
+		Context("when API request fails", func() {
+			It("should return error for API failure", func() {
+				response := make(map[string]interface{})
+				mockJSONResponse := `{"error":{"grpc_code":3,"http_code":400,"message":"Invalid request","http_status":"Bad Request","details":[]}}`
+				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
+
+				ts := setupMockServer(response, "err", "/strings/v1/detect/reidentify")
+				defer ts.Close()
+
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
+				CreateDetectRequestClientFunc = func(v *DetectController) *skyflowError.SkyflowError {
+					client := client2.NewClient(
+						option.WithBaseURL(ts.URL+"/string"),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					v.TextApiClient = *client.Strings
+					return nil
+				}
+
+				request := ReidentifyTextRequest{
+					Text: "Some text with <TOKEN>invalid-token</TOKEN>",
+				}
+
+				service, _ := client.Detect()
+				res, err := service.ReidentifyText(ctx, request)
+
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
+			})
+		})
+	})
+})
+
 var _ = Describe("ConnectionController", func() {
 	var (
 		client     *Skyflow

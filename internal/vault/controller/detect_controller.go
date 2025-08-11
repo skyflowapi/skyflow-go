@@ -30,6 +30,9 @@ type DetectController struct {
 
 var CreateDetectRequestClientFunc = CreateDetectRequestClient
 
+var SetBearerTokenForDetectControllerFunc = setBearerTokenForDetectController
+
+
 // CreateRequestClient initializes the API client with the appropriate authorization header.
 func CreateDetectRequestClient(v *DetectController) *skyflowError.SkyflowError {
 	token := ""
@@ -45,7 +48,7 @@ func CreateDetectRequestClient(v *DetectController) *skyflowError.SkyflowError {
 			v.Token = v.Config.Credentials.Token
 		}
 	} else {
-		err := SetBearerTokenForDetectController(v)
+		err := setBearerTokenForDetectController(v)
 		if err != nil {
 			return err
 		}
@@ -78,7 +81,7 @@ func CreateDetectRequestClient(v *DetectController) *skyflowError.SkyflowError {
 }
 
 // SetBearerTokenForDetectController checks and updates the token if necessary.
-func SetBearerTokenForDetectController(v *DetectController) *skyflowError.SkyflowError {
+func setBearerTokenForDetectController(v *DetectController) *skyflowError.SkyflowError {
 	// Validate token or generate a new one if expired or not set.
 	if v.Token == "" || serviceaccount.IsExpired(v.Token) {
 		logger.Info(logs.GENERATE_BEARER_TOKEN_TRIGGERED)
@@ -266,7 +269,7 @@ func (d *DetectController) DeidentifyText(ctx context.Context, request common.De
 	}
 
 	// Ensure the bearer token is valid
-	if err := SetBearerTokenForDetectController(d); err != nil {
+	if err := SetBearerTokenForDetectControllerFunc(d); err != nil {
 		logger.Error(logs.BEARER_TOKEN_REJECTED, err)
 		return nil, err
 	}
@@ -334,12 +337,11 @@ func (d *DetectController) ReidentifyText(ctx context.Context, request common.Re
 
 	// Create the API client if needed
 	if err := CreateDetectRequestClientFunc(d); err != nil {
-		logger.Error(logs.BEARER_TOKEN_REJECTED, err)
 		return nil, err
 	}
 
 	// Ensure the bearer token is valid
-	if err := SetBearerTokenForDetectController(d); err != nil {
+	if err := SetBearerTokenForDetectControllerFunc(d); err != nil {
 		logger.Error(logs.BEARER_TOKEN_REJECTED, err)
 		return nil, err
 	}
