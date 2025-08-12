@@ -30,9 +30,3 @@ func (d *detectService) ReidentifyText(ctx context.Context, request common.Reide
 	}
 	return res, nil
 }
-
-// func (d *detectService) DeidentifyFile(request common.DeidentifyFileRequest) (*common.DeidentifyFileResponse, *skyflowError.SkyflowError) {
-// }
-
-// func (d *detectService) GetDetectRun(request common.GetDetectRunRequest) (*common.DeidentifyFileResponse, *skyflowError.SkyflowError) {
-// }
