@@ -1918,28 +1918,28 @@ var _ = Describe("DetectController", func() {
 			}
 		})
 
-		Context("SetBearerTokenForDetectController", func() {
+		Context("SetBearerTokenForDetectControllerFunc", func() {
 			It("should throw error if the current token is expired", func() {
 				detectController.Config.Credentials.Token = os.Getenv("EXPIRED_TOKEN")
 				detectController.Config.Credentials.Path = ""
 				detectController.Config.Credentials.Roles = []string{"demo"}
 				detectController.Config.Credentials.Context = "demo"
 
-				err := SetBearerTokenForDetectController(detectController)
+				err := SetBearerTokenForDetectControllerFunc(detectController)
 				Expect(err).ToNot(BeNil())
 			})
 			It("should create token if the current token is expired", func() {
 				detectController.Config.Credentials.Token = os.Getenv("EXPIRED_TOKEN")
 				detectController.Config.Credentials.Path = "../../" + os.Getenv("CRED_FILE_PATH")
 
-				err := SetBearerTokenForDetectController(detectController)
+				err := SetBearerTokenForDetectControllerFunc(detectController)
 				Expect(err).To(BeNil())
 			})
 			It("should generate token if file path is provided", func() {
 				detectController.Token = ""
 				detectController.Config.Credentials.Path = "../../" + os.Getenv("CRED_FILE_PATH")
 
-				err := SetBearerTokenForDetectController(detectController)
+				err := SetBearerTokenForDetectControllerFunc(detectController)
 				Expect(err).To(BeNil())
 				Expect(detectController.Token).ToNot(BeNil())
 			})
@@ -1947,12 +1947,12 @@ var _ = Describe("DetectController", func() {
 				detectController.Token = ""
 				detectController.Config.Credentials.Path = "../../" + os.Getenv("CRED_FILE_PATH")
 
-				err := SetBearerTokenForDetectController(detectController)
+				err := SetBearerTokenForDetectControllerFunc(detectController)
 				Expect(err).To(BeNil())
 				Expect(detectController.Token).ToNot(BeNil())
 
 				detectController.Config.Credentials.Path = ""
-				errs := SetBearerTokenForDetectController(detectController)
+				errs := SetBearerTokenForDetectControllerFunc(detectController)
 				Expect(errs).To(BeNil())
 				Expect(detectController.Token).ToNot(BeNil())
 			})
@@ -1962,7 +1962,7 @@ var _ = Describe("DetectController", func() {
 				detectController.Config.Credentials.ApiKey = ""
 				detectController.Config.Credentials.CredentialsString = os.Getenv("VALID_CREDS_PVT_KEY")
 
-				err := SetBearerTokenForDetectController(detectController)
+				err := SetBearerTokenForDetectControllerFunc(detectController)
 				Expect(err).To(BeNil())
 				Expect(detectController.Token).ToNot(BeNil())
 			})
@@ -1972,7 +1972,7 @@ var _ = Describe("DetectController", func() {
 				detectController.Config.Credentials.ApiKey = ""
 				detectController.Config.Credentials.CredentialsString = "{demo}"
 
-				err := SetBearerTokenForDetectController(detectController)
+				err := SetBearerTokenForDetectControllerFunc(detectController)
 				Expect(err).ToNot(BeNil())
 			})
 		})
@@ -1980,7 +1980,7 @@ var _ = Describe("DetectController", func() {
 		Context("Create Detect Request Client", func() {
 			It("should create an API client with a valid token", func() {
 				detectController.Config.Credentials.Path = "../../" + os.Getenv("CRED_FILE_PATH")
-				err1 := SetBearerTokenForDetectController(detectController)
+				err1 := SetBearerTokenForDetectControllerFunc(detectController)
 				Expect(err1).To(BeNil())
 
 				detectController.Config.Credentials.Token = detectController.Token
@@ -2027,7 +2027,7 @@ var _ = Describe("DetectController", func() {
 				detectController.Config.Credentials.Token = os.Getenv("EXPIRED_TOKEN")
 				detectController.Config.Credentials.Path = "../../" + os.Getenv("CRED_FILE_PATH")
 
-				err1 := SetBearerTokenForDetectController(detectController)
+				err1 := SetBearerTokenForDetectControllerFunc(detectController)
 				Expect(err1).To(BeNil())
 
 				err2 := CreateDetectRequestClient(detectController)
@@ -2048,6 +2048,14 @@ var _ = Describe("DetectController", func() {
 		})
 	})
 	Describe("CreateDeidentifyTextRequest", func() {
+		var config VaultConfig
+
+		BeforeEach(func() {
+			config = VaultConfig{
+				VaultId: "vault123",
+			}
+		})
+
 		Context("when given valid input", func() {
 			It("should create a valid payload", func() {
 				req := DeidentifyTextRequest{
@@ -2069,7 +2077,7 @@ var _ = Describe("DetectController", func() {
 					},
 				}
 
-				payload, err := CreateDeidentifyTextRequest(req)
+				payload, err := CreateDeidentifyTextRequest(req, config)
 				Expect(err).To(BeNil())
 				Expect(payload).ToNot(BeNil())
 				Expect(payload.Text).To(Equal(req.Text))
@@ -2089,7 +2097,7 @@ var _ = Describe("DetectController", func() {
 					Text:     "Sensitive text",
 					Entities: []DetectEntities{"invalid_entity"},
 				}
-				payload, err := CreateDeidentifyTextRequest(req)
+				payload, err := CreateDeidentifyTextRequest(req, config)
 				Expect(payload).To(BeNil())
 				Expect(err).ToNot(BeNil())
 				Expect(err.GetCode()).To(Equal("Code: 400"))
@@ -2104,7 +2112,7 @@ var _ = Describe("DetectController", func() {
 						DefaultType: "invalid_token_type",
 					},
 				}
-				payload, err := CreateDeidentifyTextRequest(req)
+				payload, err := CreateDeidentifyTextRequest(req, config)
 				Expect(payload).To(BeNil())
 				Expect(err).ToNot(BeNil())
 				Expect(err.GetCode()).To(Equal("Code: 400"))
@@ -2116,7 +2124,7 @@ var _ = Describe("DetectController", func() {
 				req := DeidentifyTextRequest{
 					Text: "Sensitive text",
 				}
-				payload, err := CreateDeidentifyTextRequest(req)
+				payload, err := CreateDeidentifyTextRequest(req, config)
 				Expect(err).To(BeNil())
 				Expect(payload).ToNot(BeNil())
 				Expect(payload.AllowRegex).To(BeNil())
@@ -2132,7 +2140,7 @@ var _ = Describe("DetectController", func() {
 						EntityOnly: []DetectEntities{"invalid_entity"},
 					},
 				}
-				payload, err := CreateDeidentifyTextRequest(req)
+				payload, err := CreateDeidentifyTextRequest(req, config)
 				Expect(payload).To(BeNil())
 				Expect(err).ToNot(BeNil())
 				Expect(err.GetCode()).To(Equal("Code: 400"))
@@ -2147,7 +2155,7 @@ var _ = Describe("DetectController", func() {
 						VaultToken: []DetectEntities{"invalid_entity"},
 					},
 				}
-				payload, err := CreateDeidentifyTextRequest(req)
+				payload, err := CreateDeidentifyTextRequest(req, config)
 				Expect(payload).To(BeNil())
 				Expect(err).ToNot(BeNil())
 				Expect(err.GetCode()).To(Equal("Code: 400"))
@@ -2166,7 +2174,7 @@ var _ = Describe("DetectController", func() {
 						},
 					},
 				}
-				payload, err := CreateDeidentifyTextRequest(req)
+				payload, err := CreateDeidentifyTextRequest(req, config)
 				Expect(err).To(BeNil())
 				Expect(payload).ToNot(BeNil())
 				if payload.Transformations != nil {
@@ -2189,7 +2197,7 @@ var _ = Describe("DetectController", func() {
 						},
 					},
 				}
-				payload, err := CreateDeidentifyTextRequest(req)
+				payload, err := CreateDeidentifyTextRequest(req, config)
 				Expect(err).To(BeNil())
 				Expect(payload).ToNot(BeNil())
 				Expect(payload.Transformations.ShiftDates.MaxDays).To(BeNil())
@@ -2197,6 +2205,521 @@ var _ = Describe("DetectController", func() {
 			})
 		})
 
+	})
+
+	Describe("CreateReidentifyTextRequest", func() {
+		var config VaultConfig
+
+		BeforeEach(func() {
+			config = VaultConfig{
+				VaultId: "vault123",
+			}
+		})
+
+		Context("when creating a valid payload", func() {
+			It("should create payload with all entity types", func() {
+				request := ReidentifyTextRequest{
+					Text:              "Sample text",
+					RedactedEntities:  []DetectEntities{Name, EmailAddress},
+					MaskedEntities:    []DetectEntities{PhoneNumber},
+					PlainTextEntities: []DetectEntities{Date},
+				}
+
+				payload, err := CreateReidentifyTextRequest(request, config)
+
+				Expect(err).To(BeNil())
+				Expect(payload.VaultId).To(Equal(config.VaultId))
+				Expect(payload.Text).To(Equal(request.Text))
+				Expect(payload.Format.Redacted).To(HaveLen(2))
+				Expect(payload.Format.Masked).To(HaveLen(1))
+				Expect(payload.Format.Plaintext).To(HaveLen(1))
+			})
+		})
+
+		Context("when handling invalid entities", func() {
+			It("should return error for invalid redacted entities", func() {
+				request := ReidentifyTextRequest{
+					Text:             "Sample text",
+					RedactedEntities: []DetectEntities{"INVALID_ENTITY"},
+				}
+
+				payload, err := CreateReidentifyTextRequest(request, config)
+
+				Expect(payload).To(BeNil())
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(Equal("Code: 400"))
+			})
+
+			It("should return error for invalid masked entities", func() {
+				request := ReidentifyTextRequest{
+					Text:           "Sample text",
+					MaskedEntities: []DetectEntities{"INVALID_ENTITY"},
+				}
+
+				payload, err := CreateReidentifyTextRequest(request, config)
+
+				Expect(payload).To(BeNil())
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(Equal("Code: 400"))
+			})
+
+			It("should return error for invalid plaintext entities", func() {
+				request := ReidentifyTextRequest{
+					Text:              "Sample text",
+					PlainTextEntities: []DetectEntities{"INVALID_ENTITY"},
+				}
+
+				payload, err := CreateReidentifyTextRequest(request, config)
+
+				Expect(payload).To(BeNil())
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(Equal("Code: 400"))
+			})
+		})
+	})
+	Describe("DeidentifyText tests", func() {
+		var (
+			detectController *DetectController
+			ctx              context.Context
+			mockRequest      DeidentifyTextRequest
+		)
+
+		BeforeEach(func() {
+			ctx = context.Background()
+			detectController = &DetectController{
+				Config: VaultConfig{
+					VaultId:   "vault123",
+					ClusterId: "cluster123",
+					Env:       DEV,
+					Credentials: Credentials{
+						ApiKey: "test-api-key",
+					},
+				},
+			}
+			mockRequest = DeidentifyTextRequest{
+				Text:     "My name is John Doe and email is john@example.com",
+				Entities: []DetectEntities{Name, EmailAddress},
+			}
+		})
+
+		Context("Success cases", func() {
+			It("should successfully deidentify text with all entity types", func() {
+				// Mock API response
+				response := make(map[string]interface{})
+				mockJSONResponse := `{
+					"processed_text": "My name is [NAME] and email is [EMAIL]",
+					"word_count": 8,
+					"character_count": 45,
+					"entities": [
+						{
+							"token": "token1",
+							"value": "John Doe",
+							"entity_type": "NAME",
+							"entity_scores": {"score": 0.9},
+							"location": {
+								"start_index": 11,
+								"end_index": 19,
+								"start_index_processed": 11,
+								"end_index_processed": 17
+							}
+						},
+						{
+							"token": "token2",
+							"value": "john@example.com",
+							"entity_type": "EMAIL_ADDRESS",
+							"entity_scores": {"score": 0.95},
+							"location": {
+								"start_index": 30,
+								"end_index": 45,
+								"start_index_processed": 30,
+								"end_index_processed": 37
+							}
+						}
+					]
+				}`
+				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
+
+				// Setup mock server
+				ts := setupMockServer(response, "ok", "/v1/detect/deidentify/string")
+				defer ts.Close()
+
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
+				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					client := client.NewClient(
+						option.WithBaseURL(ts.URL),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					d.TextApiClient = *client.Strings
+					return nil
+				}
+
+				SetBearerTokenForDetectControllerFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					return nil
+				}
+
+				result, err := detectController.DeidentifyText(ctx, mockRequest)
+
+				Expect(err).To(BeNil())
+				Expect(result).ToNot(BeNil())
+				Expect(result.ProcessedText).To(Equal("My name is [NAME] and email is [EMAIL]"))
+				Expect(result.WordCount).To(Equal(int(8)))
+				Expect(result.CharacterCount).To(Equal(int(45)))
+				Expect(result.Entities).To(HaveLen(2))
+				Expect(result.Entities[0].Entity).To(Equal("NAME"))
+				Expect(result.Entities[1].Entity).To(Equal("EMAIL_ADDRESS"))
+			})
+
+			It("should handle empty entities array in response", func() {
+				response := make(map[string]interface{})
+				mockJSONResponse := `{
+					"processed_text": "No entities found in this text",
+					"word_count": 6,
+					"character_count": 30
+				}`
+				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
+
+				ts := setupMockServer(response, "ok", "/v1/detect/deidentify/string")
+				defer ts.Close()
+
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
+				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					client := client.NewClient(
+						option.WithBaseURL(ts.URL),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					d.TextApiClient = *client.Strings
+					return nil
+				}
+
+				SetBearerTokenForDetectControllerFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					return nil
+				}
+
+				result, err := detectController.DeidentifyText(ctx, mockRequest)
+
+				Expect(err).To(BeNil())
+				Expect(result).ToNot(BeNil())
+				Expect(result.ProcessedText).To(Equal("No entities found in this text"))
+				Expect(result.Entities).To(BeEmpty())
+			})
+		})
+
+		Context("Error cases", func() {
+			It("should return error when validation fails", func() {
+				invalidRequest := DeidentifyTextRequest{
+					Text: "", // Empty text should fail validation
+				}
+
+				result, err := detectController.DeidentifyText(ctx, invalidRequest)
+
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(Equal("Code: 400"))
+			})
+
+			It("should return error when API request fails", func() {
+				response := make(map[string]interface{})
+				mockJSONResponse := `{"error":{"message":"Invalid request"}}`
+				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
+
+				ts := setupMockServer(response, "error", "/v1/detect/deidentify/string")
+				defer ts.Close()
+
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
+				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					client := client.NewClient(
+						option.WithBaseURL(ts.URL),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					d.TextApiClient = *client.Strings
+					return nil
+				}
+
+				SetBearerTokenForDetectControllerFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					return nil
+				}
+
+				result, err := detectController.DeidentifyText(ctx, mockRequest)
+				fmt.Println("Error:", err)
+
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(Equal("Code: 400"))
+			})
+
+			It("should return error when client creation fails", func() {
+				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "Failed to create client")
+				}
+
+				result, err := detectController.DeidentifyText(ctx, mockRequest)
+
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(Equal("Code: 400"))
+			})
+
+			It("should return error when bearer token validation fails", func() {
+				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					return nil
+				}
+
+				SetBearerTokenForDetectControllerFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "Invalid bearer token")
+				}
+
+				result, err := detectController.DeidentifyText(ctx, mockRequest)
+
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(Equal("Code: 400"))
+			})
+		})
+
+		Context("Advanced configuration cases", func() {
+			It("should handle requests with token format configuration", func() {
+				mockRequest.TokenFormat = TokenFormat{
+					EntityOnly: []DetectEntities{Name},
+					VaultToken: []DetectEntities{EmailAddress},
+				}
+
+				response := make(map[string]interface{})
+				mockJSONResponse := `{
+					"processed_text": "My name is [NAME] and email is [EMAIL]",
+					"entities": [
+						{
+							"token": "token1",
+							"value": "John Doe",
+							"entity_type": "NAME",
+							"location": {
+								"start_index": 11,
+								"end_index": 19,
+								"start_index_processed": 11,
+								"end_index_processed": 17
+							}
+						}
+					]
+				}`
+				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
+
+				ts := setupMockServer(response, "ok", "/v1/detect/deidentify/string")
+				defer ts.Close()
+
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
+				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					client := client.NewClient(
+						option.WithBaseURL(ts.URL),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					d.TextApiClient = *client.Strings
+					return nil
+				}
+
+				SetBearerTokenForDetectControllerFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					return nil
+				}
+
+				result, err := detectController.DeidentifyText(ctx, mockRequest)
+
+				Expect(err).To(BeNil())
+				Expect(result).ToNot(BeNil())
+				Expect(result.ProcessedText).To(Equal("My name is [NAME] and email is [EMAIL]"))
+				Expect(result.Entities[0].Entity).To(Equal("NAME"))
+			})
+
+			It("should handle requests with regex configuration", func() {
+				mockRequest.AllowRegexList = []string{"[A-Z][a-z]+"}
+				mockRequest.RestrictRegexList = []string{"[0-9]+"}
+
+				response := make(map[string]interface{})
+				mockJSONResponse := `{
+					"processed_text": "My name is [NAME] and email is [EMAIL]",
+					"entities": [
+						{
+							"token": "token1",
+							"value": "John",
+							"entity_type": "NAME",
+							"location": {
+								"start_index": 11,
+								"end_index": 15,
+								"start_index_processed": 11,
+								"end_index_processed": 17
+							}
+						}
+					]
+				}`
+				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
+
+				ts := setupMockServer(response, "ok", "/v1/detect/deidentify/string")
+				defer ts.Close()
+
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
+				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					client := client.NewClient(
+						option.WithBaseURL(ts.URL),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					d.TextApiClient = *client.Strings
+					return nil
+				}
+
+				SetBearerTokenForDetectControllerFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					return nil
+				}
+
+				result, err := detectController.DeidentifyText(ctx, mockRequest)
+
+				fmt.Println("## Result:", result)
+
+				Expect(err).To(BeNil())
+				Expect(result).ToNot(BeNil())
+				Expect(result.ProcessedText).To(Equal("My name is [NAME] and email is [EMAIL]"))
+			})
+		})
+	})
+
+	Describe("ReidentifyText tests", func() {
+		var (
+			detectController *DetectController
+			ctx              context.Context
+			mockRequest      ReidentifyTextRequest
+		)
+
+		BeforeEach(func() {
+			ctx = context.Background()
+			detectController = &DetectController{
+				Config: VaultConfig{
+					VaultId:   "vault123",
+					ClusterId: "cluster123",
+					Env:       DEV,
+					Credentials: Credentials{
+						ApiKey: "test-api-key",
+					},
+				},
+			}
+			mockRequest = ReidentifyTextRequest{
+				Text:             "Sample redacted text",
+				RedactedEntities: []DetectEntities{Name, EmailAddress},
+				MaskedEntities:   []DetectEntities{PhoneNumber},
+			}
+		})
+
+		Context("Success cases", func() {
+			It("should successfully reidentify text", func() {
+				response := make(map[string]interface{})
+				mockJSONResponse := `{"text": "Sample original text"}`
+				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
+
+				ts := setupMockServer(response, "ok", "/v1/detect/reidentify/string")
+				defer ts.Close()
+
+				fmt.Println("Mock server URL:", ts.URL)
+
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
+				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					client := client.NewClient(
+						option.WithBaseURL(ts.URL),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					d.TextApiClient = *client.Strings
+					return nil
+				}
+
+				SetBearerTokenForDetectControllerFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					return nil
+				}
+
+				result, err := detectController.ReidentifyText(ctx, mockRequest)
+
+				Expect(err).To(BeNil())
+				Expect(result).ToNot(BeNil())
+				Expect(result.ProcessedText).To(Equal("Sample original text"))
+			})
+		})
+
+		Context("Error cases", func() {
+			It("should return error when validation fails", func() {
+				invalidRequest := ReidentifyTextRequest{
+					Text: "", // Empty text should fail validation
+				}
+
+				result, err := detectController.ReidentifyText(ctx, invalidRequest)
+
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(Equal("Code: 400"))
+			})
+
+			It("should return error when API request fails", func() {
+				response := make(map[string]interface{})
+				mockJSONResponse := `{"error":{"message":"Invalid request"}}`
+				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
+
+				ts := setupMockServer(response, "error", "/v1/detect/reidentify/string")
+				defer ts.Close()
+
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
+				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					client := client.NewClient(
+						option.WithBaseURL(ts.URL),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					d.TextApiClient = *client.Strings
+					return nil
+				}
+
+				SetBearerTokenForDetectControllerFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					return nil
+				}
+
+				result, err := detectController.ReidentifyText(ctx, mockRequest)
+
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
+			})
+
+			It("should return error when client creation fails", func() {
+				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "Failed to create client")
+				}
+
+				result, err := detectController.ReidentifyText(ctx, mockRequest)
+
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(Equal("Code: 400"))
+			})
+
+			It("should return error when bearer token validation fails", func() {
+				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					return nil
+				}
+
+				SetBearerTokenForDetectControllerFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "Invalid bearer token")
+				}
+
+				result, err := detectController.ReidentifyText(ctx, mockRequest)
+
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(Equal("Code: 400"))
+			})
+		})
 	})
 })
 
