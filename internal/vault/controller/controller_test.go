@@ -1912,7 +1912,7 @@ var _ = Describe("DetectController", func() {
 			detectController = &DetectController{
 				Config: VaultConfig{
 					Credentials: Credentials{
-						Path: "../../" + os.Getenv("CRED_FILE_PATH"),
+						Path: "test/path",
 					},
 				},
 			}
@@ -1931,10 +1931,6 @@ var _ = Describe("DetectController", func() {
 			It("should create token if the current token is expired", func() {
 				detectController.Config.Credentials.Token = os.Getenv("EXPIRED_TOKEN")
 				detectController.Config.Credentials.Path = "../../" + os.Getenv("CRED_FILE_PATH")
-
-				fmt.Println("DetectController Config Path: ", detectController.Config.Credentials.Path)
-				fmt.Println("## detectController Config Token: ", detectController.Config.Credentials.Token)
-				fmt.Println("## detectController.Config.Credentials: " , detectController.Config.Credentials)
 
 				err := SetBearerTokenForDetectControllerFunc(detectController)
 				Expect(err).To(BeNil())
