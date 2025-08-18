@@ -1790,6 +1790,10 @@ var _ = Describe("VaultController", func() {
 			vaultController.Config.Credentials.Path = "../../" + os.Getenv("CRED_FILE_PATH")
 
 			err := SetBearerTokenForVaultController(vaultController)
+
+			if err != nil {
+				fmt.Println("## Error generating token:", err)
+			}
 			Expect(err).To(BeNil())
 		})
 		It("should generate token if file path is provided", func() {
