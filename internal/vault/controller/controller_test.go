@@ -1792,7 +1792,7 @@ var _ = Describe("VaultController", func() {
 			err := SetBearerTokenForVaultController(vaultController)
 
 			if err != nil {
-				fmt.Println("## Error generating token:", err)
+				fmt.Println("## Error generating token:", *err)
 			}
 			Expect(err).To(BeNil())
 		})
