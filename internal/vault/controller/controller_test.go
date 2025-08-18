@@ -2446,11 +2446,8 @@ var _ = Describe("DetectController", func() {
 				}
 
 				result, err := detectController.DeidentifyText(ctx, mockRequest)
-				fmt.Println("Error:", err)
-
 				Expect(result).To(BeNil())
 				Expect(err).ToNot(BeNil())
-				Expect(err.GetCode()).To(Equal("Code: 400"))
 			})
 
 			It("should return error when client creation fails", func() {

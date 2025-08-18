@@ -1,6 +1,8 @@
 package common
 
 import (
+	"os"
+
 	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
 )
 
@@ -18,26 +20,24 @@ type TokenResponse struct {
 	TokenType   string `json:"tokenType"`
 }
 type DeidentifyTextRequest struct {
-	Text               string
+	Text string
 	// ConfigurationId    ConfigurationId
-	Entities           []DetectEntities
-	TokenFormat        TokenFormat
-	AllowRegexList      []string
-	RestrictRegexList   []string
-	Transformations    Transformations
+	Entities          []DetectEntities
+	TokenFormat       TokenFormat
+	AllowRegexList    []string
+	RestrictRegexList []string
+	Transformations   Transformations
 }
-// type AllowRegex = []string
-
-// type RestrictRegex = []string
 
 type Transformations struct {
-	ShiftDates DateTransformation 
+	ShiftDates DateTransformation
 }
+
 type TokenFormat struct {
-	DefaultType       TokenTypeDefault
-	VaultToken        []DetectEntities
-	EntityUnqCounter  []DetectEntities
-	EntityOnly        []DetectEntities
+	DefaultType         TokenTypeDefault
+	VaultToken          []DetectEntities
+	EntityUniqueCounter []DetectEntities
+	EntityOnly          []DetectEntities
 }
 
 type TokenTypeDefault string
@@ -47,10 +47,11 @@ const (
 	TokenTypeDefaultEntityUnqCounter TokenTypeDefault = "entity_unq_counter"
 	TokenTypeDefaultVaultToken       TokenTypeDefault = "vault_token"
 )
+
 type DateTransformation struct {
-	MaxDays    int
-	MinDays    int
-	Entities   []TransformationsShiftDatesEntityTypesItem
+	MaxDays  int
+	MinDays  int
+	Entities []TransformationsShiftDatesEntityTypesItem
 }
 
 type TransformationsShiftDatesEntityTypesItem string
@@ -59,6 +60,14 @@ const (
 	TransformationsShiftDatesEntityTypesItemDate         TransformationsShiftDatesEntityTypesItem = "date"
 	TransformationsShiftDatesEntityTypesItemDateInterval TransformationsShiftDatesEntityTypesItem = "date_interval"
 	TransformationsShiftDatesEntityTypesItemDob          TransformationsShiftDatesEntityTypesItem = "dob"
+)
+
+type DeidentifyFileStatus string
+
+const (
+	IN_PROGRESS DeidentifyFileStatus = "in_progress"
+	FAILED      DeidentifyFileStatus = "failed"
+	SUCCESS     DeidentifyFileStatus = "success"
 )
 
 type DetectEntities string
@@ -136,11 +145,22 @@ const (
 	ZodiacSign                  DetectEntities = "zodiac_sign"
 )
 
+type MaskingMethod string
 
-// type DeidentifyTextResponse struct {
-// 	DeidentifiedText string   `json:"deidentifiedText"`
-// 	Errors           []string `json:"errors,omitempty"`
-// }
+const (
+	BLACKBOX MaskingMethod = "blackbox"
+	BLUR     MaskingMethod = "blur"
+)
+
+type DetectOutputTranscriptions string
+
+const (
+	DIARIZED_TRANSCRIPTION         DetectOutputTranscriptions = "diarized_transcription"
+	MEDICAL_DIARIZED_TRANSCRIPTION DetectOutputTranscriptions = "medical_diarized_transcription"
+	MEDICAL_TRANSCRIPTION          DetectOutputTranscriptions = "medical_transcription"
+	PLAINTEXT_TRANSCRIPTION        DetectOutputTranscriptions = "plaintext_transcription"
+	TRANSCRIPTION                  DetectOutputTranscriptions = "transcription"
+)
 
 type BearerTokenOptions struct {
 	Ctx      string
@@ -218,16 +238,15 @@ type DeidentifyTextResponse struct {
 }
 
 type EntityInfo struct {
-	Token string
-	Value string
-	Entity string
-	Scores map[string]float64
-	// Location EntityLocation
+	Token          string
+	Value          string
+	Entity         string
+	Scores         map[string]float64
 	ProcessedIndex TextIndex
 	TextIndex      TextIndex
 }
 type TextIndex struct {
-	StartIndex int	
+	StartIndex int
 	EndIndex   int
 }
 type ReidentifyTextResponse struct {
@@ -235,12 +254,76 @@ type ReidentifyTextResponse struct {
 }
 
 type ReidentifyTextRequest struct {
-	Text                    string
-	RedactedEntities        []DetectEntities
-	MaskedEntities          []DetectEntities
-	PlainTextEntities       []DetectEntities
+	Text              string
+	RedactedEntities  []DetectEntities
+	MaskedEntities    []DetectEntities
+	PlainTextEntities []DetectEntities
 }
 
+type DeidentifyFileRequest struct {
+	Entities             []DetectEntities
+	AllowRegexList       []string
+	RestrictRegexList    []string
+	TokenFormat          TokenFormat
+	Transformations      Transformations
+	OutputProcessedImage bool
+	OutputOcrText        bool
+	MaskingMethod        MaskingMethod
+	PixelDensity         float64
+	MaxResolution        float64
+	OutputProcessedAudio bool
+	OutputTranscription  DetectOutputTranscriptions
+	Bleep                AudioBleep
+	FileInput            FileInput
+	OutputDirectory      string
+	WaitTime             int
+}
+
+type FileInput struct {
+	FilePath string
+	File     *os.File
+}
+
+type AudioBleep struct {
+	Gain         float64
+	Frequency    float64
+	StartPadding float64
+	StopPadding  float64
+}
+
+type FileInfo struct {
+	Name         string
+	Size         int64
+	Type         string
+	LastModified int64
+}
+
+type FileEntityInfo struct {
+	File      string
+	Type      string
+	Extension string
+}
+
+type DeidentifyFileResponse struct {
+	File              FileInfo
+	FileBase64        string
+	Type              string
+	Extension         string
+	WordCount         int
+	CharCount         int
+	SizeInKb          float64
+	DurationInSeconds float64
+	PageCount         int
+	SlideCount        int
+	Entities          []FileEntityInfo
+	RunId             string
+	Status            string
+	Errors            []string
+}
+
+type GetDetectRunRequest struct {
+	RunId string
+}
 
 func (m RequestMethod) IsValid() bool {
 	validMethods := []RequestMethod{
@@ -288,9 +371,9 @@ type RedactionType string
 // Constants for RedactionType
 const (
 	PLAIN_TEXT RedactionType = "PLAIN_TEXT"
-	DEFAULT RedactionType = "DEFAULT"
-	MASKED RedactionType = "MASKED"
-	REDACTED RedactionType = "REDACTED"
+	DEFAULT    RedactionType = "DEFAULT"
+	MASKED     RedactionType = "MASKED"
+	REDACTED   RedactionType = "REDACTED"
 )
 
 type InsertOptions struct {
