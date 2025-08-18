@@ -1912,7 +1912,7 @@ var _ = Describe("DetectController", func() {
 			detectController = &DetectController{
 				Config: VaultConfig{
 					Credentials: Credentials{
-						Path: "test/path",
+						Path: "credentials.json",
 					},
 				},
 			}
