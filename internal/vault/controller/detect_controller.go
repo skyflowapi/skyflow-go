@@ -126,7 +126,7 @@ func CreateDeidentifyTextRequest(request common.DeidentifyTextRequest, config co
 		for _, entity := range request.Entities {
 			entityType, err := vaultapis.NewEntityTypeFromString(string(entity))
 			if err != nil {
-				return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "Invalid entity run: "+string(entity))
+				return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "Invalid detect entity: "+string(entity))
 			}
 			entities = append(entities, entityType)
 		}
@@ -731,7 +731,6 @@ func (d *DetectController) processFileByType(ctx context.Context, fileExtension,
 	}
 
 	if apiErr != nil {
-		fmt.Println("## Error in processFileByType: ", apiErr.Error())
 		logger.Error(fmt.Sprintf(logs.DEIDENTIFY_FILE_REQUEST_FAILED, apiErr))
 		return nil, skyflowError.SkyflowErrorApi(apiErr)
 	}
@@ -753,7 +752,6 @@ func (d *DetectController) pollForResults(ctx context.Context, runID string, max
 		response, err := d.FilesApiClient.WithRawResponse.GetRun(ctx, runID, &getRunRequest)
 
 		if err != nil {
-			fmt.Println("## Error in GetRun: ", err.Error())
 			logger.Error(fmt.Sprintf(logs.GET_DETECT_RUN_REQUEST_FAILED, err.Error()))
 			return nil, skyflowError.SkyflowErrorApi(err)
 		}
@@ -807,29 +805,15 @@ func parseDeidentifyFileResponse(response *vaultapis.DeidentifyStatusResponse, r
 			if firstOutput.ProcessedFile != nil && firstOutput.ProcessedFileExtension != nil {
 				decodedBytes, err := base64.StdEncoding.DecodeString(*firstOutput.ProcessedFile)
 				if err != nil {
-					return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "Failed to decode processed file")
+					return nil, skyflowError.NewSkyflowError(skyflowError.SERVER, "Failed to decode processed file")
 				}
-				// Create temporary file
-				tmpDir := os.TempDir()
-				fileName := "deidentified." + *firstOutput.ProcessedFileExtension
-				tmpFile := filepath.Join(tmpDir, fileName)
-
-				if err := os.WriteFile(tmpFile, decodedBytes, 0644); err != nil {
-					return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "Failed to save processed file")
-				}
-
-				fileInfo, err := os.Stat(tmpFile)
-				if err != nil {
-					return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "Failed to get file info")
-				}
-
-				// Set file information
 				fileResponse.File = common.FileInfo{
-					Name:         fileInfo.Name(),
-					Size:         fileInfo.Size(),
-					Type:         fileInfo.Mode().Type().String(),
-					LastModified: fileInfo.ModTime().UnixMilli(),
+					Name:         "deidentified." + *firstOutput.ProcessedFileExtension,
+					Size:         int64(len(decodedBytes)),
+					Type:         "redacted_file",
+					LastModified: time.Now().UnixMilli(),
 				}
+				fileResponse.FileBase64 = *firstOutput.ProcessedFile
 				fileResponse.FileBase64 = *firstOutput.ProcessedFile
 			}
 
