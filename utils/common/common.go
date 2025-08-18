@@ -235,10 +235,10 @@ type ReidentifyTextResponse struct {
 }
 
 type ReidentifyTextRequest struct {
-	Text string
-	RedactedEntities        DetectEntities
-	MaskedEntities          DetectEntities
-	PlainTextEntities       DetectEntities
+	Text                    string
+	RedactedEntities        []DetectEntities
+	MaskedEntities          []DetectEntities
+	PlainTextEntities       []DetectEntities
 }
 
 

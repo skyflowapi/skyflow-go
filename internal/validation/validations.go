@@ -20,6 +20,15 @@ func ValidateDeidentifyTextRequest(req common.DeidentifyTextRequest) *skyflowErr
     return nil
 }
 
+// ValidateReidentifyTextRequest validates the required fields of ReidentifyTextRequest.
+func ValidateReidentifyTextRequest(req common.ReidentifyTextRequest) *skyflowError.SkyflowError {
+	if strings.TrimSpace(req.Text) == "" {
+		logger.Error(fmt.Sprintf(logs.INVALID_TEXT_IN_REIDENTIFY, "ReidentifyTextRequest"))
+		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_TEXT_IN_REIDENTIFY)
+	}
+	return nil
+}
+
 func ValidateInsertRequest(request common.InsertRequest, options common.InsertOptions) *skyflowError.SkyflowError {
 	// Validate table
 	tag := "Insert"

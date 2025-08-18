@@ -1015,4 +1015,34 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 
 	})
 
+	Context("Validate the reidentify text request", func() {
+		It("should return error when Text is empty", func() {
+			req := common.ReidentifyTextRequest{
+				Text: "",
+			}
+			err := ValidateReidentifyTextRequest(req)
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+			Expect(err.GetMessage()).To(ContainSubstring(fmt.Sprintf(errors.INVALID_TEXT_IN_REIDENTIFY)))
+		})
+
+		It("should return error when Text is only whitespace", func() {
+			req := common.ReidentifyTextRequest{
+				Text: "   ",
+			}
+			err := ValidateReidentifyTextRequest(req)
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+			Expect(err.GetMessage()).To(ContainSubstring(fmt.Sprintf(errors.INVALID_TEXT_IN_REIDENTIFY)))
+		})
+
+		It("should return nil when Text is non-empty", func() {
+			req := common.ReidentifyTextRequest{
+				Text: "valid text",
+			}
+			err := ValidateReidentifyTextRequest(req)
+			Expect(err).To(BeNil())
+		})
+	})
+
 })
