@@ -64,7 +64,7 @@ func ValidateDeidentifyFileRequest(req common.DeidentifyFileRequest) *skyflowErr
 	}
 
 	// Validate file exists and is readable
-	validateFilePermissions(tag, req.FileInput.FilePath, req.FileInput.File)
+	ValidateFilePermissions(tag, req.FileInput.FilePath, req.FileInput.File)
 
 	// Optional fields validation
 	// Validate pixel density
@@ -152,8 +152,8 @@ func checkDirWritePermission(dir string) error {
 	return nil
 }
 
-// validateFilePermissions validates both file path and File inputs
-func validateFilePermissions(tag string, filePath string, file *os.File) *skyflowError.SkyflowError {
+// ValidateFilePermissions validates both file path and File inputs
+func ValidateFilePermissions(tag string, filePath string, file *os.File) *skyflowError.SkyflowError {
 	var info os.FileInfo
 	var err error
 
@@ -188,7 +188,7 @@ func validateFilePermissions(tag string, filePath string, file *os.File) *skyflo
 	}
 
 	if file != nil {
-		//  File-based check
+		// File-based check
 		info, err = file.Stat()
 		if err != nil {
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.UNABLE_TO_STAT_FILE_TO_DEIDENTIFY, file.Name()))
@@ -202,8 +202,7 @@ func validateFilePermissions(tag string, filePath string, file *os.File) *skyflo
 		return nil
 	}
 
-	logger.Error(fmt.Sprintf(logs.EMPTY_FILE_AND_FILE_PATH_IN_DEIDENTIFY_FILE, tag))
-	return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_FILE_AND_FILE_PATH_IN_DEIDENTIFY_FILE)
+	return nil
 
 }
 
