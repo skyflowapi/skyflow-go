@@ -142,9 +142,6 @@ var _ = Describe("ServiceAccount Test Suite", func() {
 
 			// Call the function under test
 			tokenResp, err := serviceaccount.GenerateBearerTokenFromCreds(os.Getenv("VALID_CREDS_PVT_KEY"), options)
-			if err != nil {
-				fmt.Println("## Error generating token 146:", *err)
-			}
 			// Assert the token response
 			Expect(err).To(BeNil())
 			Expect(tokenResp.AccessToken).To(Equal("mockAccessToken"))
@@ -177,9 +174,6 @@ var _ = Describe("ServiceAccount Test Suite", func() {
 
 			// Call the function under test
 			tokenResp, err := serviceaccount.GenerateBearerTokenFromCreds("{", options)
-			if err != nil {
-				fmt.Println("## Error generating token 181:", *err)
-			}
 
 			// Assert the error response
 			Expect(err).ToNot(BeNil())
@@ -191,9 +185,6 @@ var _ = Describe("ServiceAccount Test Suite", func() {
 		It("should return a valid token when credentials are valid", func() {
 			// Call the function under test
 			tokenResp, err := serviceaccount.GenerateSignedDataTokensFromCreds(os.Getenv("VALID_CREDS_PVT_KEY"), dataTokenOptions)
-			if err != nil {
-				fmt.Println("## Error generating token 195:", *err)
-			}
 			// Assert the token response
 			Expect(err).To(BeNil())
 			Expect(len(tokenResp)).To(Equal(2))

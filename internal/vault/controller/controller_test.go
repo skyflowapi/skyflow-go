@@ -1791,9 +1791,6 @@ var _ = Describe("VaultController", func() {
 
 			err := SetBearerTokenForVaultController(vaultController)
 
-			if err != nil {
-				fmt.Println("## Error generating token:", *err)
-			}
 			Expect(err).To(BeNil())
 		})
 		It("should generate token if file path is provided", func() {
@@ -2582,8 +2579,6 @@ var _ = Describe("DetectController", func() {
 				}
 
 				result, err := detectController.DeidentifyText(ctx, mockRequest)
-
-				fmt.Println("## Result:", result)
 
 				Expect(err).To(BeNil())
 				Expect(result).ToNot(BeNil())
