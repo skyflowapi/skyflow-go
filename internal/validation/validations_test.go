@@ -2,6 +2,8 @@ package validation_test
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 
 	. "github.com/skyflowapi/skyflow-go/v2/internal/validation"
@@ -279,7 +281,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			Expect(err).ToNot(BeNil())
 			Expect(err.GetMessage()).To(ContainSubstring(errors.INSUFFICIENT_TOKENS_PASSED_FOR_BYOT_ENABLE_STRICT))
 		})
-		It("should return error when tokens are passed in BYOT ENABLE_STRICT mode", func() {
+		It("should return error when tokens are passed in BYOT ENABLE STRICT mode", func() {
 			request := common.InsertRequest{
 				Table: "testTable",
 				Values: []map[string]interface{}{
@@ -989,29 +991,28 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			}
 			err := ValidateDeidentifyTextRequest(req)
 			Expect(err).ToNot(BeNil())
-        Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
-		fmt.Println(err.GetMessage(), errors.INVALID_TEXT_IN_DEIDENTIFY)
-        Expect(err.GetMessage()).To(ContainSubstring(fmt.Sprintf(errors.INVALID_TEXT_IN_DEIDENTIFY)))
-    })
+			Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+			Expect(err.GetMessage()).To(ContainSubstring(fmt.Sprintf(errors.INVALID_TEXT_IN_DEIDENTIFY)))
+		})
 
-    It("should return error when Text is only whitespace", func() {
-        req := common.DeidentifyTextRequest{
-            Text: "   ",
-        }
-        err := ValidateDeidentifyTextRequest(req)
-        Expect(err).ToNot(BeNil())
-		Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+		It("should return error when Text is only whitespace", func() {
+			req := common.DeidentifyTextRequest{
+				Text: "   ",
+			}
+			err := ValidateDeidentifyTextRequest(req)
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
 
-        Expect(err.GetMessage()).To(ContainSubstring(fmt.Sprintf(errors.INVALID_TEXT_IN_DEIDENTIFY)))
-    })
+			Expect(err.GetMessage()).To(ContainSubstring(fmt.Sprintf(errors.INVALID_TEXT_IN_DEIDENTIFY)))
+		})
 
-    It("should return nil when Text is non-empty", func() {
-        req := common.DeidentifyTextRequest{
-            Text: "valid text",
-        }
-        err := ValidateDeidentifyTextRequest(req)
-        Expect(err).To(BeNil())
-    })
+		It("should return nil when Text is non-empty", func() {
+			req := common.DeidentifyTextRequest{
+				Text: "valid text",
+			}
+			err := ValidateDeidentifyTextRequest(req)
+			Expect(err).To(BeNil())
+		})
 
 	})
 
@@ -1045,4 +1046,388 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 		})
 	})
 
+	Context("ValidateGetDetectRunRequest", func() {
+		It("should return error when RunId is empty", func() {
+			req := common.GetDetectRunRequest{
+				RunId: "",
+			}
+			err := ValidateGetDetectRunRequest(req)
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_RUN_ID))
+		})
+
+		It("should return nil when RunId is valid", func() {
+			req := common.GetDetectRunRequest{
+				RunId: "valid-run-id",
+			}
+			err := ValidateGetDetectRunRequest(req)
+			Expect(err).To(BeNil())
+		})
+	})
+
+	Context("ValidateDeidentifyFileRequest", Ordered, func() {
+
+		var (
+			tempDir   string
+			testFiles map[string]*os.File
+		)
+
+		BeforeAll(func() {
+			var err error
+			// Create temporary directory
+			tempDir, err = os.MkdirTemp("", "skyflow_test_*")
+			Expect(err).To(BeNil(), "Failed to create temp directory for tests")
+
+			// Create temporary test files for each type
+			testFiles = make(map[string]*os.File)
+			testContent := []byte("Test content for file processing")
+
+			fileTypes := []string{"txt"}
+			for _, fileType := range fileTypes {
+				tmpFile, err := os.CreateTemp(tempDir, fmt.Sprintf("detect.*.%s", fileType))
+				Expect(err).To(BeNil(), fmt.Sprintf("Failed to create temp %s file", fileType))
+				_, err = tmpFile.Write(testContent)
+				Expect(err).To(BeNil(), fmt.Sprintf("Failed to write to temp %s file", fileType))
+				testFiles[fileType] = tmpFile
+			}
+		})
+
+		AfterAll(func() {
+			// Close and remove all temporary files
+			for _, file := range testFiles {
+				if file != nil {
+					file.Close()
+				}
+			}
+
+			// Clean up temporary directory and its contents
+			if tempDir != "" {
+				err := os.RemoveAll(tempDir)
+				Expect(err).To(BeNil(), "Failed to clean up temp directory after tests")
+			}
+		})
+
+		It("should return error when FileInput is empty", func() {
+			req := common.DeidentifyFileRequest{}
+			err := ValidateDeidentifyFileRequest(req)
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+		})
+
+		It("should return error when both FilePath and File are empty", func() {
+			req := common.DeidentifyFileRequest{
+				FileInput: common.FileInput{},
+			}
+			err := ValidateDeidentifyFileRequest(req)
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_FILE_AND_FILE_PATH_IN_DEIDENTIFY_FILE))
+		})
+
+		It("should return nil when FilePath is valid", func() {
+			req := common.DeidentifyFileRequest{
+				FileInput: common.FileInput{
+					FilePath: filepath.Join(tempDir, "detect.txt"),
+				},
+			}
+			validationErr := ValidateDeidentifyFileRequest(req)
+			Expect(validationErr).To(BeNil())
+		})
+
+		It("should return nil when File is valid", func() {
+			// First create and write to the test file
+			testFilePath := filepath.Join(tempDir, "detect.txt")
+			err := os.WriteFile(testFilePath, []byte("test content"), 0644)
+			Expect(err).To(BeNil(), "Failed to create test file")
+
+			// Now open the file
+			file, err := os.Open(testFilePath)
+			Expect(err).To(BeNil(), "Failed to open test file")
+			defer file.Close()
+
+			req := common.DeidentifyFileRequest{
+				FileInput: common.FileInput{
+					File: file,
+				},
+			}
+			validationErr := ValidateDeidentifyFileRequest(req)
+			Expect(validationErr).To(BeNil())
+		})
+
+		It("should return error when both FilePath and File are provided", func() {
+			file, err := os.Open(filepath.Join(tempDir, "detect.txt"))
+			Expect(err).To(BeNil())
+			defer file.Close()
+
+			req := common.DeidentifyFileRequest{
+				FileInput: common.FileInput{
+					FilePath: filepath.Join(tempDir, "detect.txt"),
+					File:     file,
+				},
+			}
+			validationErr := ValidateDeidentifyFileRequest(req)
+			Expect(validationErr).ToNot(BeNil())
+			Expect(validationErr.GetMessage()).To(ContainSubstring(errors.BOTH_FILE_AND_FILE_PATH_PROVIDED))
+		})
+
+		It("should return error when FilePath is whitespace", func() {
+			req := common.DeidentifyFileRequest{
+				FileInput: common.FileInput{
+					FilePath: "   ",
+				},
+			}
+			err := ValidateDeidentifyFileRequest(req)
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_FILE_PATH))
+		})
+
+		It("should return error when pixel density is negative", func() {
+			req := common.DeidentifyFileRequest{
+				FileInput: common.FileInput{
+					FilePath: filepath.Join(tempDir, "detect.txt"),
+				},
+				PixelDensity: -1,
+			}
+			validationErr := ValidateDeidentifyFileRequest(req)
+			Expect(validationErr).ToNot(BeNil())
+			Expect(validationErr.GetMessage()).To(ContainSubstring(errors.INVALID_PIXEL_DENSITY))
+		})
+
+		It("should return error for invalid masking method", func() {
+			req := common.DeidentifyFileRequest{
+				FileInput: common.FileInput{
+					FilePath: filepath.Join(tempDir, "detect.txt"),
+				},
+				MaskingMethod: "INVALID_METHOD",
+			}
+			validationErr := ValidateDeidentifyFileRequest(req)
+			Expect(validationErr).ToNot(BeNil())
+			Expect(validationErr.GetMessage()).To(ContainSubstring(errors.INVALID_MASKING_METHOD))
+		})
+
+		It("should accept valid masking methods", func() {
+			validMethods := []common.MaskingMethod{common.BLACKBOX, common.BLUR}
+			for _, method := range validMethods {
+				req := common.DeidentifyFileRequest{
+					FileInput: common.FileInput{
+						FilePath: filepath.Join(tempDir, "detect.txt"),
+					},
+					MaskingMethod: method,
+				}
+				err := ValidateDeidentifyFileRequest(req)
+				Expect(err).To(BeNil())
+			}
+		})
+
+		It("should return error when max resolution is negative", func() {
+			req := common.DeidentifyFileRequest{
+				FileInput: common.FileInput{
+					FilePath: filepath.Join(tempDir, "detect.txt"),
+				},
+				MaxResolution: -1,
+			}
+			validationErr := ValidateDeidentifyFileRequest(req)
+			Expect(validationErr).ToNot(BeNil())
+			Expect(validationErr.GetMessage()).To(ContainSubstring(errors.INVALID_MAX_RESOLUTION))
+		})
+
+		Context("Audio Bleep Validation", func() {
+			It("should return error when frequency is non-positive", func() {
+				req := common.DeidentifyFileRequest{
+					FileInput: common.FileInput{
+						FilePath: filepath.Join(tempDir, "detect.txt"),
+					},
+					Bleep: common.AudioBleep{
+						Frequency: -1,
+						Gain:      1,
+					},
+				}
+				validationErr := ValidateDeidentifyFileRequest(req)
+				Expect(validationErr).ToNot(BeNil())
+				Expect(validationErr.GetMessage()).To(ContainSubstring(errors.INVALID_REQUEST_BODY))
+			})
+
+			It("should return error when gain is zero", func() {
+				req := common.DeidentifyFileRequest{
+					FileInput: common.FileInput{
+						FilePath: filepath.Join(tempDir, "detect.txt"),
+					},
+					Bleep: common.AudioBleep{
+						Frequency: 1,
+						Gain:      0,
+					},
+				}
+				validationErr := ValidateDeidentifyFileRequest(req)
+				Expect(validationErr).ToNot(BeNil())
+				Expect(validationErr.GetMessage()).To(ContainSubstring(errors.INVALID_REQUEST_BODY))
+			})
+
+			It("should return error when padding values are negative", func() {
+				req := common.DeidentifyFileRequest{
+					FileInput: common.FileInput{
+						FilePath: filepath.Join(tempDir, "detect.txt"),
+					},
+					Bleep: common.AudioBleep{
+						Frequency:    1,
+						Gain:         1,
+						StartPadding: -1,
+						StopPadding:  -1,
+					},
+				}
+				validationErr := ValidateDeidentifyFileRequest(req)
+				Expect(validationErr).ToNot(BeNil())
+				Expect(validationErr.GetMessage()).To(ContainSubstring(errors.INVALID_REQUEST_BODY))
+			})
+
+			It("should return error when stop padding value is negative", func() {
+				req := common.DeidentifyFileRequest{
+					FileInput: common.FileInput{
+						FilePath: filepath.Join(tempDir, "detect.txt"),
+					},
+					Bleep: common.AudioBleep{
+						Frequency:    1,
+						Gain:         1,
+						StartPadding: 1,
+						StopPadding:  -1,
+					},
+				}
+				validationErr := ValidateDeidentifyFileRequest(req)
+				Expect(validationErr).ToNot(BeNil())
+				Expect(validationErr.GetMessage()).To(ContainSubstring(errors.INVALID_REQUEST_BODY))
+			})
+		})
+
+		Context("Output Directory Validation", func() {
+			It("should return error for non-existent directory", func() {
+				req := common.DeidentifyFileRequest{
+					FileInput: common.FileInput{
+						FilePath: filepath.Join(tempDir, "detect.txt"),
+					},
+					OutputDirectory: "/non/existent/directory",
+				}
+				validationErr := ValidateDeidentifyFileRequest(req)
+				Expect(validationErr).ToNot(BeNil())
+				Expect(validationErr.GetMessage()).To(ContainSubstring(errors.OUTPUT_DIRECTORY_NOT_FOUND))
+			})
+
+			It("should return nil for valid directory", func() {
+				req := common.DeidentifyFileRequest{
+					FileInput: common.FileInput{
+						FilePath: filepath.Join(tempDir, "detect.txt"),
+					},
+					OutputDirectory: tempDir,
+				}
+				validationErr := ValidateDeidentifyFileRequest(req)
+				Expect(validationErr).To(BeNil())
+			})
+
+			It("should return error for invalid directory permissions", func() {
+				req := common.DeidentifyFileRequest{
+					FileInput: common.FileInput{
+						FilePath: filepath.Join(tempDir, "detect.txt"),
+					},
+					OutputDirectory: "/root", // A directory that typically requires root permissions
+				}
+				validationErr := ValidateDeidentifyFileRequest(req)
+				Expect(validationErr).ToNot(BeNil())
+				Expect(validationErr.GetMessage()).To(ContainSubstring(errors.INVALID_PERMISSION))
+			})
+		})
+
+		Context("Wait Time Validation", func() {
+			It("should return error for negative wait time", func() {
+				req := common.DeidentifyFileRequest{
+					FileInput: common.FileInput{
+						FilePath: filepath.Join(tempDir, "detect.txt"),
+					},
+					WaitTime: -1,
+				}
+				validationErr := ValidateDeidentifyFileRequest(req)
+				Expect(validationErr).ToNot(BeNil())
+				Expect(validationErr.GetMessage()).To(ContainSubstring(errors.INVALID_WAIT_TIME))
+			})
+
+			It("should return error for wait time exceeding limit", func() {
+				req := common.DeidentifyFileRequest{
+					FileInput: common.FileInput{
+						FilePath: filepath.Join(tempDir, "detect.txt"),
+					},
+					WaitTime: 65,
+				}
+				validationErr := ValidateDeidentifyFileRequest(req)
+				Expect(validationErr).ToNot(BeNil())
+				Expect(validationErr.GetMessage()).To(ContainSubstring(errors.WAIT_TIME_EXCEEDS_LIMIT))
+			})
+
+			It("should accept valid wait time", func() {
+				req := common.DeidentifyFileRequest{
+					FileInput: common.FileInput{
+						FilePath: filepath.Join(tempDir, "detect.txt"),
+					},
+					WaitTime: 30,
+				}
+				err := ValidateDeidentifyFileRequest(req)
+				Expect(err).To(BeNil())
+			})
+		})
+
+		Context("ValidateFilePermissions", func() {
+			var resourcePath string
+
+			BeforeEach(func() {
+				resourcePath = filepath.Join(tempDir, "detect.txt")
+			})
+
+			It("should return error when file does not exist", func() {
+				err := ValidateFilePermissions("test", "/non/existent/file.txt", nil)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetMessage()).To(ContainSubstring(fmt.Sprintf(errors.FILE_NOT_FOUND_TO_DEIDENTIFY, "/non/existent/file.txt")))
+			})
+
+			It("should return error when file is not regular", func() {
+				dirPath := tempDir
+				validationErr := ValidateFilePermissions("test", dirPath, nil)
+				Expect(validationErr).ToNot(BeNil())
+				Expect(validationErr.GetMessage()).To(ContainSubstring(fmt.Sprintf(errors.NOT_REGULAR_FILE_TO_DEIDENTIFY, dirPath)))
+			})
+
+			Context("File based validation", func() {
+				It("should return error when file stat fails for file pointer", func() {
+					file, err := os.Open(resourcePath)
+					Expect(err).To(BeNil())
+
+					// Close file to cause stat to fail
+					file.Close()
+
+					validationErr := ValidateFilePermissions("test", "", file)
+					Expect(validationErr).ToNot(BeNil())
+					Expect(validationErr.GetMessage()).To(ContainSubstring(fmt.Sprintf(errors.UNABLE_TO_STAT_FILE_TO_DEIDENTIFY, file.Name())))
+				})
+
+				It("should return error when file pointer is not a regular file", func() {
+					// Use directory instead of file
+					testFilePath := tempDir
+
+					// Now open the file
+					dirFile, err := os.Open(testFilePath)
+					Expect(err).To(BeNil(), "Failed to open test file")
+					defer dirFile.Close()
+
+					validationErr := ValidateFilePermissions("test", "", dirFile)
+					Expect(validationErr).ToNot(BeNil())
+					Expect(validationErr.GetMessage()).To(ContainSubstring(fmt.Sprintf(errors.NOT_REGULAR_FILE_TO_DEIDENTIFY, dirFile.Name())))
+				})
+
+				It("should return nil for valid file", func() {
+					file, err := os.Open(resourcePath)
+					Expect(err).To(BeNil())
+					defer file.Close()
+
+					err = ValidateFilePermissions("test", "", file)
+					Expect(err).To(BeNil())
+				})
+			})
+		})
+	})
 })

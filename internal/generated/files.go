@@ -327,9 +327,9 @@ type DeidentifyStatusResponse struct {
 	// Number of characters in the processed text.
 	CharacterCount *int `json:"character_count,omitempty" url:"character_count,omitempty"`
 	// Size of the processed text in kilobytes (KB).
-	Size *int `json:"size,omitempty" url:"size,omitempty"`
+	Size *float64 `json:"size,omitempty" url:"size,omitempty"`
 	// Duration of the processed audio in seconds.
-	Duration *int `json:"duration,omitempty" url:"duration,omitempty"`
+	Duration *float64 `json:"duration,omitempty" url:"duration,omitempty"`
 	// Number of pages in the processed PDF.
 	Pages *int `json:"pages,omitempty" url:"pages,omitempty"`
 	// Number of slides in the processed presentation.
@@ -381,14 +381,14 @@ func (d *DeidentifyStatusResponse) GetCharacterCount() *int {
 	return d.CharacterCount
 }
 
-func (d *DeidentifyStatusResponse) GetSize() *int {
+func (d *DeidentifyStatusResponse) GetSize() *float64 {
 	if d == nil {
 		return nil
 	}
 	return d.Size
 }
 
-func (d *DeidentifyStatusResponse) GetDuration() *int {
+func (d *DeidentifyStatusResponse) GetDuration() *float64 {
 	if d == nil {
 		return nil
 	}

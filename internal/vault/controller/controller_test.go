@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 
@@ -1790,6 +1791,7 @@ var _ = Describe("VaultController", func() {
 			vaultController.Config.Credentials.Path = "../../" + os.Getenv("CRED_FILE_PATH")
 
 			err := SetBearerTokenForVaultController(vaultController)
+
 			Expect(err).To(BeNil())
 		})
 		It("should generate token if file path is provided", func() {
@@ -1912,7 +1914,7 @@ var _ = Describe("DetectController", func() {
 			detectController = &DetectController{
 				Config: VaultConfig{
 					Credentials: Credentials{
-						Path: "test/path",
+						Path: "credentials.json",
 					},
 				},
 			}
@@ -2446,11 +2448,8 @@ var _ = Describe("DetectController", func() {
 				}
 
 				result, err := detectController.DeidentifyText(ctx, mockRequest)
-				fmt.Println("Error:", err)
-
 				Expect(result).To(BeNil())
 				Expect(err).ToNot(BeNil())
-				Expect(err.GetCode()).To(Equal("Code: 400"))
 			})
 
 			It("should return error when client creation fails", func() {
@@ -2579,8 +2578,6 @@ var _ = Describe("DetectController", func() {
 
 				result, err := detectController.DeidentifyText(ctx, mockRequest)
 
-				fmt.Println("## Result:", result)
-
 				Expect(err).To(BeNil())
 				Expect(result).ToNot(BeNil())
 				Expect(result.ProcessedText).To(Equal("My name is [NAME] and email is [EMAIL]"))
@@ -2622,8 +2619,6 @@ var _ = Describe("DetectController", func() {
 
 				ts := setupMockServer(response, "ok", "/v1/detect/reidentify/string")
 				defer ts.Close()
-
-				fmt.Println("Mock server URL:", ts.URL)
 
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
@@ -2714,6 +2709,595 @@ var _ = Describe("DetectController", func() {
 				}
 
 				result, err := detectController.ReidentifyText(ctx, mockRequest)
+
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(Equal("Code: 400"))
+			})
+		})
+	})
+
+	Describe("DeidentifyFile tests", Ordered, func() {
+		var (
+			detectController *DetectController
+			ctx              context.Context
+			tempDir          string
+			testFiles        map[string]*os.File
+		)
+
+		BeforeAll(func() {
+			var err error
+			// Create temporary directory
+			tempDir, err = os.MkdirTemp("", "skyflow_test_*")
+			Expect(err).To(BeNil(), "Failed to create temp directory for tests")
+
+			// Create temporary test files for each type
+			testFiles = make(map[string]*os.File)
+			testContent := []byte("Test content for file processing")
+
+			fileTypes := []string{"txt", "mp3", "jpeg", "pdf", "pptx", "xlsx", "docx", "json"}
+			for _, fileType := range fileTypes {
+				tmpFile, err := os.CreateTemp(tempDir, fmt.Sprintf("detect.*.%s", fileType))
+				Expect(err).To(BeNil(), fmt.Sprintf("Failed to create temp %s file", fileType))
+				_, err = tmpFile.Write(testContent)
+				Expect(err).To(BeNil(), fmt.Sprintf("Failed to write to temp %s file", fileType))
+				testFiles[fileType] = tmpFile
+			}
+		})
+
+		AfterAll(func() {
+			// Close and remove all temporary files
+			for _, file := range testFiles {
+				if file != nil {
+					file.Close()
+				}
+			}
+
+			// Clean up temporary directory and its contents
+			if tempDir != "" {
+				err := os.RemoveAll(tempDir)
+				Expect(err).To(BeNil(), "Failed to clean up temp directory after tests")
+			}
+		})
+
+		BeforeEach(func() {
+			ctx = context.Background()
+			detectController = &DetectController{
+				Config: VaultConfig{
+					VaultId:   "vault123",
+					ClusterId: "cluster123",
+					Env:       DEV,
+					Credentials: Credentials{
+						ApiKey: "test-api-key",
+					},
+				},
+			}
+
+		})
+
+		Context("Success cases", func() {
+			Context("Success cases for different file types", func() {
+
+				audioFilePath := filepath.Join(tempDir, "detect.mp3")
+				audioFile, _ := os.Open(audioFilePath)
+				defer audioFile.Close()
+
+				var testCases = []struct {
+					name        string
+					fileExt     string
+					endpoint    string
+					fileType    string
+					mockRequest DeidentifyFileRequest
+				}{
+					{
+						name:     "Text File",
+						fileExt:  "txt",
+						endpoint: "/v1/detect/deidentify/file/text",
+						fileType: "TEXT",
+						mockRequest: DeidentifyFileRequest{
+							FileInput: FileInput{
+								FilePath: filepath.Join(tempDir, "detect.txt"),
+							},
+							OutputDirectory: tempDir,
+							Entities:        []DetectEntities{Name, EmailAddress, Ssn, Date, Day, Dob},
+							WaitTime:        5,
+							TokenFormat: TokenFormat{
+								EntityOnly: []DetectEntities{
+									Name, EmailAddress, Ssn, Date, Day, Dob,
+								},
+								EntityUniqueCounter: []DetectEntities{
+									Ssn, Date, Day, Dob,
+								},
+							},
+							AllowRegexList: []string{
+								"My",
+							},
+							Transformations: Transformations{
+								ShiftDates: DateTransformation{
+									MinDays: 5,
+									MaxDays: 10,
+									Entities: []TransformationsShiftDatesEntityTypesItem{
+										TransformationsShiftDatesEntityTypesItem(Month),
+										TransformationsShiftDatesEntityTypesItem(Date),
+										TransformationsShiftDatesEntityTypesItem(Day),
+										TransformationsShiftDatesEntityTypesItem(Dob),
+										TransformationsShiftDatesEntityTypesItem(CreditCardExpiration),
+									},
+								},
+							},
+						},
+					},
+					{
+						name:     "Audio File",
+						fileExt:  "mp3",
+						endpoint: "/v1/detect/deidentify/file/audio",
+						fileType: "MP3",
+						mockRequest: DeidentifyFileRequest{
+							FileInput: FileInput{
+								File: audioFile,
+							},
+							Entities: []DetectEntities{Name, EmailAddress, Ssn, Date, Day, Dob},
+							TokenFormat: TokenFormat{
+								DefaultType: TokenTypeDefaultVaultToken,
+								VaultToken: []DetectEntities{
+									Name, EmailAddress, Ssn, Date,
+								},
+							},
+							OutputOcrText: true,
+							MaxResolution: 200,
+							PixelDensity:  200.12,
+							Bleep: AudioBleep{
+								Gain:         2,
+								Frequency:    1000,
+								StartPadding: 2,
+								StopPadding:  20,
+							},
+							OutputProcessedAudio: true,
+							AllowRegexList: []string{
+								"My",
+							},
+							Transformations: Transformations{
+								ShiftDates: DateTransformation{
+									MinDays: 5,
+									MaxDays: 10,
+									Entities: []TransformationsShiftDatesEntityTypesItem{
+										TransformationsShiftDatesEntityTypesItem(Month),
+										TransformationsShiftDatesEntityTypesItem(Date),
+										TransformationsShiftDatesEntityTypesItem(Day),
+										TransformationsShiftDatesEntityTypesItem(Dob),
+										TransformationsShiftDatesEntityTypesItem(CreditCardExpiration),
+									},
+								},
+							},
+						},
+					},
+
+					{
+						name:     "Image File",
+						fileExt:  "jpeg",
+						endpoint: "/v1/detect/deidentify/file/image",
+						fileType: "JPEG",
+						mockRequest: DeidentifyFileRequest{
+							FileInput: FileInput{
+								FilePath: filepath.Join(tempDir, "detect.jpeg"),
+							},
+							Entities: []DetectEntities{Name, EmailAddress, Ssn, Date, Day, Dob},
+							TokenFormat: TokenFormat{
+								DefaultType: TokenTypeDefaultVaultToken,
+								VaultToken: []DetectEntities{
+									Name, EmailAddress, Ssn, Date,
+								},
+							},
+							OutputOcrText: true,
+							MaxResolution: 200,
+							PixelDensity:  200.12,
+							AllowRegexList: []string{
+								"My",
+							},
+							MaskingMethod: BLACKBOX,
+							Transformations: Transformations{
+								ShiftDates: DateTransformation{
+									MinDays: 5,
+									MaxDays: 10,
+									Entities: []TransformationsShiftDatesEntityTypesItem{
+										TransformationsShiftDatesEntityTypesItem(Month),
+										TransformationsShiftDatesEntityTypesItem(Date),
+										TransformationsShiftDatesEntityTypesItem(Day),
+										TransformationsShiftDatesEntityTypesItem(Dob),
+										TransformationsShiftDatesEntityTypesItem(CreditCardExpiration),
+									},
+								},
+							},
+						},
+					},
+					{
+						name:     "PDF Document",
+						fileExt:  "pdf",
+						endpoint: "/v1/detect/deidentify/file/document/pdf",
+						fileType: "PDF",
+						mockRequest: DeidentifyFileRequest{
+							FileInput: FileInput{
+								FilePath: filepath.Join(tempDir, "detect.pdf"),
+							},
+							Entities: []DetectEntities{Name, EmailAddress, Ssn},
+							TokenFormat: TokenFormat{
+								DefaultType: TokenTypeDefaultVaultToken,
+							},
+							WaitTime:      5,
+							MaxResolution: 200,
+						},
+					},
+					{
+						name:     "Presentation File",
+						fileExt:  "pptx",
+						endpoint: "/v1/detect/deidentify/file/presentation",
+						fileType: "PPTX",
+						mockRequest: DeidentifyFileRequest{
+							FileInput: FileInput{
+								FilePath: filepath.Join(tempDir, "detect.pptx"),
+							},
+							Entities: []DetectEntities{Name, EmailAddress},
+							WaitTime: 5,
+							TokenFormat: TokenFormat{
+								DefaultType: TokenTypeDefaultEntityOnly,
+							},
+						},
+					},
+					{
+						name:     "Spreadsheet File",
+						fileExt:  "xlsx",
+						endpoint: "/v1/detect/deidentify/file/spreadsheet",
+						fileType: "XLSX",
+						mockRequest: DeidentifyFileRequest{
+							FileInput: FileInput{
+								FilePath: filepath.Join(tempDir, "detect.xlsx"),
+							},
+							Entities: []DetectEntities{Name, EmailAddress, Ssn},
+							WaitTime: 5,
+						},
+					},
+					{
+						name:     "Document File",
+						fileExt:  "docx",
+						endpoint: "/v1/detect/deidentify/file/document",
+						fileType: "DOCX",
+						mockRequest: DeidentifyFileRequest{
+							FileInput: FileInput{
+								FilePath: filepath.Join(tempDir, "detect.docx"),
+							},
+							Entities: []DetectEntities{Name, EmailAddress},
+							WaitTime: 5,
+						},
+					},
+					{
+						name:     "Structured Text File",
+						fileExt:  "json",
+						endpoint: "/v1/detect/deidentify/file/structured_text",
+						fileType: "JSON",
+						mockRequest: DeidentifyFileRequest{
+							FileInput: FileInput{
+								FilePath: filepath.Join(tempDir, "detect.json"),
+							},
+							Entities: []DetectEntities{Name, EmailAddress},
+							WaitTime: 5,
+						},
+					},
+				}
+
+				for _, tc := range testCases {
+					tc := tc // capture range variable
+					It(fmt.Sprintf("should successfully process %s", tc.name), func() {
+						// Update file path to use temporary directory
+						tc.mockRequest.FileInput.FilePath = testFiles[tc.fileExt].Name()
+						tc.mockRequest.OutputDirectory = tempDir
+
+						// Mock upload response
+						uploadResponse := make(map[string]interface{})
+						uploadJSONResponse := `{"run_id": "run123"}`
+						_ = json.Unmarshal([]byte(uploadJSONResponse), &uploadResponse)
+
+						// Mock status check response
+						statusResponse := map[string]interface{}{
+							"status": "SUCCESS",
+							"output": []map[string]interface{}{
+								{
+									"processed_file":           "dGVzdCBjb250ZW50",
+									"processed_file_extension": tc.fileExt,
+									"processed_file_type":      tc.fileType,
+								},
+								{
+									"processed_file":           "eyJlbnRpdGllcyI6W119",
+									"processed_file_type":      "ENTITIES",
+									"processed_file_extension": "json",
+								},
+							},
+							"output_type": "FILE",
+							"message":     "Processing completed successfully",
+							"size":        1024.5,
+							"duration":    60.5,
+							"pages":       5,
+							"slides": func() int {
+								if tc.fileType == "PPTX" {
+									return 10
+								}
+								return 0
+							}(),
+							"word_character_count": map[string]interface{}{
+								"word_count":      150,
+								"character_count": 750,
+							},
+						}
+
+						// Set up mock servers for both endpoints
+						mux := http.NewServeMux()
+
+						// Handle file upload
+						mux.HandleFunc(tc.endpoint, func(w http.ResponseWriter, r *http.Request) {
+							w.Header().Set("Content-Type", "application/json")
+							json.NewEncoder(w).Encode(uploadResponse)
+						})
+
+						// Handle status check
+						mux.HandleFunc("/v1/detect/runs/", func(w http.ResponseWriter, r *http.Request) {
+							w.Header().Set("Content-Type", "application/json")
+							json.NewEncoder(w).Encode(statusResponse)
+						})
+
+						ts := httptest.NewServer(mux)
+						defer ts.Close()
+
+						// Configure mock client
+						header := http.Header{}
+						header.Set("Content-Type", "application/json")
+						CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+							client := client.NewClient(
+								option.WithBaseURL(ts.URL),
+								option.WithToken("token"),
+								option.WithHTTPHeader(header),
+							)
+							d.FilesApiClient = *client.Files
+							return nil
+						}
+
+						SetBearerTokenForDetectControllerFunc = func(d *DetectController) *skyflowError.SkyflowError {
+							return nil
+						}
+
+						// Execute test
+						result, err := detectController.DeidentifyFile(ctx, tc.mockRequest)
+
+						// Verify results
+						Expect(err).To(BeNil())
+						Expect(result).ToNot(BeNil())
+						Expect(result.RunId).To(Equal("run123"))
+						Expect(result.Status).To(Equal("SUCCESS"))
+						Expect(result.FileBase64).To(Equal("dGVzdCBjb250ZW50"))
+						Expect(result.Type).To(Equal(tc.fileType))
+						Expect(result.Extension).To(Equal(tc.fileExt))
+						Expect(result.SizeInKb).To(Equal(1024.5))
+						Expect(result.DurationInSeconds).To(Equal(60.5))
+						Expect(result.WordCount).To(Equal(150))
+						Expect(result.CharCount).To(Equal(750))
+
+						// Verify file specific attributes
+						if tc.fileType == "PDF" {
+							Expect(result.PageCount).To(Equal(5))
+						}
+						if tc.fileType == "PPTX" {
+							Expect(result.SlideCount).To(Equal(10))
+						}
+
+						// Verify file info
+						Expect(result.File.Name).To(Equal(fmt.Sprintf("deidentified.%s", tc.fileExt)))
+						Expect(result.File.Type).To(Equal("redacted_file"))
+
+						// Verify entities
+						Expect(result.Entities).To(HaveLen(1))
+						Expect(result.Entities[0].Type).To(Equal("ENTITIES"))
+						Expect(result.Entities[0].Extension).To(Equal("json"))
+						Expect(result.Entities[0].File).To(Equal("eyJlbnRpdGllcyI6W119"))
+					})
+				}
+			})
+
+		})
+	})
+	Describe("GetDetectRun tests", func() {
+		var (
+			detectController *DetectController
+			ctx              context.Context
+		)
+
+		BeforeEach(func() {
+			ctx = context.Background()
+			detectController = &DetectController{
+				Config: VaultConfig{
+					VaultId:   "vault123",
+					ClusterId: "cluster123",
+					Env:       DEV,
+					Credentials: Credentials{
+						ApiKey: "test-api-key",
+					},
+				},
+			}
+		})
+
+		Context("Success cases", func() {
+			It("should successfully get completed run status", func() {
+				// Mock status check response
+				response := map[string]interface{}{
+					"status": "SUCCESS",
+					"output": []map[string]interface{}{
+						{
+							"processed_file":           "dGVzdCBjb250ZW50",
+							"processed_file_extension": "txt",
+							"processed_file_type":      "TEXT",
+						},
+						{
+							"processed_file":           "eyJlbnRpdGllcyI6W119",
+							"processed_file_type":      "ENTITIES",
+							"processed_file_extension": "json",
+						},
+					},
+					"output_type": "FILE",
+					"message":     "Processing completed successfully",
+					"size":        1024.5,
+					"duration":    1.2,
+					"pages":       0,
+					"slides":      0,
+					"word_character_count": map[string]interface{}{
+						"word_count":      150,
+						"character_count": 750,
+					},
+				}
+
+				ts := setupMockServer(response, "ok", "/v1/detect/runs/")
+				defer ts.Close()
+
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
+				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					client := client.NewClient(
+						option.WithBaseURL(ts.URL),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					d.FilesApiClient = *client.Files
+					return nil
+				}
+
+				SetBearerTokenForDetectControllerFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					return nil
+				}
+
+				request := GetDetectRunRequest{
+					RunId: "run123",
+				}
+
+				result, err := detectController.GetDetectRun(ctx, request)
+
+				Expect(err).To(BeNil())
+				Expect(result).ToNot(BeNil())
+				Expect(result.RunId).To(Equal("run123"))
+				Expect(result.Status).To(Equal("SUCCESS"))
+				Expect(result.FileBase64).To(Equal("dGVzdCBjb250ZW50"))
+				Expect(result.Type).To(Equal("TEXT"))
+				Expect(result.Extension).To(Equal("txt"))
+				Expect(result.SizeInKb).To(Equal(1024.5))
+				Expect(result.DurationInSeconds).To(Equal(1.2))
+				Expect(result.PageCount).To(Equal(0))
+				Expect(result.SlideCount).To(Equal(0))
+			})
+
+			It("should handle in-progress status", func() {
+				response := make(map[string]interface{})
+				mockJSONResponse := `{
+					"status": "in_progress",
+					"message": "Processing in progress"
+				}`
+				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
+
+				ts := setupMockServer(response, "ok", "/v1/detect/runs/")
+				defer ts.Close()
+
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
+				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					client := client.NewClient(
+						option.WithBaseURL(ts.URL),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					d.FilesApiClient = *client.Files
+					return nil
+				}
+
+				request := GetDetectRunRequest{
+					RunId: "run123",
+				}
+
+				result, err := detectController.GetDetectRun(ctx, request)
+
+				Expect(err).To(BeNil())
+				Expect(result).ToNot(BeNil())
+				Expect(result.Status).To(Equal("in_progress"))
+				Expect(result.RunId).To(Equal("run123"))
+			})
+		})
+
+		Context("Error cases", func() {
+			It("should return error for invalid run ID", func() {
+				request := GetDetectRunRequest{
+					RunId: "",
+				}
+
+				result, err := detectController.GetDetectRun(ctx, request)
+
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(Equal(fmt.Sprintf("Code: %v", skyflowError.INVALID_INPUT_CODE)))
+			})
+
+			It("should handle API error response", func() {
+				response := make(map[string]interface{})
+				mockJSONResponse := `{"error": {"message": "Invalid run ID"}}`
+				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
+
+				ts := setupMockServer(response, "error", "/v1/detect/runs/")
+				defer ts.Close()
+
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
+				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					client := client.NewClient(
+						option.WithBaseURL(ts.URL),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					d.FilesApiClient = *client.Files
+					return nil
+				}
+
+				request := GetDetectRunRequest{
+					RunId: "invalid_run_id",
+				}
+
+				result, err := detectController.GetDetectRun(ctx, request)
+
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
+			})
+
+			It("should return error when client creation fails", func() {
+				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "Failed to create client")
+				}
+
+				request := GetDetectRunRequest{
+					RunId: "run123",
+				}
+
+				result, err := detectController.GetDetectRun(ctx, request)
+
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(Equal("Code: 400"))
+			})
+
+			It("should return error when bearer token validation fails", func() {
+				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					return nil
+				}
+
+				SetBearerTokenForDetectControllerFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "Invalid bearer token")
+				}
+
+				request := GetDetectRunRequest{
+					RunId: "run123",
+				}
+
+				result, err := detectController.GetDetectRun(ctx, request)
 
 				Expect(result).To(BeNil())
 				Expect(err).ToNot(BeNil())

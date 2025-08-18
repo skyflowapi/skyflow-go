@@ -30,3 +30,19 @@ func (d *detectService) ReidentifyText(ctx context.Context, request common.Reide
 	}
 	return res, nil
 }
+
+func (d *detectService) DeidentifyFile(ctx context.Context, request common.DeidentifyFileRequest) (*common.DeidentifyFileResponse, *skyflowError.SkyflowError) {
+	res, err := d.controller.DeidentifyFile(ctx, request)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+func (d *detectService) GetDetectRun(ctx context.Context, request common.GetDetectRunRequest) (*common.DeidentifyFileResponse, *skyflowError.SkyflowError) {
+	res, err := d.controller.GetDetectRun(ctx, request)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
