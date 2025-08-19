@@ -1,0 +1,31 @@
+DummyPatientID,LastName,FirstName,DOB,DummySSN,Email,Address,City,State,Zip,VisitDate,VisitType,GenericSymptom
+DP0001,Smith,John,1985-06-15,999-00-1234,john.smith@example.com,123 Oak Lane,Anytown,CA,90210,2024-01-10,Annual Checkup,Routine Physical
+DP0002,Doe,Jane,1992-03-22,999-00-2345,jane.doe@testmail.net,456 Maple Drive,Springfield,IL,62704,2024-01-12,Follow-up,Post-Op Review
+DP0003,Garcia,Carlos,1978-11-05,999-00-3456,carlos.g@example.org,789 Pine Street,Metropolis,NY,10001,2024-01-15,Initial Consultation,General Inquiry
+DP0004,Lee,Sun,1989-07-30,999-00-4567,sun.lee@fakemail.com,101 Birch Avenue,Smallville,KS,66601,2024-01-18,Routine Screening,Preventive Care
+DP0005,Walker,Brenda,1965-01-20,999-00-5678,b.walker@emailhost.dev,212 Cedar Road,Gotham,NJ,07001,2024-01-20,Wellness Visit,Health Maintenance
+DP0006,Nguyen,Minh,2001-09-12,998-00-1122,minh.n@example.com,321 Willow Way,Star City,TX,75001,2024-01-22,Annual Checkup,Routine Physical
+DP0007,Patel,Aisha,1995-05-08,998-00-2233,a.patel@testmail.net,432 Elm Street,Central City,FL,33301,2024-01-25,Follow-up,Medication Review
+DP0008,Brown,David,1982-12-19,998-00-3344,david.brown@example.org,543 Aspen Court,Newville,GA,30303,2024-01-28,Initial Consultation,New Symptom Reported
+DP0009,Wilson,Sarah,1970-02-25,998-00-4455,sarah.w@fakemail.com,654 Spruce Lane,Oldtown,VA,22001,2024-02-01,Routine Screening,Preventive Care
+DP0010,Martinez,Jose,1998-08-17,998-00-5566,jose.m@emailhost.dev,765 Redwood Circle,Lakeview,OR,97001,2024-02-03,Wellness Visit,Health Maintenance
+DP0011,Taylor,Emily,1988-04-03,000-11-1212,emily.taylor@example.com,876 Fir Drive,Mountain Pass,CO,80001,2024-02-05,Annual Checkup,Routine Physical
+DP0012,Anderson,Robert,1960-10-10,000-11-2323,robert.a@testmail.net,987 Juniper Path,Riverdale,OH,44001,2024-02-07,Follow-up,Chronic Condition Check
+DP0013,Thomas,Jessica,2003-01-07,000-11-3434,jessica.t@example.org,110 Poplar Place,Seaside,ME,04001,2024-02-10,Initial Consultation,Minor Injury
+DP0014,Jackson,Michael,1975-07-14,000-11-4545,michael.j@fakemail.com,221 Magnolia Ave,Desert Bloom,AZ,85001,2024-02-12,Routine Screening,Preventive Care
+DP0015,White,Linda,1991-03-29,000-11-5656,linda.white@emailhost.dev,332 Hemlock Street,Green Valley,NV,89001,2024-02-15,Wellness Visit,Health Maintenance
+DP0016,Harris,Daniel,1983-11-11,997-22-1010,daniel.h@example.com,443 Cypress Bend,Hilltop,PA,19001,2024-02-18,Annual Checkup,Routine Physical
+DP0017,Martin,Patricia,1968-09-09,997-22-2020,patricia.m@testmail.net,554 Sycamore Trail,Valley Forge,MD,21001,2024-02-20,Follow-up,Test Results Review
+DP0018,Thompson,Christopher,1996-06-06,997-22-3030,chris.t@example.org,665 Larch Road,Coastal City,SC,29001,2024-02-23,Initial Consultation,Second Opinion
+DP0019,Robinson,Jennifer,1979-04-04,997-22-4040,jennifer.r@fakemail.com,776 Sequoia Court,Plainview,NE,68001,2024-02-26,Routine Screening,Preventive Care
+DP0020,Clark,Matthew,1980-08-08,997-22-5050,matthew.c@emailhost.dev,887 Douglas Alley,Farmington,NM,87401,2024-02-28,Wellness Visit,Health Maintenance
+DP0021,Rodriguez,Maria,1993-05-25,000-33-0101,maria.r@example.com,135 Walnut Grove,Capital City,AL,36001,2024-03-01,Annual Checkup,Routine Physical
+DP0022,Lewis,Jessica,1972-12-01,000-33-0202,jessica.l@testmail.net,246 Chestnut Rise,Baytown,MS,39001,2024-03-04,Follow-up,Symptom Management
+DP0023,Young,Joshua,1987-10-18,000-33-0303,joshua.y@example.org,357 Cherry Blossom Way,Summit Peak,UT,84001,2024-03-06,Initial Consultation,Referral Visit
+DP0024,King,Ashley,1999-02-14,000-33-0404,ashley.k@fakemail.com,468 Applewood Lane,Forrestville,AR,72001,2024-03-09,Routine Screening,Preventive Care
+DP0025,Scott,Brian,1963-07-07,000-33-0505,brian.s@emailhost.dev,579 Plum Circle,Riverbend,KY,40001,2024-03-11,Wellness Visit,Health Maintenance
+DP0026,Green,Donna,1981-09-23,996-44-0011,donna.g@example.com,680 Orange Street,Lakewood,WA,98001,2024-03-13,Annual Checkup,Routine Physical
+DP0027,Adams,Kevin,1990-11-30,996-44-0022,kevin.a@testmail.net,791 Lemon Avenue,Sunrise City,HI,96701,2024-03-15,Follow-up,Progress Check
+DP0028,Baker,Sandra,1977-01-16,996-44-0033,sandra.b@example.org,802 Grapevine Road,Prairie View,ND,58001,2024-03-18,Initial Consultation,Pain Assessment
+DP0029,Nelson,Paul,1984-03-02,996-44-0044,paul.n@fakemail.com,913 Peach Court,Oasis Springs,ID,83201,2024-03-20,Routine Screening,Preventive Care
+DP0030,Carter,Michelle,1994-08-20,996-44-0055,michelle.c@emailhost.dev,24 Pear Street,Glacier Falls,MT,59001,2024-03-22,Wellness Visit,Health Maintenance

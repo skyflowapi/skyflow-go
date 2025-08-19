@@ -1,0 +1,453 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PatientRecords>
+  <PatientRecord>
+    <DummyPatientID>DP0001</DummyPatientID>
+    <LastName>Smith</LastName>
+    <FirstName>John</FirstName>
+    <DOB>1985-06-15</DOB>
+    <DummySSN>999-00-1234</DummySSN>
+    <Email>john.smith@example.com</Email>
+    <Address>123 Oak Lane</Address>
+    <City>Anytown</City>
+    <State>CA</State>
+    <Zip>90210</Zip>
+    <VisitDate>2024-01-10</VisitDate>
+    <VisitType>Annual Checkup</VisitType>
+    <GenericSymptom>Routine Physical</GenericSymptom>
+  </PatientRecord>
+  <PatientRecord>
+    <DummyPatientID>DP0002</DummyPatientID>
+    <LastName>Doe</LastName>
+    <FirstName>Jane</FirstName>
+    <DOB>1992-03-22</DOB>
+    <DummySSN>999-00-2345</DummySSN>
+    <Email>jane.doe@testmail.net</Email>
+    <Address>456 Maple Drive</Address>
+    <City>Springfield</City>
+    <State>IL</State>
+    <Zip>62704</Zip>
+    <VisitDate>2024-01-12</VisitDate>
+    <VisitType>Follow-up</VisitType>
+    <GenericSymptom>Post-Op Review</GenericSymptom>
+  </PatientRecord>
+  <PatientRecord>
+    <DummyPatientID>DP0003</DummyPatientID>
+    <LastName>Garcia</LastName>
+    <FirstName>Carlos</FirstName>
+    <DOB>1978-11-05</DOB>
+    <DummySSN>999-00-3456</DummySSN>
+    <Email>carlos.g@example.org</Email>
+    <Address>789 Pine Street</Address>
+    <City>Metropolis</City>
+    <State>NY</State>
+    <Zip>10001</Zip>
+    <VisitDate>2024-01-15</VisitDate>
+    <VisitType>Initial Consultation</VisitType>
+    <GenericSymptom>General Inquiry</GenericSymptom>
+  </PatientRecord>
+  <PatientRecord>
+    <DummyPatientID>DP0004</DummyPatientID>
+    <LastName>Lee</LastName>
+    <FirstName>Sun</FirstName>
+    <DOB>1989-07-30</DOB>
+    <DummySSN>999-00-4567</DummySSN>
+    <Email>sun.lee@fakemail.com</Email>
+    <Address>101 Birch Avenue</Address>
+    <City>Smallville</City>
+    <State>KS</State>
+    <Zip>66601</Zip>
+    <VisitDate>2024-01-18</VisitDate>
+    <VisitType>Routine Screening</VisitType>
+    <GenericSymptom>Preventive Care</GenericSymptom>
+  </PatientRecord>
+  <PatientRecord>
+    <DummyPatientID>DP0005</DummyPatientID>
+    <LastName>Walker</LastName>
+    <FirstName>Brenda</FirstName>
+    <DOB>1965-01-20</DOB>
+    <DummySSN>999-00-5678</DummySSN>
+    <Email>b.walker@emailhost.dev</Email>
+    <Address>212 Cedar Road</Address>
+    <City>Gotham</City>
+    <State>NJ</State>
+    <Zip>07001</Zip>
+    <VisitDate>2024-01-20</VisitDate>
+    <VisitType>Wellness Visit</VisitType>
+    <GenericSymptom>Health Maintenance</GenericSymptom>
+  </PatientRecord>
+  <PatientRecord>
+    <DummyPatientID>DP0006</DummyPatientID>
+    <LastName>Nguyen</LastName>
+    <FirstName>Minh</FirstName>
+    <DOB>2001-09-12</DOB>
+    <DummySSN>998-00-1122</DummySSN>
+    <Email>minh.n@example.com</Email>
+    <Address>321 Willow Way</Address>
+    <City>Star City</City>
+    <State>TX</State>
+    <Zip>75001</Zip>
+    <VisitDate>2024-01-22</VisitDate>
+    <VisitType>Annual Checkup</VisitType>
+    <GenericSymptom>Routine Physical</GenericSymptom>
+  </PatientRecord>
+  <PatientRecord>
+    <DummyPatientID>DP0007</DummyPatientID>
+    <LastName>Patel</LastName>
+    <FirstName>Aisha</FirstName>
+    <DOB>1995-05-08</DOB>
+    <DummySSN>998-00-2233</DummySSN>
+    <Email>a.patel@testmail.net</Email>
+    <Address>432 Elm Street</Address>
+    <City>Central City</City>
+    <State>FL</State>
+    <Zip>33301</Zip>
+    <VisitDate>2024-01-25</VisitDate>
+    <VisitType>Follow-up</VisitType>
+    <GenericSymptom>Medication Review</GenericSymptom>
+  </PatientRecord>
+  <PatientRecord>
+    <DummyPatientID>DP0008</DummyPatientID>
+    <LastName>Brown</LastName>
+    <FirstName>David</FirstName>
+    <DOB>1982-12-19</DOB>
+    <DummySSN>998-00-3344</DummySSN>
+    <Email>david.brown@example.org</Email>
+    <Address>543 Aspen Court</Address>
+    <City>Newville</City>
+    <State>GA</State>
+    <Zip>30303</Zip>
+    <VisitDate>2024-01-28</VisitDate>
+    <VisitType>Initial Consultation</VisitType>
+    <GenericSymptom>New Symptom Reported</GenericSymptom>
+  </PatientRecord>
+  <PatientRecord>
+    <DummyPatientID>DP0009</DummyPatientID>
+    <LastName>Wilson</LastName>
+    <FirstName>Sarah</FirstName>
+    <DOB>1970-02-25</DOB>
+    <DummySSN>998-00-4455</DummySSN>
+    <Email>sarah.w@fakemail.com</Email>
+    <Address>654 Spruce Lane</Address>
+    <City>Oldtown</City>
+    <State>VA</State>
+    <Zip>22001</Zip>
+    <VisitDate>2024-02-01</VisitDate>
+    <VisitType>Routine Screening</VisitType>
+    <GenericSymptom>Preventive Care</GenericSymptom>
+  </PatientRecord>
+  <PatientRecord>
+    <DummyPatientID>DP0010</DummyPatientID>
+    <LastName>Martinez</LastName>
+    <FirstName>Jose</FirstName>
+    <DOB>1998-08-17</DOB>
+    <DummySSN>998-00-5566</DummySSN>
+    <Email>jose.m@emailhost.dev</Email>
+    <Address>765 Redwood Circle</Address>
+    <City>Lakeview</City>
+    <State>OR</State>
+    <Zip>97001</Zip>
+    <VisitDate>2024-02-03</VisitDate>
+    <VisitType>Wellness Visit</VisitType>
+    <GenericSymptom>Health Maintenance</GenericSymptom>
+  </PatientRecord>
+  <PatientRecord>
+    <DummyPatientID>DP0011</DummyPatientID>
+    <LastName>Taylor</LastName>
+    <FirstName>Emily</FirstName>
+    <DOB>1988-04-03</DOB>
+    <DummySSN>000-11-1212</DummySSN>
+    <Email>emily.taylor@example.com</Email>
+    <Address>876 Fir Drive</Address>
+    <City>Mountain Pass</City>
+    <State>CO</State>
+    <Zip>80001</Zip>
+    <VisitDate>2024-02-05</VisitDate>
+    <VisitType>Annual Checkup</VisitType>
+    <GenericSymptom>Routine Physical</GenericSymptom>
+  </PatientRecord>
+  <PatientRecord>
+    <DummyPatientID>DP0012</DummyPatientID>
+    <LastName>Anderson</LastName>
+    <FirstName>Robert</FirstName>
+    <DOB>1960-10-10</DOB>
+    <DummySSN>000-11-2323</DummySSN>
+    <Email>robert.a@testmail.net</Email>
+    <Address>987 Juniper Path</Address>
+    <City>Riverdale</City>
+    <State>OH</State>
+    <Zip>44001</Zip>
+    <VisitDate>2024-02-07</VisitDate>
+    <VisitType>Follow-up</VisitType>
+    <GenericSymptom>Chronic Condition Check</GenericSymptom>
+  </PatientRecord>
+  <PatientRecord>
+    <DummyPatientID>DP0013</DummyPatientID>
+    <LastName>Thomas</LastName>
+    <FirstName>Jessica</FirstName>
+    <DOB>2003-01-07</DOB>
+    <DummySSN>000-11-3434</DummySSN>
+    <Email>jessica.t@example.org</Email>
+    <Address>110 Poplar Place</Address>
+    <City>Seaside</City>
+    <State>ME</State>
+    <Zip>04001</Zip>
+    <VisitDate>2024-02-10</VisitDate>
+    <VisitType>Initial Consultation</VisitType>
+    <GenericSymptom>Minor Injury</GenericSymptom>
+  </PatientRecord>
+  <PatientRecord>
+    <DummyPatientID>DP0014</DummyPatientID>
+    <LastName>Jackson</LastName>
+    <FirstName>Michael</FirstName>
+    <DOB>1975-07-14</DOB>
+    <DummySSN>000-11-4545</DummySSN>
+    <Email>michael.j@fakemail.com</Email>
+    <Address>221 Magnolia Ave</Address>
+    <City>Desert Bloom</City>
+    <State>AZ</State>
+    <Zip>85001</Zip>
+    <VisitDate>2024-02-12</VisitDate>
+    <VisitType>Routine Screening</VisitType>
+    <GenericSymptom>Preventive Care</GenericSymptom>
+  </PatientRecord>
+  <PatientRecord>
+    <DummyPatientID>DP0015</DummyPatientID>
+    <LastName>White</LastName>
+    <FirstName>Linda</FirstName>
+    <DOB>1991-03-29</DOB>
+    <DummySSN>000-11-5656</DummySSN>
+    <Email>linda.white@emailhost.dev</Email>
+    <Address>332 Hemlock Street</Address>
+    <City>Green Valley</City>
+    <State>NV</State>
+    <Zip>89001</Zip>
+    <VisitDate>2024-02-15</VisitDate>
+    <VisitType>Wellness Visit</VisitType>
+    <GenericSymptom>Health Maintenance</GenericSymptom>
+  </PatientRecord>
+  <PatientRecord>
+    <DummyPatientID>DP0016</DummyPatientID>
+    <LastName>Harris</LastName>
+    <FirstName>Daniel</FirstName>
+    <DOB>1983-11-11</DOB>
+    <DummySSN>997-22-1010</DummySSN>
+    <Email>daniel.h@example.com</Email>
+    <Address>443 Cypress Bend</Address>
+    <City>Hilltop</City>
+    <State>PA</State>
+    <Zip>19001</Zip>
+    <VisitDate>2024-02-18</VisitDate>
+    <VisitType>Annual Checkup</VisitType>
+    <GenericSymptom>Routine Physical</GenericSymptom>
+  </PatientRecord>
+  <PatientRecord>
+    <DummyPatientID>DP0017</DummyPatientID>
+    <LastName>Martin</LastName>
+    <FirstName>Patricia</FirstName>
+    <DOB>1968-09-09</DOB>
+    <DummySSN>997-22-2020</DummySSN>
+    <Email>patricia.m@testmail.net</Email>
+    <Address>554 Sycamore Trail</Address>
+    <City>Valley Forge</City>
+    <State>MD</State>
+    <Zip>21001</Zip>
+    <VisitDate>2024-02-20</VisitDate>
+    <VisitType>Follow-up</VisitType>
+    <GenericSymptom>Test Results Review</GenericSymptom>
+  </PatientRecord>
+  <PatientRecord>
+    <DummyPatientID>DP0018</DummyPatientID>
+    <LastName>Thompson</LastName>
+    <FirstName>Christopher</FirstName>
+    <DOB>1996-06-06</DOB>
+    <DummySSN>997-22-3030</DummySSN>
+    <Email>chris.t@example.org</Email>
+    <Address>665 Larch Road</Address>
+    <City>Coastal City</City>
+    <State>SC</State>
+    <Zip>29001</Zip>
+    <VisitDate>2024-02-23</VisitDate>
+    <VisitType>Initial Consultation</VisitType>
+    <GenericSymptom>Second Opinion</GenericSymptom>
+  </PatientRecord>
+  <PatientRecord>
+    <DummyPatientID>DP0019</DummyPatientID>
+    <LastName>Robinson</LastName>
+    <FirstName>Jennifer</FirstName>
+    <DOB>1979-04-04</DOB>
+    <DummySSN>997-22-4040</DummySSN>
+    <Email>jennifer.r@fakemail.com</Email>
+    <Address>776 Sequoia Court</Address>
+    <City>Plainview</City>
+    <State>NE</State>
+    <Zip>68001</Zip>
+    <VisitDate>2024-02-26</VisitDate>
+    <VisitType>Routine Screening</VisitType>
+    <GenericSymptom>Preventive Care</GenericSymptom>
+  </PatientRecord>
+  <PatientRecord>
+    <DummyPatientID>DP0020</DummyPatientID>
+    <LastName>Clark</LastName>
+    <FirstName>Matthew</FirstName>
+    <DOB>1980-08-08</DOB>
+    <DummySSN>997-22-5050</DummySSN>
+    <Email>matthew.c@emailhost.dev</Email>
+    <Address>887 Douglas Alley</Address>
+    <City>Farmington</City>
+    <State>NM</State>
+    <Zip>87401</Zip>
+    <VisitDate>2024-02-28</VisitDate>
+    <VisitType>Wellness Visit</VisitType>
+    <GenericSymptom>Health Maintenance</GenericSymptom>
+  </PatientRecord>
+  <PatientRecord>
+    <DummyPatientID>DP0021</DummyPatientID>
+    <LastName>Rodriguez</LastName>
+    <FirstName>Maria</FirstName>
+    <DOB>1993-05-25</DOB>
+    <DummySSN>000-33-0101</DummySSN>
+    <Email>maria.r@example.com</Email>
+    <Address>135 Walnut Grove</Address>
+    <City>Capital City</City>
+    <State>AL</State>
+    <Zip>36001</Zip>
+    <VisitDate>2024-03-01</VisitDate>
+    <VisitType>Annual Checkup</VisitType>
+    <GenericSymptom>Routine Physical</GenericSymptom>
+  </PatientRecord>
+  <PatientRecord>
+    <DummyPatientID>DP0022</DummyPatientID>
+    <LastName>Lewis</LastName>
+    <FirstName>Jessica</FirstName>
+    <DOB>1972-12-01</DOB>
+    <DummySSN>000-33-0202</DummySSN>
+    <Email>jessica.l@testmail.net</Email>
+    <Address>246 Chestnut Rise</Address>
+    <City>Baytown</City>
+    <State>MS</State>
+    <Zip>39001</Zip>
+    <VisitDate>2024-03-04</VisitDate>
+    <VisitType>Follow-up</VisitType>
+    <GenericSymptom>Symptom Management</GenericSymptom>
+  </PatientRecord>
+  <PatientRecord>
+    <DummyPatientID>DP0023</DummyPatientID>
+    <LastName>Young</LastName>
+    <FirstName>Joshua</FirstName>
+    <DOB>1987-10-18</DOB>
+    <DummySSN>000-33-0303</DummySSN>
+    <Email>joshua.y@example.org</Email>
+    <Address>357 Cherry Blossom Way</Address>
+    <City>Summit Peak</City>
+    <State>UT</State>
+    <Zip>84001</Zip>
+    <VisitDate>2024-03-06</VisitDate>
+    <VisitType>Initial Consultation</VisitType>
+    <GenericSymptom>Referral Visit</GenericSymptom>
+  </PatientRecord>
+  <PatientRecord>
+    <DummyPatientID>DP0024</DummyPatientID>
+    <LastName>King</LastName>
+    <FirstName>Ashley</FirstName>
+    <DOB>1999-02-14</DOB>
+    <DummySSN>000-33-0404</DummySSN>
+    <Email>ashley.k@fakemail.com</Email>
+    <Address>468 Applewood Lane</Address>
+    <City>Forrestville</City>
+    <State>AR</State>
+    <Zip>72001</Zip>
+    <VisitDate>2024-03-09</VisitDate>
+    <VisitType>Routine Screening</VisitType>
+    <GenericSymptom>Preventive Care</GenericSymptom>
+  </PatientRecord>
+  <PatientRecord>
+    <DummyPatientID>DP0025</DummyPatientID>
+    <LastName>Scott</LastName>
+    <FirstName>Brian</FirstName>
+    <DOB>1963-07-07</DOB>
+    <DummySSN>000-33-0505</DummySSN>
+    <Email>brian.s@emailhost.dev</Email>
+    <Address>579 Plum Circle</Address>
+    <City>Riverbend</City>
+    <State>KY</State>
+    <Zip>40001</Zip>
+    <VisitDate>2024-03-11</VisitDate>
+    <VisitType>Wellness Visit</VisitType>
+    <GenericSymptom>Health Maintenance</GenericSymptom>
+  </PatientRecord>
+  <PatientRecord>
+    <DummyPatientID>DP0026</DummyPatientID>
+    <LastName>Green</LastName>
+    <FirstName>Donna</FirstName>
+    <DOB>1981-09-23</DOB>
+    <DummySSN>996-44-0011</DummySSN>
+    <Email>donna.g@example.com</Email>
+    <Address>680 Orange Street</Address>
+    <City>Lakewood</City>
+    <State>WA</State>
+    <Zip>98001</Zip>
+    <VisitDate>2024-03-13</VisitDate>
+    <VisitType>Annual Checkup</VisitType>
+    <GenericSymptom>Routine Physical</GenericSymptom>
+  </PatientRecord>
+  <PatientRecord>
+    <DummyPatientID>DP0027</DummyPatientID>
+    <LastName>Adams</LastName>
+    <FirstName>Kevin</FirstName>
+    <DOB>1990-11-30</DOB>
+    <DummySSN>996-44-0022</DummySSN>
+    <Email>kevin.a@testmail.net</Email>
+    <Address>791 Lemon Avenue</Address>
+    <City>Sunrise City</City>
+    <State>HI</State>
+    <Zip>96701</Zip>
+    <VisitDate>2024-03-15</VisitDate>
+    <VisitType>Follow-up</VisitType>
+    <GenericSymptom>Progress Check</GenericSymptom>
+  </PatientRecord>
+  <PatientRecord>
+    <DummyPatientID>DP0028</DummyPatientID>
+    <LastName>Baker</LastName>
+    <FirstName>Sandra</FirstName>
+    <DOB>1977-01-16</DOB>
+    <DummySSN>996-44-0033</DummySSN>
+    <Email>sandra.b@example.org</Email>
+    <Address>802 Grapevine Road</Address>
+    <City>Prairie View</City>
+    <State>ND</State>
+    <Zip>58001</Zip>
+    <VisitDate>2024-03-18</VisitDate>
+    <VisitType>Initial Consultation</VisitType>
+    <GenericSymptom>Pain Assessment</GenericSymptom>
+  </PatientRecord>
+  <PatientRecord>
+    <DummyPatientID>DP0029</DummyPatientID>
+    <LastName>Nelson</LastName>
+    <FirstName>Paul</FirstName>
+    <DOB>1984-03-02</DOB>
+    <DummySSN>996-44-0044</DummySSN>
+    <Email>paul.n@fakemail.com</Email>
+    <Address>913 Peach Court</Address>
+    <City>Oasis Springs</City>
+    <State>ID</State>
+    <Zip>83201</Zip>
+    <VisitDate>2024-03-20</VisitDate>
+    <VisitType>Routine Screening</VisitType>
+    <GenericSymptom>Preventive Care</GenericSymptom>
+  </PatientRecord>
+  <PatientRecord>
+    <DummyPatientID>DP0030</DummyPatientID>
+    <LastName>Carter</LastName>
+    <FirstName>Michelle</FirstName>
+    <DOB>1994-08-20</DOB>
+    <DummySSN>996-44-0055</DummySSN>
+    <Email>michelle.c@emailhost.dev</Email>
+    <Address>24 Pear Street</Address>
+    <City>Glacier Falls</City>
+    <State>MT</State>
+    <Zip>59001</Zip>
+    <VisitDate>2024-03-22</VisitDate>
+    <VisitType>Wellness Visit</VisitType>
+    <GenericSymptom>Health Maintenance</GenericSymptom>
+  </PatientRecord>
+</PatientRecords>
