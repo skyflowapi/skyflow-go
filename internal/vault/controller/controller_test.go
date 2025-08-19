@@ -1791,6 +1791,7 @@ var _ = Describe("VaultController", func() {
 			vaultController.Config.Credentials.Path = "../../" + os.Getenv("CRED_FILE_PATH")
 
 			err := SetBearerTokenForVaultController(vaultController)
+
 			Expect(err).To(BeNil())
 		})
 		It("should generate token if file path is provided", func() {
@@ -1913,7 +1914,7 @@ var _ = Describe("DetectController", func() {
 			detectController = &DetectController{
 				Config: VaultConfig{
 					Credentials: Credentials{
-						Path: "test/path",
+						Path: "credentials.json",
 					},
 				},
 			}
