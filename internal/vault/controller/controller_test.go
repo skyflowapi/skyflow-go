@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 
@@ -2721,14 +2722,14 @@ var _ = Describe("DetectController", func() {
 			ctx              context.Context
 		)
 
-		BeforeAll(func() {
-			err := os.MkdirAll("../../../utils/resources/temp", os.ModePerm)
-			Expect(err).To(BeNil(), "Failed to create temp directory for tests")
-		})
-
 		AfterAll(func() {
-			err := os.RemoveAll("../../../utils/resources/temp")
-			Expect(err).To(BeNil(), "Failed to clean up temp directory after tests")
+			files, err := filepath.Glob("./*processed-detect*")
+			Expect(err).To(BeNil(), "Failed to search for processed-detect files")
+
+			for _, f := range files {
+				removeErr := os.Remove(f)
+				Expect(removeErr).To(BeNil(), fmt.Sprintf("Failed to remove file: %s", f))
+			}
 		})
 
 		BeforeEach(func() {
@@ -2797,7 +2798,6 @@ var _ = Describe("DetectController", func() {
 									},
 								},
 							},
-							OutputDirectory: "../../../utils/resources/temp",
 						},
 					},
 					{
@@ -2842,7 +2842,6 @@ var _ = Describe("DetectController", func() {
 									},
 								},
 							},
-							OutputDirectory: "../../../utils/resources/temp",
 						},
 					},
 					{
@@ -2881,7 +2880,6 @@ var _ = Describe("DetectController", func() {
 									},
 								},
 							},
-							OutputDirectory: "../../../utils/resources/temp",
 						},
 					},
 					{
@@ -2897,9 +2895,8 @@ var _ = Describe("DetectController", func() {
 							TokenFormat: TokenFormat{
 								DefaultType: TokenTypeDefaultVaultToken,
 							},
-							WaitTime:        5,
-							MaxResolution:   200,
-							OutputDirectory: "../../../utils/resources/temp",
+							WaitTime:      5,
+							MaxResolution: 200,
 						},
 					},
 					{
@@ -3072,211 +3069,209 @@ var _ = Describe("DetectController", func() {
 			})
 
 		})
+	})
+	Describe("GetDetectRun tests", func() {
+		var (
+			detectController *DetectController
+			ctx              context.Context
+		)
 
-		Describe("GetDetectRun tests", func() {
-			var (
-				detectController *DetectController
-				ctx              context.Context
-			)
+		BeforeEach(func() {
+			ctx = context.Background()
+			detectController = &DetectController{
+				Config: VaultConfig{
+					VaultId:   "vault123",
+					ClusterId: "cluster123",
+					Env:       DEV,
+					Credentials: Credentials{
+						ApiKey: "test-api-key",
+					},
+				},
+			}
+		})
 
-			BeforeEach(func() {
-				ctx = context.Background()
-				detectController = &DetectController{
-					Config: VaultConfig{
-						VaultId:   "vault123",
-						ClusterId: "cluster123",
-						Env:       DEV,
-						Credentials: Credentials{
-							ApiKey: "test-api-key",
+		Context("Success cases", func() {
+			It("should successfully get completed run status", func() {
+				// Mock status check response
+				response := map[string]interface{}{
+					"status": "SUCCESS",
+					"output": []map[string]interface{}{
+						{
+							"processed_file":           "dGVzdCBjb250ZW50",
+							"processed_file_extension": "txt",
+							"processed_file_type":      "TEXT",
+						},
+						{
+							"processed_file":           "eyJlbnRpdGllcyI6W119",
+							"processed_file_type":      "ENTITIES",
+							"processed_file_extension": "json",
 						},
 					},
+					"output_type": "FILE",
+					"message":     "Processing completed successfully",
+					"size":        1024.5,
+					"duration":    1.2,
+					"pages":       0,
+					"slides":      0,
+					"word_character_count": map[string]interface{}{
+						"word_count":      150,
+						"character_count": 750,
+					},
 				}
+
+				ts := setupMockServer(response, "ok", "/v1/detect/runs/")
+				defer ts.Close()
+
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
+				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					client := client.NewClient(
+						option.WithBaseURL(ts.URL),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					d.FilesApiClient = *client.Files
+					return nil
+				}
+
+				SetBearerTokenForDetectControllerFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					return nil
+				}
+
+				request := GetDetectRunRequest{
+					RunId: "run123",
+				}
+
+				result, err := detectController.GetDetectRun(ctx, request)
+
+				Expect(err).To(BeNil())
+				Expect(result).ToNot(BeNil())
+				Expect(result.RunId).To(Equal("run123"))
+				Expect(result.Status).To(Equal("SUCCESS"))
+				Expect(result.FileBase64).To(Equal("dGVzdCBjb250ZW50"))
+				Expect(result.Type).To(Equal("TEXT"))
+				Expect(result.Extension).To(Equal("txt"))
+				Expect(result.SizeInKb).To(Equal(1024.5))
+				Expect(result.DurationInSeconds).To(Equal(1.2))
+				Expect(result.PageCount).To(Equal(0))
+				Expect(result.SlideCount).To(Equal(0))
 			})
 
-			Context("Success cases", func() {
-				It("should successfully get completed run status", func() {
-					// Mock status check response
-					response := map[string]interface{}{
-						"status": "SUCCESS",
-						"output": []map[string]interface{}{
-							{
-								"processed_file":           "dGVzdCBjb250ZW50",
-								"processed_file_extension": "txt",
-								"processed_file_type":      "TEXT",
-							},
-							{
-								"processed_file":           "eyJlbnRpdGllcyI6W119",
-								"processed_file_type":      "ENTITIES",
-								"processed_file_extension": "json",
-							},
-						},
-						"output_type": "FILE",
-						"message":     "Processing completed successfully",
-						"size":        1024.5,
-						"duration":    1.2,
-						"pages":       0,
-						"slides":      0,
-						"word_character_count": map[string]interface{}{
-							"word_count":      150,
-							"character_count": 750,
-						},
-					}
+			It("should handle in-progress status", func() {
+				response := make(map[string]interface{})
+				mockJSONResponse := `{
+					"status": "in_progress",
+					"message": "Processing in progress"
+				}`
+				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
 
-					ts := setupMockServer(response, "ok", "/v1/detect/runs/")
-					defer ts.Close()
+				ts := setupMockServer(response, "ok", "/v1/detect/runs/")
+				defer ts.Close()
 
-					header := http.Header{}
-					header.Set("Content-Type", "application/json")
-					CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
-						client := client.NewClient(
-							option.WithBaseURL(ts.URL),
-							option.WithToken("token"),
-							option.WithHTTPHeader(header),
-						)
-						d.FilesApiClient = *client.Files
-						return nil
-					}
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
+				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					client := client.NewClient(
+						option.WithBaseURL(ts.URL),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					d.FilesApiClient = *client.Files
+					return nil
+				}
 
-					SetBearerTokenForDetectControllerFunc = func(d *DetectController) *skyflowError.SkyflowError {
-						return nil
-					}
+				request := GetDetectRunRequest{
+					RunId: "run123",
+				}
 
-					request := GetDetectRunRequest{
-						RunId: "run123",
-					}
+				result, err := detectController.GetDetectRun(ctx, request)
 
-					result, err := detectController.GetDetectRun(ctx, request)
-
-					Expect(err).To(BeNil())
-					Expect(result).ToNot(BeNil())
-					Expect(result.RunId).To(Equal("run123"))
-					Expect(result.Status).To(Equal("SUCCESS"))
-					Expect(result.FileBase64).To(Equal("dGVzdCBjb250ZW50"))
-					Expect(result.Type).To(Equal("TEXT"))
-					Expect(result.Extension).To(Equal("txt"))
-					Expect(result.SizeInKb).To(Equal(1024.5))
-					Expect(result.DurationInSeconds).To(Equal(1.2))
-					Expect(result.PageCount).To(Equal(0))
-					Expect(result.SlideCount).To(Equal(0))
-				})
-
-				It("should handle in-progress status", func() {
-					response := make(map[string]interface{})
-					mockJSONResponse := `{
-						"status": "in_progress",
-						"message": "Processing in progress"
-					}`
-					_ = json.Unmarshal([]byte(mockJSONResponse), &response)
-
-					ts := setupMockServer(response, "ok", "/v1/detect/runs/")
-					defer ts.Close()
-
-					header := http.Header{}
-					header.Set("Content-Type", "application/json")
-					CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
-						client := client.NewClient(
-							option.WithBaseURL(ts.URL),
-							option.WithToken("token"),
-							option.WithHTTPHeader(header),
-						)
-						d.FilesApiClient = *client.Files
-						return nil
-					}
-
-					request := GetDetectRunRequest{
-						RunId: "run123",
-					}
-
-					result, err := detectController.GetDetectRun(ctx, request)
-
-					Expect(err).To(BeNil())
-					Expect(result).ToNot(BeNil())
-					Expect(result.Status).To(Equal("in_progress"))
-					Expect(result.RunId).To(Equal("run123"))
-				})
-			})
-
-			Context("Error cases", func() {
-				It("should return error for invalid run ID", func() {
-					request := GetDetectRunRequest{
-						RunId: "",
-					}
-
-					result, err := detectController.GetDetectRun(ctx, request)
-
-					Expect(result).To(BeNil())
-					Expect(err).ToNot(BeNil())
-					Expect(err.GetCode()).To(Equal(fmt.Sprintf("Code: %v", skyflowError.INVALID_INPUT_CODE)))
-				})
-
-				It("should handle API error response", func() {
-					response := make(map[string]interface{})
-					mockJSONResponse := `{"error": {"message": "Invalid run ID"}}`
-					_ = json.Unmarshal([]byte(mockJSONResponse), &response)
-
-					ts := setupMockServer(response, "error", "/v1/detect/runs/")
-					defer ts.Close()
-
-					header := http.Header{}
-					header.Set("Content-Type", "application/json")
-					CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
-						client := client.NewClient(
-							option.WithBaseURL(ts.URL),
-							option.WithToken("token"),
-							option.WithHTTPHeader(header),
-						)
-						d.FilesApiClient = *client.Files
-						return nil
-					}
-
-					request := GetDetectRunRequest{
-						RunId: "invalid_run_id",
-					}
-
-					result, err := detectController.GetDetectRun(ctx, request)
-
-					Expect(result).To(BeNil())
-					Expect(err).ToNot(BeNil())
-				})
-
-				It("should return error when client creation fails", func() {
-					CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
-						return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "Failed to create client")
-					}
-
-					request := GetDetectRunRequest{
-						RunId: "run123",
-					}
-
-					result, err := detectController.GetDetectRun(ctx, request)
-
-					Expect(result).To(BeNil())
-					Expect(err).ToNot(BeNil())
-					Expect(err.GetCode()).To(Equal("Code: 400"))
-				})
-
-				It("should return error when bearer token validation fails", func() {
-					CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
-						return nil
-					}
-
-					SetBearerTokenForDetectControllerFunc = func(d *DetectController) *skyflowError.SkyflowError {
-						return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "Invalid bearer token")
-					}
-
-					request := GetDetectRunRequest{
-						RunId: "run123",
-					}
-
-					result, err := detectController.GetDetectRun(ctx, request)
-
-					Expect(result).To(BeNil())
-					Expect(err).ToNot(BeNil())
-					Expect(err.GetCode()).To(Equal("Code: 400"))
-				})
+				Expect(err).To(BeNil())
+				Expect(result).ToNot(BeNil())
+				Expect(result.Status).To(Equal("in_progress"))
+				Expect(result.RunId).To(Equal("run123"))
 			})
 		})
 
+		Context("Error cases", func() {
+			It("should return error for invalid run ID", func() {
+				request := GetDetectRunRequest{
+					RunId: "",
+				}
+
+				result, err := detectController.GetDetectRun(ctx, request)
+
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(Equal(fmt.Sprintf("Code: %v", skyflowError.INVALID_INPUT_CODE)))
+			})
+
+			It("should handle API error response", func() {
+				response := make(map[string]interface{})
+				mockJSONResponse := `{"error": {"message": "Invalid run ID"}}`
+				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
+
+				ts := setupMockServer(response, "error", "/v1/detect/runs/")
+				defer ts.Close()
+
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
+				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					client := client.NewClient(
+						option.WithBaseURL(ts.URL),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					d.FilesApiClient = *client.Files
+					return nil
+				}
+
+				request := GetDetectRunRequest{
+					RunId: "invalid_run_id",
+				}
+
+				result, err := detectController.GetDetectRun(ctx, request)
+
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
+			})
+
+			It("should return error when client creation fails", func() {
+				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "Failed to create client")
+				}
+
+				request := GetDetectRunRequest{
+					RunId: "run123",
+				}
+
+				result, err := detectController.GetDetectRun(ctx, request)
+
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(Equal("Code: 400"))
+			})
+
+			It("should return error when bearer token validation fails", func() {
+				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					return nil
+				}
+
+				SetBearerTokenForDetectControllerFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "Invalid bearer token")
+				}
+
+				request := GetDetectRunRequest{
+					RunId: "run123",
+				}
+
+				result, err := detectController.GetDetectRun(ctx, request)
+
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(Equal("Code: 400"))
+			})
+		})
 	})
 })
 
