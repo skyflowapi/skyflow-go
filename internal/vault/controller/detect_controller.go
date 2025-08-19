@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -541,7 +542,7 @@ func (d *DetectController) DeidentifyText(ctx context.Context, request common.De
 	// Call the API
 	response, apiError := d.TextApiClient.WithRawResponse.DeidentifyString(ctx, apiRequest)
 	if apiError != nil {
-		logger.Error(fmt.Sprintf(logs.DEIDENTIFY_TEXT_REQUEST_FAILED, apiError))
+		logger.Error(logs.DEIDENTIFY_TEXT_REQUEST_FAILED)
 		return nil, skyflowError.SkyflowErrorApi(apiError)
 	}
 
@@ -613,7 +614,7 @@ func (d *DetectController) ReidentifyText(ctx context.Context, request common.Re
 	// Call the API
 	response, apiError := d.TextApiClient.WithRawResponse.ReidentifyString(ctx, apiRequest)
 	if apiError != nil {
-		logger.Error(fmt.Sprintf(logs.REIDENTIFY_TEXT_REQUEST_FAILED, apiError))
+		logger.Error(logs.REIDENTIFY_TEXT_REQUEST_FAILED)
 		return nil, skyflowError.SkyflowErrorApi(apiError)
 	}
 
@@ -672,7 +673,7 @@ func (d *DetectController) DeidentifyFile(ctx context.Context, request common.De
 	// Process file based on type
 	apiResponse, apiErr := d.processFileByType(ctx, fileExtension, base64Content, &request)
 	if apiErr != nil {
-		logger.Error(fmt.Sprintf(logs.DEIDENTIFY_FILE_REQUEST_FAILED, apiErr))
+		logger.Error(logs.DEIDENTIFY_FILE_REQUEST_FAILED)
 		return nil, skyflowError.SkyflowErrorApi(apiErr)
 	}
 
@@ -681,7 +682,7 @@ func (d *DetectController) DeidentifyFile(ctx context.Context, request common.De
 
 	if pollErr != nil {
 		logger.Error(logs.POLLING_FOR_RESULTS_FAILED)
-		return nil, skyflowError.SkyflowErrorApi(apiErr)
+		return nil, skyflowError.SkyflowErrorApi(pollErr)
 	}
 
 	// Handle successful response
@@ -705,7 +706,7 @@ func (d *DetectController) DeidentifyFile(ctx context.Context, request common.De
 	return response, nil
 }
 
-func (d *DetectController) processFileByType(ctx context.Context, fileExtension, base64Content string, request *common.DeidentifyFileRequest) (*vaultapis.DeidentifyFileResponse, *skyflowError.SkyflowError) {
+func (d *DetectController) processFileByType(ctx context.Context, fileExtension, base64Content string, request *common.DeidentifyFileRequest) (*vaultapis.DeidentifyFileResponse, error) {
 	var apiResponse *vaultapis.DeidentifyFileResponse
 	var apiErr error
 
@@ -729,16 +730,15 @@ func (d *DetectController) processFileByType(ctx context.Context, fileExtension,
 	default:
 		apiResponse, apiErr = d.FilesApiClient.DeidentifyFile(ctx, createGenericFileRequest(request, base64Content, d.Config.VaultId, fileExtension))
 	}
-
 	if apiErr != nil {
-		logger.Error(fmt.Sprintf(logs.DEIDENTIFY_FILE_REQUEST_FAILED, apiErr))
-		return nil, skyflowError.SkyflowErrorApi(apiErr)
+		logger.Error(logs.DEIDENTIFY_FILE_REQUEST_FAILED)
+		return nil, apiErr
 	}
 
 	return apiResponse, nil
 }
 
-func (d *DetectController) pollForResults(ctx context.Context, runID string, maxWaitTime int) (*common.DeidentifyFileResponse, *skyflowError.SkyflowError) {
+func (d *DetectController) pollForResults(ctx context.Context, runID string, maxWaitTime int) (*common.DeidentifyFileResponse, error) {
 	currentWaitTime := 1
 	if maxWaitTime == 0 {
 		maxWaitTime = 64
@@ -752,12 +752,12 @@ func (d *DetectController) pollForResults(ctx context.Context, runID string, max
 		response, err := d.FilesApiClient.WithRawResponse.GetRun(ctx, runID, &getRunRequest)
 
 		if err != nil {
-			logger.Error(fmt.Sprintf(logs.GET_DETECT_RUN_REQUEST_FAILED, err.Error()))
+			logger.Error(logs.GET_DETECT_RUN_REQUEST_FAILED)
 			return nil, skyflowError.SkyflowErrorApi(err)
 		}
 
 		if response == nil || response.Body == nil {
-			return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "Empty response received")
+			return nil, skyflowError.NewSkyflowError(skyflowError.SERVER, "Empty response received")
 		}
 
 		if strings.EqualFold(string(response.Body.Status), string(common.IN_PROGRESS)) {
@@ -788,9 +788,9 @@ func (d *DetectController) pollForResults(ctx context.Context, runID string, max
 	}
 }
 
-func parseDeidentifyFileResponse(response *vaultapis.DeidentifyStatusResponse, runID string) (*common.DeidentifyFileResponse, *skyflowError.SkyflowError) {
+func parseDeidentifyFileResponse(response *vaultapis.DeidentifyStatusResponse, runID string) (*common.DeidentifyFileResponse, error) {
 	if response == nil {
-		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "Empty response received")
+		return nil, errors.New(string(skyflowError.SERVER) + ": Empty response received")
 	}
 
 	fileResponse := &common.DeidentifyFileResponse{
@@ -805,7 +805,7 @@ func parseDeidentifyFileResponse(response *vaultapis.DeidentifyStatusResponse, r
 			if firstOutput.ProcessedFile != nil && firstOutput.ProcessedFileExtension != nil {
 				decodedBytes, err := base64.StdEncoding.DecodeString(*firstOutput.ProcessedFile)
 				if err != nil {
-					return nil, skyflowError.NewSkyflowError(skyflowError.SERVER, "Failed to decode processed file")
+					return nil, errors.New(string(skyflowError.SERVER) + ": Failed to decode processed file")
 				}
 				fileResponse.File = common.FileInfo{
 					Name:         "deidentified." + *firstOutput.ProcessedFileExtension,
@@ -895,12 +895,12 @@ func (d *DetectController) GetDetectRun(ctx context.Context, request common.GetD
 	})
 
 	if err != nil {
-		logger.Error(fmt.Sprintf(logs.GET_DETECT_RUN_REQUEST_FAILED, err.Error()))
+		logger.Error(logs.GET_DETECT_RUN_REQUEST_FAILED)
 		return nil, skyflowError.SkyflowErrorApi(err)
 	}
 
 	if response == nil || response.Body == nil {
-		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "Empty response received")
+		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, " Empty response received")
 	}
 
 	if strings.EqualFold(string(response.Body.Status), string(common.IN_PROGRESS)) {
@@ -909,6 +909,9 @@ func (d *DetectController) GetDetectRun(ctx context.Context, request common.GetD
 			Status: string(common.IN_PROGRESS),
 		}, nil
 	}
-
-	return parseDeidentifyFileResponse(response.Body, request.RunId)
+	parsedResponse, err := parseDeidentifyFileResponse(response.Body, request.RunId)
+	if err != nil {
+		return nil, skyflowError.NewSkyflowError(skyflowError.SERVER, fmt.Sprintf("%v", err))
+	}
+	return parsedResponse, nil
 }
