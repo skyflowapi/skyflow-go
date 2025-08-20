@@ -3,6 +3,7 @@ package validation_test
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 
 	. "github.com/skyflowapi/skyflow-go/v2/internal/validation"
@@ -1065,7 +1066,47 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 		})
 	})
 
-	Context("ValidateDeidentifyFileRequest", func() {
+	Context("ValidateDeidentifyFileRequest", Ordered, func() {
+
+		var (
+			tempDir   string
+			testFiles map[string]*os.File
+		)
+
+		BeforeAll(func() {
+			var err error
+			// Create temporary directory
+			tempDir, err = os.MkdirTemp("", "skyflow_test_*")
+			Expect(err).To(BeNil(), "Failed to create temp directory for tests")
+
+			// Create temporary test files for each type
+			testFiles = make(map[string]*os.File)
+			testContent := []byte("Test content for file processing")
+
+			fileTypes := []string{"txt"}
+			for _, fileType := range fileTypes {
+				tmpFile, err := os.CreateTemp(tempDir, fmt.Sprintf("detect.*.%s", fileType))
+				Expect(err).To(BeNil(), fmt.Sprintf("Failed to create temp %s file", fileType))
+				_, err = tmpFile.Write(testContent)
+				Expect(err).To(BeNil(), fmt.Sprintf("Failed to write to temp %s file", fileType))
+				testFiles[fileType] = tmpFile
+			}
+		})
+
+		AfterAll(func() {
+			// Close and remove all temporary files
+			for _, file := range testFiles {
+				if file != nil {
+					file.Close()
+				}
+			}
+
+			// Clean up temporary directory and its contents
+			if tempDir != "" {
+				err := os.RemoveAll(tempDir)
+				Expect(err).To(BeNil(), "Failed to clean up temp directory after tests")
+			}
+		})
 
 		It("should return error when FileInput is empty", func() {
 			req := common.DeidentifyFileRequest{}
@@ -1087,7 +1128,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 		It("should return nil when FilePath is valid", func() {
 			req := common.DeidentifyFileRequest{
 				FileInput: common.FileInput{
-					FilePath: "../../utils/resources/detect.txt",
+					FilePath: filepath.Join(tempDir, "detect.txt"),
 				},
 			}
 			validationErr := ValidateDeidentifyFileRequest(req)
@@ -1095,8 +1136,14 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 		})
 
 		It("should return nil when File is valid", func() {
-			file, err := os.Open("../../utils/resources/detect.txt")
-			Expect(err).To(BeNil())
+			// First create and write to the test file
+			testFilePath := filepath.Join(tempDir, "detect.txt")
+			err := os.WriteFile(testFilePath, []byte("test content"), 0644)
+			Expect(err).To(BeNil(), "Failed to create test file")
+
+			// Now open the file
+			file, err := os.Open(testFilePath)
+			Expect(err).To(BeNil(), "Failed to open test file")
 			defer file.Close()
 
 			req := common.DeidentifyFileRequest{
@@ -1109,13 +1156,13 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 		})
 
 		It("should return error when both FilePath and File are provided", func() {
-			file, err := os.Open("../../utils/resources/detect.txt")
+			file, err := os.Open(filepath.Join(tempDir, "detect.txt"))
 			Expect(err).To(BeNil())
 			defer file.Close()
 
 			req := common.DeidentifyFileRequest{
 				FileInput: common.FileInput{
-					FilePath: "../../utils/resources/detect.txt",
+					FilePath: filepath.Join(tempDir, "detect.txt"),
 					File:     file,
 				},
 			}
@@ -1138,7 +1185,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 		It("should return error when pixel density is negative", func() {
 			req := common.DeidentifyFileRequest{
 				FileInput: common.FileInput{
-					FilePath: "../../utils/resources/detect.txt",
+					FilePath: filepath.Join(tempDir, "detect.txt"),
 				},
 				PixelDensity: -1,
 			}
@@ -1150,7 +1197,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 		It("should return error for invalid masking method", func() {
 			req := common.DeidentifyFileRequest{
 				FileInput: common.FileInput{
-					FilePath: "../../utils/resources/detect.txt",
+					FilePath: filepath.Join(tempDir, "detect.txt"),
 				},
 				MaskingMethod: "INVALID_METHOD",
 			}
@@ -1164,7 +1211,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			for _, method := range validMethods {
 				req := common.DeidentifyFileRequest{
 					FileInput: common.FileInput{
-						FilePath: "../../utils/resources/detect.txt",
+						FilePath: filepath.Join(tempDir, "detect.txt"),
 					},
 					MaskingMethod: method,
 				}
@@ -1176,7 +1223,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 		It("should return error when max resolution is negative", func() {
 			req := common.DeidentifyFileRequest{
 				FileInput: common.FileInput{
-					FilePath: "../../utils/resources/detect.txt",
+					FilePath: filepath.Join(tempDir, "detect.txt"),
 				},
 				MaxResolution: -1,
 			}
@@ -1189,7 +1236,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			It("should return error when frequency is non-positive", func() {
 				req := common.DeidentifyFileRequest{
 					FileInput: common.FileInput{
-						FilePath: "../../utils/resources/detect.txt",
+						FilePath: filepath.Join(tempDir, "detect.txt"),
 					},
 					Bleep: common.AudioBleep{
 						Frequency: -1,
@@ -1204,7 +1251,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			It("should return error when gain is zero", func() {
 				req := common.DeidentifyFileRequest{
 					FileInput: common.FileInput{
-						FilePath: "../../utils/resources/detect.txt",
+						FilePath: filepath.Join(tempDir, "detect.txt"),
 					},
 					Bleep: common.AudioBleep{
 						Frequency: 1,
@@ -1219,7 +1266,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			It("should return error when padding values are negative", func() {
 				req := common.DeidentifyFileRequest{
 					FileInput: common.FileInput{
-						FilePath: "../../utils/resources/detect.txt",
+						FilePath: filepath.Join(tempDir, "detect.txt"),
 					},
 					Bleep: common.AudioBleep{
 						Frequency:    1,
@@ -1236,7 +1283,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			It("should return error when stop padding value is negative", func() {
 				req := common.DeidentifyFileRequest{
 					FileInput: common.FileInput{
-						FilePath: "../../utils/resources/detect.txt",
+						FilePath: filepath.Join(tempDir, "detect.txt"),
 					},
 					Bleep: common.AudioBleep{
 						Frequency:    1,
@@ -1255,7 +1302,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			It("should return error for non-existent directory", func() {
 				req := common.DeidentifyFileRequest{
 					FileInput: common.FileInput{
-						FilePath: "../../utils/resources/detect.txt",
+						FilePath: filepath.Join(tempDir, "detect.txt"),
 					},
 					OutputDirectory: "/non/existent/directory",
 				}
@@ -1267,9 +1314,9 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			It("should return nil for valid directory", func() {
 				req := common.DeidentifyFileRequest{
 					FileInput: common.FileInput{
-						FilePath: "../../utils/resources/detect.txt",
+						FilePath: filepath.Join(tempDir, "detect.txt"),
 					},
-					OutputDirectory: "../../utils/resources",
+					OutputDirectory: tempDir,
 				}
 				validationErr := ValidateDeidentifyFileRequest(req)
 				Expect(validationErr).To(BeNil())
@@ -1278,7 +1325,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			It("should return error for invalid directory permissions", func() {
 				req := common.DeidentifyFileRequest{
 					FileInput: common.FileInput{
-						FilePath: "../../utils/resources/detect.txt",
+						FilePath: filepath.Join(tempDir, "detect.txt"),
 					},
 					OutputDirectory: "/root", // A directory that typically requires root permissions
 				}
@@ -1292,7 +1339,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			It("should return error for negative wait time", func() {
 				req := common.DeidentifyFileRequest{
 					FileInput: common.FileInput{
-						FilePath: "../../utils/resources/detect.txt",
+						FilePath: filepath.Join(tempDir, "detect.txt"),
 					},
 					WaitTime: -1,
 				}
@@ -1304,7 +1351,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			It("should return error for wait time exceeding limit", func() {
 				req := common.DeidentifyFileRequest{
 					FileInput: common.FileInput{
-						FilePath: "../../utils/resources/detect.txt",
+						FilePath: filepath.Join(tempDir, "detect.txt"),
 					},
 					WaitTime: 65,
 				}
@@ -1316,7 +1363,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			It("should accept valid wait time", func() {
 				req := common.DeidentifyFileRequest{
 					FileInput: common.FileInput{
-						FilePath: "../../utils/resources/detect.txt",
+						FilePath: filepath.Join(tempDir, "detect.txt"),
 					},
 					WaitTime: 30,
 				}
@@ -1329,7 +1376,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			var resourcePath string
 
 			BeforeEach(func() {
-				resourcePath = "../../utils/resources/detect.txt"
+				resourcePath = filepath.Join(tempDir, "detect.txt")
 			})
 
 			It("should return error when file does not exist", func() {
@@ -1339,7 +1386,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			})
 
 			It("should return error when file is not regular", func() {
-				dirPath := "../../utils/resources"
+				dirPath := tempDir
 				validationErr := ValidateFilePermissions("test", dirPath, nil)
 				Expect(validationErr).ToNot(BeNil())
 				Expect(validationErr.GetMessage()).To(ContainSubstring(fmt.Sprintf(errors.NOT_REGULAR_FILE_TO_DEIDENTIFY, dirPath)))
@@ -1360,8 +1407,11 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 
 				It("should return error when file pointer is not a regular file", func() {
 					// Use directory instead of file
-					dirFile, err := os.Open("../../utils/resources")
-					Expect(err).To(BeNil())
+					testFilePath := tempDir
+
+					// Now open the file
+					dirFile, err := os.Open(testFilePath)
+					Expect(err).To(BeNil(), "Failed to open test file")
 					defer dirFile.Close()
 
 					validationErr := ValidateFilePermissions("test", "", dirFile)

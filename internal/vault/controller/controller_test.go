@@ -2721,15 +2721,42 @@ var _ = Describe("DetectController", func() {
 		var (
 			detectController *DetectController
 			ctx              context.Context
+			tempDir          string
+			testFiles        map[string]*os.File
 		)
 
-		AfterAll(func() {
-			files, err := filepath.Glob("./*processed-detect*")
-			Expect(err).To(BeNil(), "Failed to search for processed-detect files")
+		BeforeAll(func() {
+			var err error
+			// Create temporary directory
+			tempDir, err = os.MkdirTemp("", "skyflow_test_*")
+			Expect(err).To(BeNil(), "Failed to create temp directory for tests")
 
-			for _, f := range files {
-				removeErr := os.Remove(f)
-				Expect(removeErr).To(BeNil(), fmt.Sprintf("Failed to remove file: %s", f))
+			// Create temporary test files for each type
+			testFiles = make(map[string]*os.File)
+			testContent := []byte("Test content for file processing")
+
+			fileTypes := []string{"txt", "mp3", "jpeg", "pdf", "pptx", "xlsx", "docx", "json"}
+			for _, fileType := range fileTypes {
+				tmpFile, err := os.CreateTemp(tempDir, fmt.Sprintf("detect.*.%s", fileType))
+				Expect(err).To(BeNil(), fmt.Sprintf("Failed to create temp %s file", fileType))
+				_, err = tmpFile.Write(testContent)
+				Expect(err).To(BeNil(), fmt.Sprintf("Failed to write to temp %s file", fileType))
+				testFiles[fileType] = tmpFile
+			}
+		})
+
+		AfterAll(func() {
+			// Close and remove all temporary files
+			for _, file := range testFiles {
+				if file != nil {
+					file.Close()
+				}
+			}
+
+			// Clean up temporary directory and its contents
+			if tempDir != "" {
+				err := os.RemoveAll(tempDir)
+				Expect(err).To(BeNil(), "Failed to clean up temp directory after tests")
 			}
 		})
 
@@ -2751,30 +2778,29 @@ var _ = Describe("DetectController", func() {
 		Context("Success cases", func() {
 			Context("Success cases for different file types", func() {
 
-				testFilePath := "../../../utils/resources/detect.mp3"
-				audioFile, err := os.Open(testFilePath)
-				Expect(err).To(BeNil())
+				audioFilePath := filepath.Join(tempDir, "detect.mp3")
+				audioFile, _ := os.Open(audioFilePath)
 				defer audioFile.Close()
 
 				var testCases = []struct {
-					name         string
-					fileExt      string
-					endpoint     string
-					fileType     string
-					mockRequest  DeidentifyFileRequest
-					mockResponse map[string]interface{}
+					name        string
+					fileExt     string
+					endpoint    string
+					fileType    string
+					mockRequest DeidentifyFileRequest
 				}{
 					{
 						name:     "Text File",
 						fileExt:  "txt",
 						endpoint: "/v1/detect/deidentify/file/text",
-						fileType: "TXT",
+						fileType: "TEXT",
 						mockRequest: DeidentifyFileRequest{
 							FileInput: FileInput{
-								FilePath: "../../../utils/resources/detect.txt",
+								FilePath: filepath.Join(tempDir, "detect.txt"),
 							},
-							Entities: []DetectEntities{Name, EmailAddress, Ssn, Date, Day, Dob},
-							WaitTime: 5,
+							OutputDirectory: tempDir,
+							Entities:        []DetectEntities{Name, EmailAddress, Ssn, Date, Day, Dob},
+							WaitTime:        5,
 							TokenFormat: TokenFormat{
 								EntityOnly: []DetectEntities{
 									Name, EmailAddress, Ssn, Date, Day, Dob,
@@ -2845,6 +2871,7 @@ var _ = Describe("DetectController", func() {
 							},
 						},
 					},
+
 					{
 						name:     "Image File",
 						fileExt:  "jpeg",
@@ -2852,7 +2879,7 @@ var _ = Describe("DetectController", func() {
 						fileType: "JPEG",
 						mockRequest: DeidentifyFileRequest{
 							FileInput: FileInput{
-								FilePath: "../../../utils/resources/detect.jpeg",
+								FilePath: filepath.Join(tempDir, "detect.jpeg"),
 							},
 							Entities: []DetectEntities{Name, EmailAddress, Ssn, Date, Day, Dob},
 							TokenFormat: TokenFormat{
@@ -2890,7 +2917,7 @@ var _ = Describe("DetectController", func() {
 						fileType: "PDF",
 						mockRequest: DeidentifyFileRequest{
 							FileInput: FileInput{
-								FilePath: "../../../utils/resources/detect.pdf",
+								FilePath: filepath.Join(tempDir, "detect.pdf"),
 							},
 							Entities: []DetectEntities{Name, EmailAddress, Ssn},
 							TokenFormat: TokenFormat{
@@ -2907,7 +2934,7 @@ var _ = Describe("DetectController", func() {
 						fileType: "PPTX",
 						mockRequest: DeidentifyFileRequest{
 							FileInput: FileInput{
-								FilePath: "../../../utils/resources/detect.pptx",
+								FilePath: filepath.Join(tempDir, "detect.pptx"),
 							},
 							Entities: []DetectEntities{Name, EmailAddress},
 							WaitTime: 5,
@@ -2923,7 +2950,7 @@ var _ = Describe("DetectController", func() {
 						fileType: "XLSX",
 						mockRequest: DeidentifyFileRequest{
 							FileInput: FileInput{
-								FilePath: "../../../utils/resources/detect.xlsx",
+								FilePath: filepath.Join(tempDir, "detect.xlsx"),
 							},
 							Entities: []DetectEntities{Name, EmailAddress, Ssn},
 							WaitTime: 5,
@@ -2936,7 +2963,7 @@ var _ = Describe("DetectController", func() {
 						fileType: "DOCX",
 						mockRequest: DeidentifyFileRequest{
 							FileInput: FileInput{
-								FilePath: "../../../utils/resources/detect.docx",
+								FilePath: filepath.Join(tempDir, "detect.docx"),
 							},
 							Entities: []DetectEntities{Name, EmailAddress},
 							WaitTime: 5,
@@ -2949,7 +2976,7 @@ var _ = Describe("DetectController", func() {
 						fileType: "JSON",
 						mockRequest: DeidentifyFileRequest{
 							FileInput: FileInput{
-								FilePath: "../../../utils/resources/detect.json",
+								FilePath: filepath.Join(tempDir, "detect.json"),
 							},
 							Entities: []DetectEntities{Name, EmailAddress},
 							WaitTime: 5,
@@ -2960,6 +2987,10 @@ var _ = Describe("DetectController", func() {
 				for _, tc := range testCases {
 					tc := tc // capture range variable
 					It(fmt.Sprintf("should successfully process %s", tc.name), func() {
+						// Update file path to use temporary directory
+						tc.mockRequest.FileInput.FilePath = testFiles[tc.fileExt].Name()
+						tc.mockRequest.OutputDirectory = tempDir
+
 						// Mock upload response
 						uploadResponse := make(map[string]interface{})
 						uploadJSONResponse := `{"run_id": "run123"}`
