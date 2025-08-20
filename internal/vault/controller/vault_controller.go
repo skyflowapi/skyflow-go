@@ -126,6 +126,7 @@ func CreateRequestClient(v *VaultController) *skyflowError.SkyflowError {
 
 	client := client.NewClient(option.WithBaseURL(GetURLWithEnv(v.Config.Env, v.Config.ClusterId)),
 		option.WithToken(token),
+		option.WithMaxAttempts(1),
 		option.WithHTTPHeader(header),
 	)
 

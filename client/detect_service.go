@@ -23,19 +23,26 @@ func (d *detectService) DeidentifyText(ctx context.Context, request common.Deide
 	return res, nil
 }
 
-// func (d *detectService) ReidentifyText(request common.ReidentifyTextRequest) (*common.ReidentifyTextResponse, *skyflowError.SkyflowError) {
-// }
+func (d *detectService) ReidentifyText(ctx context.Context, request common.ReidentifyTextRequest) (*common.ReidentifyTextResponse, *skyflowError.SkyflowError) {
+	res, err := d.controller.ReidentifyText(ctx, request)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
 
-// func (d *detectService) DeidentifyFile(request common.DeidentifyFileRequest) (*common.DeidentifyFileResponse, *skyflowError.SkyflowError) {
-// }
+func (d *detectService) DeidentifyFile(ctx context.Context, request common.DeidentifyFileRequest) (*common.DeidentifyFileResponse, *skyflowError.SkyflowError) {
+	res, err := d.controller.DeidentifyFile(ctx, request)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
 
-// func (d *detectService) GetDetectRun(request common.GetDetectRunRequest) (*common.DeidentifyFileResponse, *skyflowError.SkyflowError) {
-// }
-
-
-
-
-
-
-
-
+func (d *detectService) GetDetectRun(ctx context.Context, request common.GetDetectRunRequest) (*common.DeidentifyFileResponse, *skyflowError.SkyflowError) {
+	res, err := d.controller.GetDetectRun(ctx, request)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}

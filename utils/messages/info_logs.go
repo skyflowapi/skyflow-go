@@ -71,7 +71,7 @@ const (
     DEIDENTIFY_TEXT_SUCCESS = SDK_LOG_PREFIX + "Text data de-identified."
     DEIDENTIFY_TEXT_REQUEST_RESOLVED = SDK_LOG_PREFIX + "DeIdentify text request resolved."
     VALIDATE_REIDENTIFY_TEXT_REQUEST = SDK_LOG_PREFIX + "Validating reidentify text request."
-    REIDENTIFY_TEXT_TRIGGERED = SDK_LOG_PREFIX + "ReIdentify text method triggered."
+    REIDENTIFY_TEXT_TRIGGERED = SDK_LOG_PREFIX + "Reidentify text method triggered."
     REIDENTIFY_TEXT_REQUEST_RESOLVED = SDK_LOG_PREFIX + "ReIdentify text request resolved."
     DEIDENTIFY_FILE_TRIGGERED = SDK_LOG_PREFIX + "DeIdentify file method triggered."
     VALIDATE_DEIDENTIFY_FILE_REQUEST = SDK_LOG_PREFIX + "Validating deidentify file request."
