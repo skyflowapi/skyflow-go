@@ -12,25 +12,25 @@ import (
 )
 
 type Client struct {
-	WithRawResponse *RawClient
-
 	baseURL string
 	caller  *internal.Caller
 	header  http.Header
+
+	WithRawResponse *RawClient
 }
 
 func NewClient(opts ...option.RequestOption) *Client {
 	options := core.NewRequestOptions(opts...)
 	return &Client{
-		WithRawResponse: NewRawClient(options),
-		baseURL:         options.BaseURL,
+		baseURL: options.BaseURL,
 		caller: internal.NewCaller(
 			&internal.CallerParams{
 				Client:      options.HTTPClient,
 				MaxAttempts: options.MaxAttempts,
 			},
 		),
-		header: options.ToHeader(),
+		header:          options.ToHeader(),
+		WithRawResponse: NewRawClient(options),
 	}
 }
 
@@ -40,13 +40,53 @@ func (c *Client) CheckGuardrails(
 	request *generated.CheckGuardrailsRequest,
 	opts ...option.RequestOption,
 ) (*generated.CheckGuardrailsResponse, error) {
-	response, err := c.WithRawResponse.CheckGuardrails(
-		ctx,
-		request,
-		opts...,
+	options := core.NewRequestOptions(opts...)
+	baseURL := internal.ResolveBaseURL(
+		options.BaseURL,
+		c.baseURL,
+		"https://identifier.vault.skyflowapis.com",
 	)
-	if err != nil {
+	endpointURL := baseURL + "/v1/detect/guardrails"
+	headers := internal.MergeHeaders(
+		c.header.Clone(),
+		options.ToHeader(),
+	)
+	headers.Set("Content-Type", "application/json")
+	errorCodes := internal.ErrorCodes{
+		400: func(apiError *core.APIError) error {
+			return &generated.BadRequestError{
+				APIError: apiError,
+			}
+		},
+		401: func(apiError *core.APIError) error {
+			return &generated.UnauthorizedError{
+				APIError: apiError,
+			}
+		},
+		500: func(apiError *core.APIError) error {
+			return &generated.InternalServerError{
+				APIError: apiError,
+			}
+		},
+	}
+
+	var response *generated.CheckGuardrailsResponse
+	if _, err := c.caller.Call(
+		ctx,
+		&internal.CallParams{
+			URL:             endpointURL,
+			Method:          http.MethodPost,
+			Headers:         headers,
+			MaxAttempts:     options.MaxAttempts,
+			BodyProperties:  options.BodyProperties,
+			QueryParameters: options.QueryParameters,
+			Client:          options.HTTPClient,
+			Request:         request,
+			Response:        &response,
+			ErrorDecoder:    internal.NewErrorDecoder(errorCodes),
+		},
+	); err != nil {
 		return nil, err
 	}
-	return response.Body, nil
+	return response, nil
 }
