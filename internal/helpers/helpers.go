@@ -19,12 +19,10 @@ import (
 	constants "github.com/skyflowapi/skyflow-go/v2/internal/constants"
 	internal "github.com/skyflowapi/skyflow-go/v2/internal/generated"
 	internalAuthApi "github.com/skyflowapi/skyflow-go/v2/internal/generated/authentication"
-	"github.com/skyflowapi/skyflow-go/v2/utils/common"
 	. "github.com/skyflowapi/skyflow-go/v2/utils/common"
 	skyflowError "github.com/skyflowapi/skyflow-go/v2/utils/error"
 	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
 	logs "github.com/skyflowapi/skyflow-go/v2/utils/messages"
-	vaultapis "github.com/skyflowapi/skyflow-go/v2/internal/generated"
 )
 
 // Helper function to read and parse credentials from file
@@ -298,16 +296,6 @@ func CreateJsonMetadata() string {
 	return string(jsonData)
 }
 
-
-// ValidateAndCreateEntityTypes validates and creates a EntityType array from the provided entities.
-func ValidateAndCreateEntityTypes(entities []common.DetectEntities) ([]vaultapis.EntityType, *skyflowError.SkyflowError) {
-	entityTypes := []vaultapis.EntityType{}
-	for _, entity := range entities {
-		entityType, err := vaultapis.NewEntityTypeFromString(string(entity))
-		if err != nil {
-			return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, logs.INVALID_ENTITY_TYPE_IN_DETECT_ENTITIES+string(entity))
-		}
-		entityTypes = append(entityTypes, entityType)
-	}
-	return entityTypes, nil
+func Float64Ptr(v float64) *float64 {
+	return &v
 }

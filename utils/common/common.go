@@ -274,7 +274,7 @@ type DeidentifyFileRequest struct {
 	OutputProcessedAudio bool
 	OutputTranscription  DetectOutputTranscriptions
 	Bleep                AudioBleep
-	FileInput            FileInput
+	File            FileInput
 	OutputDirectory      string
 	WaitTime             int
 }
@@ -318,7 +318,6 @@ type DeidentifyFileResponse struct {
 	Entities          []FileEntityInfo
 	RunId             string
 	Status            string
-	Errors            []string
 }
 
 type GetDetectRunRequest struct {

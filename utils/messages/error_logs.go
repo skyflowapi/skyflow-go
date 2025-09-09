@@ -119,5 +119,6 @@ const (
 	GET_DETECT_RUN_REQUEST_FAILED                     = SDK_LOG_PREFIX + "Get detect run request failed."
 	POLLING_FOR_RESULTS_FAILED                        = SDK_LOG_PREFIX + "Polling for results failed. Unable to retrieve the deidentified file"
 	FAILED_TO_DECODE_PROCESSED_FILE                   = SDK_LOG_PREFIX + "Failed to decode processed file."
+	EMPTY_DEIDENTIFY_FILE_RESPONSE					  = SDK_LOG_PREFIX + "Deidentify file response is empty or invalid."
 	EMPTY_RUN_ID                                      = SDK_LOG_PREFIX + "Invalid %s request. Run ID is required and cannot be empty."
 )

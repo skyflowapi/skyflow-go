@@ -7,19 +7,52 @@ import (
 	"path/filepath"
 	"strings"
 
+	vaultapis "github.com/skyflowapi/skyflow-go/v2/internal/generated"
 	"github.com/skyflowapi/skyflow-go/v2/utils/common"
 	skyflowError "github.com/skyflowapi/skyflow-go/v2/utils/error"
 	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
-	"github.com/skyflowapi/skyflow-go/v2/utils/messages"
+	logs "github.com/skyflowapi/skyflow-go/v2/utils/messages"
 )
 
 // ValidateDeidentifyTextRequest validates the required fields of DeidentifyTextRequest.
 func ValidateDeidentifyTextRequest(req common.DeidentifyTextRequest) *skyflowError.SkyflowError {
 	if strings.TrimSpace(req.Text) == "" {
 		logger.Error(fmt.Sprintf(logs.INVALID_TEXT_IN_DEIDENTIFY, "DeidentifyTextRequest"))
-		// You can replace the error message with your custom error type if needed.
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_TEXT_IN_DEIDENTIFY)
 	}
+
+	// Validate entities
+	if len(req.Entities) > 0 {
+		if err := validateEntities(req.Entities); err != nil {
+			return err
+		}
+	}
+
+	// Validate token format
+	if req.TokenFormat.DefaultType != "" {
+		if _, err := vaultapis.NewTokenTypeDefaultFromString(string(req.TokenFormat.DefaultType)); err != nil {
+			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_TOKEN_FORMAT)
+		}
+	}
+
+	// Validate EntityOnly tokens
+	if len(req.TokenFormat.EntityOnly) > 0 {
+		if err := validateEntities(req.TokenFormat.EntityOnly); err != nil {
+			return err
+		}
+	}
+
+	// Validate VaultToken entities
+	if len(req.TokenFormat.VaultToken) > 0 {
+		if err := validateEntities(req.TokenFormat.VaultToken); err != nil {
+			return err
+		}
+	}
+
+	if err := validateTransformations(req.Transformations); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -28,6 +61,56 @@ func ValidateReidentifyTextRequest(req common.ReidentifyTextRequest) *skyflowErr
 	if strings.TrimSpace(req.Text) == "" {
 		logger.Error(fmt.Sprintf(logs.INVALID_TEXT_IN_REIDENTIFY, "ReidentifyTextRequest"))
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_TEXT_IN_REIDENTIFY)
+	}
+
+	// Validate RedactedEntities
+	if len(req.RedactedEntities) > 0 {
+		if err := validateEntities(req.RedactedEntities); err != nil {
+			return err
+		}
+	}
+
+	// Validate MaskedEntities
+	if len(req.MaskedEntities) > 0 {
+		if err := validateEntities(req.MaskedEntities); err != nil {
+			return err
+		}
+	}
+
+	// Validate PlainTextEntities
+	if len(req.PlainTextEntities) > 0 {
+		if err := validateEntities(req.PlainTextEntities); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func validateEntities(entities []common.DetectEntities) *skyflowError.SkyflowError {
+	for _, entity := range entities {
+		if _, err := vaultapis.NewEntityTypeFromString(string(entity)); err != nil {
+			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.INVALID_ENTITY_TYPE, entity))
+		}
+	}
+	return nil
+}
+
+func validateTransformations(transformations common.Transformations) *skyflowError.SkyflowError {
+	shift := transformations.ShiftDates
+	if shift.MinDays > 0 || shift.MaxDays > 0 || len(shift.Entities) > 0 {
+		// Days must be strictly positive
+		if shift.MinDays <= 0 || shift.MaxDays <= 0 {
+			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_SHIFT_DATES)
+		}
+		// Range validation
+		if shift.MaxDays < shift.MinDays {
+			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_DATE_TRANSFORMATION_RANGE)
+		}
+		// Entities must be provided if shift is requested
+		if len(shift.Entities) == 0 {
+			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.DETECT_ENTITIES_REQUIRED_ON_SHIFT_DATES)
+		}
 	}
 	return nil
 }
@@ -47,24 +130,25 @@ func ValidateDeidentifyFileRequest(req common.DeidentifyFileRequest) *skyflowErr
 
 	// Validate required fields
 	// Validate if file or filepath is provided
-	if req.FileInput.File == nil && req.FileInput.FilePath == "" {
+	if req.File.File == nil && req.File.FilePath == "" {
 		logger.Error(fmt.Sprintf(logs.EMPTY_FILE_AND_FILE_PATH_IN_DEIDENTIFY_FILE, tag))
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_FILE_AND_FILE_PATH_IN_DEIDENTIFY_FILE)
 	}
 
 	// Check if both file and filepath are provided
-	if req.FileInput.File != nil && req.FileInput.FilePath != "" {
+	if req.File.File != nil && req.File.FilePath != "" {
 		logger.Error(fmt.Sprintf(logs.BOTH_FILE_AND_FILE_PATH_PROVIDED, tag))
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.BOTH_FILE_AND_FILE_PATH_PROVIDED)
 	}
 
 	// Validate filepath if provided
-	if req.FileInput.FilePath != "" && strings.TrimSpace(req.FileInput.FilePath) == "" {
+	if req.File.FilePath != "" && strings.TrimSpace(req.File.FilePath) == "" {
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_FILE_PATH)
 	}
 
-	// Validate file exists and is readable
-	ValidateFilePermissions(tag, req.FileInput.FilePath, req.FileInput.File)
+	if err := ValidateFilePermissions(req.File.FilePath, req.File.File); err != nil {
+		return err
+	}
 
 	// Optional fields validation
 	// Validate pixel density
@@ -82,32 +166,52 @@ func ValidateDeidentifyFileRequest(req common.DeidentifyFileRequest) *skyflowErr
 		}
 	}
 
+	if req.OutputTranscription != "" {
+		switch req.OutputTranscription {
+		case common.DIARIZED_TRANSCRIPTION, common.MEDICAL_DIARIZED_TRANSCRIPTION, common.MEDICAL_TRANSCRIPTION, common.PLAINTEXT_TRANSCRIPTION, common.TRANSCRIPTION:
+		default:
+			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_OUTPUT_TRANSCRIPTION)
+		}
+	}
+
 	// Validate max resolution
 	if req.MaxResolution != 0 && req.MaxResolution <= 0 {
 		logger.Error(fmt.Sprintf(logs.INVALID_MAX_RESOLUTION, tag))
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_MAX_RESOLUTION)
 	}
 
-	// Validate AudioBleep if provided
-	if req.Bleep != (common.AudioBleep{}) {
-		if req.Bleep.Frequency <= 0 {
-			logger.Error(fmt.Sprintf(logs.INVALID_BLEEP_TO_DEIDENTIFY_AUDIO, tag))
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_REQUEST_BODY)
+	// Validate entities
+	if len(req.Entities) > 0 {
+		if err := validateEntities(req.Entities); err != nil {
+			return err
 		}
+	}
 
-		// Validate gain
-		if req.Bleep.Gain == 0 {
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_REQUEST_BODY)
+	if err := validateTransformations(req.Transformations); err != nil {
+		return err
+	}
+
+	// Validate token format
+	tokenFormat := req.TokenFormat
+	if len(tokenFormat.VaultToken) > 0 {
+		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.VAULT_TOKEN_FORMAT_IS_NOT_ALLOWED_FOR_DEIDENTIFY_FILES)
+	}
+
+	if req.TokenFormat.DefaultType != "" {
+		if _, err := vaultapis.NewTokenTypeDefaultFromString(string(req.TokenFormat.DefaultType)); err != nil {
+			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_TOKEN_FORMAT)
 		}
+	}
 
-		// Validate start padding
-		if req.Bleep.StartPadding < 0 {
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_REQUEST_BODY)
+	if len(req.TokenFormat.EntityOnly) > 0 {
+		if err := validateEntities(req.TokenFormat.EntityOnly); err != nil {
+			return err
 		}
+	}
 
-		// Validate stop padding
-		if req.Bleep.StopPadding < 0 {
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_REQUEST_BODY)
+	if len(req.TokenFormat.EntityUniqueCounter) > 0 {
+		if err := validateEntities(req.TokenFormat.EntityUniqueCounter); err != nil {
+			return err
 		}
 	}
 
@@ -152,8 +256,7 @@ func checkDirWritePermission(dir string) error {
 	return nil
 }
 
-// ValidateFilePermissions validates both file path and File inputs
-func ValidateFilePermissions(tag string, filePath string, file *os.File) *skyflowError.SkyflowError {
+func ValidateFilePermissions(filePath string, file *os.File) *skyflowError.SkyflowError {
 	var info os.FileInfo
 	var err error
 

@@ -1002,7 +1002,6 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			err := ValidateDeidentifyTextRequest(req)
 			Expect(err).ToNot(BeNil())
 			Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
-
 			Expect(err.GetMessage()).To(ContainSubstring(fmt.Sprintf(errors.INVALID_TEXT_IN_DEIDENTIFY)))
 		})
 
@@ -1012,6 +1011,121 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			}
 			err := ValidateDeidentifyTextRequest(req)
 			Expect(err).To(BeNil())
+		})
+
+		Context("when given an invalid entity", func() {
+			It("should return an error", func() {
+				req := common.DeidentifyTextRequest{
+					Text:     "Sensitive text",
+					Entities: []common.DetectEntities{"invalid_entity"},
+				}
+				err := ValidateDeidentifyTextRequest(req)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+			})
+		})
+
+		Context("when given an invalid token format", func() {
+			It("should return an error", func() {
+				req := common.DeidentifyTextRequest{
+					Text: "Sensitive text",
+					TokenFormat: common.TokenFormat{
+						DefaultType: "invalid_token_type",
+					},
+				}
+				err := ValidateDeidentifyTextRequest(req)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+			})
+		})
+
+		Context("when TokenFormat.EntityOnly contains invalid entity", func() {
+			It("should return an error", func() {
+				req := common.DeidentifyTextRequest{
+					Text: "Sensitive text",
+					TokenFormat: common.TokenFormat{
+						EntityOnly: []common.DetectEntities{"invalid_entity"},
+					},
+				}
+				err := ValidateDeidentifyTextRequest(req)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+			})
+		})
+
+		Context("when TokenFormat.VaultToken contains invalid entity", func() {
+			It("should return an error", func() {
+				req := common.DeidentifyTextRequest{
+					Text: "Sensitive text",
+					TokenFormat: common.TokenFormat{
+						VaultToken: []common.DetectEntities{"invalid_entity"},
+					},
+				}
+				err := ValidateDeidentifyTextRequest(req)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+			})
+		})
+
+		Context("when ShiftDates.Entities is empty", func() {
+			It("should return an error", func() {
+				req := common.DeidentifyTextRequest{
+					Text: "Sensitive text",
+					Transformations: common.Transformations{
+						ShiftDates: common.DateTransformation{
+							MaxDays:  5,
+							MinDays:  2,
+							Entities: []common.TransformationsShiftDatesEntityTypesItem{},
+						},
+					},
+				}
+				err := ValidateDeidentifyTextRequest(req)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+				Expect(err.GetMessage()).To(ContainSubstring(errors.DETECT_ENTITIES_REQUIRED_ON_SHIFT_DATES))
+			})
+		})
+
+		Context("when ShiftDates.MaxDays and MinDays are zero", func() {
+			It("should throw an error", func() {
+				req := common.DeidentifyTextRequest{
+					Text: "Sensitive text",
+					Transformations: common.Transformations{
+						ShiftDates: common.DateTransformation{
+							MaxDays: 0,
+							MinDays: 0,
+							Entities: []common.TransformationsShiftDatesEntityTypesItem{
+								common.TransformationsShiftDatesEntityTypesItemDate,
+							},
+						},
+					},
+				}
+				err := ValidateDeidentifyTextRequest(req)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+				Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_SHIFT_DATES))
+			})
+		})
+
+		Context("when ShiftDates.MinDays is greater than MaxDays", func() {
+			It("should throw an error", func() {
+				req := common.DeidentifyTextRequest{
+					Text: "Sensitive text",
+					Transformations: common.Transformations{
+						ShiftDates: common.DateTransformation{
+							MaxDays: 5,
+							MinDays: 7,
+							Entities: []common.TransformationsShiftDatesEntityTypesItem{
+								common.TransformationsShiftDatesEntityTypesItemDate,
+							},
+						},
+					},
+				}
+				err := ValidateDeidentifyTextRequest(req)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+				Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_DATE_TRANSFORMATION_RANGE))
+			})
 		})
 
 	})
@@ -1117,7 +1231,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 
 		It("should return error when both FilePath and File are empty", func() {
 			req := common.DeidentifyFileRequest{
-				FileInput: common.FileInput{},
+				File: common.FileInput{},
 			}
 			err := ValidateDeidentifyFileRequest(req)
 			Expect(err).ToNot(BeNil())
@@ -1126,9 +1240,13 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 		})
 
 		It("should return nil when FilePath is valid", func() {
+			testFilePath := filepath.Join(tempDir, "detect.txt")
+			err := os.WriteFile(testFilePath, []byte("test content"), 0644)
+			Expect(err).To(BeNil(), "Failed to create test file")
+
 			req := common.DeidentifyFileRequest{
-				FileInput: common.FileInput{
-					FilePath: filepath.Join(tempDir, "detect.txt"),
+				File: common.FileInput{
+					FilePath: testFilePath,
 				},
 			}
 			validationErr := ValidateDeidentifyFileRequest(req)
@@ -1147,7 +1265,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			defer file.Close()
 
 			req := common.DeidentifyFileRequest{
-				FileInput: common.FileInput{
+				File: common.FileInput{
 					File: file,
 				},
 			}
@@ -1161,7 +1279,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			defer file.Close()
 
 			req := common.DeidentifyFileRequest{
-				FileInput: common.FileInput{
+				File: common.FileInput{
 					FilePath: filepath.Join(tempDir, "detect.txt"),
 					File:     file,
 				},
@@ -1173,7 +1291,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 
 		It("should return error when FilePath is whitespace", func() {
 			req := common.DeidentifyFileRequest{
-				FileInput: common.FileInput{
+				File: common.FileInput{
 					FilePath: "   ",
 				},
 			}
@@ -1184,7 +1302,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 
 		It("should return error when pixel density is negative", func() {
 			req := common.DeidentifyFileRequest{
-				FileInput: common.FileInput{
+				File: common.FileInput{
 					FilePath: filepath.Join(tempDir, "detect.txt"),
 				},
 				PixelDensity: -1,
@@ -1196,7 +1314,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 
 		It("should return error for invalid masking method", func() {
 			req := common.DeidentifyFileRequest{
-				FileInput: common.FileInput{
+				File: common.FileInput{
 					FilePath: filepath.Join(tempDir, "detect.txt"),
 				},
 				MaskingMethod: "INVALID_METHOD",
@@ -1210,7 +1328,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			validMethods := []common.MaskingMethod{common.BLACKBOX, common.BLUR}
 			for _, method := range validMethods {
 				req := common.DeidentifyFileRequest{
-					FileInput: common.FileInput{
+					File: common.FileInput{
 						FilePath: filepath.Join(tempDir, "detect.txt"),
 					},
 					MaskingMethod: method,
@@ -1222,7 +1340,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 
 		It("should return error when max resolution is negative", func() {
 			req := common.DeidentifyFileRequest{
-				FileInput: common.FileInput{
+				File: common.FileInput{
 					FilePath: filepath.Join(tempDir, "detect.txt"),
 				},
 				MaxResolution: -1,
@@ -1232,76 +1350,10 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			Expect(validationErr.GetMessage()).To(ContainSubstring(errors.INVALID_MAX_RESOLUTION))
 		})
 
-		Context("Audio Bleep Validation", func() {
-			It("should return error when frequency is non-positive", func() {
-				req := common.DeidentifyFileRequest{
-					FileInput: common.FileInput{
-						FilePath: filepath.Join(tempDir, "detect.txt"),
-					},
-					Bleep: common.AudioBleep{
-						Frequency: -1,
-						Gain:      1,
-					},
-				}
-				validationErr := ValidateDeidentifyFileRequest(req)
-				Expect(validationErr).ToNot(BeNil())
-				Expect(validationErr.GetMessage()).To(ContainSubstring(errors.INVALID_REQUEST_BODY))
-			})
-
-			It("should return error when gain is zero", func() {
-				req := common.DeidentifyFileRequest{
-					FileInput: common.FileInput{
-						FilePath: filepath.Join(tempDir, "detect.txt"),
-					},
-					Bleep: common.AudioBleep{
-						Frequency: 1,
-						Gain:      0,
-					},
-				}
-				validationErr := ValidateDeidentifyFileRequest(req)
-				Expect(validationErr).ToNot(BeNil())
-				Expect(validationErr.GetMessage()).To(ContainSubstring(errors.INVALID_REQUEST_BODY))
-			})
-
-			It("should return error when padding values are negative", func() {
-				req := common.DeidentifyFileRequest{
-					FileInput: common.FileInput{
-						FilePath: filepath.Join(tempDir, "detect.txt"),
-					},
-					Bleep: common.AudioBleep{
-						Frequency:    1,
-						Gain:         1,
-						StartPadding: -1,
-						StopPadding:  -1,
-					},
-				}
-				validationErr := ValidateDeidentifyFileRequest(req)
-				Expect(validationErr).ToNot(BeNil())
-				Expect(validationErr.GetMessage()).To(ContainSubstring(errors.INVALID_REQUEST_BODY))
-			})
-
-			It("should return error when stop padding value is negative", func() {
-				req := common.DeidentifyFileRequest{
-					FileInput: common.FileInput{
-						FilePath: filepath.Join(tempDir, "detect.txt"),
-					},
-					Bleep: common.AudioBleep{
-						Frequency:    1,
-						Gain:         1,
-						StartPadding: 1,
-						StopPadding:  -1,
-					},
-				}
-				validationErr := ValidateDeidentifyFileRequest(req)
-				Expect(validationErr).ToNot(BeNil())
-				Expect(validationErr.GetMessage()).To(ContainSubstring(errors.INVALID_REQUEST_BODY))
-			})
-		})
-
 		Context("Output Directory Validation", func() {
 			It("should return error for non-existent directory", func() {
 				req := common.DeidentifyFileRequest{
-					FileInput: common.FileInput{
+					File: common.FileInput{
 						FilePath: filepath.Join(tempDir, "detect.txt"),
 					},
 					OutputDirectory: "/non/existent/directory",
@@ -1313,7 +1365,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 
 			It("should return nil for valid directory", func() {
 				req := common.DeidentifyFileRequest{
-					FileInput: common.FileInput{
+					File: common.FileInput{
 						FilePath: filepath.Join(tempDir, "detect.txt"),
 					},
 					OutputDirectory: tempDir,
@@ -1323,11 +1375,29 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			})
 
 			It("should return error for invalid directory permissions", func() {
+				tempDir, err := os.MkdirTemp("", "testdir")
+				Expect(err).To(BeNil())
+				defer os.RemoveAll(tempDir)
+
+				testFile := filepath.Join(tempDir, "detect.txt")
+				err = os.WriteFile(testFile, []byte("dummy content"), 0644)
+				Expect(err).To(BeNil())
+
+				restrictedDir := filepath.Join(tempDir, "restricted")
+				err = os.Mkdir(restrictedDir, 0700)
+				Expect(err).To(BeNil())
+
+				err = os.Chmod(restrictedDir, 0000)
+				Expect(err).To(BeNil())
+
+				defer os.Chmod(restrictedDir, 0755)
+
+				// Build request with restricted output directory
 				req := common.DeidentifyFileRequest{
-					FileInput: common.FileInput{
-						FilePath: filepath.Join(tempDir, "detect.txt"),
+					File: common.FileInput{
+						FilePath: testFile,
 					},
-					OutputDirectory: "/root", // A directory that typically requires root permissions
+					OutputDirectory: restrictedDir,
 				}
 				validationErr := ValidateDeidentifyFileRequest(req)
 				Expect(validationErr).ToNot(BeNil())
@@ -1338,7 +1408,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 		Context("Wait Time Validation", func() {
 			It("should return error for negative wait time", func() {
 				req := common.DeidentifyFileRequest{
-					FileInput: common.FileInput{
+					File: common.FileInput{
 						FilePath: filepath.Join(tempDir, "detect.txt"),
 					},
 					WaitTime: -1,
@@ -1350,7 +1420,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 
 			It("should return error for wait time exceeding limit", func() {
 				req := common.DeidentifyFileRequest{
-					FileInput: common.FileInput{
+					File: common.FileInput{
 						FilePath: filepath.Join(tempDir, "detect.txt"),
 					},
 					WaitTime: 65,
@@ -1362,7 +1432,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 
 			It("should accept valid wait time", func() {
 				req := common.DeidentifyFileRequest{
-					FileInput: common.FileInput{
+					File: common.FileInput{
 						FilePath: filepath.Join(tempDir, "detect.txt"),
 					},
 					WaitTime: 30,
@@ -1380,14 +1450,14 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			})
 
 			It("should return error when file does not exist", func() {
-				err := ValidateFilePermissions("test", "/non/existent/file.txt", nil)
+				err := ValidateFilePermissions("/non/existent/file.txt", nil)
 				Expect(err).ToNot(BeNil())
 				Expect(err.GetMessage()).To(ContainSubstring(fmt.Sprintf(errors.FILE_NOT_FOUND_TO_DEIDENTIFY, "/non/existent/file.txt")))
 			})
 
 			It("should return error when file is not regular", func() {
 				dirPath := tempDir
-				validationErr := ValidateFilePermissions("test", dirPath, nil)
+				validationErr := ValidateFilePermissions(dirPath, nil)
 				Expect(validationErr).ToNot(BeNil())
 				Expect(validationErr.GetMessage()).To(ContainSubstring(fmt.Sprintf(errors.NOT_REGULAR_FILE_TO_DEIDENTIFY, dirPath)))
 			})
@@ -1400,7 +1470,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 					// Close file to cause stat to fail
 					file.Close()
 
-					validationErr := ValidateFilePermissions("test", "", file)
+					validationErr := ValidateFilePermissions("", file)
 					Expect(validationErr).ToNot(BeNil())
 					Expect(validationErr.GetMessage()).To(ContainSubstring(fmt.Sprintf(errors.UNABLE_TO_STAT_FILE_TO_DEIDENTIFY, file.Name())))
 				})
@@ -1414,7 +1484,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 					Expect(err).To(BeNil(), "Failed to open test file")
 					defer dirFile.Close()
 
-					validationErr := ValidateFilePermissions("test", "", dirFile)
+					validationErr := ValidateFilePermissions("", dirFile)
 					Expect(validationErr).ToNot(BeNil())
 					Expect(validationErr.GetMessage()).To(ContainSubstring(fmt.Sprintf(errors.NOT_REGULAR_FILE_TO_DEIDENTIFY, dirFile.Name())))
 				})
@@ -1424,7 +1494,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 					Expect(err).To(BeNil())
 					defer file.Close()
 
-					err = ValidateFilePermissions("test", "", file)
+					err = ValidateFilePermissions("", file)
 					Expect(err).To(BeNil())
 				})
 			})

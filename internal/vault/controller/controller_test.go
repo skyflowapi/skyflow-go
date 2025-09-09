@@ -1935,6 +1935,7 @@ var _ = Describe("DetectController", func() {
 				detectController.Config.Credentials.Path = "../../" + os.Getenv("CRED_FILE_PATH")
 
 				err := SetBearerTokenForDetectControllerFunc(detectController)
+
 				Expect(err).To(BeNil())
 			})
 			It("should generate token if file path is provided", func() {
@@ -2092,121 +2093,6 @@ var _ = Describe("DetectController", func() {
 				Expect(payload.Transformations.ShiftDates.EntityTypes).ToNot(BeNil())
 			})
 		})
-
-		Context("when given an invalid entity", func() {
-			It("should return an error", func() {
-				req := DeidentifyTextRequest{
-					Text:     "Sensitive text",
-					Entities: []DetectEntities{"invalid_entity"},
-				}
-				payload, err := CreateDeidentifyTextRequest(req, config)
-				Expect(payload).To(BeNil())
-				Expect(err).ToNot(BeNil())
-				Expect(err.GetCode()).To(Equal("Code: 400"))
-			})
-		})
-
-		Context("when given an invalid token format", func() {
-			It("should return an error", func() {
-				req := DeidentifyTextRequest{
-					Text: "Sensitive text",
-					TokenFormat: TokenFormat{
-						DefaultType: "invalid_token_type",
-					},
-				}
-				payload, err := CreateDeidentifyTextRequest(req, config)
-				Expect(payload).To(BeNil())
-				Expect(err).ToNot(BeNil())
-				Expect(err.GetCode()).To(Equal("Code: 400"))
-			})
-		})
-
-		Context("when AllowRegexList and RestrictRegexList are empty", func() {
-			It("should not set AllowRegex or RestrictRegex in payload", func() {
-				req := DeidentifyTextRequest{
-					Text: "Sensitive text",
-				}
-				payload, err := CreateDeidentifyTextRequest(req, config)
-				Expect(err).To(BeNil())
-				Expect(payload).ToNot(BeNil())
-				Expect(payload.AllowRegex).To(BeNil())
-				Expect(payload.RestrictRegex).To(BeNil())
-			})
-		})
-
-		Context("when TokenFormat.EntityOnly contains invalid entity", func() {
-			It("should return an error", func() {
-				req := DeidentifyTextRequest{
-					Text: "Sensitive text",
-					TokenFormat: TokenFormat{
-						EntityOnly: []DetectEntities{"invalid_entity"},
-					},
-				}
-				payload, err := CreateDeidentifyTextRequest(req, config)
-				Expect(payload).To(BeNil())
-				Expect(err).ToNot(BeNil())
-				Expect(err.GetCode()).To(Equal("Code: 400"))
-			})
-		})
-
-		Context("when TokenFormat.VaultToken contains invalid entity", func() {
-			It("should return an error", func() {
-				req := DeidentifyTextRequest{
-					Text: "Sensitive text",
-					TokenFormat: TokenFormat{
-						VaultToken: []DetectEntities{"invalid_entity"},
-					},
-				}
-				payload, err := CreateDeidentifyTextRequest(req, config)
-				Expect(payload).To(BeNil())
-				Expect(err).ToNot(BeNil())
-				Expect(err.GetCode()).To(Equal("Code: 400"))
-			})
-		})
-
-		Context("when ShiftDates.Entities is empty", func() {
-			It("should not set Transformations.ShiftDates in payload", func() {
-				req := DeidentifyTextRequest{
-					Text: "Sensitive text",
-					Transformations: Transformations{
-						ShiftDates: DateTransformation{
-							MaxDays:  5,
-							MinDays:  2,
-							Entities: []TransformationsShiftDatesEntityTypesItem{},
-						},
-					},
-				}
-				payload, err := CreateDeidentifyTextRequest(req, config)
-				Expect(err).To(BeNil())
-				Expect(payload).ToNot(BeNil())
-				if payload.Transformations != nil {
-					Expect(payload.Transformations.ShiftDates).To(BeNil())
-				}
-			})
-		})
-
-		Context("when ShiftDates.MaxDays and MinDays are zero", func() {
-			It("should not set MaxDays or MinDays in payload", func() {
-				req := DeidentifyTextRequest{
-					Text: "Sensitive text",
-					Transformations: Transformations{
-						ShiftDates: DateTransformation{
-							MaxDays: 0,
-							MinDays: 0,
-							Entities: []TransformationsShiftDatesEntityTypesItem{
-								TransformationsShiftDatesEntityTypesItemDate,
-							},
-						},
-					},
-				}
-				payload, err := CreateDeidentifyTextRequest(req, config)
-				Expect(err).To(BeNil())
-				Expect(payload).ToNot(BeNil())
-				Expect(payload.Transformations.ShiftDates.MaxDays).To(BeNil())
-				Expect(payload.Transformations.ShiftDates.MinDays).To(BeNil())
-			})
-		})
-
 	})
 
 	Describe("CreateReidentifyTextRequest", func() {
@@ -2237,46 +2123,168 @@ var _ = Describe("DetectController", func() {
 				Expect(payload.Format.Plaintext).To(HaveLen(1))
 			})
 		})
+	})
 
-		Context("when handling invalid entities", func() {
-			It("should return error for invalid redacted entities", func() {
-				request := ReidentifyTextRequest{
-					Text:             "Sample text",
-					RedactedEntities: []DetectEntities{"INVALID_ENTITY"},
+	Describe("CreateDeidentifyFileRequest", Ordered, func() {
+		var (
+			config            VaultConfig
+			base64            string
+			entities          []DetectEntities
+			allowRegexList    []string
+			restrictRegexList []string
+			tokenFormat       TokenFormat
+			transformations   Transformations
+			expectedEntities  []string
+		)
+
+		BeforeAll(
+			func() {
+				base64 = "c29tZSB0ZXh0"
+				entities = []DetectEntities{Name, EmailAddress}
+				allowRegexList = []string{"demo"}
+				restrictRegexList = []string{"demo", "test"}
+				tokenFormat = TokenFormat{
+					DefaultType: TokenTypeDefaultEntityOnly,
 				}
-
-				payload, err := CreateReidentifyTextRequest(request, config)
-
-				Expect(payload).To(BeNil())
-				Expect(err).ToNot(BeNil())
-				Expect(err.GetCode()).To(Equal("Code: 400"))
-			})
-
-			It("should return error for invalid masked entities", func() {
-				request := ReidentifyTextRequest{
-					Text:           "Sample text",
-					MaskedEntities: []DetectEntities{"INVALID_ENTITY"},
+				transformations = Transformations{
+					ShiftDates: DateTransformation{
+						MaxDays: 10,
+						MinDays: 1,
+						Entities: []TransformationsShiftDatesEntityTypesItem{
+							TransformationsShiftDatesEntityTypesItemDate,
+						},
+					},
 				}
+				expectedEntities = []string{"name", "email_address"}
 
-				payload, err := CreateReidentifyTextRequest(request, config)
+			},
+		)
 
-				Expect(payload).To(BeNil())
-				Expect(err).ToNot(BeNil())
-				Expect(err.GetCode()).To(Equal("Code: 400"))
-			})
+		BeforeEach(func() {
+			config = VaultConfig{
+				VaultId: "vault123",
+			}
+		})
 
-			It("should return error for invalid plaintext entities", func() {
-				request := ReidentifyTextRequest{
-					Text:              "Sample text",
-					PlainTextEntities: []DetectEntities{"INVALID_ENTITY"},
-				}
+		It("when creating a valid payload for deidentify text file", func() {
+			request := &DeidentifyFileRequest{
+				File: FileInput{
+					FilePath: "/test/testfile.txt",
+				},
+				Entities:          entities,
+				AllowRegexList:    allowRegexList,
+				RestrictRegexList: restrictRegexList,
+				TokenFormat:       tokenFormat,
+				Transformations:   transformations,
+			}
 
-				payload, err := CreateReidentifyTextRequest(request, config)
+			payload := CreateTextFileRequest(request, base64, config.VaultId)
 
-				Expect(payload).To(BeNil())
-				Expect(err).ToNot(BeNil())
-				Expect(err.GetCode()).To(Equal("Code: 400"))
-			})
+			Expect(payload.VaultId).To(Equal(config.VaultId))
+			Expect(payload.File.Base64).To(Equal(base64))
+			Expect(payload.AllowRegex).ToNot(BeNil())
+			Expect(*payload.AllowRegex).To(HaveLen(len(allowRegexList)))
+			Expect(*payload.AllowRegex).To(ContainElements(allowRegexList))
+			Expect(*payload.AllowRegex).To(Equal(allowRegexList))
+			Expect(payload.RestrictRegex).ToNot(BeNil())
+			Expect(*payload.RestrictRegex).To(HaveLen(len(restrictRegexList)))
+			Expect(*payload.RestrictRegex).To(ContainElements(restrictRegexList))
+			Expect(*payload.RestrictRegex).To(Equal(restrictRegexList))
+			var actualEntities []string
+			for _, e := range *payload.EntityTypes {
+				actualEntities = append(actualEntities, string(e))
+			}
+
+			Expect(actualEntities).To(HaveLen(len(expectedEntities)))
+			Expect(actualEntities).To(ContainElements(expectedEntities))
+			Expect(actualEntities).To(Equal(expectedEntities))
+			Expect(payload.Transformations.ShiftDates).ToNot(BeNil())
+			Expect(*payload.Transformations.ShiftDates.MaxDays).To(Equal(10))
+			Expect(*payload.Transformations.ShiftDates.MinDays).To(Equal(1))
+
+			expected := []vaultapis.TransformationsShiftDatesEntityTypesItem{
+				vaultapis.TransformationsShiftDatesEntityTypesItemDate,
+			}
+
+			Expect(payload.Transformations.ShiftDates.EntityTypes).To(Equal(expected))
+
+		})
+
+		It("when creating a valid payload for deidentify image file", func() {
+			request := &DeidentifyFileRequest{
+				File: FileInput{
+					FilePath: "/test/testfile.jpeg",
+				},
+				Entities:          entities,
+				AllowRegexList:    allowRegexList,
+				RestrictRegexList: restrictRegexList,
+				TokenFormat:       tokenFormat,
+				Transformations:   transformations,
+				MaskingMethod:     BLACKBOX,
+			}
+
+			payload := CreateImageRequest(request, base64, config.VaultId, "jpeg")
+
+			Expect(payload.VaultId).To(Equal(config.VaultId))
+			Expect(payload.File.Base64).To(Equal(base64))
+			Expect(payload.AllowRegex).ToNot(BeNil())
+			Expect(*payload.AllowRegex).To(HaveLen(len(allowRegexList)))
+			Expect(*payload.AllowRegex).To(ContainElements(allowRegexList))
+			Expect(*payload.AllowRegex).To(Equal(allowRegexList))
+			Expect(payload.RestrictRegex).ToNot(BeNil())
+			Expect(*payload.RestrictRegex).To(HaveLen(len(restrictRegexList)))
+			Expect(*payload.RestrictRegex).To(ContainElements(restrictRegexList))
+			Expect(*payload.RestrictRegex).To(Equal(restrictRegexList))
+			var actualEntities []string
+			for _, e := range *payload.EntityTypes {
+				actualEntities = append(actualEntities, string(e))
+			}
+
+			Expect(actualEntities).To(HaveLen(len(expectedEntities)))
+			Expect(actualEntities).To(ContainElements(expectedEntities))
+			Expect(actualEntities).To(Equal(expectedEntities))
+			Expect(string(*payload.MaskingMethod)).To(Equal(string(BLACKBOX)))
+			Expect(payload.Transformations).To(BeNil())
+		})
+
+		It("when creating a valid payload for deidentify pdf file", func() {
+			request := &DeidentifyFileRequest{
+				File: FileInput{
+					FilePath: "/test/testfile.pdf",
+				},
+				Entities:          entities,
+				AllowRegexList:    allowRegexList,
+				RestrictRegexList: restrictRegexList,
+				TokenFormat:       tokenFormat,
+				Transformations:   transformations,
+				MaskingMethod:     BLACKBOX,
+				MaxResolution:     300,
+				PixelDensity:      200,
+			}
+
+			payload := CreatePdfRequest(request, base64, config.VaultId)
+
+			Expect(payload.VaultId).To(Equal(config.VaultId))
+			Expect(payload.File.Base64).To(Equal(base64))
+			Expect(payload.AllowRegex).ToNot(BeNil())
+			Expect(*payload.AllowRegex).To(HaveLen(len(allowRegexList)))
+			Expect(*payload.AllowRegex).To(ContainElements(allowRegexList))
+			Expect(*payload.AllowRegex).To(Equal(allowRegexList))
+			Expect(payload.RestrictRegex).ToNot(BeNil())
+			Expect(*payload.RestrictRegex).To(HaveLen(len(restrictRegexList)))
+			Expect(*payload.RestrictRegex).To(ContainElements(restrictRegexList))
+			Expect(*payload.RestrictRegex).To(Equal(restrictRegexList))
+			var actualEntities []string
+			for _, e := range *payload.EntityTypes {
+				actualEntities = append(actualEntities, string(e))
+			}
+
+			Expect(actualEntities).To(HaveLen(len(expectedEntities)))
+			Expect(actualEntities).To(ContainElements(expectedEntities))
+			Expect(actualEntities).To(Equal(expectedEntities))
+			Expect(payload.Transformations).To(BeNil())
+			Expect(*payload.MaxResolution).To(Equal(float64(300)))
+			Expect(*payload.Density).To(Equal(float64(200)))
 		})
 	})
 	Describe("DeidentifyText tests", func() {
@@ -2795,7 +2803,7 @@ var _ = Describe("DetectController", func() {
 						endpoint: "/v1/detect/deidentify/file/text",
 						fileType: "TEXT",
 						mockRequest: DeidentifyFileRequest{
-							FileInput: FileInput{
+							File: FileInput{
 								FilePath: filepath.Join(tempDir, "detect.txt"),
 							},
 							OutputDirectory: tempDir,
@@ -2833,15 +2841,12 @@ var _ = Describe("DetectController", func() {
 						endpoint: "/v1/detect/deidentify/file/audio",
 						fileType: "MP3",
 						mockRequest: DeidentifyFileRequest{
-							FileInput: FileInput{
+							File: FileInput{
 								File: audioFile,
 							},
 							Entities: []DetectEntities{Name, EmailAddress, Ssn, Date, Day, Dob},
 							TokenFormat: TokenFormat{
 								DefaultType: TokenTypeDefaultVaultToken,
-								VaultToken: []DetectEntities{
-									Name, EmailAddress, Ssn, Date,
-								},
 							},
 							OutputOcrText: true,
 							MaxResolution: 200,
@@ -2878,13 +2883,13 @@ var _ = Describe("DetectController", func() {
 						endpoint: "/v1/detect/deidentify/file/image",
 						fileType: "JPEG",
 						mockRequest: DeidentifyFileRequest{
-							FileInput: FileInput{
+							File: FileInput{
 								FilePath: filepath.Join(tempDir, "detect.jpeg"),
 							},
 							Entities: []DetectEntities{Name, EmailAddress, Ssn, Date, Day, Dob},
 							TokenFormat: TokenFormat{
 								DefaultType: TokenTypeDefaultVaultToken,
-								VaultToken: []DetectEntities{
+								EntityOnly: []DetectEntities{
 									Name, EmailAddress, Ssn, Date,
 								},
 							},
@@ -2916,12 +2921,15 @@ var _ = Describe("DetectController", func() {
 						endpoint: "/v1/detect/deidentify/file/document/pdf",
 						fileType: "PDF",
 						mockRequest: DeidentifyFileRequest{
-							FileInput: FileInput{
+							File: FileInput{
 								FilePath: filepath.Join(tempDir, "detect.pdf"),
 							},
 							Entities: []DetectEntities{Name, EmailAddress, Ssn},
 							TokenFormat: TokenFormat{
 								DefaultType: TokenTypeDefaultVaultToken,
+								EntityUniqueCounter: []DetectEntities{
+									Name, EmailAddress, Ssn, Date,
+								},
 							},
 							WaitTime:      5,
 							MaxResolution: 200,
@@ -2933,7 +2941,7 @@ var _ = Describe("DetectController", func() {
 						endpoint: "/v1/detect/deidentify/file/presentation",
 						fileType: "PPTX",
 						mockRequest: DeidentifyFileRequest{
-							FileInput: FileInput{
+							File: FileInput{
 								FilePath: filepath.Join(tempDir, "detect.pptx"),
 							},
 							Entities: []DetectEntities{Name, EmailAddress},
@@ -2949,7 +2957,7 @@ var _ = Describe("DetectController", func() {
 						endpoint: "/v1/detect/deidentify/file/spreadsheet",
 						fileType: "XLSX",
 						mockRequest: DeidentifyFileRequest{
-							FileInput: FileInput{
+							File: FileInput{
 								FilePath: filepath.Join(tempDir, "detect.xlsx"),
 							},
 							Entities: []DetectEntities{Name, EmailAddress, Ssn},
@@ -2962,7 +2970,7 @@ var _ = Describe("DetectController", func() {
 						endpoint: "/v1/detect/deidentify/file/document",
 						fileType: "DOCX",
 						mockRequest: DeidentifyFileRequest{
-							FileInput: FileInput{
+							File: FileInput{
 								FilePath: filepath.Join(tempDir, "detect.docx"),
 							},
 							Entities: []DetectEntities{Name, EmailAddress},
@@ -2975,7 +2983,7 @@ var _ = Describe("DetectController", func() {
 						endpoint: "/v1/detect/deidentify/file/structured_text",
 						fileType: "JSON",
 						mockRequest: DeidentifyFileRequest{
-							FileInput: FileInput{
+							File: FileInput{
 								FilePath: filepath.Join(tempDir, "detect.json"),
 							},
 							Entities: []DetectEntities{Name, EmailAddress},
@@ -2988,13 +2996,13 @@ var _ = Describe("DetectController", func() {
 					tc := tc // capture range variable
 					It(fmt.Sprintf("should successfully process %s", tc.name), func() {
 						// Update file path to use temporary directory
-						tc.mockRequest.FileInput.FilePath = testFiles[tc.fileExt].Name()
+						tc.mockRequest.File.FilePath = testFiles[tc.fileExt].Name()
 						tc.mockRequest.OutputDirectory = tempDir
 
 						// Mock upload response
-						uploadResponse := make(map[string]interface{})
+						getDetectRunResponse := make(map[string]interface{})
 						uploadJSONResponse := `{"run_id": "run123"}`
-						_ = json.Unmarshal([]byte(uploadJSONResponse), &uploadResponse)
+						_ = json.Unmarshal([]byte(uploadJSONResponse), &getDetectRunResponse)
 
 						// Mock status check response
 						statusResponse := map[string]interface{}{
@@ -3007,7 +3015,7 @@ var _ = Describe("DetectController", func() {
 								},
 								{
 									"processed_file":           "eyJlbnRpdGllcyI6W119",
-									"processed_file_type":      "ENTITIES",
+									"processed_file_type":      "entities",
 									"processed_file_extension": "json",
 								},
 							},
@@ -3034,7 +3042,7 @@ var _ = Describe("DetectController", func() {
 						// Handle file upload
 						mux.HandleFunc(tc.endpoint, func(w http.ResponseWriter, r *http.Request) {
 							w.Header().Set("Content-Type", "application/json")
-							json.NewEncoder(w).Encode(uploadResponse)
+							json.NewEncoder(w).Encode(getDetectRunResponse)
 						})
 
 						// Handle status check
@@ -3093,13 +3101,206 @@ var _ = Describe("DetectController", func() {
 
 						// Verify entities
 						Expect(result.Entities).To(HaveLen(1))
-						Expect(result.Entities[0].Type).To(Equal("ENTITIES"))
+						Expect(result.Entities[0].Type).To(Equal("entities"))
 						Expect(result.Entities[0].Extension).To(Equal("json"))
 						Expect(result.Entities[0].File).To(Equal("eyJlbnRpdGllcyI6W119"))
 					})
 				}
 			})
 
+		})
+
+		Context("Error cases", func() {
+			It("should return error for validation failure", func() {
+				request := DeidentifyFileRequest{
+					File: FileInput{}, // Empty file input should fail validation
+				}
+
+				result, err := detectController.DeidentifyFile(ctx, request)
+
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(Equal(fmt.Sprintf("Code: %v", skyflowError.INVALID_INPUT_CODE)))
+				Expect(result).To(BeNil())
+			})
+
+			It("should return error when API request fails", func() {
+				response := make(map[string]interface{})
+				mockJSONResponse := `{"error":{"message":"Invalid file format"}}`
+				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
+
+				ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(http.StatusBadRequest)
+					json.NewEncoder(w).Encode(response)
+				}))
+				defer ts.Close()
+
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
+				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					client := client.NewClient(
+						option.WithBaseURL(ts.URL),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					d.FilesApiClient = *client.Files
+					return nil
+				}
+
+				SetBearerTokenForDetectControllerFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					return nil
+				}
+
+				request := DeidentifyFileRequest{
+					File: FileInput{
+						FilePath: testFiles["txt"].Name(),
+					},
+					Entities: []DetectEntities{Name},
+				}
+
+				result, err := detectController.DeidentifyFile(ctx, request)
+				Expect(err).ToNot(BeNil())
+				Expect(result).To(BeNil())
+			})
+
+			It("should return error when client creation fails", func() {
+				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "Failed to create client")
+				}
+
+				request := DeidentifyFileRequest{
+					File: FileInput{
+						FilePath: testFiles["txt"].Name(),
+					},
+					Entities: []DetectEntities{Name},
+				}
+
+				result, err := detectController.DeidentifyFile(ctx, request)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(Equal("Code: 400"))
+				Expect(result).To(BeNil())
+			})
+
+			It("should return error when bearer token validation fails", func() {
+				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					return nil
+				}
+
+				SetBearerTokenForDetectControllerFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "Invalid bearer token")
+				}
+
+				request := DeidentifyFileRequest{
+					File: FileInput{
+						FilePath: testFiles["txt"].Name(),
+					},
+					Entities: []DetectEntities{Name},
+				}
+
+				result, err := detectController.DeidentifyFile(ctx, request)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(Equal("Code: 400"))
+				Expect(result).To(BeNil())
+			})
+
+			It("should return error when polling times out", func() {
+				request := DeidentifyFileRequest{
+					File: FileInput{
+						FilePath: testFiles["txt"].Name(),
+					},
+					Entities: []DetectEntities{Name},
+					WaitTime: 2, // Short timeout for test
+				}
+
+				// Mock API responses
+				mux := http.NewServeMux()
+
+				// Upload endpoint returns success
+				mux.HandleFunc("/v1/detect/deidentify/file/text", func(w http.ResponseWriter, r *http.Request) {
+					json.NewEncoder(w).Encode(map[string]string{"run_id": "run123"})
+				})
+
+				// Status check endpoint always returns in_progress
+				mux.HandleFunc("/v1/detect/runs/", func(w http.ResponseWriter, r *http.Request) {
+					json.NewEncoder(w).Encode(map[string]interface{}{
+						"status":  "in_progress",
+						"message": "Still processing",
+					})
+				})
+
+				ts := httptest.NewServer(mux)
+				defer ts.Close()
+
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
+				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					client := client.NewClient(
+						option.WithBaseURL(ts.URL),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					d.FilesApiClient = *client.Files
+					return nil
+				}
+
+				SetBearerTokenForDetectControllerFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					return nil
+				}
+
+				result, err := detectController.DeidentifyFile(ctx, request)
+				Expect(err).To(BeNil())
+				Expect(result).ToNot(BeNil())
+				Expect(result.Status).To(Equal("in_progress"))
+			})
+
+			It("should handle failed processing status", func() {
+				request := DeidentifyFileRequest{
+					File: FileInput{
+						FilePath: testFiles["txt"].Name(),
+					},
+					Entities: []DetectEntities{Name},
+				}
+
+				mux := http.NewServeMux()
+
+				// Upload endpoint returns success
+				mux.HandleFunc("/v1/detect/deidentify/file/text", func(w http.ResponseWriter, r *http.Request) {
+					json.NewEncoder(w).Encode(map[string]string{"run_id": "run123"})
+				})
+
+				// Status check endpoint returns failed status
+				mux.HandleFunc("/v1/detect/runs/", func(w http.ResponseWriter, r *http.Request) {
+					json.NewEncoder(w).Encode(map[string]interface{}{
+						"status":      "FAILED",
+						"message":     "Processing failed",
+						"output_type": "UNKNOWN",
+					})
+				})
+
+				ts := httptest.NewServer(mux)
+				defer ts.Close()
+
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
+				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					client := client.NewClient(
+						option.WithBaseURL(ts.URL),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					d.FilesApiClient = *client.Files
+					return nil
+				}
+
+				SetBearerTokenForDetectControllerFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					return nil
+				}
+
+				result, err := detectController.DeidentifyFile(ctx, request)
+				Expect(err).To(BeNil())
+				Expect(result).ToNot(BeNil())
+				Expect(result.Status).To(Equal("FAILED"))
+				Expect(result.Type).To(Equal("UNKNOWN"))
+			})
 		})
 	})
 	Describe("GetDetectRun tests", func() {
@@ -3223,10 +3424,47 @@ var _ = Describe("DetectController", func() {
 				Expect(result.Status).To(Equal("in_progress"))
 				Expect(result.RunId).To(Equal("run123"))
 			})
+
+			It("should handle failed processing status", func() {
+				response := make(map[string]interface{})
+				mockJSONResponse := `{
+					"status": "FAILED",
+					"message": "Processing failed",
+					"output_type": "UNKNOWN"
+				}`
+				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
+
+				ts := setupMockServer(response, "ok", "/v1/detect/runs/")
+				defer ts.Close()
+
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
+				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					client := client.NewClient(
+						option.WithBaseURL(ts.URL),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					d.FilesApiClient = *client.Files
+					return nil
+				}
+
+				request := GetDetectRunRequest{
+					RunId: "run123",
+				}
+
+				result, err := detectController.GetDetectRun(ctx, request)
+
+				Expect(err).To(BeNil())
+				Expect(result).ToNot(BeNil())
+				Expect(result.Status).To(Equal("FAILED"))
+				Expect(result.RunId).To(Equal("run123"))
+				Expect(result.Type).To(Equal("UNKNOWN"))
+			})
 		})
 
 		Context("Error cases", func() {
-			It("should return error for invalid run ID", func() {
+			It("should return error for empty run ID", func() {
 				request := GetDetectRunRequest{
 					RunId: "",
 				}
@@ -3236,6 +3474,69 @@ var _ = Describe("DetectController", func() {
 				Expect(result).To(BeNil())
 				Expect(err).ToNot(BeNil())
 				Expect(err.GetCode()).To(Equal(fmt.Sprintf("Code: %v", skyflowError.INVALID_INPUT_CODE)))
+			})
+
+			It("should return error for invalid run ID format", func() {
+				response := make(map[string]interface{})
+				mockJSONResponse := `{"error":{"message":"Invalid run ID format","code":400}}`
+				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
+
+				ts := setupMockServer(response, "error", "/v1/detect/runs/")
+				defer ts.Close()
+
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
+				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					client := client.NewClient(
+						option.WithBaseURL(ts.URL),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					d.FilesApiClient = *client.Files
+					return nil
+				}
+
+				request := GetDetectRunRequest{
+					RunId: "invalid-format",
+				}
+
+				result, err := detectController.GetDetectRun(ctx, request)
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
+			})
+
+			It("should return error for expired run ID", func() {
+				response := make(map[string]interface{})
+				mockJSONResponse := `{ "status": "UNKNOWN", "output_type": "UNKNOWN", "output": [], "message": "", "size": 0}`
+
+				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
+
+				ts := setupMockServer(response, "ok", "/v1/detect/runs/")
+				defer ts.Close()
+
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
+				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					client := client.NewClient(
+						option.WithBaseURL(ts.URL),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					d.FilesApiClient = *client.Files
+					return nil
+				}
+
+				request := GetDetectRunRequest{
+					RunId: "invalid-run-id",
+				}
+
+				result, err := detectController.GetDetectRun(ctx, request)
+
+				Expect(err).To(BeNil())
+				Expect(result).ToNot(BeNil())
+				Expect(result.Status).To(Equal("UNKNOWN"))
+				Expect(result.RunId).To(Equal("invalid-run-id"))
+				Expect(result.Type).To(Equal("UNKNOWN"))
 			})
 
 			It("should handle API error response", func() {
