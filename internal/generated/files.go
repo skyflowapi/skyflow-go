@@ -80,9 +80,9 @@ type DeidentifyPdfRequest struct {
 	File            *DeidentifyPdfRequestFile `json:"file,omitempty" url:"-"`
 	ConfigurationId *ConfigurationId          `json:"configuration_id,omitempty" url:"-"`
 	// Pixel density at which to process the PDF file.
-	Density *int `json:"density,omitempty" url:"-"`
+	Density *float64 `json:"density,omitempty" url:"-"`
 	// Max resolution at which to process the PDF file.
-	MaxResolution   *int                   `json:"max_resolution,omitempty" url:"-"`
+	MaxResolution   *float64               `json:"max_resolution,omitempty" url:"-"`
 	EntityTypes     *EntityTypes           `json:"entity_types,omitempty" url:"-"`
 	TokenType       *TokenTypeWithoutVault `json:"token_type,omitempty" url:"-"`
 	AllowRegex      *AllowRegex            `json:"allow_regex,omitempty" url:"-"`
@@ -319,7 +319,7 @@ type DeidentifyStatusResponse struct {
 	// How the input file was specified.
 	Output []*DeidentifyFileOutput `json:"output" url:"output"`
 	// How the output file is specified.
-	OutputType *DeidentifyStatusResponseOutputType `json:"output_type,omitempty" url:"output_type,omitempty"`
+	OutputType DeidentifyStatusResponseOutputType `json:"output_type" url:"output_type"`
 	// Status details about the detect run.
 	Message string `json:"message" url:"message"`
 	// Number of words in the processed text.
@@ -327,9 +327,9 @@ type DeidentifyStatusResponse struct {
 	// Number of characters in the processed text.
 	CharacterCount *int `json:"character_count,omitempty" url:"character_count,omitempty"`
 	// Size of the processed text in kilobytes (KB).
-	Size *int `json:"size,omitempty" url:"size,omitempty"`
+	Size *float64 `json:"size,omitempty" url:"size,omitempty"`
 	// Duration of the processed audio in seconds.
-	Duration *int `json:"duration,omitempty" url:"duration,omitempty"`
+	Duration *float64 `json:"duration,omitempty" url:"duration,omitempty"`
 	// Number of pages in the processed PDF.
 	Pages *int `json:"pages,omitempty" url:"pages,omitempty"`
 	// Number of slides in the processed presentation.
@@ -353,9 +353,9 @@ func (d *DeidentifyStatusResponse) GetOutput() []*DeidentifyFileOutput {
 	return d.Output
 }
 
-func (d *DeidentifyStatusResponse) GetOutputType() *DeidentifyStatusResponseOutputType {
+func (d *DeidentifyStatusResponse) GetOutputType() DeidentifyStatusResponseOutputType {
 	if d == nil {
-		return nil
+		return ""
 	}
 	return d.OutputType
 }
@@ -381,14 +381,14 @@ func (d *DeidentifyStatusResponse) GetCharacterCount() *int {
 	return d.CharacterCount
 }
 
-func (d *DeidentifyStatusResponse) GetSize() *int {
+func (d *DeidentifyStatusResponse) GetSize() *float64 {
 	if d == nil {
 		return nil
 	}
 	return d.Size
 }
 
-func (d *DeidentifyStatusResponse) GetDuration() *int {
+func (d *DeidentifyStatusResponse) GetDuration() *float64 {
 	if d == nil {
 		return nil
 	}
@@ -445,16 +445,16 @@ func (d *DeidentifyStatusResponse) String() string {
 type DeidentifyStatusResponseOutputType string
 
 const (
-	DeidentifyStatusResponseOutputTypeBase64  DeidentifyStatusResponseOutputType = "base64"
-	DeidentifyStatusResponseOutputTypeEfsPath DeidentifyStatusResponseOutputType = "efs_path"
+	DeidentifyStatusResponseOutputTypeBase64  DeidentifyStatusResponseOutputType = "BASE64"
+	DeidentifyStatusResponseOutputTypeUnknown DeidentifyStatusResponseOutputType = "UNKNOWN"
 )
 
 func NewDeidentifyStatusResponseOutputTypeFromString(s string) (DeidentifyStatusResponseOutputType, error) {
 	switch s {
-	case "base64":
+	case "BASE64":
 		return DeidentifyStatusResponseOutputTypeBase64, nil
-	case "efs_path":
-		return DeidentifyStatusResponseOutputTypeEfsPath, nil
+	case "UNKNOWN":
+		return DeidentifyStatusResponseOutputTypeUnknown, nil
 	}
 	var t DeidentifyStatusResponseOutputType
 	return "", fmt.Errorf("%s is not a valid %T", s, t)
@@ -468,19 +468,22 @@ func (d DeidentifyStatusResponseOutputType) Ptr() *DeidentifyStatusResponseOutpu
 type DeidentifyStatusResponseStatus string
 
 const (
-	DeidentifyStatusResponseStatusFailed     DeidentifyStatusResponseStatus = "failed"
-	DeidentifyStatusResponseStatusInProgress DeidentifyStatusResponseStatus = "in_progress"
-	DeidentifyStatusResponseStatusSuccess    DeidentifyStatusResponseStatus = "success"
+	DeidentifyStatusResponseStatusFailed     DeidentifyStatusResponseStatus = "FAILED"
+	DeidentifyStatusResponseStatusInProgress DeidentifyStatusResponseStatus = "IN_PROGRESS"
+	DeidentifyStatusResponseStatusSuccess    DeidentifyStatusResponseStatus = "SUCCESS"
+	DeidentifyStatusResponseStatusUnknown    DeidentifyStatusResponseStatus = "UNKNOWN"
 )
 
 func NewDeidentifyStatusResponseStatusFromString(s string) (DeidentifyStatusResponseStatus, error) {
 	switch s {
-	case "failed":
+	case "FAILED":
 		return DeidentifyStatusResponseStatusFailed, nil
-	case "in_progress":
+	case "IN_PROGRESS":
 		return DeidentifyStatusResponseStatusInProgress, nil
-	case "success":
+	case "SUCCESS":
 		return DeidentifyStatusResponseStatusSuccess, nil
+	case "UNKNOWN":
+		return DeidentifyStatusResponseStatusUnknown, nil
 	}
 	var t DeidentifyStatusResponseStatus
 	return "", fmt.Errorf("%s is not a valid %T", s, t)
@@ -495,8 +498,8 @@ type ReidentifyFileResponse struct {
 	// Status of the re-identify operation.
 	Status ReidentifyFileResponseStatus `json:"status" url:"status"`
 	// Format of the output file.
-	Output     *ReidentifyFileResponseOutput `json:"output" url:"output"`
-	outputType string
+	OutputType ReidentifyFileResponseOutputType `json:"output_type" url:"output_type"`
+	Output     *ReidentifyFileResponseOutput    `json:"output" url:"output"`
 
 	extraProperties map[string]interface{}
 	rawJSON         json.RawMessage
@@ -509,6 +512,13 @@ func (r *ReidentifyFileResponse) GetStatus() ReidentifyFileResponseStatus {
 	return r.Status
 }
 
+func (r *ReidentifyFileResponse) GetOutputType() ReidentifyFileResponseOutputType {
+	if r == nil {
+		return ""
+	}
+	return r.OutputType
+}
+
 func (r *ReidentifyFileResponse) GetOutput() *ReidentifyFileResponseOutput {
 	if r == nil {
 		return nil
@@ -516,49 +526,24 @@ func (r *ReidentifyFileResponse) GetOutput() *ReidentifyFileResponseOutput {
 	return r.Output
 }
 
-func (r *ReidentifyFileResponse) OutputType() string {
-	return r.outputType
-}
-
 func (r *ReidentifyFileResponse) GetExtraProperties() map[string]interface{} {
 	return r.extraProperties
 }
 
 func (r *ReidentifyFileResponse) UnmarshalJSON(data []byte) error {
-	type embed ReidentifyFileResponse
-	var unmarshaler = struct {
-		embed
-		OutputType string `json:"output_type"`
-	}{
-		embed: embed(*r),
-	}
-	if err := json.Unmarshal(data, &unmarshaler); err != nil {
+	type unmarshaler ReidentifyFileResponse
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
 		return err
 	}
-	*r = ReidentifyFileResponse(unmarshaler.embed)
-	if unmarshaler.OutputType != "BASE64" {
-		return fmt.Errorf("unexpected value for literal on type %T; expected %v got %v", r, "BASE64", unmarshaler.OutputType)
-	}
-	r.outputType = unmarshaler.OutputType
-	extraProperties, err := internal.ExtractExtraProperties(data, *r, "output_type")
+	*r = ReidentifyFileResponse(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *r)
 	if err != nil {
 		return err
 	}
 	r.extraProperties = extraProperties
 	r.rawJSON = json.RawMessage(data)
 	return nil
-}
-
-func (r *ReidentifyFileResponse) MarshalJSON() ([]byte, error) {
-	type embed ReidentifyFileResponse
-	var marshaler = struct {
-		embed
-		OutputType string `json:"output_type"`
-	}{
-		embed:      embed(*r),
-		OutputType: "BASE64",
-	}
-	return json.Marshal(marshaler)
 }
 
 func (r *ReidentifyFileResponse) String() string {
@@ -656,23 +641,49 @@ func (r *ReidentifyFileResponseOutput) String() string {
 	return fmt.Sprintf("%#v", r)
 }
 
+// Format of the output file.
+type ReidentifyFileResponseOutputType string
+
+const (
+	ReidentifyFileResponseOutputTypeBase64  ReidentifyFileResponseOutputType = "BASE64"
+	ReidentifyFileResponseOutputTypeUnknown ReidentifyFileResponseOutputType = "UNKNOWN"
+)
+
+func NewReidentifyFileResponseOutputTypeFromString(s string) (ReidentifyFileResponseOutputType, error) {
+	switch s {
+	case "BASE64":
+		return ReidentifyFileResponseOutputTypeBase64, nil
+	case "UNKNOWN":
+		return ReidentifyFileResponseOutputTypeUnknown, nil
+	}
+	var t ReidentifyFileResponseOutputType
+	return "", fmt.Errorf("%s is not a valid %T", s, t)
+}
+
+func (r ReidentifyFileResponseOutputType) Ptr() *ReidentifyFileResponseOutputType {
+	return &r
+}
+
 // Status of the re-identify operation.
 type ReidentifyFileResponseStatus string
 
 const (
-	ReidentifyFileResponseStatusFailed     ReidentifyFileResponseStatus = "failed"
-	ReidentifyFileResponseStatusInProgress ReidentifyFileResponseStatus = "in_progress"
-	ReidentifyFileResponseStatusSuccess    ReidentifyFileResponseStatus = "success"
+	ReidentifyFileResponseStatusFailed     ReidentifyFileResponseStatus = "FAILED"
+	ReidentifyFileResponseStatusInProgress ReidentifyFileResponseStatus = "IN_PROGRESS"
+	ReidentifyFileResponseStatusSuccess    ReidentifyFileResponseStatus = "SUCCESS"
+	ReidentifyFileResponseStatusUnknown    ReidentifyFileResponseStatus = "UNKNOWN"
 )
 
 func NewReidentifyFileResponseStatusFromString(s string) (ReidentifyFileResponseStatus, error) {
 	switch s {
-	case "failed":
+	case "FAILED":
 		return ReidentifyFileResponseStatusFailed, nil
-	case "in_progress":
+	case "IN_PROGRESS":
 		return ReidentifyFileResponseStatusInProgress, nil
-	case "success":
+	case "SUCCESS":
 		return ReidentifyFileResponseStatusSuccess, nil
+	case "UNKNOWN":
+		return ReidentifyFileResponseStatusUnknown, nil
 	}
 	var t ReidentifyFileResponseStatus
 	return "", fmt.Errorf("%s is not a valid %T", s, t)

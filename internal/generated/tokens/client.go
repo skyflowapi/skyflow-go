@@ -12,25 +12,25 @@ import (
 )
 
 type Client struct {
-	WithRawResponse *RawClient
-
 	baseURL string
 	caller  *internal.Caller
 	header  http.Header
+
+	WithRawResponse *RawClient
 }
 
 func NewClient(opts ...option.RequestOption) *Client {
 	options := core.NewRequestOptions(opts...)
 	return &Client{
-		WithRawResponse: NewRawClient(options),
-		baseURL:         options.BaseURL,
+		baseURL: options.BaseURL,
 		caller: internal.NewCaller(
 			&internal.CallerParams{
 				Client:      options.HTTPClient,
 				MaxAttempts: options.MaxAttempts,
 			},
 		),
-		header: options.ToHeader(),
+		header:          options.ToHeader(),
+		WithRawResponse: NewRawClient(options),
 	}
 }
 
@@ -42,16 +42,48 @@ func (c *Client) RecordServiceDetokenize(
 	request *generated.V1DetokenizePayload,
 	opts ...option.RequestOption,
 ) (*generated.V1DetokenizeResponse, error) {
-	response, err := c.WithRawResponse.RecordServiceDetokenize(
-		ctx,
-		vaultId,
-		request,
-		opts...,
+	options := core.NewRequestOptions(opts...)
+	baseURL := internal.ResolveBaseURL(
+		options.BaseURL,
+		c.baseURL,
+		"https://identifier.vault.skyflowapis.com",
 	)
-	if err != nil {
+	endpointURL := internal.EncodeURL(
+		baseURL+"/v1/vaults/%v/detokenize",
+		vaultId,
+	)
+	headers := internal.MergeHeaders(
+		c.header.Clone(),
+		options.ToHeader(),
+	)
+	headers.Set("Content-Type", "application/json")
+	errorCodes := internal.ErrorCodes{
+		404: func(apiError *core.APIError) error {
+			return &generated.NotFoundError{
+				APIError: apiError,
+			}
+		},
+	}
+
+	var response *generated.V1DetokenizeResponse
+	if _, err := c.caller.Call(
+		ctx,
+		&internal.CallParams{
+			URL:             endpointURL,
+			Method:          http.MethodPost,
+			Headers:         headers,
+			MaxAttempts:     options.MaxAttempts,
+			BodyProperties:  options.BodyProperties,
+			QueryParameters: options.QueryParameters,
+			Client:          options.HTTPClient,
+			Request:         request,
+			Response:        &response,
+			ErrorDecoder:    internal.NewErrorDecoder(errorCodes),
+		},
+	); err != nil {
 		return nil, err
 	}
-	return response.Body, nil
+	return response, nil
 }
 
 // Returns tokens that correspond to the specified records. Only applicable for fields with deterministic tokenization.<br /><br /><b>Note:</b> This endpoint doesn't insert records—it returns tokens for existing values. To insert records and tokenize that new record's values, see <a href='#RecordService_InsertRecord'>Insert Record</a> and the tokenization parameter.
@@ -62,14 +94,46 @@ func (c *Client) RecordServiceTokenize(
 	request *generated.V1TokenizePayload,
 	opts ...option.RequestOption,
 ) (*generated.V1TokenizeResponse, error) {
-	response, err := c.WithRawResponse.RecordServiceTokenize(
-		ctx,
-		vaultId,
-		request,
-		opts...,
+	options := core.NewRequestOptions(opts...)
+	baseURL := internal.ResolveBaseURL(
+		options.BaseURL,
+		c.baseURL,
+		"https://identifier.vault.skyflowapis.com",
 	)
-	if err != nil {
+	endpointURL := internal.EncodeURL(
+		baseURL+"/v1/vaults/%v/tokenize",
+		vaultId,
+	)
+	headers := internal.MergeHeaders(
+		c.header.Clone(),
+		options.ToHeader(),
+	)
+	headers.Set("Content-Type", "application/json")
+	errorCodes := internal.ErrorCodes{
+		404: func(apiError *core.APIError) error {
+			return &generated.NotFoundError{
+				APIError: apiError,
+			}
+		},
+	}
+
+	var response *generated.V1TokenizeResponse
+	if _, err := c.caller.Call(
+		ctx,
+		&internal.CallParams{
+			URL:             endpointURL,
+			Method:          http.MethodPost,
+			Headers:         headers,
+			MaxAttempts:     options.MaxAttempts,
+			BodyProperties:  options.BodyProperties,
+			QueryParameters: options.QueryParameters,
+			Client:          options.HTTPClient,
+			Request:         request,
+			Response:        &response,
+			ErrorDecoder:    internal.NewErrorDecoder(errorCodes),
+		},
+	); err != nil {
 		return nil, err
 	}
-	return response.Body, nil
+	return response, nil
 }

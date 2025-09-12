@@ -12,25 +12,25 @@ import (
 )
 
 type Client struct {
-	WithRawResponse *RawClient
-
 	baseURL string
 	caller  *internal.Caller
 	header  http.Header
+
+	WithRawResponse *RawClient
 }
 
 func NewClient(opts ...option.RequestOption) *Client {
 	options := core.NewRequestOptions(opts...)
 	return &Client{
-		WithRawResponse: NewRawClient(options),
-		baseURL:         options.BaseURL,
+		baseURL: options.BaseURL,
 		caller: internal.NewCaller(
 			&internal.CallerParams{
 				Client:      options.HTTPClient,
 				MaxAttempts: options.MaxAttempts,
 			},
 		),
-		header: options.ToHeader(),
+		header:          options.ToHeader(),
+		WithRawResponse: NewRawClient(options),
 	}
 }
 
@@ -42,14 +42,46 @@ func (c *Client) QueryServiceExecuteQuery(
 	request *generated.QueryServiceExecuteQueryBody,
 	opts ...option.RequestOption,
 ) (*generated.V1GetQueryResponse, error) {
-	response, err := c.WithRawResponse.QueryServiceExecuteQuery(
-		ctx,
-		vaultId,
-		request,
-		opts...,
+	options := core.NewRequestOptions(opts...)
+	baseURL := internal.ResolveBaseURL(
+		options.BaseURL,
+		c.baseURL,
+		"https://identifier.vault.skyflowapis.com",
 	)
-	if err != nil {
+	endpointURL := internal.EncodeURL(
+		baseURL+"/v1/vaults/%v/query",
+		vaultId,
+	)
+	headers := internal.MergeHeaders(
+		c.header.Clone(),
+		options.ToHeader(),
+	)
+	headers.Set("Content-Type", "application/json")
+	errorCodes := internal.ErrorCodes{
+		404: func(apiError *core.APIError) error {
+			return &generated.NotFoundError{
+				APIError: apiError,
+			}
+		},
+	}
+
+	var response *generated.V1GetQueryResponse
+	if _, err := c.caller.Call(
+		ctx,
+		&internal.CallParams{
+			URL:             endpointURL,
+			Method:          http.MethodPost,
+			Headers:         headers,
+			MaxAttempts:     options.MaxAttempts,
+			BodyProperties:  options.BodyProperties,
+			QueryParameters: options.QueryParameters,
+			Client:          options.HTTPClient,
+			Request:         request,
+			Response:        &response,
+			ErrorDecoder:    internal.NewErrorDecoder(errorCodes),
+		},
+	); err != nil {
 		return nil, err
 	}
-	return response.Body, nil
+	return response, nil
 }

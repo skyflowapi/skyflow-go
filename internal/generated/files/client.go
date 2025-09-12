@@ -12,25 +12,25 @@ import (
 )
 
 type Client struct {
-	WithRawResponse *RawClient
-
 	baseURL string
 	caller  *internal.Caller
 	header  http.Header
+
+	WithRawResponse *RawClient
 }
 
 func NewClient(opts ...option.RequestOption) *Client {
 	options := core.NewRequestOptions(opts...)
 	return &Client{
-		WithRawResponse: NewRawClient(options),
-		baseURL:         options.BaseURL,
+		baseURL: options.BaseURL,
 		caller: internal.NewCaller(
 			&internal.CallerParams{
 				Client:      options.HTTPClient,
 				MaxAttempts: options.MaxAttempts,
 			},
 		),
-		header: options.ToHeader(),
+		header:          options.ToHeader(),
+		WithRawResponse: NewRawClient(options),
 	}
 }
 
@@ -40,15 +40,55 @@ func (c *Client) DeidentifyFile(
 	request *generated.DeidentifyFileRequest,
 	opts ...option.RequestOption,
 ) (*generated.DeidentifyFileResponse, error) {
-	response, err := c.WithRawResponse.DeidentifyFile(
-		ctx,
-		request,
-		opts...,
+	options := core.NewRequestOptions(opts...)
+	baseURL := internal.ResolveBaseURL(
+		options.BaseURL,
+		c.baseURL,
+		"https://identifier.vault.skyflowapis.com",
 	)
-	if err != nil {
+	endpointURL := baseURL + "/v1/detect/deidentify/file"
+	headers := internal.MergeHeaders(
+		c.header.Clone(),
+		options.ToHeader(),
+	)
+	headers.Set("Content-Type", "application/json")
+	errorCodes := internal.ErrorCodes{
+		400: func(apiError *core.APIError) error {
+			return &generated.BadRequestError{
+				APIError: apiError,
+			}
+		},
+		401: func(apiError *core.APIError) error {
+			return &generated.UnauthorizedError{
+				APIError: apiError,
+			}
+		},
+		500: func(apiError *core.APIError) error {
+			return &generated.InternalServerError{
+				APIError: apiError,
+			}
+		},
+	}
+
+	var response *generated.DeidentifyFileResponse
+	if _, err := c.caller.Call(
+		ctx,
+		&internal.CallParams{
+			URL:             endpointURL,
+			Method:          http.MethodPost,
+			Headers:         headers,
+			MaxAttempts:     options.MaxAttempts,
+			BodyProperties:  options.BodyProperties,
+			QueryParameters: options.QueryParameters,
+			Client:          options.HTTPClient,
+			Request:         request,
+			Response:        &response,
+			ErrorDecoder:    internal.NewErrorDecoder(errorCodes),
+		},
+	); err != nil {
 		return nil, err
 	}
-	return response.Body, nil
+	return response, nil
 }
 
 // De-identifies sensitive data from a document file. This operation includes options applicable to all supported document file types.<br/><br/>For more specific options, see the file type-specific opertions (like <a href='#deidentify_pdf'>De-identify PDF</a>) where they're available. For broader file type support, see <a href='#deidentify_file'>De-identify File</a>.
@@ -57,15 +97,55 @@ func (c *Client) DeidentifyDocument(
 	request *generated.DeidentifyDocumentRequest,
 	opts ...option.RequestOption,
 ) (*generated.DeidentifyFileResponse, error) {
-	response, err := c.WithRawResponse.DeidentifyDocument(
-		ctx,
-		request,
-		opts...,
+	options := core.NewRequestOptions(opts...)
+	baseURL := internal.ResolveBaseURL(
+		options.BaseURL,
+		c.baseURL,
+		"https://identifier.vault.skyflowapis.com",
 	)
-	if err != nil {
+	endpointURL := baseURL + "/v1/detect/deidentify/file/document"
+	headers := internal.MergeHeaders(
+		c.header.Clone(),
+		options.ToHeader(),
+	)
+	headers.Set("Content-Type", "application/json")
+	errorCodes := internal.ErrorCodes{
+		400: func(apiError *core.APIError) error {
+			return &generated.BadRequestError{
+				APIError: apiError,
+			}
+		},
+		401: func(apiError *core.APIError) error {
+			return &generated.UnauthorizedError{
+				APIError: apiError,
+			}
+		},
+		500: func(apiError *core.APIError) error {
+			return &generated.InternalServerError{
+				APIError: apiError,
+			}
+		},
+	}
+
+	var response *generated.DeidentifyFileResponse
+	if _, err := c.caller.Call(
+		ctx,
+		&internal.CallParams{
+			URL:             endpointURL,
+			Method:          http.MethodPost,
+			Headers:         headers,
+			MaxAttempts:     options.MaxAttempts,
+			BodyProperties:  options.BodyProperties,
+			QueryParameters: options.QueryParameters,
+			Client:          options.HTTPClient,
+			Request:         request,
+			Response:        &response,
+			ErrorDecoder:    internal.NewErrorDecoder(errorCodes),
+		},
+	); err != nil {
 		return nil, err
 	}
-	return response.Body, nil
+	return response, nil
 }
 
 // De-identifies sensitive data from a PDF file. This operation includes options specific to PDF files.<br/><br/>For broader file type support, see <a href='#deidentify_document'>De-identify Document</a> and <a href='#deidentify_file'>De-identify File</a>.
@@ -74,15 +154,55 @@ func (c *Client) DeidentifyPdf(
 	request *generated.DeidentifyPdfRequest,
 	opts ...option.RequestOption,
 ) (*generated.DeidentifyFileResponse, error) {
-	response, err := c.WithRawResponse.DeidentifyPdf(
-		ctx,
-		request,
-		opts...,
+	options := core.NewRequestOptions(opts...)
+	baseURL := internal.ResolveBaseURL(
+		options.BaseURL,
+		c.baseURL,
+		"https://identifier.vault.skyflowapis.com",
 	)
-	if err != nil {
+	endpointURL := baseURL + "/v1/detect/deidentify/file/document/pdf"
+	headers := internal.MergeHeaders(
+		c.header.Clone(),
+		options.ToHeader(),
+	)
+	headers.Set("Content-Type", "application/json")
+	errorCodes := internal.ErrorCodes{
+		400: func(apiError *core.APIError) error {
+			return &generated.BadRequestError{
+				APIError: apiError,
+			}
+		},
+		401: func(apiError *core.APIError) error {
+			return &generated.UnauthorizedError{
+				APIError: apiError,
+			}
+		},
+		500: func(apiError *core.APIError) error {
+			return &generated.InternalServerError{
+				APIError: apiError,
+			}
+		},
+	}
+
+	var response *generated.DeidentifyFileResponse
+	if _, err := c.caller.Call(
+		ctx,
+		&internal.CallParams{
+			URL:             endpointURL,
+			Method:          http.MethodPost,
+			Headers:         headers,
+			MaxAttempts:     options.MaxAttempts,
+			BodyProperties:  options.BodyProperties,
+			QueryParameters: options.QueryParameters,
+			Client:          options.HTTPClient,
+			Request:         request,
+			Response:        &response,
+			ErrorDecoder:    internal.NewErrorDecoder(errorCodes),
+		},
+	); err != nil {
 		return nil, err
 	}
-	return response.Body, nil
+	return response, nil
 }
 
 // De-identifies sensitive data from an image file. This operation includes options applicable to all supported image file types.<br/><br/>For broader file type support, see <a href='#deidentify_file'>De-identify File</a>.
@@ -91,15 +211,55 @@ func (c *Client) DeidentifyImage(
 	request *generated.DeidentifyImageRequest,
 	opts ...option.RequestOption,
 ) (*generated.DeidentifyFileResponse, error) {
-	response, err := c.WithRawResponse.DeidentifyImage(
-		ctx,
-		request,
-		opts...,
+	options := core.NewRequestOptions(opts...)
+	baseURL := internal.ResolveBaseURL(
+		options.BaseURL,
+		c.baseURL,
+		"https://identifier.vault.skyflowapis.com",
 	)
-	if err != nil {
+	endpointURL := baseURL + "/v1/detect/deidentify/file/image"
+	headers := internal.MergeHeaders(
+		c.header.Clone(),
+		options.ToHeader(),
+	)
+	headers.Set("Content-Type", "application/json")
+	errorCodes := internal.ErrorCodes{
+		400: func(apiError *core.APIError) error {
+			return &generated.BadRequestError{
+				APIError: apiError,
+			}
+		},
+		401: func(apiError *core.APIError) error {
+			return &generated.UnauthorizedError{
+				APIError: apiError,
+			}
+		},
+		500: func(apiError *core.APIError) error {
+			return &generated.InternalServerError{
+				APIError: apiError,
+			}
+		},
+	}
+
+	var response *generated.DeidentifyFileResponse
+	if _, err := c.caller.Call(
+		ctx,
+		&internal.CallParams{
+			URL:             endpointURL,
+			Method:          http.MethodPost,
+			Headers:         headers,
+			MaxAttempts:     options.MaxAttempts,
+			BodyProperties:  options.BodyProperties,
+			QueryParameters: options.QueryParameters,
+			Client:          options.HTTPClient,
+			Request:         request,
+			Response:        &response,
+			ErrorDecoder:    internal.NewErrorDecoder(errorCodes),
+		},
+	); err != nil {
 		return nil, err
 	}
-	return response.Body, nil
+	return response, nil
 }
 
 // De-identifies sensitive data from a text file. This operation includes options applicable to all supported image text types.<br/><br/>For broader file type support, see <a href='#deidentify_file'>De-identify File</a>.
@@ -108,15 +268,55 @@ func (c *Client) DeidentifyText(
 	request *generated.DeidentifyTextRequest,
 	opts ...option.RequestOption,
 ) (*generated.DeidentifyFileResponse, error) {
-	response, err := c.WithRawResponse.DeidentifyText(
-		ctx,
-		request,
-		opts...,
+	options := core.NewRequestOptions(opts...)
+	baseURL := internal.ResolveBaseURL(
+		options.BaseURL,
+		c.baseURL,
+		"https://identifier.vault.skyflowapis.com",
 	)
-	if err != nil {
+	endpointURL := baseURL + "/v1/detect/deidentify/file/text"
+	headers := internal.MergeHeaders(
+		c.header.Clone(),
+		options.ToHeader(),
+	)
+	headers.Set("Content-Type", "application/json")
+	errorCodes := internal.ErrorCodes{
+		400: func(apiError *core.APIError) error {
+			return &generated.BadRequestError{
+				APIError: apiError,
+			}
+		},
+		401: func(apiError *core.APIError) error {
+			return &generated.UnauthorizedError{
+				APIError: apiError,
+			}
+		},
+		500: func(apiError *core.APIError) error {
+			return &generated.InternalServerError{
+				APIError: apiError,
+			}
+		},
+	}
+
+	var response *generated.DeidentifyFileResponse
+	if _, err := c.caller.Call(
+		ctx,
+		&internal.CallParams{
+			URL:             endpointURL,
+			Method:          http.MethodPost,
+			Headers:         headers,
+			MaxAttempts:     options.MaxAttempts,
+			BodyProperties:  options.BodyProperties,
+			QueryParameters: options.QueryParameters,
+			Client:          options.HTTPClient,
+			Request:         request,
+			Response:        &response,
+			ErrorDecoder:    internal.NewErrorDecoder(errorCodes),
+		},
+	); err != nil {
 		return nil, err
 	}
-	return response.Body, nil
+	return response, nil
 }
 
 // De-identifies sensitive data from a structured text file. This operation includes options applicable to all supported structured text file types.<br/><br/>For broader file type support, see <a href='#deidentify_file'>De-identify File</a>.
@@ -125,15 +325,55 @@ func (c *Client) DeidentifyStructuredText(
 	request *generated.DeidentifyStructuredTextRequest,
 	opts ...option.RequestOption,
 ) (*generated.DeidentifyFileResponse, error) {
-	response, err := c.WithRawResponse.DeidentifyStructuredText(
-		ctx,
-		request,
-		opts...,
+	options := core.NewRequestOptions(opts...)
+	baseURL := internal.ResolveBaseURL(
+		options.BaseURL,
+		c.baseURL,
+		"https://identifier.vault.skyflowapis.com",
 	)
-	if err != nil {
+	endpointURL := baseURL + "/v1/detect/deidentify/file/structured_text"
+	headers := internal.MergeHeaders(
+		c.header.Clone(),
+		options.ToHeader(),
+	)
+	headers.Set("Content-Type", "application/json")
+	errorCodes := internal.ErrorCodes{
+		400: func(apiError *core.APIError) error {
+			return &generated.BadRequestError{
+				APIError: apiError,
+			}
+		},
+		401: func(apiError *core.APIError) error {
+			return &generated.UnauthorizedError{
+				APIError: apiError,
+			}
+		},
+		500: func(apiError *core.APIError) error {
+			return &generated.InternalServerError{
+				APIError: apiError,
+			}
+		},
+	}
+
+	var response *generated.DeidentifyFileResponse
+	if _, err := c.caller.Call(
+		ctx,
+		&internal.CallParams{
+			URL:             endpointURL,
+			Method:          http.MethodPost,
+			Headers:         headers,
+			MaxAttempts:     options.MaxAttempts,
+			BodyProperties:  options.BodyProperties,
+			QueryParameters: options.QueryParameters,
+			Client:          options.HTTPClient,
+			Request:         request,
+			Response:        &response,
+			ErrorDecoder:    internal.NewErrorDecoder(errorCodes),
+		},
+	); err != nil {
 		return nil, err
 	}
-	return response.Body, nil
+	return response, nil
 }
 
 // De-identifies sensitive data from a spreadsheet file. This operation includes options applicable to all supported spreadsheet file types.<br/><br/>For broader file type support, see <a href='#deidentify_file'>De-identify File</a>.
@@ -142,15 +382,55 @@ func (c *Client) DeidentifySpreadsheet(
 	request *generated.DeidentifySpreadsheetRequest,
 	opts ...option.RequestOption,
 ) (*generated.DeidentifyFileResponse, error) {
-	response, err := c.WithRawResponse.DeidentifySpreadsheet(
-		ctx,
-		request,
-		opts...,
+	options := core.NewRequestOptions(opts...)
+	baseURL := internal.ResolveBaseURL(
+		options.BaseURL,
+		c.baseURL,
+		"https://identifier.vault.skyflowapis.com",
 	)
-	if err != nil {
+	endpointURL := baseURL + "/v1/detect/deidentify/file/spreadsheet"
+	headers := internal.MergeHeaders(
+		c.header.Clone(),
+		options.ToHeader(),
+	)
+	headers.Set("Content-Type", "application/json")
+	errorCodes := internal.ErrorCodes{
+		400: func(apiError *core.APIError) error {
+			return &generated.BadRequestError{
+				APIError: apiError,
+			}
+		},
+		401: func(apiError *core.APIError) error {
+			return &generated.UnauthorizedError{
+				APIError: apiError,
+			}
+		},
+		500: func(apiError *core.APIError) error {
+			return &generated.InternalServerError{
+				APIError: apiError,
+			}
+		},
+	}
+
+	var response *generated.DeidentifyFileResponse
+	if _, err := c.caller.Call(
+		ctx,
+		&internal.CallParams{
+			URL:             endpointURL,
+			Method:          http.MethodPost,
+			Headers:         headers,
+			MaxAttempts:     options.MaxAttempts,
+			BodyProperties:  options.BodyProperties,
+			QueryParameters: options.QueryParameters,
+			Client:          options.HTTPClient,
+			Request:         request,
+			Response:        &response,
+			ErrorDecoder:    internal.NewErrorDecoder(errorCodes),
+		},
+	); err != nil {
 		return nil, err
 	}
-	return response.Body, nil
+	return response, nil
 }
 
 // De-identifies sensitive data from a presentation file. This operation includes options applicable to all supported presentation file types.<br/><br/>For broader file type support, see <a href='#deidentify_file'>De-identify File</a>.
@@ -159,15 +439,55 @@ func (c *Client) DeidentifyPresentation(
 	request *generated.DeidentifyPresentationRequest,
 	opts ...option.RequestOption,
 ) (*generated.DeidentifyFileResponse, error) {
-	response, err := c.WithRawResponse.DeidentifyPresentation(
-		ctx,
-		request,
-		opts...,
+	options := core.NewRequestOptions(opts...)
+	baseURL := internal.ResolveBaseURL(
+		options.BaseURL,
+		c.baseURL,
+		"https://identifier.vault.skyflowapis.com",
 	)
-	if err != nil {
+	endpointURL := baseURL + "/v1/detect/deidentify/file/presentation"
+	headers := internal.MergeHeaders(
+		c.header.Clone(),
+		options.ToHeader(),
+	)
+	headers.Set("Content-Type", "application/json")
+	errorCodes := internal.ErrorCodes{
+		400: func(apiError *core.APIError) error {
+			return &generated.BadRequestError{
+				APIError: apiError,
+			}
+		},
+		401: func(apiError *core.APIError) error {
+			return &generated.UnauthorizedError{
+				APIError: apiError,
+			}
+		},
+		500: func(apiError *core.APIError) error {
+			return &generated.InternalServerError{
+				APIError: apiError,
+			}
+		},
+	}
+
+	var response *generated.DeidentifyFileResponse
+	if _, err := c.caller.Call(
+		ctx,
+		&internal.CallParams{
+			URL:             endpointURL,
+			Method:          http.MethodPost,
+			Headers:         headers,
+			MaxAttempts:     options.MaxAttempts,
+			BodyProperties:  options.BodyProperties,
+			QueryParameters: options.QueryParameters,
+			Client:          options.HTTPClient,
+			Request:         request,
+			Response:        &response,
+			ErrorDecoder:    internal.NewErrorDecoder(errorCodes),
+		},
+	); err != nil {
 		return nil, err
 	}
-	return response.Body, nil
+	return response, nil
 }
 
 // De-identifies sensitive data from an audio file. This operation includes options applicable to all supported audio file types.<br/><br/>For broader file type support, see <a href='#deidentify_file'>De-identify File</a>.
@@ -176,15 +496,55 @@ func (c *Client) DeidentifyAudio(
 	request *generated.DeidentifyAudioRequest,
 	opts ...option.RequestOption,
 ) (*generated.DeidentifyFileResponse, error) {
-	response, err := c.WithRawResponse.DeidentifyAudio(
-		ctx,
-		request,
-		opts...,
+	options := core.NewRequestOptions(opts...)
+	baseURL := internal.ResolveBaseURL(
+		options.BaseURL,
+		c.baseURL,
+		"https://identifier.vault.skyflowapis.com",
 	)
-	if err != nil {
+	endpointURL := baseURL + "/v1/detect/deidentify/file/audio"
+	headers := internal.MergeHeaders(
+		c.header.Clone(),
+		options.ToHeader(),
+	)
+	headers.Set("Content-Type", "application/json")
+	errorCodes := internal.ErrorCodes{
+		400: func(apiError *core.APIError) error {
+			return &generated.BadRequestError{
+				APIError: apiError,
+			}
+		},
+		401: func(apiError *core.APIError) error {
+			return &generated.UnauthorizedError{
+				APIError: apiError,
+			}
+		},
+		500: func(apiError *core.APIError) error {
+			return &generated.InternalServerError{
+				APIError: apiError,
+			}
+		},
+	}
+
+	var response *generated.DeidentifyFileResponse
+	if _, err := c.caller.Call(
+		ctx,
+		&internal.CallParams{
+			URL:             endpointURL,
+			Method:          http.MethodPost,
+			Headers:         headers,
+			MaxAttempts:     options.MaxAttempts,
+			BodyProperties:  options.BodyProperties,
+			QueryParameters: options.QueryParameters,
+			Client:          options.HTTPClient,
+			Request:         request,
+			Response:        &response,
+			ErrorDecoder:    internal.NewErrorDecoder(errorCodes),
+		},
+	); err != nil {
 		return nil, err
 	}
-	return response.Body, nil
+	return response, nil
 }
 
 // Returns the status of the detect run.
@@ -195,16 +555,68 @@ func (c *Client) GetRun(
 	request *generated.GetRunRequest,
 	opts ...option.RequestOption,
 ) (*generated.DeidentifyStatusResponse, error) {
-	response, err := c.WithRawResponse.GetRun(
-		ctx,
-		runId,
-		request,
-		opts...,
+	options := core.NewRequestOptions(opts...)
+	baseURL := internal.ResolveBaseURL(
+		options.BaseURL,
+		c.baseURL,
+		"https://identifier.vault.skyflowapis.com",
 	)
+	endpointURL := internal.EncodeURL(
+		baseURL+"/v1/detect/runs/%v",
+		runId,
+	)
+	queryParams, err := internal.QueryValues(request)
 	if err != nil {
 		return nil, err
 	}
-	return response.Body, nil
+	if len(queryParams) > 0 {
+		endpointURL += "?" + queryParams.Encode()
+	}
+	headers := internal.MergeHeaders(
+		c.header.Clone(),
+		options.ToHeader(),
+	)
+	errorCodes := internal.ErrorCodes{
+		400: func(apiError *core.APIError) error {
+			return &generated.BadRequestError{
+				APIError: apiError,
+			}
+		},
+		401: func(apiError *core.APIError) error {
+			return &generated.UnauthorizedError{
+				APIError: apiError,
+			}
+		},
+		404: func(apiError *core.APIError) error {
+			return &generated.NotFoundError{
+				APIError: apiError,
+			}
+		},
+		500: func(apiError *core.APIError) error {
+			return &generated.InternalServerError{
+				APIError: apiError,
+			}
+		},
+	}
+
+	var response *generated.DeidentifyStatusResponse
+	if _, err := c.caller.Call(
+		ctx,
+		&internal.CallParams{
+			URL:             endpointURL,
+			Method:          http.MethodGet,
+			Headers:         headers,
+			MaxAttempts:     options.MaxAttempts,
+			BodyProperties:  options.BodyProperties,
+			QueryParameters: options.QueryParameters,
+			Client:          options.HTTPClient,
+			Response:        &response,
+			ErrorDecoder:    internal.NewErrorDecoder(errorCodes),
+		},
+	); err != nil {
+		return nil, err
+	}
+	return response, nil
 }
 
 // Re-identifies tokens in a file.
@@ -213,13 +625,53 @@ func (c *Client) ReidentifyFile(
 	request *generated.ReidentifyFileRequest,
 	opts ...option.RequestOption,
 ) (*generated.ReidentifyFileResponse, error) {
-	response, err := c.WithRawResponse.ReidentifyFile(
-		ctx,
-		request,
-		opts...,
+	options := core.NewRequestOptions(opts...)
+	baseURL := internal.ResolveBaseURL(
+		options.BaseURL,
+		c.baseURL,
+		"https://identifier.vault.skyflowapis.com",
 	)
-	if err != nil {
+	endpointURL := baseURL + "/v1/detect/reidentify/file"
+	headers := internal.MergeHeaders(
+		c.header.Clone(),
+		options.ToHeader(),
+	)
+	headers.Set("Content-Type", "application/json")
+	errorCodes := internal.ErrorCodes{
+		400: func(apiError *core.APIError) error {
+			return &generated.BadRequestError{
+				APIError: apiError,
+			}
+		},
+		401: func(apiError *core.APIError) error {
+			return &generated.UnauthorizedError{
+				APIError: apiError,
+			}
+		},
+		500: func(apiError *core.APIError) error {
+			return &generated.InternalServerError{
+				APIError: apiError,
+			}
+		},
+	}
+
+	var response *generated.ReidentifyFileResponse
+	if _, err := c.caller.Call(
+		ctx,
+		&internal.CallParams{
+			URL:             endpointURL,
+			Method:          http.MethodPost,
+			Headers:         headers,
+			MaxAttempts:     options.MaxAttempts,
+			BodyProperties:  options.BodyProperties,
+			QueryParameters: options.QueryParameters,
+			Client:          options.HTTPClient,
+			Request:         request,
+			Response:        &response,
+			ErrorDecoder:    internal.NewErrorDecoder(errorCodes),
+		},
+	); err != nil {
 		return nil, err
 	}
-	return response.Body, nil
+	return response, nil
 }
