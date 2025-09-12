@@ -7,12 +7,13 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
-	"github.com/skyflowapi/skyflow-go/v2/internal/generated/option"
 	"io/ioutil"
 	"net/url"
 	"os"
 	"runtime"
 	"time"
+
+	"github.com/skyflowapi/skyflow-go/v2/internal/generated/option"
 
 	"github.com/golang-jwt/jwt"
 	constants "github.com/skyflowapi/skyflow-go/v2/internal/constants"
@@ -293,4 +294,8 @@ func CreateJsonMetadata() string {
 		return ""
 	}
 	return string(jsonData)
+}
+
+func Float64Ptr(v float64) *float64 {
+	return &v
 }
