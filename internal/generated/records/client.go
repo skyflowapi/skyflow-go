@@ -4,6 +4,7 @@ package records
 
 import (
 	context "context"
+	"fmt"
 	generated "github.com/skyflowapi/skyflow-go/v2/internal/generated"
 	core "github.com/skyflowapi/skyflow-go/v2/internal/generated/core"
 	internal "github.com/skyflowapi/skyflow-go/v2/internal/generated/internal"
@@ -12,25 +13,25 @@ import (
 )
 
 type Client struct {
-	WithRawResponse *RawClient
-
 	baseURL string
 	caller  *internal.Caller
 	header  http.Header
+
+	WithRawResponse *RawClient
 }
 
 func NewClient(opts ...option.RequestOption) *Client {
 	options := core.NewRequestOptions(opts...)
 	return &Client{
-		WithRawResponse: NewRawClient(options),
-		baseURL:         options.BaseURL,
+		baseURL: options.BaseURL,
 		caller: internal.NewCaller(
 			&internal.CallerParams{
 				Client:      options.HTTPClient,
 				MaxAttempts: options.MaxAttempts,
 			},
 		),
-		header: options.ToHeader(),
+		header:          options.ToHeader(),
+		WithRawResponse: NewRawClient(options),
 	}
 }
 
@@ -42,16 +43,48 @@ func (c *Client) RecordServiceBatchOperation(
 	request *generated.RecordServiceBatchOperationBody,
 	opts ...option.RequestOption,
 ) (*generated.V1BatchOperationResponse, error) {
-	response, err := c.WithRawResponse.RecordServiceBatchOperation(
-		ctx,
-		vaultId,
-		request,
-		opts...,
+	options := core.NewRequestOptions(opts...)
+	baseURL := internal.ResolveBaseURL(
+		options.BaseURL,
+		c.baseURL,
+		"https://identifier.vault.skyflowapis.com",
 	)
-	if err != nil {
+	endpointURL := internal.EncodeURL(
+		baseURL+"/v1/vaults/%v",
+		vaultId,
+	)
+	headers := internal.MergeHeaders(
+		c.header.Clone(),
+		options.ToHeader(),
+	)
+	headers.Set("Content-Type", "application/json")
+	errorCodes := internal.ErrorCodes{
+		404: func(apiError *core.APIError) error {
+			return &generated.NotFoundError{
+				APIError: apiError,
+			}
+		},
+	}
+
+	var response *generated.V1BatchOperationResponse
+	if _, err := c.caller.Call(
+		ctx,
+		&internal.CallParams{
+			URL:             endpointURL,
+			Method:          http.MethodPost,
+			Headers:         headers,
+			MaxAttempts:     options.MaxAttempts,
+			BodyProperties:  options.BodyProperties,
+			QueryParameters: options.QueryParameters,
+			Client:          options.HTTPClient,
+			Request:         request,
+			Response:        &response,
+			ErrorDecoder:    internal.NewErrorDecoder(errorCodes),
+		},
+	); err != nil {
 		return nil, err
 	}
-	return response.Body, nil
+	return response, nil
 }
 
 // Gets the specified records from a table.
@@ -64,17 +97,54 @@ func (c *Client) RecordServiceBulkGetRecord(
 	request *generated.RecordServiceBulkGetRecordRequest,
 	opts ...option.RequestOption,
 ) (*generated.V1BulkGetRecordResponse, error) {
-	response, err := c.WithRawResponse.RecordServiceBulkGetRecord(
-		ctx,
+	options := core.NewRequestOptions(opts...)
+	baseURL := internal.ResolveBaseURL(
+		options.BaseURL,
+		c.baseURL,
+		"https://identifier.vault.skyflowapis.com",
+	)
+	endpointURL := internal.EncodeURL(
+		baseURL+"/v1/vaults/%v/%v",
 		vaultId,
 		objectName,
-		request,
-		opts...,
 	)
+	queryParams, err := internal.QueryValues(request)
 	if err != nil {
 		return nil, err
 	}
-	return response.Body, nil
+	if len(queryParams) > 0 {
+		endpointURL += "?" + queryParams.Encode()
+	}
+	headers := internal.MergeHeaders(
+		c.header.Clone(),
+		options.ToHeader(),
+	)
+	errorCodes := internal.ErrorCodes{
+		404: func(apiError *core.APIError) error {
+			return &generated.NotFoundError{
+				APIError: apiError,
+			}
+		},
+	}
+
+	var response *generated.V1BulkGetRecordResponse
+	if _, err := c.caller.Call(
+		ctx,
+		&internal.CallParams{
+			URL:             endpointURL,
+			Method:          http.MethodGet,
+			Headers:         headers,
+			MaxAttempts:     options.MaxAttempts,
+			BodyProperties:  options.BodyProperties,
+			QueryParameters: options.QueryParameters,
+			Client:          options.HTTPClient,
+			Response:        &response,
+			ErrorDecoder:    internal.NewErrorDecoder(errorCodes),
+		},
+	); err != nil {
+		return nil, err
+	}
+	return response, nil
 }
 
 // Inserts a record in the specified table.<br /><br />The time-to-live (TTL) for a transient field begins when the field value is set during record insertion.<br /><br />Columns that have a string data type and a uniqueness constraint accept strings up to 2500 characters. If an inserted string exceeds 2500 characters, the call returns a token insertion error.
@@ -87,17 +157,49 @@ func (c *Client) RecordServiceInsertRecord(
 	request *generated.RecordServiceInsertRecordBody,
 	opts ...option.RequestOption,
 ) (*generated.V1InsertRecordResponse, error) {
-	response, err := c.WithRawResponse.RecordServiceInsertRecord(
-		ctx,
+	options := core.NewRequestOptions(opts...)
+	baseURL := internal.ResolveBaseURL(
+		options.BaseURL,
+		c.baseURL,
+		"https://identifier.vault.skyflowapis.com",
+	)
+	endpointURL := internal.EncodeURL(
+		baseURL+"/v1/vaults/%v/%v",
 		vaultId,
 		objectName,
-		request,
-		opts...,
 	)
-	if err != nil {
+	headers := internal.MergeHeaders(
+		c.header.Clone(),
+		options.ToHeader(),
+	)
+	headers.Set("Content-Type", "application/json")
+	errorCodes := internal.ErrorCodes{
+		404: func(apiError *core.APIError) error {
+			return &generated.NotFoundError{
+				APIError: apiError,
+			}
+		},
+	}
+
+	var response *generated.V1InsertRecordResponse
+	if _, err := c.caller.Call(
+		ctx,
+		&internal.CallParams{
+			URL:             endpointURL,
+			Method:          http.MethodPost,
+			Headers:         headers,
+			MaxAttempts:     options.MaxAttempts,
+			BodyProperties:  options.BodyProperties,
+			QueryParameters: options.QueryParameters,
+			Client:          options.HTTPClient,
+			Request:         request,
+			Response:        &response,
+			ErrorDecoder:    internal.NewErrorDecoder(errorCodes),
+		},
+	); err != nil {
 		return nil, err
 	}
-	return response.Body, nil
+	return response, nil
 }
 
 // Deletes the specified records from a table.
@@ -110,17 +212,49 @@ func (c *Client) RecordServiceBulkDeleteRecord(
 	request *generated.RecordServiceBulkDeleteRecordBody,
 	opts ...option.RequestOption,
 ) (*generated.V1BulkDeleteRecordResponse, error) {
-	response, err := c.WithRawResponse.RecordServiceBulkDeleteRecord(
-		ctx,
+	options := core.NewRequestOptions(opts...)
+	baseURL := internal.ResolveBaseURL(
+		options.BaseURL,
+		c.baseURL,
+		"https://identifier.vault.skyflowapis.com",
+	)
+	endpointURL := internal.EncodeURL(
+		baseURL+"/v1/vaults/%v/%v",
 		vaultId,
 		objectName,
-		request,
-		opts...,
 	)
-	if err != nil {
+	headers := internal.MergeHeaders(
+		c.header.Clone(),
+		options.ToHeader(),
+	)
+	headers.Set("Content-Type", "application/json")
+	errorCodes := internal.ErrorCodes{
+		404: func(apiError *core.APIError) error {
+			return &generated.NotFoundError{
+				APIError: apiError,
+			}
+		},
+	}
+
+	var response *generated.V1BulkDeleteRecordResponse
+	if _, err := c.caller.Call(
+		ctx,
+		&internal.CallParams{
+			URL:             endpointURL,
+			Method:          http.MethodDelete,
+			Headers:         headers,
+			MaxAttempts:     options.MaxAttempts,
+			BodyProperties:  options.BodyProperties,
+			QueryParameters: options.QueryParameters,
+			Client:          options.HTTPClient,
+			Request:         request,
+			Response:        &response,
+			ErrorDecoder:    internal.NewErrorDecoder(errorCodes),
+		},
+	); err != nil {
 		return nil, err
 	}
-	return response.Body, nil
+	return response, nil
 }
 
 // Returns the specified record from a table.
@@ -135,18 +269,55 @@ func (c *Client) RecordServiceGetRecord(
 	request *generated.RecordServiceGetRecordRequest,
 	opts ...option.RequestOption,
 ) (*generated.V1FieldRecords, error) {
-	response, err := c.WithRawResponse.RecordServiceGetRecord(
-		ctx,
+	options := core.NewRequestOptions(opts...)
+	baseURL := internal.ResolveBaseURL(
+		options.BaseURL,
+		c.baseURL,
+		"https://identifier.vault.skyflowapis.com",
+	)
+	endpointURL := internal.EncodeURL(
+		baseURL+"/v1/vaults/%v/%v/%v",
 		vaultId,
 		objectName,
 		id,
-		request,
-		opts...,
 	)
+	queryParams, err := internal.QueryValues(request)
 	if err != nil {
 		return nil, err
 	}
-	return response.Body, nil
+	if len(queryParams) > 0 {
+		endpointURL += "?" + queryParams.Encode()
+	}
+	headers := internal.MergeHeaders(
+		c.header.Clone(),
+		options.ToHeader(),
+	)
+	errorCodes := internal.ErrorCodes{
+		404: func(apiError *core.APIError) error {
+			return &generated.NotFoundError{
+				APIError: apiError,
+			}
+		},
+	}
+
+	var response *generated.V1FieldRecords
+	if _, err := c.caller.Call(
+		ctx,
+		&internal.CallParams{
+			URL:             endpointURL,
+			Method:          http.MethodGet,
+			Headers:         headers,
+			MaxAttempts:     options.MaxAttempts,
+			BodyProperties:  options.BodyProperties,
+			QueryParameters: options.QueryParameters,
+			Client:          options.HTTPClient,
+			Response:        &response,
+			ErrorDecoder:    internal.NewErrorDecoder(errorCodes),
+		},
+	); err != nil {
+		return nil, err
+	}
+	return response, nil
 }
 
 // Updates the specified record in a table.<br /><br />When you update a field, include the entire contents you want the field to store. For JSON fields, include all nested fields and values. If a nested field isn't included, it's removed.<br /><br />The time-to-live (TTL) for a transient field resets when the field value is updated.
@@ -161,18 +332,50 @@ func (c *Client) RecordServiceUpdateRecord(
 	request *generated.RecordServiceUpdateRecordBody,
 	opts ...option.RequestOption,
 ) (*generated.V1UpdateRecordResponse, error) {
-	response, err := c.WithRawResponse.RecordServiceUpdateRecord(
-		ctx,
+	options := core.NewRequestOptions(opts...)
+	baseURL := internal.ResolveBaseURL(
+		options.BaseURL,
+		c.baseURL,
+		"https://identifier.vault.skyflowapis.com",
+	)
+	endpointURL := internal.EncodeURL(
+		baseURL+"/v1/vaults/%v/%v/%v",
 		vaultId,
 		objectName,
 		id,
-		request,
-		opts...,
 	)
-	if err != nil {
+	headers := internal.MergeHeaders(
+		c.header.Clone(),
+		options.ToHeader(),
+	)
+	headers.Set("Content-Type", "application/json")
+	errorCodes := internal.ErrorCodes{
+		404: func(apiError *core.APIError) error {
+			return &generated.NotFoundError{
+				APIError: apiError,
+			}
+		},
+	}
+
+	var response *generated.V1UpdateRecordResponse
+	if _, err := c.caller.Call(
+		ctx,
+		&internal.CallParams{
+			URL:             endpointURL,
+			Method:          http.MethodPut,
+			Headers:         headers,
+			MaxAttempts:     options.MaxAttempts,
+			BodyProperties:  options.BodyProperties,
+			QueryParameters: options.QueryParameters,
+			Client:          options.HTTPClient,
+			Request:         request,
+			Response:        &response,
+			ErrorDecoder:    internal.NewErrorDecoder(errorCodes),
+		},
+	); err != nil {
 		return nil, err
 	}
-	return response.Body, nil
+	return response, nil
 }
 
 // Deletes the specified record from a table.<br /><br /><b>Note:</b> This method doesn't delete transient field tokens. Transient field values are available until they expire based on the fields' time-to-live (TTL) setting.
@@ -186,17 +389,48 @@ func (c *Client) RecordServiceDeleteRecord(
 	id string,
 	opts ...option.RequestOption,
 ) (*generated.V1DeleteRecordResponse, error) {
-	response, err := c.WithRawResponse.RecordServiceDeleteRecord(
-		ctx,
+	options := core.NewRequestOptions(opts...)
+	baseURL := internal.ResolveBaseURL(
+		options.BaseURL,
+		c.baseURL,
+		"https://identifier.vault.skyflowapis.com",
+	)
+	endpointURL := internal.EncodeURL(
+		baseURL+"/v1/vaults/%v/%v/%v",
 		vaultId,
 		objectName,
 		id,
-		opts...,
 	)
-	if err != nil {
+	headers := internal.MergeHeaders(
+		c.header.Clone(),
+		options.ToHeader(),
+	)
+	errorCodes := internal.ErrorCodes{
+		404: func(apiError *core.APIError) error {
+			return &generated.NotFoundError{
+				APIError: apiError,
+			}
+		},
+	}
+
+	var response *generated.V1DeleteRecordResponse
+	if _, err := c.caller.Call(
+		ctx,
+		&internal.CallParams{
+			URL:             endpointURL,
+			Method:          http.MethodDelete,
+			Headers:         headers,
+			MaxAttempts:     options.MaxAttempts,
+			BodyProperties:  options.BodyProperties,
+			QueryParameters: options.QueryParameters,
+			Client:          options.HTTPClient,
+			Response:        &response,
+			ErrorDecoder:    internal.NewErrorDecoder(errorCodes),
+		},
+	); err != nil {
 		return nil, err
 	}
-	return response.Body, nil
+	return response, nil
 }
 
 // Uploads a file to the specified record.
@@ -211,18 +445,64 @@ func (c *Client) FileServiceUploadFile(
 	request *generated.FileServiceUploadFileRequest,
 	opts ...option.RequestOption,
 ) (*generated.V1UpdateRecordResponse, error) {
-	response, err := c.WithRawResponse.FileServiceUploadFile(
-		ctx,
+	options := core.NewRequestOptions(opts...)
+	baseURL := internal.ResolveBaseURL(
+		options.BaseURL,
+		c.baseURL,
+		"https://identifier.vault.skyflowapis.com",
+	)
+	endpointURL := internal.EncodeURL(
+		baseURL+"/v1/vaults/%v/%v/%v/files",
 		vaultId,
 		objectName,
 		id,
-		request,
-		opts...,
 	)
-	if err != nil {
+	headers := internal.MergeHeaders(
+		c.header.Clone(),
+		options.ToHeader(),
+	)
+	errorCodes := internal.ErrorCodes{
+		404: func(apiError *core.APIError) error {
+			return &generated.NotFoundError{
+				APIError: apiError,
+			}
+		},
+	}
+	writer := internal.NewMultipartWriter()
+	if request.File != nil {
+		if err := writer.WriteFile("file", request.File); err != nil {
+			return nil, err
+		}
+	}
+	if request.ColumnName != nil {
+		if err := writer.WriteField("columnName", fmt.Sprintf("%v", *request.ColumnName)); err != nil {
+			return nil, err
+		}
+	}
+	if err := writer.Close(); err != nil {
 		return nil, err
 	}
-	return response.Body, nil
+	headers.Set("Content-Type", writer.ContentType())
+
+	var response *generated.V1UpdateRecordResponse
+	if _, err := c.caller.Call(
+		ctx,
+		&internal.CallParams{
+			URL:             endpointURL,
+			Method:          http.MethodPost,
+			Headers:         headers,
+			MaxAttempts:     options.MaxAttempts,
+			BodyProperties:  options.BodyProperties,
+			QueryParameters: options.QueryParameters,
+			Client:          options.HTTPClient,
+			Request:         writer.Buffer(),
+			Response:        &response,
+			ErrorDecoder:    internal.NewErrorDecoder(errorCodes),
+		},
+	); err != nil {
+		return nil, err
+	}
+	return response, nil
 }
 
 // Deletes a file from the specified record.
@@ -238,18 +518,49 @@ func (c *Client) FileServiceDeleteFile(
 	columnName string,
 	opts ...option.RequestOption,
 ) (*generated.V1DeleteFileResponse, error) {
-	response, err := c.WithRawResponse.FileServiceDeleteFile(
-		ctx,
+	options := core.NewRequestOptions(opts...)
+	baseURL := internal.ResolveBaseURL(
+		options.BaseURL,
+		c.baseURL,
+		"https://identifier.vault.skyflowapis.com",
+	)
+	endpointURL := internal.EncodeURL(
+		baseURL+"/v1/vaults/%v/%v/%v/files/%v",
 		vaultId,
 		tableName,
 		id,
 		columnName,
-		opts...,
 	)
-	if err != nil {
+	headers := internal.MergeHeaders(
+		c.header.Clone(),
+		options.ToHeader(),
+	)
+	errorCodes := internal.ErrorCodes{
+		404: func(apiError *core.APIError) error {
+			return &generated.NotFoundError{
+				APIError: apiError,
+			}
+		},
+	}
+
+	var response *generated.V1DeleteFileResponse
+	if _, err := c.caller.Call(
+		ctx,
+		&internal.CallParams{
+			URL:             endpointURL,
+			Method:          http.MethodDelete,
+			Headers:         headers,
+			MaxAttempts:     options.MaxAttempts,
+			BodyProperties:  options.BodyProperties,
+			QueryParameters: options.QueryParameters,
+			Client:          options.HTTPClient,
+			Response:        &response,
+			ErrorDecoder:    internal.NewErrorDecoder(errorCodes),
+		},
+	); err != nil {
 		return nil, err
 	}
-	return response.Body, nil
+	return response, nil
 }
 
 // Returns the anti-virus scan status of a file.
@@ -265,16 +576,47 @@ func (c *Client) FileServiceGetFileScanStatus(
 	columnName string,
 	opts ...option.RequestOption,
 ) (*generated.V1GetFileScanStatusResponse, error) {
-	response, err := c.WithRawResponse.FileServiceGetFileScanStatus(
-		ctx,
+	options := core.NewRequestOptions(opts...)
+	baseURL := internal.ResolveBaseURL(
+		options.BaseURL,
+		c.baseURL,
+		"https://identifier.vault.skyflowapis.com",
+	)
+	endpointURL := internal.EncodeURL(
+		baseURL+"/v1/vaults/%v/%v/%v/files/%v/scan-status",
 		vaultId,
 		tableName,
 		id,
 		columnName,
-		opts...,
 	)
-	if err != nil {
+	headers := internal.MergeHeaders(
+		c.header.Clone(),
+		options.ToHeader(),
+	)
+	errorCodes := internal.ErrorCodes{
+		404: func(apiError *core.APIError) error {
+			return &generated.NotFoundError{
+				APIError: apiError,
+			}
+		},
+	}
+
+	var response *generated.V1GetFileScanStatusResponse
+	if _, err := c.caller.Call(
+		ctx,
+		&internal.CallParams{
+			URL:             endpointURL,
+			Method:          http.MethodGet,
+			Headers:         headers,
+			MaxAttempts:     options.MaxAttempts,
+			BodyProperties:  options.BodyProperties,
+			QueryParameters: options.QueryParameters,
+			Client:          options.HTTPClient,
+			Response:        &response,
+			ErrorDecoder:    internal.NewErrorDecoder(errorCodes),
+		},
+	); err != nil {
 		return nil, err
 	}
-	return response.Body, nil
+	return response, nil
 }

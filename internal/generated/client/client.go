@@ -19,6 +19,10 @@ import (
 )
 
 type Client struct {
+	baseURL string
+	caller  *internal.Caller
+	header  http.Header
+
 	Audit          *audit.Client
 	BinLookup      *binlookup.Client
 	Records        *records.Client
@@ -28,15 +32,19 @@ type Client struct {
 	Guardrails     *guardrails.Client
 	Strings        *strings.Client
 	Files          *files.Client
-
-	baseURL string
-	caller  *internal.Caller
-	header  http.Header
 }
 
 func NewClient(opts ...option.RequestOption) *Client {
 	options := core.NewRequestOptions(opts...)
 	return &Client{
+		baseURL: options.BaseURL,
+		caller: internal.NewCaller(
+			&internal.CallerParams{
+				Client:      options.HTTPClient,
+				MaxAttempts: options.MaxAttempts,
+			},
+		),
+		header:         options.ToHeader(),
 		Audit:          audit.NewClient(opts...),
 		BinLookup:      binlookup.NewClient(opts...),
 		Records:        records.NewClient(opts...),
@@ -46,13 +54,5 @@ func NewClient(opts ...option.RequestOption) *Client {
 		Guardrails:     guardrails.NewClient(opts...),
 		Strings:        strings.NewClient(opts...),
 		Files:          files.NewClient(opts...),
-		baseURL:        options.BaseURL,
-		caller: internal.NewCaller(
-			&internal.CallerParams{
-				Client:      options.HTTPClient,
-				MaxAttempts: options.MaxAttempts,
-			},
-		),
-		header: options.ToHeader(),
 	}
 }

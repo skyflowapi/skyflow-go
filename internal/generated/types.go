@@ -29,8 +29,8 @@ const (
 	EntityTypeCreditCardExpiration        EntityType = "credit_card_expiration"
 	EntityTypeCvv                         EntityType = "cvv"
 	EntityTypeDate                        EntityType = "date"
-	EntityTypeDay                         EntityType = "day"
 	EntityTypeDateInterval                EntityType = "date_interval"
+	EntityTypeDay                         EntityType = "day"
 	EntityTypeDob                         EntityType = "dob"
 	EntityTypeDose                        EntityType = "dose"
 	EntityTypeDriverLicense               EntityType = "driver_license"
@@ -72,10 +72,10 @@ const (
 	EntityTypePassportNumber              EntityType = "passport_number"
 	EntityTypePassword                    EntityType = "password"
 	EntityTypePhoneNumber                 EntityType = "phone_number"
-	EntityTypeProject                     EntityType = "project"
 	EntityTypePhysicalAttribute           EntityType = "physical_attribute"
 	EntityTypePoliticalAffiliation        EntityType = "political_affiliation"
 	EntityTypeProduct                     EntityType = "product"
+	EntityTypeProject                     EntityType = "project"
 	EntityTypeReligion                    EntityType = "religion"
 	EntityTypeRoutingNumber               EntityType = "routing_number"
 	EntityTypeSexuality                   EntityType = "sexuality"
@@ -114,10 +114,10 @@ func NewEntityTypeFromString(s string) (EntityType, error) {
 		return EntityTypeCvv, nil
 	case "date":
 		return EntityTypeDate, nil
-	case "day":
-		return EntityTypeDay, nil
 	case "date_interval":
 		return EntityTypeDateInterval, nil
+	case "day":
+		return EntityTypeDay, nil
 	case "dob":
 		return EntityTypeDob, nil
 	case "dose":
@@ -200,14 +200,14 @@ func NewEntityTypeFromString(s string) (EntityType, error) {
 		return EntityTypePassword, nil
 	case "phone_number":
 		return EntityTypePhoneNumber, nil
-	case "project":
-		return EntityTypeProject, nil
 	case "physical_attribute":
 		return EntityTypePhysicalAttribute, nil
 	case "political_affiliation":
 		return EntityTypePoliticalAffiliation, nil
 	case "product":
 		return EntityTypeProduct, nil
+	case "project":
+		return EntityTypeProject, nil
 	case "religion":
 		return EntityTypeReligion, nil
 	case "routing_number":
@@ -370,9 +370,6 @@ func (e *ErrorResponseError) String() string {
 	}
 	return fmt.Sprintf("%#v", e)
 }
-
-// Error message.
-type ErrorString = string
 
 type GooglerpcStatus struct {
 	Code    *int           `json:"code,omitempty" url:"code,omitempty"`
