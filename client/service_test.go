@@ -20,10 +20,56 @@ import (
 	skyflowError "github.com/skyflowapi/skyflow-go/v2/utils/error"
 )
 
+var (
+	mockInsertSuccessJSON     = `{"vaultID":"id", "responses":[{"Body":{"records":[{"skyflow_id":"skyflowid", "tokens":{"name_on_card":"token1"}}]}, "Status":200}]}`
+	mockInsertErrorJSON       = `{"vaultID":"id", "responses":[{"Body":{"error":"Insert failed. Table name card_detail is invalid. Specify a valid table name."}, "Status":400}, {"Body":{"error":"Insert failed. Table name card_detail is invalid. Specify a valid table name."}, "Status":400}]}`
+	mockDetokenizeSuccessJSON = `{"records":[{"token":"token", "valueType":"STRING", "value":"*REDACTED*", "error":null}]}`
+	mockDetokenizeErrorJSON   = `{"error":{"grpc_code":5,"http_code":404,"X-Request-Id": "123455","message":"Detokenize failed. All tokens are invalid. Specify valid tokens.","http_status":"Not Found","details":[]}}`
+	mockGetSuccessJSON        = `{"records":[{"fields":{"name":"name1", "skyflow_id":"id1"}, "tokens":null}]}`
+	mockGetErrorJSON          = `{"error":{"grpc_code":5,"http_code":404,"message":"Get failed. [faild fail] isn't a valid Skyflow ID. Specify a valid Skyflow ID.","http_status":"Not Found","details":[]}}`
+	mockDeleteSuccessJSON     = `{"RecordIDResponse":["id1"]}`
+	mockDeleteErrorJSON       = `{"error":{"grpc_code":5,"http_code":404,"message":"Delete failed. [id1] isn't a valid Skyflow ID. Specify a valid Skyflow ID.","http_status":"Not Found","details":[]}}`
+	mockQuerySuccessJSON      = `{"records":[{"fields":{"counter":null, "country":null, "date_of_birth":"XXXX-06-06", "email":"s******y@gmail.com", "name":"m***me", "phone_number":"XXXXXX8889", "skyflow_id":"id"}, "tokens":null}]}`
+	mockQueryErrorJSON        = `{"error":{"grpc_code":5,"http_code":404,"message":"Invalid request. Table name cards is invalid. Specify a valid table name.","http_status":"Not Found","details":[]}}`
+	mockUpdateSuccessJSON     = `{"skyflow_id":"id","tokens":{"name":"token"}}`
+	mockUpdateErrorJSON       = `{"error":{"grpc_code":3,"http_code":400,"message":"Invalid request. No fields were present. Specify valid fields and values.","http_status":"Bad Request","details":[]}}`
+	mockTokenizeSuccessJSON   = `{"records":[{"token":"token1"}]}`
+	mockTokenizeErrorJSON     = `{"error":{"grpc_code":3,"http_code":400,"message":"Tokenization failed. Column group group_name is invalid. Specify a valid column group.","http_status":"Bad Request","details":[]}}`
+	mockDeidentifyTextJSON    = `{"processed_text": "My name is [NAME] and my email is [EMAIL]", "word_count": 8, "character_count": 45, "entities": [{"token": "token1", "value": "John Doe", "entity_type": "NAME", "entity_scores": {"score": 0.9}, "location": {"start_index": 11, "end_index": 19, "start_index_processed": 11, "end_index_processed": 17}}, {"token": "token2", "value": "john@example.com", "entity_type": "EMAIL_ADDRESS", "entity_scores": {"score": 0.95}, "location": {"start_index": 30, "end_index": 45, "start_index_processed": 30, "end_index_processed": 37}}]}`
+	mockNoEntitiesFoundJSON   = `{"processed_text": "No entities found in this text", "word_count": 6, "character_count": 30, "entities": []}`
+	mockReidentifyTextJSON    = `{"text": "My SSN is 123-45-6789 and my card is *REDACTED*."}`
+	mockDetectErrorJSON       = `{"error":{"grpc_code":3,"http_code":400,"message":"Invalid request","http_status":"Bad Request","details":[]}}`
+	mockInvalidRunIdJSON      = `{ "status": "UNKNOWN", "output_type": "UNKNOWN", "output": [], "message": "", "size": 0}`
+	mockDetectRunResponse     = map[string]interface{}{
+		"status": "SUCCESS",
+		"output": []map[string]interface{}{
+			{
+				"processed_file":           "dGVzdCBjb250ZW50",
+				"processed_file_extension": "txt",
+				"processed_file_type":      "TEXT",
+			},
+			{
+				"processed_file":           "eyJlbnRpdGllcyI6W119",
+				"processed_file_type":      "ENTITIES",
+				"processed_file_extension": "json",
+			},
+		},
+		"output_type": "FILE",
+		"message":     "Processing completed successfully",
+		"size":        1024.5,
+		"duration":    1.2,
+		"pages":       0,
+		"slides":      0,
+		"word_character_count": map[string]interface{}{
+			"word_count":      150,
+			"character_count": 750,
+		},
+	}
+)
+
 var _ = Describe("Vault controller Test cases", func() {
 	Describe("Test Insert functions", func() {
 		var (
-			//mockJSONResponse string
 			response map[string]interface{}
 			client   *Skyflow
 			ts       *httptest.Server
@@ -35,7 +81,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				ClusterId: "cid",
 				Env:       0,
 				Credentials: Credentials{
-					ApiKey: "sky-abcde-1234567890abcdef1234567890abcdef",
+					ApiKey: "test-api-key",
 				},
 			}))
 			response = make(map[string]interface{})
@@ -50,8 +96,8 @@ var _ = Describe("Vault controller Test cases", func() {
 
 		Context("Insert with ContinueOnError True - Success Case", func() {
 			BeforeEach(func() {
-				mockJSONResponse := `{"vaultID":"id", "responses":[{"Body":{"records":[{"skyflow_id":"skyflowid", "tokens":{"name_on_card":"token1"}}]}, "Status":200}]}`
-				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
+				response = make(map[string]interface{})
+				_ = json.Unmarshal([]byte(mockInsertSuccessJSON), &response)
 
 				// Setup mock server
 				ts = setupMockServer(response, "ok", "/vaults/v1/vaults/")
@@ -98,10 +144,8 @@ var _ = Describe("Vault controller Test cases", func() {
 		Context("Insert with ContinueOnError True - Error Case", func() {
 
 			It("should return an error when insert fails and ContinueOnError is true", func() {
-				mockJSONResponse := `{"vaultID":"id", "responses":[{"Body":{"error":"Insert failed. Table name card_detail is invalid. Specify a valid table name."}, "Status":400}, {"Body":{"error":"Insert failed. Table name card_detail is invalid. Specify a valid table name."}, "Status":400}]}`
-
-				// Unmarshal the mock JSON response into a map
-				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
+				response := make(map[string]interface{})
+				_ = json.Unmarshal([]byte(mockInsertErrorJSON), &response)
 
 				// Prepare mock data
 				request := InsertRequest{
@@ -184,7 +228,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				ClusterId: "cid",
 				Env:       0,
 				Credentials: Credentials{
-					ApiKey: "sky-abcde-1234567890abcdef1234567890abcdef",
+					ApiKey: "test-api-key",
 				},
 			}))
 
@@ -203,8 +247,7 @@ var _ = Describe("Vault controller Test cases", func() {
 		Context("When Detokenize is called", func() {
 			It("should return detokenized data with no errors", func() {
 				response := make(map[string]interface{})
-				mockJSONResponse := `{"records":[{"token":"token", "valueType":"STRING", "value":"*REDACTED*", "error":null}]}`
-				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
+				_ = json.Unmarshal([]byte(mockDetokenizeSuccessJSON), &response)
 				// Set the mock server URL in the controller's client
 				ts := setupMockServer(response, "ok", "/vaults/v1/vaults/")
 
@@ -235,8 +278,7 @@ var _ = Describe("Vault controller Test cases", func() {
 			})
 			It("should return detokenized data with errors", func() {
 				response := make(map[string]interface{})
-				mockJSONResponse := `{"error":{"grpc_code":5,"http_code":404,"X-Request-Id": "123455","message":"Detokenize failed. All tokens are invalid. Specify valid tokens.","http_status":"Not Found","details":[]}}`
-				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
+				_ = json.Unmarshal([]byte(mockDetokenizeErrorJSON), &response)
 				// Set the mock server URL in the controller's client
 				ts := setupMockServer(response, "err", "/vaults/v1/vaults/")
 
@@ -274,7 +316,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				ClusterId: "cid",
 				Env:       0,
 				Credentials: Credentials{
-					ApiKey: "sky-abcde-1234567890abcdef1234567890abcdef",
+					ApiKey: "test-api-key",
 				},
 			}))
 		})
@@ -289,8 +331,7 @@ var _ = Describe("Vault controller Test cases", func() {
 
 			It("should return success response when valid ids passed in Get", func() {
 				response := make(map[string]interface{})
-				mockJSONResponse := `{"records":[{"fields":{"name":"name1", "skyflow_id":"id1"}, "tokens":null}]}`
-				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
+				_ = json.Unmarshal([]byte(mockGetSuccessJSON), &response)
 				// Set the mock server URL in the controller's client
 				ts := setupMockServer(response, "ok", "/vaults/v1/vaults/")
 
@@ -315,8 +356,7 @@ var _ = Describe("Vault controller Test cases", func() {
 			})
 			It("should return error response when invalid ids passed in Get", func() {
 				response := make(map[string]interface{})
-				mockJSONResponse := `{"error":{"grpc_code":5,"http_code":404,"message":"Get failed. [faild fail] isn't a valid Skyflow ID. Specify a valid Skyflow ID.","http_status":"Not Found","details":[]}}`
-				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
+				_ = json.Unmarshal([]byte(mockGetErrorJSON), &response)
 				// Set the mock server URL in the controller's client
 				ts := setupMockServer(response, "err", "/vaults/v1/vaults/")
 
@@ -350,7 +390,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				ClusterId: "cid",
 				Env:       0,
 				Credentials: Credentials{
-					ApiKey: "sky-abcde-1234567890abcdef1234567890abcdef",
+					ApiKey: "test-api-key",
 				},
 			}))
 			ctx = context.TODO()
@@ -362,8 +402,7 @@ var _ = Describe("Vault controller Test cases", func() {
 			}
 			It("should return success response when valid ids passed in Delete", func() {
 				response := make(map[string]interface{})
-				mockJSONResponse := `{"RecordIDResponse":["id1"]}`
-				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
+				_ = json.Unmarshal([]byte(mockDeleteSuccessJSON), &response)
 				// Set the mock server URL in the controller's client
 				ts := setupMockServer(response, "ok", "/vaults/v1/vaults/")
 
@@ -386,8 +425,7 @@ var _ = Describe("Vault controller Test cases", func() {
 
 			It("should return error response when invalid ids passed in Delete", func() {
 				response := make(map[string]interface{})
-				mockJSONResponse := `{"error":{"grpc_code":5,"http_code":404,"message":"Delete failed. [id1] isn't a valid Skyflow ID. Specify a valid Skyflow ID.","http_status":"Not Found","details":[]}}`
-				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
+				_ = json.Unmarshal([]byte(mockDeleteErrorJSON), &response)
 				// Set the mock server URL in the controller's client
 				ts := setupMockServer(response, "err", "/vaults/v1/vaults/")
 
@@ -420,7 +458,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				ClusterId: "cid",
 				Env:       0,
 				Credentials: Credentials{
-					ApiKey: "sky-abcde-1234567890abcdef1234567890abcdef",
+					ApiKey: "test-api-key",
 				},
 			}))
 			ctx = context.TODO()
@@ -431,8 +469,7 @@ var _ = Describe("Vault controller Test cases", func() {
 			}
 			It("should return success response when valid ids passed in Query", func() {
 				response := make(map[string]interface{})
-				mockJSONResponse := `{"records":[{"fields":{"counter":null, "country":null, "date_of_birth":"XXXX-06-06", "email":"s******y@gmail.com", "name":"m***me", "phone_number":"XXXXXX8889", "skyflow_id":"id"}, "tokens":null}]}`
-				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
+				_ = json.Unmarshal([]byte(mockQuerySuccessJSON), &response)
 				// Set the mock server URL in the controller's client
 				ts := setupMockServer(response, "ok", "/vaults/v1/vaults/")
 
@@ -456,8 +493,7 @@ var _ = Describe("Vault controller Test cases", func() {
 
 			It("should return error response when invalid ids passed in Query", func() {
 				response := make(map[string]interface{})
-				mockJSONResponse := `{"error":{"grpc_code":5,"http_code":404,"message":"Invalid request. Table name cards is invalid. Specify a valid table name.","http_status":"Not Found","details":[]}}`
-				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
+				_ = json.Unmarshal([]byte(mockQueryErrorJSON), &response)
 				// Set the mock server URL in the controller's client
 				ts := setupMockServer(response, "err", "/vaults/v1/vaults/")
 
@@ -491,7 +527,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				ClusterId: "cid",
 				Env:       0,
 				Credentials: Credentials{
-					ApiKey: "sky-abcde-1234567890abcdef1234567890abcdef",
+					ApiKey: "test-api-key",
 				},
 			}))
 			ctx = context.TODO()
@@ -505,8 +541,7 @@ var _ = Describe("Vault controller Test cases", func() {
 			}
 			It("should return success response when valid ids passed in Update", func() {
 				response := make(map[string]interface{})
-				mockJSONResponse := `{"skyflow_id":"id","tokens":{"name":"token"}}`
-				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
+				_ = json.Unmarshal([]byte(mockUpdateSuccessJSON), &response)
 				// Set the mock server URL in the controller's client
 				ts := setupMockServer(response, "ok", "/vaults/v1/vaults/")
 
@@ -532,8 +567,7 @@ var _ = Describe("Vault controller Test cases", func() {
 
 			It("should return error response when invalid data passed in Update", func() {
 				response := make(map[string]interface{})
-				mockJSONResponse := `{"error":{"grpc_code":3,"http_code":400,"message":"Invalid request. No fields were present. Specify valid fields and values.","http_status":"Bad Request","details":[]}}`
-				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
+				_ = json.Unmarshal([]byte(mockUpdateErrorJSON), &response)
 				// Set the mock server URL in the controller's client
 				ts := setupMockServer(response, "err", "/vaults/v1/vaults/")
 				request.Tokens = map[string]interface{}{"name": "token"}
@@ -566,7 +600,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				ClusterId: "cid",
 				Env:       0,
 				Credentials: Credentials{
-					ApiKey: "sky-abcde-1234567890abcdef1234567890abcdef",
+					ApiKey: "test-api-key",
 				},
 			}))
 			ctx = context.TODO()
@@ -579,8 +613,7 @@ var _ = Describe("Vault controller Test cases", func() {
 			})
 			It("should return success response when valid ids passed in Tokenize", func() {
 				response := make(map[string]interface{})
-				mockJSONResponse := `{"records":[{"token":"token1"}]}`
-				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
+				_ = json.Unmarshal([]byte(mockTokenizeSuccessJSON), &response)
 				// Set the mock server URL in the controller's client
 				ts := setupMockServer(response, "ok", "/vaults/v1/vaults/")
 
@@ -604,8 +637,7 @@ var _ = Describe("Vault controller Test cases", func() {
 
 			It("should return error response when invalid data passed in Tokenize", func() {
 				response := make(map[string]interface{})
-				mockJSONResponse := `{"error":{"grpc_code":3,"http_code":400,"message":"Tokenization failed. Column group group_name is invalid. Specify a valid column group.","http_status":"Bad Request","details":[]}}`
-				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
+				_ = json.Unmarshal([]byte(mockTokenizeErrorJSON), &response)
 				// Set the mock server URL in the controller's client
 				ts := setupMockServer(response, "err", "/vaults/v1/vaults/")
 				// Set the mock server URL in the controller's client
@@ -641,48 +673,17 @@ var _ = Describe("Detect controller Test cases", func() {
 			ClusterId: "cluster123",
 			Env:       0,
 			Credentials: Credentials{
-				ApiKey: "sky-abcde-1234567890abcdef1234567890abcdef",
+				ApiKey: "test-api-key",
 			},
 		}))
 		ctx = context.Background()
 	})
 
-	Describe("Test DeidentifyText function", func() {
+	Describe("DeidentifyText tests", func() {
 		Context("when request is valid", func() {
 			It("should successfully deidentify text with all entity types", func() {
 				response := make(map[string]interface{})
-				mockJSONResponse := `{
-					"processed_text": "My name is [NAME] and my email is [EMAIL]",
-					"word_count": 8,
-					"character_count": 45,
-					"entities": [
-						{
-							"token": "token1",
-							"value": "John Doe",
-							"entity_type": "NAME",
-							"entity_scores": {"score": 0.9},
-							"location": {
-								"start_index": 11,
-								"end_index": 19,
-								"start_index_processed": 11,
-								"end_index_processed": 17
-							}
-						},
-						{
-							"token": "token2",
-							"value": "john@example.com",
-							"entity_type": "EMAIL_ADDRESS",
-							"entity_scores": {"score": 0.95},
-							"location": {
-								"start_index": 30,
-								"end_index": 45,
-								"start_index_processed": 30,
-								"end_index_processed": 37
-							}
-						}
-					]
-				}`
-				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
+				_ = json.Unmarshal([]byte(mockDeidentifyTextJSON), &response)
 
 				ts := setupMockServer(response, "ok", "/v1/detect/deidentify/string")
 				defer ts.Close()
@@ -723,13 +724,8 @@ var _ = Describe("Detect controller Test cases", func() {
 
 			It("should handle empty entities array in response", func() {
 				response := make(map[string]interface{})
-				mockJSONResponse := `{
-					"processed_text": "No entities found in this text",
-					"word_count": 6,
-					"character_count": 30,
-					"entities": []
-				}`
-				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
+
+				_ = json.Unmarshal([]byte(mockNoEntitiesFoundJSON), &response)
 
 				ts := setupMockServer(response, "ok", "/v1/detect/deidentify/string")
 				defer ts.Close()
@@ -766,12 +762,12 @@ var _ = Describe("Detect controller Test cases", func() {
 		})
 	})
 
-	Describe("Test ReidentifyText function", func() {
+	Describe("ReidentifyText tests", func() {
 		Context("when request is valid", func() {
 			It("should successfully reidentify text", func() {
 				response := make(map[string]interface{})
-				mockJSONResponse := `{"text": "My SSN is 123-45-6789 and my card is *REDACTED*."}`
-				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
+
+				_ = json.Unmarshal([]byte(mockReidentifyTextJSON), &response)
 
 				ts := setupMockServer(response, "ok", "/v1/detect/reidentify/string")
 				defer ts.Close()
@@ -789,7 +785,7 @@ var _ = Describe("Detect controller Test cases", func() {
 				}
 
 				request := ReidentifyTextRequest{
-					Text: "My SSN is [SSN_IWdexZe] and my card is [CREDIT_CARD_rUzMjdQ].",
+					Text: "My SSN is [SSN_123] and my card is [CREDIT_CARD_4321].",
 					PlainTextEntities: []DetectEntities{
 						Ssn,
 					},
@@ -812,8 +808,7 @@ var _ = Describe("Detect controller Test cases", func() {
 		Context("when API request fails", func() {
 			It("should return error for API failure", func() {
 				response := make(map[string]interface{})
-				mockJSONResponse := `{"error":{"grpc_code":3,"http_code":400,"message":"Invalid request","http_status":"Bad Request","details":[]}}`
-				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
+				_ = json.Unmarshal([]byte(mockDetectErrorJSON), &response)
 
 				ts := setupMockServer(response, "err", "/v1/detect/reidentify/string")
 				defer ts.Close()
@@ -891,7 +886,7 @@ var _ = Describe("Detect controller Test cases", func() {
 				ClusterId: "cluster123",
 				Env:       0,
 				Credentials: Credentials{
-					ApiKey: "sky-abcde-1234567890abcdef1234567890abcdef",
+					ApiKey: "test-api-key",
 				},
 			}))
 			ctx = context.Background()
@@ -1140,7 +1135,7 @@ var _ = Describe("Detect controller Test cases", func() {
 				ClusterId: "cluster123",
 				Env:       0,
 				Credentials: Credentials{
-					ApiKey: "sky-abcde-1234567890abcdef1234567890abcdef",
+					ApiKey: "test-api-key",
 				},
 			}))
 			ctx = context.Background()
@@ -1148,34 +1143,7 @@ var _ = Describe("Detect controller Test cases", func() {
 
 		Context("Success cases", func() {
 			It("should successfully get completed run status", func() {
-				// Mock status check response
-				response := map[string]interface{}{
-					"status": "SUCCESS",
-					"output": []map[string]interface{}{
-						{
-							"processed_file":           "dGVzdCBjb250ZW50",
-							"processed_file_extension": "txt",
-							"processed_file_type":      "TEXT",
-						},
-						{
-							"processed_file":           "eyJlbnRpdGllcyI6W119",
-							"processed_file_type":      "ENTITIES",
-							"processed_file_extension": "json",
-						},
-					},
-					"output_type": "FILE",
-					"message":     "Processing completed successfully",
-					"size":        1024.5,
-					"duration":    1.2,
-					"pages":       0,
-					"slides":      0,
-					"word_character_count": map[string]interface{}{
-						"word_count":      150,
-						"character_count": 750,
-					},
-				}
-
-				ts := setupMockServer(response, "ok", "/v1/detect/runs/")
+				ts := setupMockServer(mockDetectRunResponse, "ok", "/v1/detect/runs/")
 				defer ts.Close()
 
 				header := http.Header{}
@@ -1236,9 +1204,7 @@ var _ = Describe("Detect controller Test cases", func() {
 
 			It("should return error for expired run ID", func() {
 				response := make(map[string]interface{})
-				mockJSONResponse := `{ "status": "UNKNOWN", "output_type": "UNKNOWN", "output": [], "message": "", "size": 0}`
-
-				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
+				_ = json.Unmarshal([]byte(mockInvalidRunIdJSON), &response)
 
 				ts := setupMockServer(response, "ok", "/v1/detect/runs/")
 				defer ts.Close()
@@ -1333,7 +1299,7 @@ var _ = Describe("ConnectionController", func() {
 		}
 	})
 
-	Describe("Invoke", func() {
+	Describe("Invoke tests", func() {
 		ctx := context.TODO()
 		Context("when making a valid request", func() {
 			BeforeEach(func() {
