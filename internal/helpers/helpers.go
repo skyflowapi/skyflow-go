@@ -18,11 +18,13 @@ import (
 
 	"github.com/skyflowapi/skyflow-go/v2/internal/generated/core"
 
+    "encoding/base64"
+	vaultapis "github.com/skyflowapi/skyflow-go/v2/internal/generated"
 	"github.com/golang-jwt/jwt"
 	constants "github.com/skyflowapi/skyflow-go/v2/internal/constants"
 	internal "github.com/skyflowapi/skyflow-go/v2/internal/generated"
 	internalAuthApi "github.com/skyflowapi/skyflow-go/v2/internal/generated/authentication"
-	. "github.com/skyflowapi/skyflow-go/v2/utils/common"
+	common "github.com/skyflowapi/skyflow-go/v2/utils/common"
 	skyflowError "github.com/skyflowapi/skyflow-go/v2/utils/error"
 	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
 	logs "github.com/skyflowapi/skyflow-go/v2/utils/messages"
@@ -49,9 +51,266 @@ func ParseCredentialsFile(credentialsFilePath string) (map[string]interface{}, *
 	}
 	return credKeys, nil
 }
+// SetTokenMode sets the tokenization mode in the request body.
+func SetTokenMode(tokenMode common.BYOT) (*vaultapis.V1Byot, error) {
+	var tokenModes vaultapis.V1Byot
+	var tokenError error
+	switch tokenMode {
+	case common.ENABLE_STRICT:
+		tokenModes, tokenError = vaultapis.NewV1ByotFromString(string(common.ENABLE_STRICT))
+	case common.ENABLE:
+		tokenModes, tokenError = vaultapis.NewV1ByotFromString(string(common.ENABLE))
+	default:
+		tokenModes, tokenError = vaultapis.NewV1ByotFromString(string(common.DISABLE))
+	}
+	if tokenError != nil {
+		return nil, tokenError
+	}
+	return &tokenModes, nil
+}
+func GetFormattedGetRecord(record vaultapis.V1FieldRecords) map[string]interface{} {
+	getRecord := make(map[string]interface{})
+	var sourceMap map[string]interface{}
+
+	// Decide whether to use Tokens or Fields
+	if record.Tokens != nil {
+		sourceMap = record.Tokens
+	} else {
+		sourceMap = record.Fields
+	}
+
+	// Copy elements from sourceMap to getRecord
+	if sourceMap != nil {
+		for key, value := range sourceMap {
+			getRecord[key] = value
+		}
+	}
+
+	return getRecord
+}
+func GetDetokenizePayload(request common.DetokenizeRequest, options common.DetokenizeOptions) vaultapis.V1DetokenizePayload {
+	payload := vaultapis.V1DetokenizePayload{}
+	payload.ContinueOnError = &options.ContinueOnError
+	var reqArray []*vaultapis.V1DetokenizeRecordRequest
+
+	for index := range request.DetokenizeData {
+		req := vaultapis.V1DetokenizeRecordRequest{}
+		req.Token = &request.DetokenizeData[index].Token
+		if request.DetokenizeData[index].RedactionType != "" {
+			redaction, _ := vaultapis.NewRedactionEnumRedactionFromString(string(request.DetokenizeData[index].RedactionType))
+			req.Redaction = &redaction
+		}
+		reqArray = append(reqArray, &req)
+	}
+	if len(reqArray) > 0 {
+		payload.DetokenizationParameters = reqArray
+	}
+	return payload
+}
+func GetFormattedBatchInsertRecord(record interface{}, requestIndex int) (map[string]interface{}, *skyflowError.SkyflowError) {
+	insertRecord := make(map[string]interface{})
+	// Convert the record to JSON and unmarshal it
+	jsonData, err := json.Marshal(record)
+	if err != nil {
+		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_RESPONSE)
+	}
+
+	var bodyObject map[string]interface{}
+	if err := json.Unmarshal(jsonData, &bodyObject); err != nil {
+		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_RESPONSE)
+	}
+
+	// Extract relevant data from "Body"
+	body, bodyExists := bodyObject["Body"].(map[string]interface{})
+	if !bodyExists {
+		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_RESPONSE)
+	}
+
+	// Handle extracted data
+	if records, ok := body["records"].([]interface{}); ok {
+		for _, rec := range records {
+			recordObject, isMap := rec.(map[string]interface{})
+			if !isMap {
+				continue
+			}
+			if skyflowID, exists := recordObject["skyflow_id"].(string); exists {
+				insertRecord["skyflow_id"] = skyflowID
+			}
+			if tokens, exists := recordObject["tokens"].(map[string]interface{}); exists {
+				for key, value := range tokens {
+					insertRecord[key] = value
+				}
+			}
+		}
+	}
+
+	if errorField, exists := body["error"].(string); exists {
+		insertRecord["error"] = errorField
+	}
+
+	insertRecord["request_index"] = requestIndex
+	return insertRecord, nil
+}
+func GetFormattedBulkInsertRecord(record vaultapis.V1RecordMetaProperties) map[string]interface{} {
+	insertRecord := make(map[string]interface{})
+	insertRecord["skyflow_id"] = *record.GetSkyflowId()
+
+	tokensMap := record.GetTokens()
+	if len(tokensMap) > 0 {
+		for key, value := range tokensMap {
+			insertRecord[key] = value
+		}
+	}
+	return insertRecord
+}
+func GetFormattedQueryRecord(record vaultapis.V1FieldRecords) map[string]interface{} {
+	queryRecord := make(map[string]interface{})
+	if record.Fields != nil {
+		for key, value := range record.Fields {
+			queryRecord[key] = value
+		}
+	}
+	return queryRecord
+}
+func GetFormattedUpdateRecord(record vaultapis.V1UpdateRecordResponse) map[string]interface{} {
+	updateTokens := make(map[string]interface{})
+
+	// Check if tokens are not nil
+	if record.Tokens != nil {
+		// Iterate through the map and populate updateTokens
+		for key, value := range record.Tokens {
+			updateTokens[key] = value
+		}
+	}
+
+	return updateTokens
+}
+
+// CreateInsertBulkBodyRequest createInsertBodyRequest generates the request body for bulk inserts.
+func CreateInsertBulkBodyRequest(request *common.InsertRequest, options *common.InsertOptions) (*vaultapis.RecordServiceInsertRecordBody, *skyflowError.SkyflowError) {
+	var records []*vaultapis.V1FieldRecords
+	for i, value := range request.Values {
+		field := vaultapis.V1FieldRecords{}
+		field.Fields = value
+		// Ensure options.Tokens are not nil and the index i exists
+		if options.Tokens != nil && i < len(options.Tokens) {
+			field.Tokens = options.Tokens[i]
+		}
+		records = append(records, &field)
+	}
+	tokenMode, tokenError := SetTokenMode(options.TokenMode)
+	if tokenError != nil {
+		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_BYOT)
+	}
+	insertBody := vaultapis.RecordServiceInsertRecordBody{}
+	insertBody.Records = records
+	insertBody.Upsert = &options.Upsert
+	insertBody.Tokenization = &options.ReturnTokens
+	insertBody.Byot = tokenMode
+	return &insertBody, nil
+}
+
+// CreateInsertBatchBodyRequest generates the request body for batch inserts.
+func CreateInsertBatchBodyRequest(request *common.InsertRequest, options *common.InsertOptions) (*vaultapis.RecordServiceBatchOperationBody, error) {
+	records := make([]*vaultapis.V1BatchRecord, len(request.Values))
+	for index, record := range request.Values {
+		batchRecord := vaultapis.V1BatchRecord{}
+		batchRecord.TableName = &request.Table
+		batchRecord.Upsert = &options.Upsert
+		batchRecord.Tokenization = &options.ReturnTokens
+		batchRecord.Fields = record
+		batchRecord.Method = vaultapis.BatchRecordMethodPost.Ptr()
+		if options.Tokens != nil && index < len(options.Tokens) {
+			batchRecord.Tokens = options.Tokens[index]
+		}
+		records[index] = &batchRecord
+	}
+
+	body := vaultapis.RecordServiceBatchOperationBody{}
+	body.Records = records
+	body.ContinueOnError = &options.ContinueOnError
+
+	tokenMode, tokenError := SetTokenMode(options.TokenMode)
+	if tokenError != nil {
+		return nil, tokenError
+	}
+	body.Byot = tokenMode
+	return &body, nil
+}
+
+func GetTokenizePayload(request []common.TokenizeRequest) vaultapis.V1TokenizePayload {
+	payload := vaultapis.V1TokenizePayload{}
+	var records []*vaultapis.V1TokenizeRecordRequest
+	for _, tokenizeRequest := range request {
+		record := vaultapis.V1TokenizeRecordRequest{
+			Value:       &tokenizeRequest.Value,
+			ColumnGroup: &tokenizeRequest.ColumnGroup,
+		}
+		records = append(records, &record)
+	}
+	payload.TokenizationParameters = records
+	return payload
+}
+// GetURLWithEnv constructs the URL for the given environment and clusterId.
+func GetURLWithEnv(env common.Env, clusterId string) string {
+	var url = constants.SECURE_PROTOCOL + clusterId
+	switch env {
+	case common.DEV:
+		url = url + constants.DEV_DOMAIN
+	case common.PROD:
+		url = url + constants.PROD_DOMAIN
+	case common.STAGE:
+		url = url + constants.STAGE_DOMAIN
+	case common.SANDBOX:
+		url = url + constants.SANDBOX_DOMAIN
+	default:
+		url = url + constants.PROD_DOMAIN
+	}
+	return url
+}
+
+func ParseTokenizeResponse(apiResponse vaultapis.V1TokenizeResponse) *common.TokenizeResponse {
+	var tokens []string
+	for _, record := range apiResponse.GetRecords() {
+		tokens = append(tokens, *record.GetToken())
+	}
+	return &common.TokenizeResponse{
+		Tokens: tokens,
+	}
+}
+
+func GetFileForFileUpload(request common.FileUploadRequest) (*os.File, error) {
+    if request.FilePath != "" {
+        file, err := os.Open(request.FilePath)
+        if err != nil {
+            return nil, err
+        }
+        return file, nil
+    } else if request.Base64 != "" {
+        decodedBytes, err := base64.StdEncoding.DecodeString(request.Base64)
+        if err != nil {
+            return nil, err
+        }
+        // if request.FileName == "" {
+        //     return nil, os.ErrInvalid
+        // }
+        err = ioutil.WriteFile(request.FileName, decodedBytes, 0644)
+        if err != nil {
+            return nil, err
+        }
+        file, err := os.Open(request.FileName)
+        if err != nil {
+            return nil, err
+        }
+        return file, nil
+    } else if request.FileObject != (os.File{}) {
+        return &request.FileObject, nil
+    }
+    return nil, nil
+}
 
 // Generate and Sign Tokens
-func GetSignedDataTokens(credKeys map[string]interface{}, options SignedDataTokensOptions) ([]SignedDataTokensResponse, *skyflowError.SkyflowError) {
+func GetSignedDataTokens(credKeys map[string]interface{}, options common.SignedDataTokensOptions) ([]common.SignedDataTokensResponse, *skyflowError.SkyflowError) {
 	pvtKey, err := GetPrivateKey(credKeys)
 	if err != nil {
 		return nil, err
@@ -78,8 +337,8 @@ func GetCredentialParams(credKeys map[string]interface{}) (string, string, strin
 }
 
 // Generate signed tokens
-func GenerateSignedDataTokensHelper(clientID, keyID string, pvtKey *rsa.PrivateKey, options SignedDataTokensOptions, tokenURI string) ([]SignedDataTokensResponse, *skyflowError.SkyflowError) {
-	var responseArray []SignedDataTokensResponse
+func GenerateSignedDataTokensHelper(clientID, keyID string, pvtKey *rsa.PrivateKey, options common.SignedDataTokensOptions, tokenURI string) ([]common.SignedDataTokensResponse, *skyflowError.SkyflowError) {
+	var responseArray []common.SignedDataTokensResponse
 	for _, token := range options.DataTokens {
 		claims := jwt.MapClaims{
 			"iss": "sdk",
@@ -103,7 +362,7 @@ func GenerateSignedDataTokensHelper(clientID, keyID string, pvtKey *rsa.PrivateK
 			logger.Error(logs.PARSE_JWT_PAYLOAD)
 			return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.ERROR_OCCURRED+"%v", err))
 		}
-		responseArray = append(responseArray, SignedDataTokensResponse{Token: token, SignedToken: "signed_token_" + tokenString})
+		responseArray = append(responseArray, common.SignedDataTokensResponse{Token: token, SignedToken: "signed_token_" + tokenString})
 	}
 	logger.Info(logs.GENERATE_SIGNED_DATA_TOKEN_SUCCESS)
 	return responseArray, nil
@@ -150,7 +409,7 @@ func ParsePrivateKey(pemKey string) (*rsa.PrivateKey, *skyflowError.SkyflowError
 var GetBaseURLHelper = GetBaseURL
 
 // GenerateBearerTokenHelper  helper functions
-func GenerateBearerTokenHelper(credKeys map[string]interface{}, options BearerTokenOptions) (*internal.V1GetAuthTokenResponse, *skyflowError.SkyflowError) {
+func GenerateBearerTokenHelper(credKeys map[string]interface{}, options common.BearerTokenOptions) (*internal.V1GetAuthTokenResponse, *skyflowError.SkyflowError) {
 	privateKey := credKeys["privateKey"]
 	if privateKey == nil {
 		logger.Error(fmt.Sprintf(logs.PRIVATE_KEY_NOT_FOUND))
@@ -230,7 +489,7 @@ func GetBaseURL(urlStr string) (string, *skyflowError.SkyflowError) {
 	baseURL := fmt.Sprintf("%s://%s", parsedUrl.Scheme, parsedUrl.Host)
 	return baseURL, nil
 }
-func GetSignedBearerUserToken(clientID, keyID, tokenURI string, pvtKey *rsa.PrivateKey, options BearerTokenOptions) (string, *skyflowError.SkyflowError) {
+func GetSignedBearerUserToken(clientID, keyID, tokenURI string, pvtKey *rsa.PrivateKey, options common.BearerTokenOptions) (string, *skyflowError.SkyflowError) {
 
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
 		"iss": clientID,

@@ -1,12 +1,13 @@
 package helpers_test
 
 import (
+	"encoding/json"
+
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
-	"encoding/json"
 	"encoding/pem"
 	"io/ioutil"
 	"net/http"
@@ -14,7 +15,6 @@ import (
 	"os"
 	"strings"
 	"testing"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/skyflowapi/skyflow-go/v2/internal/generated/core"
@@ -29,7 +29,7 @@ func TestController(t *testing.T) {
 }
 
 var _ = Describe("Helpers", func() {
-	Describe("ParseCredentialsFile", func() {
+	Context("ParseCredentialsFile", func() {
 		It("should parse a valid credentials file successfully", func() {
 			credentialsContent := `{"clientID":"test-client-id", "privateKey":"test-private-key"}`
 			filePath := "test_credentials.json"
@@ -71,7 +71,7 @@ var _ = Describe("Helpers", func() {
 			Expect(err.GetCode()).To(Equal("Code: 400"))
 		})
 	})
-	Describe("GetPrivateKey", func() {
+	Context("GetPrivateKey", func() {
 		It("should parse a valid private key successfully", func() {
 			pvtKey := os.Getenv("VALID_CREDS_PVT_KEY")
 			credMap := map[string]interface{}{}
@@ -103,7 +103,7 @@ var _ = Describe("Helpers", func() {
 			Expect(err.GetCode()).To(Equal("Code: 400"))
 		})
 	})
-	Describe("GetBaseURL", func() {
+	Context("GetBaseURL", func() {
 		It("should return a valid base URL for a valid URL string", func() {
 			urlStr := "https://example.com/some/path"
 
@@ -131,7 +131,7 @@ var _ = Describe("Helpers", func() {
 			Expect(err.GetCode()).To(Equal("Code: 400"))
 		})
 	})
-	Describe("ParsePrivateKey", func() {
+	Context("ParsePrivateKey", func() {
 		It("should fail a invalid PKCS1 private key successfully", func() {
 			pemKey := `-----BEGIN PRIVATE KEY-----
 MIIBAAIBADANINVALIDKEY==
@@ -191,7 +191,7 @@ MIIBAAIBADANINVALIDKEY==
 			Expect(parsedKey.Equal(rsaKey)).To(BeTrue())
 		})
 	})
-	Describe("GetCredentialParams", func() {
+	Context("GetCredentialParams", func() {
 
 		var validCredKeys map[string]interface{}
 		var invalidCredKeys map[string]interface{}
@@ -249,7 +249,7 @@ MIIBAAIBADANINVALIDKEY==
 		})
 
 	})
-	Describe("GetSignedDataTokens", func() {
+	Context("GetSignedDataTokens", func() {
 		var (
 			credKeys map[string]interface{}
 			options  common.SignedDataTokensOptions
@@ -383,7 +383,7 @@ MIIBAAIBADANINVALIDKEY==
 			})
 		})
 	})
-	Describe("GenerateBearerTokenHelper", func() {
+	Context("GenerateBearerTokenHelper", func() {
 		var (
 			credKeys   map[string]interface{}
 			options    common.BearerTokenOptions

@@ -7,7 +7,7 @@ import (
 	core "github.com/skyflowapi/skyflow-go/v2/internal/generated/core"
 )
 
-// Invalid scope format.
+// Returned when the request doesn't match the schema, such as not including required fields.
 type BadRequestError struct {
 	*core.APIError
 	Body interface{}
@@ -79,7 +79,7 @@ func (n *NotFoundError) Unwrap() error {
 	return n.APIError
 }
 
-// Key expired or JWT token unparseable.
+// Returned when the request doesn't match the schema, such as not including required fields.
 type UnauthorizedError struct {
 	*core.APIError
 	Body interface{}

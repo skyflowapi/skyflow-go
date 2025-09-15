@@ -74,3 +74,10 @@ func (v *vaultService) Tokenize(ctx context.Context, request []common.TokenizeRe
 	}
 	return res, nil
 }
+func (v *vaultService) UploadFile(ctx context.Context, request common.FileUploadRequest) (*common.FileUploadResponse, *skyflowError.SkyflowError) {
+	res, err := v.controller.UploadFile(ctx, request)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
