@@ -150,23 +150,29 @@ var _ = Describe("Skyflow Error", func() {
 	})
 
 	Context("SkyflowErrorApi", func() {
+		var header http.Header
+		BeforeEach(func() {
+			header = http.Header{}
+			header.Set("x-request-id", "req-67890")
+		})
+
 		It("should correctly parse a valid API error message", func() {
 			errorJSON := `{"error": {"http_code": 400, "message": "Invalid request", "grpc_code": 3, "http_status": "Bad Request", "details": {"demo": "demo"}}}`
 			err := errors.New("API Error: " + errorJSON)
-
-			skyflowErr := SkyflowErrorApi(err)
+			skyflowErr := SkyflowErrorApi(err, header)
 
 			Expect(skyflowErr).ToNot(BeNil())
 			Expect(skyflowErr.GetCode()).To(Equal("Code: 400"))
 			Expect(skyflowErr.GetMessage()).To(Equal("Message: Invalid request"))
 			Expect(skyflowErr.GetGrpcCode()).To(Equal("3"))
+			Expect(skyflowErr.GetRequestId()).To(Equal("req-67890"))
 			Expect(skyflowErr.GetHttpStatusCode()).To(Equal("Bad Request"))
 		})
 
 		It("should return an error when JSON parsing fails", func() {
 			err := errors.New("API Error: {invalid_json}")
 
-			skyflowErr := SkyflowErrorApi(err)
+			skyflowErr := SkyflowErrorApi(err, header)
 
 			Expect(skyflowErr).ToNot(BeNil())
 			Expect(skyflowErr.GetMessage()).To(Equal(fmt.Sprintf(`Message: %s`, err.Error())))
@@ -175,7 +181,7 @@ var _ = Describe("Skyflow Error", func() {
 		It("should return an error when the message doesn't contain a colon", func() {
 			err := errors.New("Invalid API response")
 
-			skyflowErr := SkyflowErrorApi(err)
+			skyflowErr := SkyflowErrorApi(err, header)
 
 			Expect(skyflowErr).ToNot(BeNil())
 			Expect(skyflowErr.GetMessage()).To(Equal("Message: Invalid API response"))
@@ -185,12 +191,13 @@ var _ = Describe("Skyflow Error", func() {
 			errorJSON := `{"error": {}}`
 			err := errors.New("API Error: " + errorJSON)
 
-			skyflowErr := SkyflowErrorApi(err)
+			skyflowErr := SkyflowErrorApi(err, header)
 
 			Expect(skyflowErr).ToNot(BeNil())
 			Expect(skyflowErr.GetMessage()).To(Equal("Message: Unknown error"))
 			Expect(skyflowErr.GetCode()).To(Equal("Code: "))
 			Expect(skyflowErr.GetGrpcCode()).To(BeEmpty())
+			Expect(skyflowErr.GetRequestId()).To(Equal("req-67890"))
 			Expect(skyflowErr.GetHttpStatusCode()).To(BeEmpty())
 		})
 
@@ -198,7 +205,8 @@ var _ = Describe("Skyflow Error", func() {
 			errorJSON := `{"error": "Something went wrong"}`
 			err := errors.New("API Error: " + errorJSON)
 
-			skyflowErr := SkyflowErrorApi(err)
+			skyflowErr := SkyflowErrorApi(err, header)
+			Expect(skyflowErr.GetRequestId()).To(Equal("req-67890"))
 			Expect(skyflowErr.GetMessage()).To(Equal("Message: Something went wrong"))
 		})
 	})

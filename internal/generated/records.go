@@ -5,8 +5,9 @@ package api
 import (
 	json "encoding/json"
 	fmt "fmt"
-	internal "github.com/skyflowapi/skyflow-go/v2/internal/generated/internal"
 	io "io"
+
+	internal "github.com/skyflowapi/skyflow-go/v2/internal/generated/internal"
 )
 
 type FileServiceUploadFileRequest struct {

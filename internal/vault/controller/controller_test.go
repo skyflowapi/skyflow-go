@@ -934,9 +934,10 @@ var _ = Describe("Vault controller Test cases", func() {
 				Expect(err).To(BeNil())
 				Expect(res).ToNot(BeNil())
 				Expect(res.DetokenizedFields).To(HaveLen(1))
-				Expect(res.DetokenizedFields[0]["Token"]).To(Equal("token"))
-				Expect(res.DetokenizedFields[0]["Value"]).To(Equal("*REDACTED*"))
-				Expect(res.DetokenizedFields[0]["ValueType"]).To(Equal(vaultapis.DetokenizeRecordResponseValueType("STRING")))
+				Expect(res.DetokenizedFields[0].Token).To(Equal("token"))
+				Expect(res.DetokenizedFields[0].Value).To(Equal("*REDACTED*"))
+				Expect(res.DetokenizedFields[0].Type).To(Equal("STRING"))
+
 			})
 			It("should return detokenized data with errors", func() {
 				response := make(map[string]interface{})
@@ -1327,8 +1328,7 @@ var _ = Describe("Vault controller Test cases", func() {
 		Context("Test the success and error case", func() {
 			request := UpdateRequest{
 				Table:  "demo",
-				Id:     "skyflowid",
-				Values: map[string]interface{}{"name": "john"},
+				Data:   map[string]interface{}{"skyflow_id": "123", "name": "john"},
 				Tokens: nil,
 			}
 			It("should return success response when valid ids passed in Update", func() {
@@ -3363,7 +3363,7 @@ var _ = Describe("DetectController", func() {
 
 			It("should handle in-progress status", func() {
 				response := make(map[string]interface{})
-				
+
 				_ = json.Unmarshal([]byte(mockGetDetectRunInProgressJSON), &response)
 
 				ts := setupMockServer(response, "ok", "/v1/detect/runs/")

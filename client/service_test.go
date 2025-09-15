@@ -12,7 +12,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/skyflowapi/skyflow-go/v2/client"
-	vaultapis "github.com/skyflowapi/skyflow-go/v2/internal/generated"
 	client2 "github.com/skyflowapi/skyflow-go/v2/internal/generated/client"
 	"github.com/skyflowapi/skyflow-go/v2/internal/generated/option"
 	. "github.com/skyflowapi/skyflow-go/v2/internal/vault/controller"
@@ -272,9 +271,10 @@ var _ = Describe("Vault controller Test cases", func() {
 				Expect(err).To(BeNil())
 				Expect(res).ToNot(BeNil())
 				Expect(res.DetokenizedFields).To(HaveLen(1))
-				Expect(res.DetokenizedFields[0]["Token"]).To(Equal("token"))
-				Expect(res.DetokenizedFields[0]["Value"]).To(Equal("*REDACTED*"))
-				Expect(res.DetokenizedFields[0]["ValueType"]).To(Equal(vaultapis.DetokenizeRecordResponseValueType("STRING")))
+				Expect(res.DetokenizedFields[0].Token).To(Equal("token"))
+				Expect(res.DetokenizedFields[0].Value).To(Equal("*REDACTED*"))
+				Expect(res.DetokenizedFields[0].Type).To(Equal("STRING"))
+
 			})
 			It("should return detokenized data with errors", func() {
 				response := make(map[string]interface{})
@@ -374,6 +374,8 @@ var _ = Describe("Vault controller Test cases", func() {
 				}
 				service, _ := client.Vault()
 				res, err := service.Get(ctx, request, options)
+				fmt.Println("## res:", res)
+				fmt.Println("## err:", err)
 				Expect(res).To(BeNil())
 				Expect(err).ToNot(BeNil())
 			})
@@ -534,9 +536,8 @@ var _ = Describe("Vault controller Test cases", func() {
 		})
 		Context("Test the success and error case", func() {
 			request := UpdateRequest{
-				Table:  "demo",
-				Id:     "skyflowid",
-				Values: map[string]interface{}{"name": "john"},
+				Table: "demo",
+				Data:  map[string]interface{}{"skyflow_id": "123", "name": "john"},
 				Tokens: nil,
 			}
 			It("should return success response when valid ids passed in Update", func() {

@@ -214,7 +214,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			Expect(err).ToNot(BeNil())
 			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_TOKENS))
 		})
-		It("should return error when tokens are not passed for all values objectin BYOT ENABLE mode", func() {
+		It("should not return error when tokens are not passed for all values object in BYOT ENABLE mode", func() {
 			request := common.InsertRequest{
 				Table: "testTable",
 				Values: []map[string]interface{}{
@@ -228,10 +228,9 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			}
 
 			err := ValidateInsertRequest(request, options)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.TOKENS_NOT_PASSED))
+			Expect(err).To(BeNil())
 		})
-		It("should return error when tokens are not passed for all values objectin BYOT ENABLE mode", func() {
+		It("should return error when tokens are not passed for all values object in BYOT ENABLE mode", func() {
 			request := common.InsertRequest{
 				Table: "testTable",
 				Values: []map[string]interface{}{
@@ -281,7 +280,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			Expect(err).ToNot(BeNil())
 			Expect(err.GetMessage()).To(ContainSubstring(errors.INSUFFICIENT_TOKENS_PASSED_FOR_BYOT_ENABLE_STRICT))
 		})
-		It("should return error when tokens are passed in BYOT ENABLE STRICT mode", func() {
+		It("should return error when tokens are invalid in BYOT ENABLE STRICT mode", func() {
 			request := common.InsertRequest{
 				Table: "testTable",
 				Values: []map[string]interface{}{
@@ -647,11 +646,11 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 		})
 	})
 	Context("when validating update requests", func() {
+		var validData = map[string]interface{}{"skyflow_id": "123", "key": "value", "key2": "value2"}
 		It("should return an error if the table is empty", func() {
 			request := common.UpdateRequest{
 				Table:  "",
-				Id:     "123",
-				Values: map[string]interface{}{"key": "value"},
+				Data:   validData,
 				Tokens: map[string]interface{}{"key": "token"},
 			}
 			options := common.UpdateOptions{}
@@ -660,11 +659,10 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_TABLE))
 		})
 
-		It("should return an error if the ID is empty", func() {
+		It("should return an error if the id is empty", func() {
 			request := common.UpdateRequest{
 				Table:  "test_table",
-				Id:     "",
-				Values: map[string]interface{}{"key": "value"},
+				Data:   map[string]interface{}{"skyflow_id": "", "key": "value"},
 				Tokens: map[string]interface{}{"key": "token"},
 			}
 			options := common.UpdateOptions{}
@@ -673,24 +671,22 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_ID_IN_UPDATE))
 		})
 
-		It("should return an error if the values are nil or empty", func() {
+		It("should return an error if the data are nil or empty", func() {
 			request := common.UpdateRequest{
 				Table:  "test_table",
-				Id:     "123",
-				Values: nil,
+				Data:   nil,
 				Tokens: map[string]interface{}{"key": "token"},
 			}
 			options := common.UpdateOptions{}
 			err := ValidateUpdateRequest(request, options)
 			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_VALUES))
+			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_ID_IN_UPDATE))
 		})
 
 		It("should return an error if tokens are nil or empty", func() {
 			request := common.UpdateRequest{
 				Table:  "test_table",
-				Id:     "123",
-				Values: map[string]interface{}{"key": "value"},
+				Data:   validData,
 				Tokens: nil,
 			}
 			options := common.UpdateOptions{}
@@ -698,37 +694,34 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			Expect(err).To(BeNil())
 		})
 
-		It("should return an error if a value is empty", func() {
+		It("should return an error if a data is empty", func() {
 			request := common.UpdateRequest{
 				Table:  "test_table",
-				Id:     "123",
-				Values: map[string]interface{}{"key": ""},
+				Data:   map[string]interface{}{"skyflow_id": "123", "key": ""},
 				Tokens: map[string]interface{}{"key": "token"},
 			}
 			options := common.UpdateOptions{}
 			err := ValidateUpdateRequest(request, options)
 			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_VALUE_IN_VALUES))
+			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_DATA_IN_DATA_KEY))
 		})
 
-		It("should return an error if a key is empty in values", func() {
+		It("should return an error if a key is empty in data", func() {
 			request := common.UpdateRequest{
 				Table:  "test_table",
-				Id:     "123",
-				Values: map[string]interface{}{"": "value"},
+				Data:   map[string]interface{}{"skyflow_id": "123", "": "value"},
 				Tokens: map[string]interface{}{"key": "token"},
 			}
 			options := common.UpdateOptions{}
 			err := ValidateUpdateRequest(request, options)
 			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_KEY_IN_VALUES))
+			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_KEY_IN_DATA))
 		})
 
 		It("should return an error if tokens are passed with TokenMode DISABLE", func() {
 			request := common.UpdateRequest{
 				Table:  "test_table",
-				Id:     "123",
-				Values: map[string]interface{}{"key": "value"},
+				Data:   validData,
 				Tokens: map[string]interface{}{"key": "token"},
 			}
 			options := common.UpdateOptions{TokenMode: common.DISABLE}
@@ -740,8 +733,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 		It("should return an error if no tokens are passed with TokenMode ENABLE_STRICT", func() {
 			request := common.UpdateRequest{
 				Table:  "test_table",
-				Id:     "123",
-				Values: map[string]interface{}{"key": "value"},
+				Data:   validData,
 				Tokens: nil,
 			}
 			options := common.UpdateOptions{TokenMode: common.ENABLE_STRICT}
@@ -753,8 +745,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 		It("should not return an error for valid input with TokenMode ENABLE", func() {
 			request := common.UpdateRequest{
 				Table:  "test_table",
-				Id:     "123",
-				Values: map[string]interface{}{"key": "value"},
+				Data:   validData,
 				Tokens: map[string]interface{}{"key": "token"},
 			}
 			options := common.UpdateOptions{TokenMode: common.ENABLE}
@@ -765,8 +756,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 		It("should return an error for invalid input with TokenMode ENABLE", func() {
 			request := common.UpdateRequest{
 				Table:  "test_table",
-				Id:     "123",
-				Values: map[string]interface{}{"key": "value", "key2": "value2"},
+				Data:   validData,
 				Tokens: make(map[string]interface{}),
 			}
 			options := common.UpdateOptions{TokenMode: common.ENABLE}
@@ -778,8 +768,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 		It("should return an error for tokens empty with TokenMode ENABLE_STRICT", func() {
 			request := common.UpdateRequest{
 				Table:  "test_table",
-				Id:     "123",
-				Values: map[string]interface{}{"key": "value", "key2": "value2"},
+				Data:   validData,
 				Tokens: nil,
 			}
 			options := common.UpdateOptions{TokenMode: common.ENABLE_STRICT}
@@ -790,8 +779,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 		It("should return an error for tokens empty with TokenMode ENABLE_STRICT", func() {
 			request := common.UpdateRequest{
 				Table:  "test_table",
-				Id:     "123",
-				Values: map[string]interface{}{"key": "value", "key2": "value2"},
+				Data:   validData,
 				Tokens: map[string]interface{}{"key": "token"},
 			}
 			options := common.UpdateOptions{TokenMode: common.ENABLE_STRICT}
@@ -803,8 +791,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 		It("should return an error for tokens empty with TokenMode ENABLE", func() {
 			request := common.UpdateRequest{
 				Table:  "test_table",
-				Id:     "123",
-				Values: map[string]interface{}{"key": "value", "key2": "value2"},
+				Data:   validData,
 				Tokens: nil,
 			}
 			options := common.UpdateOptions{TokenMode: common.ENABLE}
@@ -815,8 +802,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 		It("should return an error for tokens key value is empty with TokenMode ENABLE", func() {
 			request := common.UpdateRequest{
 				Table:  "test_table",
-				Id:     "123",
-				Values: map[string]interface{}{"key": "value", "key2": "value2"},
+				Data:   validData,
 				Tokens: map[string]interface{}{"key": nil},
 			}
 			options := common.UpdateOptions{TokenMode: common.ENABLE}
@@ -827,8 +813,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 		It("should return an error for tokens key is empty with TokenMode ENABLE", func() {
 			request := common.UpdateRequest{
 				Table:  "test_table",
-				Id:     "123",
-				Values: map[string]interface{}{"key": "value", "key2": "value2"},
+				Data:   validData,
 				Tokens: map[string]interface{}{"": "token"},
 			}
 			options := common.UpdateOptions{TokenMode: common.ENABLE}
@@ -839,8 +824,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 		It("should return an error for tokens key not exist in values with TokenMode ENABLE", func() {
 			request := common.UpdateRequest{
 				Table:  "test_table",
-				Id:     "123",
-				Values: map[string]interface{}{"key": "value", "key2": "value2"},
+				Data:   validData,
 				Tokens: map[string]interface{}{"demo": "token"},
 			}
 			options := common.UpdateOptions{TokenMode: common.ENABLE}
@@ -851,8 +835,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 		It("should return an error for tokens key not exist in values with TokenMode ENABLE", func() {
 			request := common.UpdateRequest{
 				Table:  "test_table",
-				Id:     "123",
-				Values: map[string]interface{}{"key": "value", "key2": nil},
+				Data:   map[string]interface{}{"skyflow_id": "123", "key": "value", "key2": nil},
 				Tokens: map[string]interface{}{"key": "value", "key2": "token"},
 			}
 			options := common.UpdateOptions{TokenMode: common.ENABLE}
@@ -861,6 +844,40 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			Expect(err.GetMessage()).To(ContainSubstring(errors.MISMATCH_OF_FIELDS_AND_TOKENS))
 		})
 
+		It("should return error if sufficient tokens is not passed for all values object in BYOT ENABLE STRICT mode", func() {
+			request := common.UpdateRequest{
+				Table:  "test_table",
+				Data:   map[string]interface{}{"skyflow_id": "123", "key": "value", "key2": "value2"},
+				Tokens: map[string]interface{}{"key2": "token"},
+			}
+			options := common.UpdateOptions{TokenMode: common.ENABLE_STRICT}
+			err := ValidateUpdateRequest(request, options)
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(errors.INSUFFICIENT_TOKENS_PASSED_FOR_BYOT_ENABLE_STRICT))
+		})
+
+		It("should not return error if tokens and values count is not equal in BYOT ENABLE mode", func() {
+			request := common.UpdateRequest{
+				Table:  "test_table",
+				Data:   map[string]interface{}{"skyflow_id": "123", "key": "value", "key2": "value2"},
+				Tokens: map[string]interface{}{"key2": "token"},
+			}
+			options := common.UpdateOptions{TokenMode: common.ENABLE}
+			err := ValidateUpdateRequest(request, options)
+			Expect(err).To(BeNil())
+		})
+
+		It("should return error if tokens and values count is not equal in BYOT ENABLE STRICT mode", func() {
+			request := common.UpdateRequest{
+				Table:  "test_table",
+				Data:   map[string]interface{}{"skyflow_id": "123", "key": "value", "key2": "value2"},
+				Tokens: map[string]interface{}{"key2": "token"},
+			}
+			options := common.UpdateOptions{TokenMode: common.ENABLE_STRICT}
+			err := ValidateUpdateRequest(request, options)
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(errors.INSUFFICIENT_TOKENS_PASSED_FOR_BYOT_ENABLE_STRICT))
+		})
 	})
 	Context("ValidateTokenizeRequest", func() {
 		var (

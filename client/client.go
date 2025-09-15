@@ -196,7 +196,7 @@ func (s *Skyflow) Connection(connectionId ...string) (*connectionService, *error
 }
 
 func (s *Skyflow) Detect(vaultID ...string) (*detectService, *error.SkyflowError) {
-		// get vaultapi config if available in vaultapi configs, skyflow or env
+	// get vaultapi config if available in vaultapi configs, skyflow or env
 	config, err := getDetectConfig(s.detectServices, vaultID...)
 	if err != nil {
 		return nil, err

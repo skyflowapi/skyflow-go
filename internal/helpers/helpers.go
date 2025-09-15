@@ -6,13 +6,16 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"net/url"
 	"os"
 	"runtime"
 	"time"
 
+	"github.com/skyflowapi/skyflow-go/v2/internal/generated/core"
 	"github.com/skyflowapi/skyflow-go/v2/internal/generated/option"
 
 	"github.com/golang-jwt/jwt"
@@ -201,14 +204,12 @@ func GenerateBearerTokenHelper(credKeys map[string]interface{}, options BearerTo
 		body.Scope = &roleString
 	}
 	// 5. send request
-	authApi, apiErr := client.AuthenticationServiceGetAuthToken(context.Background(), &body)
-	//if apiErr != nil {
-	//	return nil, skyflowError.SkyflowApiError(*r)
-	//} else
+	authApi, apiErr := client.WithRawResponse.AuthenticationServiceGetAuthToken(context.Background(), &body)
 	if apiErr != nil {
-		return nil, skyflowError.SkyflowErrorApi(apiErr)
+		header, _ := GetHeader(apiErr)
+		return nil, skyflowError.SkyflowErrorApi(apiErr, header)
 	}
-	return authApi, nil
+	return authApi.Body, nil
 }
 func GetScopeUsingRoles(roles []*string) string {
 	scope := ""
@@ -298,4 +299,22 @@ func CreateJsonMetadata() string {
 
 func Float64Ptr(v float64) *float64 {
 	return &v
+}
+
+func GetHeader(err error) (http.Header, bool) {
+	if err == nil {
+		return http.Header{}, false
+	}
+	var apiError *core.APIError
+	if errors.As(err, &apiError) {
+		return apiError.Header, true
+	}
+	return http.Header{}, false
+}
+
+func GetSkyflowID(data map[string]interface{}) (string, bool) {
+	if id, ok := data["skyflow_id"].(string); ok {
+		return id, true
+	}
+	return "", false
 }

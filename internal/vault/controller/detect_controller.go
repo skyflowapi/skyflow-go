@@ -65,8 +65,7 @@ func CreateDetectRequestClient(v *DetectController) *skyflowError.SkyflowError {
 		token = v.Token
 	}
 
-	var header http.Header
-	header = http.Header{}
+	header := http.Header{}
 	header.Set(constants.SDK_METRICS_HEADER_KEY, helpers.CreateJsonMetadata())
 
 	client := text.NewClient(option.WithBaseURL(GetURLWithEnv(v.Config.Env, v.Config.ClusterId)),
@@ -489,7 +488,8 @@ func (d *DetectController) DeidentifyText(ctx context.Context, request common.De
 	response, apiError := d.TextApiClient.WithRawResponse.DeidentifyString(ctx, apiRequest)
 	if apiError != nil {
 		logger.Error(logs.DEIDENTIFY_TEXT_REQUEST_FAILED)
-		return nil, skyflowError.SkyflowErrorApi(apiError)
+		header, _ := helpers.GetHeader(apiError)
+		return nil, skyflowError.SkyflowErrorApi(apiError, header)
 	}
 
 	deidentifiedTextResponse := common.DeidentifyTextResponse{}
@@ -561,7 +561,8 @@ func (d *DetectController) ReidentifyText(ctx context.Context, request common.Re
 	response, apiError := d.TextApiClient.WithRawResponse.ReidentifyString(ctx, apiRequest)
 	if apiError != nil {
 		logger.Error(logs.REIDENTIFY_TEXT_REQUEST_FAILED)
-		return nil, skyflowError.SkyflowErrorApi(apiError)
+		header, _ := helpers.GetHeader(apiError)
+		return nil, skyflowError.SkyflowErrorApi(apiError, header)
 	}
 
 	// Map the API response to the common.ReidentifyTextResponse struct
@@ -620,7 +621,8 @@ func (d *DetectController) DeidentifyFile(ctx context.Context, request common.De
 	apiResponse, apiErr := d.processFileByType(ctx, fileExtension, base64Content, &request)
 	if apiErr != nil {
 		logger.Error(logs.DEIDENTIFY_FILE_REQUEST_FAILED)
-		return nil, skyflowError.SkyflowErrorApi(apiErr)
+		header, _ := helpers.GetHeader(apiErr)
+		return nil, skyflowError.SkyflowErrorApi(apiErr, header)
 	}
 
 	// Poll for results
@@ -628,7 +630,8 @@ func (d *DetectController) DeidentifyFile(ctx context.Context, request common.De
 
 	if pollErr != nil {
 		logger.Error(logs.POLLING_FOR_RESULTS_FAILED)
-		return nil, skyflowError.SkyflowErrorApi(pollErr)
+		header, _ := helpers.GetHeader(pollErr)
+		return nil, skyflowError.SkyflowErrorApi(pollErr, header)
 	}
 
 	response := &common.DeidentifyFileResponse{}
@@ -691,7 +694,8 @@ func (d *DetectController) pollForResults(ctx context.Context, runID string, max
 
 		if err != nil {
 			logger.Error(logs.GET_DETECT_RUN_REQUEST_FAILED)
-			return nil, skyflowError.SkyflowErrorApi(err)
+			header, _ := helpers.GetHeader(err)
+			return nil, skyflowError.SkyflowErrorApi(err, header)
 		}
 
 		if response == nil || response.Body == nil {
@@ -892,7 +896,8 @@ func (d *DetectController) GetDetectRun(ctx context.Context, request common.GetD
 
 	if err != nil {
 		logger.Error(logs.GET_DETECT_RUN_REQUEST_FAILED)
-		return nil, skyflowError.SkyflowErrorApi(err)
+		header, _ := helpers.GetHeader(err)
+		return nil, skyflowError.SkyflowErrorApi(err, header)
 	}
 
 	deidentifyFileRes := common.DeidentifyFileResponse{}

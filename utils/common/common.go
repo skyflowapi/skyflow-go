@@ -274,7 +274,7 @@ type DeidentifyFileRequest struct {
 	OutputProcessedAudio bool
 	OutputTranscription  DetectOutputTranscriptions
 	Bleep                AudioBleep
-	File            FileInput
+	File                 FileInput
 	OutputDirectory      string
 	WaitTime             int
 }
@@ -406,9 +406,18 @@ type DetokenizeOptions struct {
 	ContinueOnError bool
 	DownloadURL     bool
 }
+
+type DetokenizeRecordResponse struct {
+	Token     string
+	Value     string
+	Type      string
+	Error     string
+	RequestId string
+}
+
 type DetokenizeResponse struct {
-	DetokenizedFields []map[string]interface{}
-	Errors            []map[string]interface{}
+	DetokenizedFields []DetokenizeRecordResponse
+	Errors            []DetokenizeRecordResponse
 }
 
 type DeleteRequest struct {
@@ -424,8 +433,7 @@ type DeleteResponse struct {
 
 type UpdateRequest struct {
 	Table  string
-	Id     string
-	Values map[string]interface{}
+	Data   map[string]interface{}
 	Tokens map[string]interface{}
 }
 type UpdateOptions struct {
@@ -436,6 +444,7 @@ type UpdateResponse struct {
 	// Response fields
 	SkyflowId string
 	Tokens    map[string]interface{}
+	Errors    []map[string]interface{}
 }
 
 type GetRequest struct {

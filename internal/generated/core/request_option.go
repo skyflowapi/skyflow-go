@@ -56,7 +56,7 @@ func (r *RequestOptions) cloneHeader() http.Header {
 	headers := r.HTTPHeader.Clone()
 	headers.Set("X-Fern-Language", "Go")
 	headers.Set("X-Fern-SDK-Name", "https://github.com/skyflowapi/skyflow-go")
-	headers.Set("X-Fern-SDK-Version", "v0.0.339")
+	headers.Set("X-Fern-SDK-Version", "v0.0.348")
 	return headers
 }
 

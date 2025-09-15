@@ -3,19 +3,20 @@
 package client
 
 import (
+	http "net/http"
+
 	audit "github.com/skyflowapi/skyflow-go/v2/internal/generated/audit"
 	authentication "github.com/skyflowapi/skyflow-go/v2/internal/generated/authentication"
 	binlookup "github.com/skyflowapi/skyflow-go/v2/internal/generated/binlookup"
 	core "github.com/skyflowapi/skyflow-go/v2/internal/generated/core"
 	files "github.com/skyflowapi/skyflow-go/v2/internal/generated/files"
 	guardrails "github.com/skyflowapi/skyflow-go/v2/internal/generated/guardrails"
-	internal "github.com/skyflowapi/skyflow-go/v2/internal/generated/internal"
 	option "github.com/skyflowapi/skyflow-go/v2/internal/generated/option"
 	query "github.com/skyflowapi/skyflow-go/v2/internal/generated/query"
 	records "github.com/skyflowapi/skyflow-go/v2/internal/generated/records"
 	strings "github.com/skyflowapi/skyflow-go/v2/internal/generated/strings"
 	tokens "github.com/skyflowapi/skyflow-go/v2/internal/generated/tokens"
-	http "net/http"
+	internal "github.com/skyflowapi/skyflow-go/v2/internal/generated/internal"
 )
 
 type Client struct {

@@ -56,7 +56,7 @@ func NewSkyflowError(code ErrorCodesEnum, message string) *SkyflowError {
 }
 func SkyflowApiError(responseHeaders http.Response) *SkyflowError {
 	skyflowError := SkyflowError{
-		requestId: responseHeaders.Header.Get("x-request-id"),
+		requestId: responseHeaders.Header.Get(constants.REQUEST_KEY),
 	}
 	if responseHeaders.Header.Get("Content-Type") == "application/json" {
 		bodyBytes, _ := io.ReadAll(responseHeaders.Body)
@@ -109,9 +109,13 @@ func SkyflowApiError(responseHeaders http.Response) *SkyflowError {
 	}
 	return &skyflowError
 }
-func SkyflowErrorApi(error error) *SkyflowError {
+func SkyflowErrorApi(error error, header http.Header) *SkyflowError {
 	skyflowError := SkyflowError{}
 	var apiError map[string]interface{}
+	// Set the request ID from the header
+	skyflowError = SkyflowError{
+		requestId: header.Get(constants.REQUEST_KEY),
+	}
 	parts := strings.SplitN(error.Error(), ": ", 2)
 	if len(parts) < 2 {
 		return NewSkyflowError(INVALID_INPUT_CODE, error.Error())

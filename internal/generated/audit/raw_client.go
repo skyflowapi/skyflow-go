@@ -2,11 +2,12 @@ package audit
 
 import (
 	context "context"
-	generated "github.com/skyflowapi/skyflow-go/v2/internal/generated"
+	http "net/http"
+
 	core "github.com/skyflowapi/skyflow-go/v2/internal/generated/core"
+	generated "github.com/skyflowapi/skyflow-go/v2/internal/generated"
 	internal "github.com/skyflowapi/skyflow-go/v2/internal/generated/internal"
 	option "github.com/skyflowapi/skyflow-go/v2/internal/generated/option"
-	http "net/http"
 )
 
 type RawClient struct {
