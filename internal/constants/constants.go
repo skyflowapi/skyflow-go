@@ -15,4 +15,5 @@ const (
 	SDK_PREFIX             = SDK_NAME + SDK_VERSION
 	ERROR_FROM_CLIENT      = "error-from-client"
 	REQUEST_KEY            = "X-Request-Id"
+	SKYFLOW_ID             = "skyflow_id"
 )

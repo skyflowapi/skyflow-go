@@ -2,7 +2,7 @@
 Copyright (c) 2022 Skyflow, Inc.
 */
 
-package serviceaccount
+package main
 
 import (
 	"fmt"
@@ -10,6 +10,13 @@ import (
 	"github.com/skyflowapi/skyflow-go/v2/utils/common"
 	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
 )
+
+/**
+ * Example program to generate a Bearer Token with context.
+ * The token can be generated in two ways:
+ * 1. Using the file path to a credentials.json file.
+ * 2. Using the stringify JSON content of the credential file.
+ */
 
 func ExampleTokenGenerationWithContext() {
 	// Generate bearer token using file path
@@ -31,4 +38,8 @@ func ExampleTokenGenerationWithContext() {
 
 	}
 
+}
+
+func main() {
+	ExampleTokenGenerationWithContext()
 }

@@ -3,6 +3,7 @@ package errors
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	constants "github.com/skyflowapi/skyflow-go/v2/internal/constants"
 
@@ -55,7 +56,7 @@ func NewSkyflowError(code ErrorCodesEnum, message string) *SkyflowError {
 }
 func SkyflowApiError(responseHeaders http.Response) *SkyflowError {
 	skyflowError := SkyflowError{
-		requestId: responseHeaders.Header.Get("x-request-id"),
+		requestId: responseHeaders.Header.Get(constants.REQUEST_KEY),
 	}
 	if responseHeaders.Header.Get("Content-Type") == "application/json" {
 		bodyBytes, _ := io.ReadAll(responseHeaders.Body)
@@ -105,6 +106,46 @@ func SkyflowApiError(responseHeaders http.Response) *SkyflowError {
 			skyflowError.details = make(map[string]interface{})
 		}
 		skyflowError.details["errorFromClient"] = responseHeaders.Header.Get(constants.ERROR_FROM_CLIENT)
+	}
+	return &skyflowError
+}
+func SkyflowErrorApi(error error, header http.Header) *SkyflowError {
+	skyflowError := SkyflowError{}
+	var apiError map[string]interface{}
+	// Set the request ID from the header
+	skyflowError = SkyflowError{
+		requestId: header.Get(constants.REQUEST_KEY),
+	}
+	parts := strings.SplitN(error.Error(), ": ", 2)
+	if len(parts) < 2 {
+		return NewSkyflowError(INVALID_INPUT_CODE, error.Error())
+	}
+	err := json.Unmarshal([]byte(parts[1]), &apiError)
+	if err != nil {
+		return NewSkyflowError(INVALID_INPUT_CODE, error.Error())
+	}
+	if errorBody, ok := apiError["error"].(map[string]interface{}); ok {
+		if httpCode, exists := errorBody["http_code"].(float64); exists {
+			skyflowError.httpCode = strconv.FormatFloat(httpCode, 'f', 0, 64)
+		}
+		if message, exists := errorBody["message"].(string); exists {
+			skyflowError.message = message
+		} else {
+			skyflowError.message = "Unknown error"
+		}
+		if grpcCode, exists := errorBody["grpc_code"].(float64); exists {
+			skyflowError.grpcCode = strconv.FormatFloat(grpcCode, 'f', 0, 64)
+		}
+		if httpStatus, exists := errorBody["http_status"].(string); exists {
+			skyflowError.httpStatusCode = httpStatus
+		}
+		if details, exists := errorBody["details"].(map[string]interface{}); exists {
+			skyflowError.details = details
+		}
+	} else if errBody, ok := apiError["error"].(string); ok {
+		skyflowError.message = errBody
+	} else {
+		skyflowError.message = error.Error()
 	}
 	return &skyflowError
 }
