@@ -1517,4 +1517,140 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			})
 		})
 	})
+	Context("ValidateGetRequest", func() {
+
+		It("should not return error for valid Fields", func() {
+			getRequest := common.GetRequest{Table: "table", Ids: []string{"id1", "id2"}}
+			options := common.GetOptions{Fields: []string{"field1", "field2"}}
+			err := ValidateGetRequest(getRequest, options)
+			Expect(err).To(BeNil())
+		})
+
+		It("should return error when table is empty", func() {
+			getRequest := common.GetRequest{Table: ""}
+			options := common.GetOptions{}
+			err := ValidateGetRequest(getRequest, options)
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_TABLE))
+		})
+
+		It("should return error when Ids is empty slice", func() {
+			getRequest := common.GetRequest{Table: "table", Ids: []string{}}
+			options := common.GetOptions{}
+			err := ValidateGetRequest(getRequest, options)
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_IDS))
+		})
+
+		It("should return error when Ids contains empty string", func() {
+			getRequest := common.GetRequest{Table: "table", Ids: []string{"", "id2"}}
+			options := common.GetOptions{}
+			err := ValidateGetRequest(getRequest, options)
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_ID_IN_IDS))
+		})
+
+		It("should return error when Fields is empty slice", func() {
+			getRequest := common.GetRequest{Table: "table"}
+			options := common.GetOptions{Fields: []string{}}
+			err := ValidateGetRequest(getRequest, options)
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_FIELDS))
+		})
+
+		It("should return error when Fields contains empty string", func() {
+			getRequest := common.GetRequest{Table: "table"}
+			options := common.GetOptions{Fields: []string{"field1", ""}}
+			err := ValidateGetRequest(getRequest, options)
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_FIELD_IN_FIELDS))
+		})
+
+		It("should return error when ReturnTokens is true and ColumnName is set", func() {
+			getRequest := common.GetRequest{Table: "table"}
+			options := common.GetOptions{ReturnTokens: true, ColumnName: "col"}
+			err := ValidateGetRequest(getRequest, options)
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(errors.TOKENS_GET_COLUMN_NOT_SUPPORTED))
+		})
+
+		It("should return error when ReturnTokens is true and ColumnValues is set", func() {
+			getRequest := common.GetRequest{Table: "table"}
+			options := common.GetOptions{ReturnTokens: true, ColumnValues: []string{"val"}}
+			err := ValidateGetRequest(getRequest, options)
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(errors.TOKENS_GET_COLUMN_NOT_SUPPORTED))
+		})
+
+		It("should return error when ReturnTokens is true and RedactionType is set", func() {
+			getRequest := common.GetRequest{Table: "table"}
+			options := common.GetOptions{ReturnTokens: true, RedactionType: "PLAIN_TEXT"}
+			err := ValidateGetRequest(getRequest, options)
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(errors.REDACTION_WITH_TOKENS_NOT_SUPPORTED))
+		})
+
+		It("should return error when neither Ids nor ColumnName/ColumnValues are set", func() {
+			getRequest := common.GetRequest{Table: "table"}
+			options := common.GetOptions{}
+			err := ValidateGetRequest(getRequest, options)
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(errors.UNIQUE_COLUMN_OR_IDS_KEY_ERROR))
+		})
+
+		It("should return error when both Ids and ColumnName/ColumnValues are set", func() {
+			getRequest := common.GetRequest{Table: "table", Ids: []string{"id1"}}
+			options := common.GetOptions{ColumnName: "col", ColumnValues: []string{"val"}}
+			err := ValidateGetRequest(getRequest, options)
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(errors.BOTH_IDS_AND_COLUMN_DETAILS_SPECIFIED))
+		})
+
+		It("should return error when ColumnValues is set but ColumnName is empty", func() {
+			getRequest := common.GetRequest{Table: "table"}
+			options := common.GetOptions{ColumnValues: []string{"val"}}
+			err := ValidateGetRequest(getRequest, options)
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(errors.COLUMN_NAME_KEY_ERROR))
+		})
+
+		It("should return error when ColumnName is set but ColumnValues is nil", func() {
+			getRequest := common.GetRequest{Table: "table"}
+			options := common.GetOptions{ColumnName: "col"}
+			err := ValidateGetRequest(getRequest, options)
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_COLUMN_VALUES))
+		})
+
+		It("should return error when ColumnName is set and ColumnValues is empty slice", func() {
+			getRequest := common.GetRequest{Table: "table"}
+			options := common.GetOptions{ColumnName: "col", ColumnValues: []string{}}
+			err := ValidateGetRequest(getRequest, options)
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_COLUMN_VALUES))
+		})
+
+		It("should return error when ColumnName is set and ColumnValues contains empty string", func() {
+			getRequest := common.GetRequest{Table: "table"}
+			options := common.GetOptions{ColumnName: "col", ColumnValues: []string{"val1", ""}}
+			err := ValidateGetRequest(getRequest, options)
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_VALUE_IN_COLUMN_VALUES))
+		})
+
+		It("should not return error for valid Ids", func() {
+			getRequest := common.GetRequest{Table: "table", Ids: []string{"id1", "id2"}}
+			options := common.GetOptions{}
+			err := ValidateGetRequest(getRequest, options)
+			Expect(err).To(BeNil())
+		})
+
+		It("should not return error for valid ColumnName and ColumnValues", func() {
+			getRequest := common.GetRequest{Table: "table"}
+			options := common.GetOptions{ColumnName: "col", ColumnValues: []string{"val1", "val2"}}
+			err := ValidateGetRequest(getRequest, options)
+			Expect(err).To(BeNil())
+		})
+
+	})
 })

@@ -17,6 +17,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/skyflowapi/skyflow-go/v2/internal/generated/core"
 	. "github.com/skyflowapi/skyflow-go/v2/internal/helpers"
 	"github.com/skyflowapi/skyflow-go/v2/utils/common"
 	. "github.com/skyflowapi/skyflow-go/v2/utils/error"
@@ -518,6 +519,67 @@ MIIBAAIBADANINVALIDKEY==
 				Expect(err.GetMessage()).Should(ContainSubstring(INVALID_TOKEN_URI))
 			})
 
+		})
+	})
+	Describe("GetHeader", func() {
+
+		It("should return empty header and false when error is nil", func() {
+			h, ok := GetHeader(nil)
+			Expect(ok).To(BeFalse())
+			Expect(h).To(Equal(http.Header{}))
+		})
+
+		It("should return header and true when error is core.APIError", func() {
+			headers := http.Header{}
+			headers.Set("X-Request-Id", "value")
+			err := &core.APIError{Header: headers}
+			_, ok := GetHeader(err)
+			Expect(ok).To(BeTrue())
+		})
+		It("should return empty header and false for non-APIError", func() {
+			h, ok := GetHeader(os.ErrNotExist)
+			Expect(ok).To(BeFalse())
+			Expect(h).To(Equal(http.Header{}))
+		})
+	})
+	Describe("Float64Ptr", func() {
+		It("should return pointer to float64 value", func() {
+			val := 3.14
+			ptr := Float64Ptr(val)
+			Expect(ptr).ToNot(BeNil())
+			Expect(*ptr).To(Equal(val))
+		})
+	})
+	Describe("GetSkyflowID", func() {
+		It("should return skyflow_id and true if present", func() {
+			m := map[string]interface{}{"skyflow_id": "id123"}
+			id, ok := GetSkyflowID(m)
+			Expect(ok).To(BeTrue())
+			Expect(id).To(Equal("id123"))
+		})
+		It("should return empty string and false if skyflow_id not present", func() {
+			m := map[string]interface{}{"other": "val"}
+			id, ok := GetSkyflowID(m)
+			Expect(ok).To(BeFalse())
+			Expect(id).To(Equal(""))
+		})
+		It("should return empty string and false if skyflow_id is not a string", func() {
+			m := map[string]interface{}{"skyflow_id": 123}
+			id, ok := GetSkyflowID(m)
+			Expect(ok).To(BeFalse())
+			Expect(id).To(Equal(""))
+		})
+	})
+	Describe("CreateJsonMetadata", func() {
+		It("should return valid JSON string with expected keys", func() {
+			jsonStr := CreateJsonMetadata()
+			var m map[string]interface{}
+			err := json.Unmarshal([]byte(jsonStr), &m)
+			Expect(err).To(BeNil())
+			Expect(m).To(HaveKey("sdk_name_version"))
+			Expect(m).To(HaveKey("sdk_client_device_model"))
+			Expect(m).To(HaveKey("sdk_client_os_details"))
+			Expect(m).To(HaveKey("sdk_runtime_details"))
 		})
 	})
 })
