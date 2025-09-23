@@ -11,36 +11,20 @@ import (
 	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
 )
 
-/**
- * This example demonstrates how to use the Skyflow Go SDK to insert records using BYOT
- * (Bring Your Own Token) functionality into your vault.
- * <p>
- * Steps include:
- * 1. Set up Skyflow vault credentials.
- * 2. Configure the skyflow client.
- * 3. Configure the vault.
- * 4. Inserting records with custom tokens using BYOT functionality.
- * 5. Handle the response and errors.
- */
-
 func main() {
-	// Step 1: Set up Skyflow vault credentials
-	vaultConfig1 := common.VaultConfig{VaultId: "<VAULT_ID1>", ClusterId: "<CLUSTER_ID1>", Env: common.PROD, Credentials: common.Credentials{Token: "<BEARER_TOKEN1>"}}
-	vaultConfig2 := common.VaultConfig{VaultId: "<VAULT_ID2>", ClusterId: "<CLUSTER_ID2>", Env: common.SANDBOX, Credentials: common.Credentials{Token: "<BEARER_TOKEN2>"}}
+	vaultConfig1 := common.VaultConfig{VaultId: "<VAULT_ID1>", ClusterId: "<CLUSTER_ID1>", Env: common.DEV, Credentials: common.Credentials{CredentialsString: "<STRINGIFIED_JSON_VALUE>"}}
+	vaultConfig2 := common.VaultConfig{VaultId: "<VAULT_ID2>", ClusterId: "<CLUSTER_ID2>", Env: common.DEV, Credentials: common.Credentials{CredentialsString: "<STRINGIFIED_JSON_VALUE>"}}
 	var arr []common.VaultConfig
 	arr = append(arr, vaultConfig2, vaultConfig1)
-
-	// Step 2: Configure the skyflow client
 	skyflowInstance, err := client.NewSkyflow(
 		client.WithVaults(arr...),
-		client.WithCredentials(common.Credentials{}), // Pass credentials if not provided in vault config
-		client.WithLogLevel(logger.ERROR),            // Use LogLevel.ERROR in production
+		client.WithCredentials(common.Credentials{}), // pass credentials if not provided in vault config
+		client.WithLogLevel(logger.DEBUG),
 	)
 	if err != nil {
-		fmt.Println(*err)
+		fmt.Println(err)
 	} else {
-		// Step 3: Configure the vault
-		service, serviceError := skyflowInstance.Vault("<VAULT_ID>") // Replace with your vault ID from the vault config
+		service, serviceError := skyflowInstance.Vault("<VAULT_ID>")
 		if serviceError != nil {
 			fmt.Println(serviceError)
 		} else {
@@ -61,17 +45,15 @@ func main() {
 			tokens = append(tokens, map[string]interface{}{
 				"<FIELD_NAME_2>": "<TOKEN>",
 			})
-			// Step 4: Insert records with custom tokens using BYOT functionality
-			insert, insertErr := service.Insert(ctx, common.InsertRequest{
+
+			insert, err4 := service.Insert(ctx, common.InsertRequest{
 				Table:  "<TABLE_NAME>",
 				Values: values,
 			}, common.InsertOptions{ContinueOnError: false, ReturnTokens: true, TokenMode: common.ENABLE, Tokens: tokens})
-
-			// Step 5: Handle the response and errors
-			if insertErr != nil {
-				fmt.Println("ERROR: ", *insertErr)
+			if err4 != nil {
+				fmt.Println("ERROR: ", *err4)
 			} else {
-				fmt.Println("RESPONSE: ", insert)
+				fmt.Println("RESPONSE", insert)
 			}
 		}
 	}

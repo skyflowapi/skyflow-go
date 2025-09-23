@@ -82,6 +82,7 @@ var _ = Describe("ServiceAccount Test Suite", func() {
 			}
 			if os.Getenv("CRED_FILE_PATH") != "" {
 				var file = os.Getenv("CRED_FILE_PATH")
+				fmt.Println("file path is ", file)
 				// Call the function under test
 				tokenResp, err := serviceaccount.GenerateBearerToken(file, options)
 				// Assert the token response

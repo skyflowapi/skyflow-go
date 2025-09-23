@@ -66,18 +66,4 @@ const (
 	USING_API_KEY      = SDK_LOG_PREFIX + "Using api key from credentials"
 
 	VALIDATING_INVOKE_CONNECTION_REQUEST = SDK_LOG_PREFIX + "Validating invoke connection request."
-	DEIDENTIFY_TEXT_TRIGGERED = SDK_LOG_PREFIX + "Deidentify text triggered."
-    VALIDATE_DEIDENTIFY_TEXT_REQUEST = SDK_LOG_PREFIX + "Validating deidentify text request."
-    DEIDENTIFY_TEXT_SUCCESS = SDK_LOG_PREFIX + "Text data de-identified."
-    DEIDENTIFY_TEXT_REQUEST_RESOLVED = SDK_LOG_PREFIX + "Deidentify text request resolved."
-    VALIDATE_REIDENTIFY_TEXT_REQUEST = SDK_LOG_PREFIX + "Validating reidentify text request."
-    REIDENTIFY_TEXT_TRIGGERED = SDK_LOG_PREFIX + "Reidentify text method triggered."
-    REIDENTIFY_TEXT_REQUEST_RESOLVED = SDK_LOG_PREFIX + "Reidentify text request resolved."
-    DEIDENTIFY_FILE_TRIGGERED = SDK_LOG_PREFIX + "Deidentify file method triggered."
-    VALIDATE_DEIDENTIFY_FILE_REQUEST = SDK_LOG_PREFIX + "Validating deidentify file request."
-    DEIDENTIFY_FILE_REQUEST_RESOLVED = SDK_LOG_PREFIX + "Deidentify file request resolved."
-    DEIDENTIFY_FILE_SUCCESS = SDK_LOG_PREFIX + "File deidentified successfully."
-    GET_DETECT_RUN_TRIGGERED = SDK_LOG_PREFIX + "Get detect run method triggered."
-    VALIDATE_GET_DETECT_RUN_REQUEST = SDK_LOG_PREFIX + "Validating get detect run request."
-    REIDENTIFY_TEXT_SUCCESS = SDK_LOG_PREFIX + "Text data re-identified."
 )
