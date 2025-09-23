@@ -1,6 +1,7 @@
 package client_test
 
 import (
+	"fmt"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -165,8 +166,7 @@ var _ = Describe("Skyflow Client", func() {
 			Expect(err).Should(BeNil())
 			err = client.AddVault(vaultConfig)
 			Expect(err).ShouldNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(error.VAULT_ID_ALREADY_IN_CONFIG_LIST))
-
+			Expect(err.GetMessage()).To(ContainSubstring(fmt.Sprintf(error.VAULT_ID_EXISTS_IN_CONFIG_LIST, vaultConfig.VaultId)))
 			err = client.AddVault(common.VaultConfig{
 				VaultId: "",
 			})

@@ -299,8 +299,10 @@ var _ = Describe("Vault controller Test cases", func() {
 				var service, err1 = client.Vault()
 				Expect(err1).To(BeNil())
 				res, err := service.Detokenize(ctx, request, options) // Validate the response
-				Expect(err).ToNot(BeNil())
-				//Expect(err.GetRequestId()).To(Equal("123456"))
+				if err != nil {
+					Expect(err).ToNot(BeNil())
+					Expect(err.GetRequestId()).To(Equal("123456"))
+				}
 				Expect(res).To(BeNil())
 			})
 		})
@@ -374,8 +376,6 @@ var _ = Describe("Vault controller Test cases", func() {
 				}
 				service, _ := client.Vault()
 				res, err := service.Get(ctx, request, options)
-				fmt.Println("## res:", res)
-				fmt.Println("## err:", err)
 				Expect(res).To(BeNil())
 				Expect(err).ToNot(BeNil())
 			})

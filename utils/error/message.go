@@ -83,8 +83,8 @@ const (
 
 	EMPTY_ID_IN_UPDATE string = SDK_PREFIX + " Validation error. 'id' can't be empty. Specify an id."
 	// Error messages
-	VAULT_ID_EXITS_IN_CONFIG_LIST      string = SDK_PREFIX + " Validation error. %s1 already exists in the config list. Specify a new vaultId."
-	CONNECTION_ID_EXITS_IN_CONFIG_LIST string = SDK_PREFIX + " Validation error. %s1 already exists in the config list. Specify a new vaultId."
+	VAULT_ID_EXISTS_IN_CONFIG_LIST      string = SDK_PREFIX + " Validation error. %s already exists in the config list. Specify a new vaultId."
+	CONNECTION_ID_EXISTS_IN_CONFIG_LIST string = SDK_PREFIX + " Validation error. %s already exists in the config list. Specify a new connectionId."
 	INVALID_METHOD_NAME                string = SDK_PREFIX + " Validation error. Invalid method name. Specify a valid method name as a string."
 	ERROR_OCCURRED                     string = SDK_PREFIX + " API error. Error occurred."
 	UNKNOWN_ERROR                      string = SDK_PREFIX + " Error occurred. %s"

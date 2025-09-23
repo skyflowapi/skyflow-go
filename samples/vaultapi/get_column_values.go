@@ -36,7 +36,7 @@ func main() {
 		client.WithLogLevel(logger.ERROR),            // Use LogLevel.ERROR in production
 	)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println(*err)
 	} else {
 		// Step 3: Configure the vault
 		service, serviceError := skyflowInstance.Vault("<VAULT_ID>") // Replace with your vault ID from the vault config
