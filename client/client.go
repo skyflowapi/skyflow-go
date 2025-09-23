@@ -14,7 +14,6 @@ import (
 type Skyflow struct {
 	vaultServices      map[string]*vaultService
 	connectionServices map[string]*connectionService
-	detectServices     map[string]*detectService
 	credentials        *vaultutils.Credentials
 	logLevel           logger.LogLevel
 }
@@ -26,7 +25,6 @@ func NewSkyflow(opts ...Option) (*Skyflow, *error.SkyflowError) {
 	client := &Skyflow{
 		vaultServices:      make(map[string]*vaultService),
 		connectionServices: make(map[string]*connectionService),
-		detectServices:     make(map[string]*detectService),
 		credentials:        nil,
 	}
 
@@ -52,8 +50,9 @@ func WithVaults(config ...vaultutils.VaultConfig) Option {
 		}
 
 		for _, vaultConfig := range config {
-			if err := s.vaultIdExists(vaultConfig.VaultId); err != nil {
-				return err
+			if _, exists := s.vaultServices[vaultConfig.VaultId]; exists {
+				logger.Error(fmt.Sprintf(logs.VAULT_CONFIG_EXISTS, vaultConfig.VaultId))
+				return error.NewSkyflowError(error.INVALID_INPUT_CODE, fmt.Sprintf(error.VAULT_ID_EXITS_IN_CONFIG_LIST, vaultConfig.VaultId))
 			}
 			// validate the config
 			logger.Info(logs.VALIDATING_VAULT_CONFIG)
@@ -63,11 +62,6 @@ func WithVaults(config ...vaultutils.VaultConfig) Option {
 
 			// create vault service for config
 			s.vaultServices[vaultConfig.VaultId] = &vaultService{
-				config:   &vaultConfig,
-				logLevel: &s.logLevel,
-			}
-
-			s.detectServices[vaultConfig.VaultId] = &detectService{
 				config:   &vaultConfig,
 				logLevel: &s.logLevel,
 			}
@@ -91,7 +85,7 @@ func WithConnections(config ...vaultutils.ConnectionConfig) Option {
 		for _, connectionConfig := range config {
 			if _, exists := s.connectionServices[connectionConfig.ConnectionId]; exists {
 				logger.Error(fmt.Sprintf(logs.CONNECTION_CONFIG_EXISTS, connectionConfig.ConnectionId))
-				return error.NewSkyflowError(error.INVALID_INPUT_CODE, fmt.Sprintf(error.CONNECTION_ID_EXISTS_IN_CONFIG_LIST, connectionConfig.ConnectionId))
+				return error.NewSkyflowError(error.INVALID_INPUT_CODE, fmt.Sprintf(error.CONNECTION_ID_EXITS_IN_CONFIG_LIST, connectionConfig.ConnectionId))
 			}
 			// validate the config
 			logger.Info(logs.VALIDATING_CONNECTION_CONFIG)
@@ -190,37 +184,6 @@ func (s *Skyflow) Connection(connectionId ...string) (*connectionService, *error
 	return connectionService, nil
 }
 
-func (s *Skyflow) Detect(vaultID ...string) (*detectService, *error.SkyflowError) {
-	// get vaultapi config if available in vaultapi configs, skyflow or env
-	config, err := getDetectConfig(s.detectServices, vaultID...)
-	if err != nil {
-		return nil, err
-	}
-
-	err = setDetectCredentials(config, s.credentials)
-	if err != nil {
-		return nil, err
-	}
-	err1 := validation.ValidateVaultConfig(*config)
-	if err1 != nil {
-		return nil, err1
-	}
-	detectService := &detectService{}
-	// Get the VaultController from the builder's vaultServices map
-	detectService, exists := s.detectServices[config.VaultId]
-	if !exists {
-		detectService.config = config
-		detectService.logLevel = &s.logLevel
-	}
-	// Update the config in the vaultapi service
-	detectService.controller = &controller.DetectController{
-		Config:   *config,
-		Loglevel: &s.logLevel,
-	}
-	detectService.config = config
-	return detectService, nil
-}
-
 func (s *Skyflow) GetVault(vaultId string) (*vaultutils.VaultConfig, *error.SkyflowError) {
 	config, exist := s.vaultServices[vaultId]
 	if !exist {
@@ -228,7 +191,6 @@ func (s *Skyflow) GetVault(vaultId string) (*vaultutils.VaultConfig, *error.Skyf
 	}
 	return config.config, nil
 }
-
 func (s *Skyflow) GetConnection(connId string) (*vaultutils.ConnectionConfig, *error.SkyflowError) {
 	config, exist := s.connectionServices[connId]
 	if !exist {
@@ -242,9 +204,6 @@ func (s *Skyflow) UpdateLogLevel(logLevel logger.LogLevel) {
 	logger.Info(fmt.Sprintf(logs.CURRENT_LOG_LEVEL, s.logLevel))
 	s.logLevel = logLevel
 	for _, service := range s.vaultServices {
-		service.logLevel = &s.logLevel
-	}
-	for _, service := range s.detectServices {
 		service.logLevel = &s.logLevel
 	}
 	logger.SetLogLevel(logLevel)
@@ -271,13 +230,6 @@ func (s *Skyflow) UpdateVault(updatedConfig vaultutils.VaultConfig) *error.Skyfl
 	}
 
 	s.vaultServices[updatedConfig.VaultId].config = &updatedConfig
-
-	if _, exists := s.detectServices[updatedConfig.VaultId]; !exists {
-		logger.Error(fmt.Sprintf(logs.VAULT_CONFIG_DOES_NOT_EXIST, updatedConfig.VaultId))
-		return error.NewSkyflowError(error.ErrorCodesEnum(error.INVALID_INPUT_CODE), error.VAULT_ID_NOT_IN_CONFIG_LIST)
-	}
-
-	s.detectServices[updatedConfig.VaultId].config = &updatedConfig
 	return nil
 }
 
@@ -301,34 +253,23 @@ func (s *Skyflow) GetLoglevel() *logger.LogLevel {
 	return &loglevel
 }
 
-func (s *Skyflow) vaultIdExists(vaultId string) *error.SkyflowError {
-	if _, exists := s.vaultServices[vaultId]; exists {
-		logger.Error(fmt.Sprintf(logs.VAULT_CONFIG_EXISTS, vaultId))
-		return error.NewSkyflowError(error.INVALID_INPUT_CODE, fmt.Sprintf(error.VAULT_ID_EXISTS_IN_CONFIG_LIST, vaultId))
-	}
-	if _, exists := s.detectServices[vaultId]; exists {
-		logger.Error(fmt.Sprintf(logs.VAULT_CONFIG_EXISTS, vaultId))
-		return error.NewSkyflowError(error.INVALID_INPUT_CODE, fmt.Sprintf(error.VAULT_ID_EXISTS_IN_CONFIG_LIST, vaultId))
-	}
-	return nil
-}
-
 func (s *Skyflow) AddVault(config vaultutils.VaultConfig) *error.SkyflowError {
 	logger.Info(logs.VALIDATING_VAULT_CONFIG)
-	if err := validation.ValidateVaultConfig(config); err != nil {
-		return err
+	e := validation.ValidateVaultConfig(config)
+	if e != nil {
+		return e
 	}
-	if err := s.vaultIdExists(config.VaultId); err != nil {
-		return err
+	// add new config
+	if _, exists := s.vaultServices[config.VaultId]; exists {
+		logger.Error(fmt.Sprintf(logs.VAULT_CONFIG_DOES_NOT_EXIST, config.VaultId))
+		return error.NewSkyflowError(error.ErrorCodesEnum(error.INVALID_INPUT_CODE), error.VAULT_ID_ALREADY_IN_CONFIG_LIST)
 	}
-
-	s.vaultServices[config.VaultId] = &vaultService{
-		config:   &config,
-		logLevel: &s.logLevel,
-	}
-	s.detectServices[config.VaultId] = &detectService{
-		config:   &config,
-		logLevel: &s.logLevel,
+	// add service instance for new config
+	if _, exists := s.vaultServices[config.VaultId]; !exists {
+		s.vaultServices[config.VaultId] = &vaultService{
+			config:   &config,
+			logLevel: &s.logLevel,
+		}
 	}
 	logger.Info(fmt.Sprintf(logs.VAULT_CONTROLLER_INITIALIZED, config.VaultId))
 	return nil
@@ -345,16 +286,21 @@ func (s *Skyflow) AddSkyflowCredentials(config vaultutils.Credentials) *error.Sk
 
 func (s *Skyflow) AddConnection(config vaultutils.ConnectionConfig) *error.SkyflowError {
 	logger.Info(logs.VALIDATING_CONNECTION_CONFIG)
-	if err := validation.ValidateConnectionConfig(config); err != nil {
+	err := validation.ValidateConnectionConfig(config)
+	if err != nil {
 		return err
 	}
+	// add new config
 	if _, exists := s.connectionServices[config.ConnectionId]; exists {
 		logger.Error(fmt.Sprintf(logs.CONNECTION_CONFIG_EXISTS, config.ConnectionId))
-		return error.NewSkyflowError(error.ErrorCodesEnum(error.INVALID_INPUT_CODE), error.CONNECTION_ID_EXISTS_IN_CONFIG_LIST)
+		return error.NewSkyflowError(error.ErrorCodesEnum(error.INVALID_INPUT_CODE), error.CONNECTION_ID_EXITS_IN_CONFIG_LIST)
 	}
-	s.connectionServices[config.ConnectionId] = &connectionService{
-		config:   config,
-		logLevel: &s.logLevel,
+	// add service instance for new config
+	if _, exists := s.connectionServices[config.ConnectionId]; !exists {
+		s.connectionServices[config.ConnectionId] = &connectionService{
+			config:   config,
+			logLevel: &s.logLevel,
+		}
 	}
 	logger.Info(fmt.Sprintf(logs.CONNECTION_CONTROLLER_INITIALIZED, config.ConnectionId))
 	return nil
@@ -366,12 +312,6 @@ func (s *Skyflow) RemoveVault(vaultId string) *error.SkyflowError {
 		return error.NewSkyflowError(error.ErrorCodesEnum(error.INVALID_INPUT_CODE), error.VAULT_ID_NOT_IN_CONFIG_LIST)
 	}
 	delete(s.vaultServices, vaultId)
-
-	if _, exists := s.detectServices[vaultId]; !exists {
-		logger.Error(fmt.Sprintf(logs.VAULT_ID_CONFIG_DOES_NOT_EXIST, vaultId))
-		return error.NewSkyflowError(error.ErrorCodesEnum(error.INVALID_INPUT_CODE), error.VAULT_ID_NOT_IN_CONFIG_LIST)
-	}
-	delete(s.detectServices, vaultId)
 	return nil
 }
 
@@ -386,28 +326,6 @@ func (s *Skyflow) RemoveConnection(connectionId string) *error.SkyflowError {
 
 // vault utils or helper func
 func getVaultConfig(builder map[string]*vaultService, vaultID ...string) (*vaultutils.VaultConfig, *error.SkyflowError) {
-	// if vaultapi configs are empty
-	if len(builder) == 0 {
-		return nil, error.NewSkyflowError(error.ErrorCodesEnum(error.INVALID_INPUT_CODE), error.EMPTY_VAULT_CONFIG)
-	}
-
-	// if vaultapi is passed
-	if len(vaultID) > 0 && len(builder) > 0 {
-		config, exists := builder[vaultID[0]]
-		if !exists {
-			return nil, error.NewSkyflowError(error.ErrorCodesEnum(error.INVALID_INPUT_CODE), error.VAULT_ID_NOT_IN_CONFIG_LIST)
-		}
-		return config.config, nil
-	}
-
-	// No vaultapi ID passed, return the first vaultapi config available
-	for _, cfg := range builder {
-		return cfg.config, nil
-	}
-
-	return nil, error.NewSkyflowError(error.ErrorCodesEnum(error.INVALID_INPUT_CODE), error.VAULT_ID_NOT_IN_CONFIG_LIST)
-}
-func getDetectConfig(builder map[string]*detectService, vaultID ...string) (*vaultutils.VaultConfig, *error.SkyflowError) {
 	// if vaultapi configs are empty
 	if len(builder) == 0 {
 		return nil, error.NewSkyflowError(error.ErrorCodesEnum(error.INVALID_INPUT_CODE), error.EMPTY_VAULT_CONFIG)
@@ -451,20 +369,6 @@ func isCredentialsEmpty(creds vaultutils.Credentials) bool {
 		creds.Token == "" && creds.ApiKey == ""
 }
 func setConnectionCredentials(config *vaultutils.ConnectionConfig, builderCreds *vaultutils.Credentials) *error.SkyflowError {
-	// here if credentials are empty in the vaultapi config
-	if config == nil || isCredentialsEmpty(config.Credentials) {
-		// here if builder credentials are available
-		if !isCredentialsEmpty(*builderCreds) {
-			config.Credentials = *builderCreds
-		} else if envCreds := os.Getenv("SKYFLOW_CREDENTIALS"); envCreds != "" {
-			config.Credentials.CredentialsString = envCreds
-		} else {
-			return error.NewSkyflowError(error.ErrorCodesEnum(error.INVALID_INPUT_CODE), error.EMPTY_CREDENTIALS)
-		}
-	}
-	return nil
-}
-func setDetectCredentials(config *vaultutils.VaultConfig, builderCreds *vaultutils.Credentials) *error.SkyflowError {
 	// here if credentials are empty in the vaultapi config
 	if config == nil || isCredentialsEmpty(config.Credentials) {
 		// here if builder credentials are available

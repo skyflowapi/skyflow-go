@@ -2,8 +2,6 @@ package validation_test
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"testing"
 
 	. "github.com/skyflowapi/skyflow-go/v2/internal/validation"
@@ -214,7 +212,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			Expect(err).ToNot(BeNil())
 			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_TOKENS))
 		})
-		It("should not return error when tokens are not passed for all values object in BYOT ENABLE mode", func() {
+		It("should return error when tokens are not passed for all values objectin BYOT ENABLE mode", func() {
 			request := common.InsertRequest{
 				Table: "testTable",
 				Values: []map[string]interface{}{
@@ -228,9 +226,10 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			}
 
 			err := ValidateInsertRequest(request, options)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(errors.TOKENS_NOT_PASSED))
 		})
-		It("should return error when tokens are not passed for all values object in BYOT ENABLE mode", func() {
+		It("should return error when tokens are not passed for all values objectin BYOT ENABLE mode", func() {
 			request := common.InsertRequest{
 				Table: "testTable",
 				Values: []map[string]interface{}{
@@ -280,7 +279,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			Expect(err).ToNot(BeNil())
 			Expect(err.GetMessage()).To(ContainSubstring(errors.INSUFFICIENT_TOKENS_PASSED_FOR_BYOT_ENABLE_STRICT))
 		})
-		It("should return error when tokens are invalid in BYOT ENABLE STRICT mode", func() {
+		It("should return error when tokens are passed in BYOT ENABLE_STRICT mode", func() {
 			request := common.InsertRequest{
 				Table: "testTable",
 				Values: []map[string]interface{}{
@@ -646,11 +645,11 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 		})
 	})
 	Context("when validating update requests", func() {
-		var validData = map[string]interface{}{"skyflow_id": "123", "key": "value", "key2": "value2"}
 		It("should return an error if the table is empty", func() {
 			request := common.UpdateRequest{
 				Table:  "",
-				Data:   validData,
+				Id:     "123",
+				Values: map[string]interface{}{"key": "value"},
 				Tokens: map[string]interface{}{"key": "token"},
 			}
 			options := common.UpdateOptions{}
@@ -659,10 +658,11 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_TABLE))
 		})
 
-		It("should return an error if the id is empty", func() {
+		It("should return an error if the ID is empty", func() {
 			request := common.UpdateRequest{
 				Table:  "test_table",
-				Data:   map[string]interface{}{"skyflow_id": "", "key": "value"},
+				Id:     "",
+				Values: map[string]interface{}{"key": "value"},
 				Tokens: map[string]interface{}{"key": "token"},
 			}
 			options := common.UpdateOptions{}
@@ -671,22 +671,24 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_ID_IN_UPDATE))
 		})
 
-		It("should return an error if the data are nil or empty", func() {
+		It("should return an error if the values are nil or empty", func() {
 			request := common.UpdateRequest{
 				Table:  "test_table",
-				Data:   nil,
+				Id:     "123",
+				Values: nil,
 				Tokens: map[string]interface{}{"key": "token"},
 			}
 			options := common.UpdateOptions{}
 			err := ValidateUpdateRequest(request, options)
 			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_ID_IN_UPDATE))
+			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_VALUES))
 		})
 
 		It("should return an error if tokens are nil or empty", func() {
 			request := common.UpdateRequest{
 				Table:  "test_table",
-				Data:   validData,
+				Id:     "123",
+				Values: map[string]interface{}{"key": "value"},
 				Tokens: nil,
 			}
 			options := common.UpdateOptions{}
@@ -694,34 +696,37 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			Expect(err).To(BeNil())
 		})
 
-		It("should return an error if a data is empty", func() {
+		It("should return an error if a value is empty", func() {
 			request := common.UpdateRequest{
 				Table:  "test_table",
-				Data:   map[string]interface{}{"skyflow_id": "123", "key": ""},
+				Id:     "123",
+				Values: map[string]interface{}{"key": ""},
 				Tokens: map[string]interface{}{"key": "token"},
 			}
 			options := common.UpdateOptions{}
 			err := ValidateUpdateRequest(request, options)
 			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_DATA_IN_DATA_KEY))
+			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_VALUE_IN_VALUES))
 		})
 
-		It("should return an error if a key is empty in data", func() {
+		It("should return an error if a key is empty in values", func() {
 			request := common.UpdateRequest{
 				Table:  "test_table",
-				Data:   map[string]interface{}{"skyflow_id": "123", "": "value"},
+				Id:     "123",
+				Values: map[string]interface{}{"": "value"},
 				Tokens: map[string]interface{}{"key": "token"},
 			}
 			options := common.UpdateOptions{}
 			err := ValidateUpdateRequest(request, options)
 			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_KEY_IN_DATA))
+			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_KEY_IN_VALUES))
 		})
 
 		It("should return an error if tokens are passed with TokenMode DISABLE", func() {
 			request := common.UpdateRequest{
 				Table:  "test_table",
-				Data:   validData,
+				Id:     "123",
+				Values: map[string]interface{}{"key": "value"},
 				Tokens: map[string]interface{}{"key": "token"},
 			}
 			options := common.UpdateOptions{TokenMode: common.DISABLE}
@@ -733,7 +738,8 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 		It("should return an error if no tokens are passed with TokenMode ENABLE_STRICT", func() {
 			request := common.UpdateRequest{
 				Table:  "test_table",
-				Data:   validData,
+				Id:     "123",
+				Values: map[string]interface{}{"key": "value"},
 				Tokens: nil,
 			}
 			options := common.UpdateOptions{TokenMode: common.ENABLE_STRICT}
@@ -745,7 +751,8 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 		It("should not return an error for valid input with TokenMode ENABLE", func() {
 			request := common.UpdateRequest{
 				Table:  "test_table",
-				Data:   validData,
+				Id:     "123",
+				Values: map[string]interface{}{"key": "value"},
 				Tokens: map[string]interface{}{"key": "token"},
 			}
 			options := common.UpdateOptions{TokenMode: common.ENABLE}
@@ -756,7 +763,8 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 		It("should return an error for invalid input with TokenMode ENABLE", func() {
 			request := common.UpdateRequest{
 				Table:  "test_table",
-				Data:   validData,
+				Id:     "123",
+				Values: map[string]interface{}{"key": "value", "key2": "value2"},
 				Tokens: make(map[string]interface{}),
 			}
 			options := common.UpdateOptions{TokenMode: common.ENABLE}
@@ -768,7 +776,8 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 		It("should return an error for tokens empty with TokenMode ENABLE_STRICT", func() {
 			request := common.UpdateRequest{
 				Table:  "test_table",
-				Data:   validData,
+				Id:     "123",
+				Values: map[string]interface{}{"key": "value", "key2": "value2"},
 				Tokens: nil,
 			}
 			options := common.UpdateOptions{TokenMode: common.ENABLE_STRICT}
@@ -779,7 +788,8 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 		It("should return an error for tokens empty with TokenMode ENABLE_STRICT", func() {
 			request := common.UpdateRequest{
 				Table:  "test_table",
-				Data:   validData,
+				Id:     "123",
+				Values: map[string]interface{}{"key": "value", "key2": "value2"},
 				Tokens: map[string]interface{}{"key": "token"},
 			}
 			options := common.UpdateOptions{TokenMode: common.ENABLE_STRICT}
@@ -791,7 +801,8 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 		It("should return an error for tokens empty with TokenMode ENABLE", func() {
 			request := common.UpdateRequest{
 				Table:  "test_table",
-				Data:   validData,
+				Id:     "123",
+				Values: map[string]interface{}{"key": "value", "key2": "value2"},
 				Tokens: nil,
 			}
 			options := common.UpdateOptions{TokenMode: common.ENABLE}
@@ -802,7 +813,8 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 		It("should return an error for tokens key value is empty with TokenMode ENABLE", func() {
 			request := common.UpdateRequest{
 				Table:  "test_table",
-				Data:   validData,
+				Id:     "123",
+				Values: map[string]interface{}{"key": "value", "key2": "value2"},
 				Tokens: map[string]interface{}{"key": nil},
 			}
 			options := common.UpdateOptions{TokenMode: common.ENABLE}
@@ -813,7 +825,8 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 		It("should return an error for tokens key is empty with TokenMode ENABLE", func() {
 			request := common.UpdateRequest{
 				Table:  "test_table",
-				Data:   validData,
+				Id:     "123",
+				Values: map[string]interface{}{"key": "value", "key2": "value2"},
 				Tokens: map[string]interface{}{"": "token"},
 			}
 			options := common.UpdateOptions{TokenMode: common.ENABLE}
@@ -824,7 +837,8 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 		It("should return an error for tokens key not exist in values with TokenMode ENABLE", func() {
 			request := common.UpdateRequest{
 				Table:  "test_table",
-				Data:   validData,
+				Id:     "123",
+				Values: map[string]interface{}{"key": "value", "key2": "value2"},
 				Tokens: map[string]interface{}{"demo": "token"},
 			}
 			options := common.UpdateOptions{TokenMode: common.ENABLE}
@@ -835,7 +849,8 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 		It("should return an error for tokens key not exist in values with TokenMode ENABLE", func() {
 			request := common.UpdateRequest{
 				Table:  "test_table",
-				Data:   map[string]interface{}{"skyflow_id": "123", "key": "value", "key2": nil},
+				Id:     "123",
+				Values: map[string]interface{}{"key": "value", "key2": nil},
 				Tokens: map[string]interface{}{"key": "value", "key2": "token"},
 			}
 			options := common.UpdateOptions{TokenMode: common.ENABLE}
@@ -844,40 +859,6 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			Expect(err.GetMessage()).To(ContainSubstring(errors.MISMATCH_OF_FIELDS_AND_TOKENS))
 		})
 
-		It("should return error if sufficient tokens is not passed for all values object in BYOT ENABLE STRICT mode", func() {
-			request := common.UpdateRequest{
-				Table:  "test_table",
-				Data:   map[string]interface{}{"skyflow_id": "123", "key": "value", "key2": "value2"},
-				Tokens: map[string]interface{}{"key2": "token"},
-			}
-			options := common.UpdateOptions{TokenMode: common.ENABLE_STRICT}
-			err := ValidateUpdateRequest(request, options)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.INSUFFICIENT_TOKENS_PASSED_FOR_BYOT_ENABLE_STRICT))
-		})
-
-		It("should not return error if tokens and values count is not equal in BYOT ENABLE mode", func() {
-			request := common.UpdateRequest{
-				Table:  "test_table",
-				Data:   map[string]interface{}{"skyflow_id": "123", "key": "value", "key2": "value2"},
-				Tokens: map[string]interface{}{"key2": "token"},
-			}
-			options := common.UpdateOptions{TokenMode: common.ENABLE}
-			err := ValidateUpdateRequest(request, options)
-			Expect(err).To(BeNil())
-		})
-
-		It("should return error if tokens and values count is not equal in BYOT ENABLE STRICT mode", func() {
-			request := common.UpdateRequest{
-				Table:  "test_table",
-				Data:   map[string]interface{}{"skyflow_id": "123", "key": "value", "key2": "value2"},
-				Tokens: map[string]interface{}{"key2": "token"},
-			}
-			options := common.UpdateOptions{TokenMode: common.ENABLE_STRICT}
-			err := ValidateUpdateRequest(request, options)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.INSUFFICIENT_TOKENS_PASSED_FOR_BYOT_ENABLE_STRICT))
-		})
 	})
 	Context("ValidateTokenizeRequest", func() {
 		var (
@@ -1001,656 +982,5 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			Expect(err).To(BeNil())
 		})
 	})
-	Context("Validate the deidentify text request", func() {
-		It("should return error when Text is empty", func() {
-			req := common.DeidentifyTextRequest{
-				Text: "",
-			}
-			err := ValidateDeidentifyTextRequest(req)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
-			Expect(err.GetMessage()).To(ContainSubstring(fmt.Sprintf(errors.INVALID_TEXT_IN_DEIDENTIFY)))
-		})
 
-		It("should return error when Text is only whitespace", func() {
-			req := common.DeidentifyTextRequest{
-				Text: "   ",
-			}
-			err := ValidateDeidentifyTextRequest(req)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
-			Expect(err.GetMessage()).To(ContainSubstring(fmt.Sprintf(errors.INVALID_TEXT_IN_DEIDENTIFY)))
-		})
-
-		It("should return nil when Text is non-empty", func() {
-			req := common.DeidentifyTextRequest{
-				Text: "valid text",
-			}
-			err := ValidateDeidentifyTextRequest(req)
-			Expect(err).To(BeNil())
-		})
-
-		Context("when given an invalid entity", func() {
-			It("should return an error", func() {
-				req := common.DeidentifyTextRequest{
-					Text:     "Sensitive text",
-					Entities: []common.DetectEntities{"invalid_entity"},
-				}
-				err := ValidateDeidentifyTextRequest(req)
-				Expect(err).ToNot(BeNil())
-				Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
-			})
-		})
-
-		Context("when given an invalid token format", func() {
-			It("should return an error", func() {
-				req := common.DeidentifyTextRequest{
-					Text: "Sensitive text",
-					TokenFormat: common.TokenFormat{
-						DefaultType: "invalid_token_type",
-					},
-				}
-				err := ValidateDeidentifyTextRequest(req)
-				Expect(err).ToNot(BeNil())
-				Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
-			})
-		})
-
-		Context("when TokenFormat.EntityOnly contains invalid entity", func() {
-			It("should return an error", func() {
-				req := common.DeidentifyTextRequest{
-					Text: "Sensitive text",
-					TokenFormat: common.TokenFormat{
-						EntityOnly: []common.DetectEntities{"invalid_entity"},
-					},
-				}
-				err := ValidateDeidentifyTextRequest(req)
-				Expect(err).ToNot(BeNil())
-				Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
-			})
-		})
-
-		Context("when TokenFormat.VaultToken contains invalid entity", func() {
-			It("should return an error", func() {
-				req := common.DeidentifyTextRequest{
-					Text: "Sensitive text",
-					TokenFormat: common.TokenFormat{
-						VaultToken: []common.DetectEntities{"invalid_entity"},
-					},
-				}
-				err := ValidateDeidentifyTextRequest(req)
-				Expect(err).ToNot(BeNil())
-				Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
-			})
-		})
-
-		Context("when ShiftDates.Entities is empty", func() {
-			It("should return an error", func() {
-				req := common.DeidentifyTextRequest{
-					Text: "Sensitive text",
-					Transformations: common.Transformations{
-						ShiftDates: common.DateTransformation{
-							MaxDays:  5,
-							MinDays:  2,
-							Entities: []common.TransformationsShiftDatesEntityTypesItem{},
-						},
-					},
-				}
-				err := ValidateDeidentifyTextRequest(req)
-				Expect(err).ToNot(BeNil())
-				Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
-				Expect(err.GetMessage()).To(ContainSubstring(errors.DETECT_ENTITIES_REQUIRED_ON_SHIFT_DATES))
-			})
-		})
-
-		Context("when ShiftDates.MaxDays and MinDays are zero", func() {
-			It("should throw an error", func() {
-				req := common.DeidentifyTextRequest{
-					Text: "Sensitive text",
-					Transformations: common.Transformations{
-						ShiftDates: common.DateTransformation{
-							MaxDays: 0,
-							MinDays: 0,
-							Entities: []common.TransformationsShiftDatesEntityTypesItem{
-								common.TransformationsShiftDatesEntityTypesItemDate,
-							},
-						},
-					},
-				}
-				err := ValidateDeidentifyTextRequest(req)
-				Expect(err).ToNot(BeNil())
-				Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
-				Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_SHIFT_DATES))
-			})
-		})
-
-		Context("when ShiftDates.MinDays is greater than MaxDays", func() {
-			It("should throw an error", func() {
-				req := common.DeidentifyTextRequest{
-					Text: "Sensitive text",
-					Transformations: common.Transformations{
-						ShiftDates: common.DateTransformation{
-							MaxDays: 5,
-							MinDays: 7,
-							Entities: []common.TransformationsShiftDatesEntityTypesItem{
-								common.TransformationsShiftDatesEntityTypesItemDate,
-							},
-						},
-					},
-				}
-				err := ValidateDeidentifyTextRequest(req)
-				Expect(err).ToNot(BeNil())
-				Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
-				Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_DATE_TRANSFORMATION_RANGE))
-			})
-		})
-
-	})
-
-	Context("Validate the reidentify text request", func() {
-		It("should return error when Text is empty", func() {
-			req := common.ReidentifyTextRequest{
-				Text: "",
-			}
-			err := ValidateReidentifyTextRequest(req)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
-			Expect(err.GetMessage()).To(ContainSubstring(fmt.Sprintf(errors.INVALID_TEXT_IN_REIDENTIFY)))
-		})
-
-		It("should return error when Text is only whitespace", func() {
-			req := common.ReidentifyTextRequest{
-				Text: "   ",
-			}
-			err := ValidateReidentifyTextRequest(req)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
-			Expect(err.GetMessage()).To(ContainSubstring(fmt.Sprintf(errors.INVALID_TEXT_IN_REIDENTIFY)))
-		})
-
-		It("should return nil when Text is non-empty", func() {
-			req := common.ReidentifyTextRequest{
-				Text: "valid text",
-			}
-			err := ValidateReidentifyTextRequest(req)
-			Expect(err).To(BeNil())
-		})
-	})
-
-	Context("ValidateGetDetectRunRequest", func() {
-		It("should return error when RunId is empty", func() {
-			req := common.GetDetectRunRequest{
-				RunId: "",
-			}
-			err := ValidateGetDetectRunRequest(req)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
-			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_RUN_ID))
-		})
-
-		It("should return nil when RunId is valid", func() {
-			req := common.GetDetectRunRequest{
-				RunId: "valid-run-id",
-			}
-			err := ValidateGetDetectRunRequest(req)
-			Expect(err).To(BeNil())
-		})
-	})
-
-	Context("ValidateDeidentifyFileRequest", Ordered, func() {
-
-		var (
-			tempDir   string
-			testFiles map[string]*os.File
-		)
-
-		BeforeAll(func() {
-			var err error
-			// Create temporary directory
-			tempDir, err = os.MkdirTemp("", "skyflow_test_*")
-			Expect(err).To(BeNil(), "Failed to create temp directory for tests")
-
-			// Create temporary test files for each type
-			testFiles = make(map[string]*os.File)
-			testContent := []byte("Test content for file processing")
-
-			fileTypes := []string{"txt"}
-			for _, fileType := range fileTypes {
-				tmpFile, err := os.CreateTemp(tempDir, fmt.Sprintf("detect.*.%s", fileType))
-				Expect(err).To(BeNil(), fmt.Sprintf("Failed to create temp %s file", fileType))
-				_, err = tmpFile.Write(testContent)
-				Expect(err).To(BeNil(), fmt.Sprintf("Failed to write to temp %s file", fileType))
-				testFiles[fileType] = tmpFile
-			}
-		})
-
-		AfterAll(func() {
-			// Close and remove all temporary files
-			for _, file := range testFiles {
-				if file != nil {
-					file.Close()
-				}
-			}
-
-			// Clean up temporary directory and its contents
-			if tempDir != "" {
-				err := os.RemoveAll(tempDir)
-				Expect(err).To(BeNil(), "Failed to clean up temp directory after tests")
-			}
-		})
-
-		It("should return error when FileInput is empty", func() {
-			req := common.DeidentifyFileRequest{}
-			err := ValidateDeidentifyFileRequest(req)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
-		})
-
-		It("should return error when both FilePath and File are empty", func() {
-			req := common.DeidentifyFileRequest{
-				File: common.FileInput{},
-			}
-			err := ValidateDeidentifyFileRequest(req)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
-			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_FILE_AND_FILE_PATH_IN_DEIDENTIFY_FILE))
-		})
-
-		It("should return nil when FilePath is valid", func() {
-			testFilePath := filepath.Join(tempDir, "detect.txt")
-			err := os.WriteFile(testFilePath, []byte("test content"), 0644)
-			Expect(err).To(BeNil(), "Failed to create test file")
-
-			req := common.DeidentifyFileRequest{
-				File: common.FileInput{
-					FilePath: testFilePath,
-				},
-			}
-			validationErr := ValidateDeidentifyFileRequest(req)
-			Expect(validationErr).To(BeNil())
-		})
-
-		It("should return nil when File is valid", func() {
-			// First create and write to the test file
-			testFilePath := filepath.Join(tempDir, "detect.txt")
-			err := os.WriteFile(testFilePath, []byte("test content"), 0644)
-			Expect(err).To(BeNil(), "Failed to create test file")
-
-			// Now open the file
-			file, err := os.Open(testFilePath)
-			Expect(err).To(BeNil(), "Failed to open test file")
-			defer file.Close()
-
-			req := common.DeidentifyFileRequest{
-				File: common.FileInput{
-					File: file,
-				},
-			}
-			validationErr := ValidateDeidentifyFileRequest(req)
-			Expect(validationErr).To(BeNil())
-		})
-
-		It("should return error when both FilePath and File are provided", func() {
-			file, err := os.Open(filepath.Join(tempDir, "detect.txt"))
-			Expect(err).To(BeNil())
-			defer file.Close()
-
-			req := common.DeidentifyFileRequest{
-				File: common.FileInput{
-					FilePath: filepath.Join(tempDir, "detect.txt"),
-					File:     file,
-				},
-			}
-			validationErr := ValidateDeidentifyFileRequest(req)
-			Expect(validationErr).ToNot(BeNil())
-			Expect(validationErr.GetMessage()).To(ContainSubstring(errors.BOTH_FILE_AND_FILE_PATH_PROVIDED))
-		})
-
-		It("should return error when FilePath is whitespace", func() {
-			req := common.DeidentifyFileRequest{
-				File: common.FileInput{
-					FilePath: "   ",
-				},
-			}
-			err := ValidateDeidentifyFileRequest(req)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_FILE_PATH))
-		})
-
-		It("should return error when pixel density is negative", func() {
-			req := common.DeidentifyFileRequest{
-				File: common.FileInput{
-					FilePath: filepath.Join(tempDir, "detect.txt"),
-				},
-				PixelDensity: -1,
-			}
-			validationErr := ValidateDeidentifyFileRequest(req)
-			Expect(validationErr).ToNot(BeNil())
-			Expect(validationErr.GetMessage()).To(ContainSubstring(errors.INVALID_PIXEL_DENSITY))
-		})
-
-		It("should return error for invalid masking method", func() {
-			req := common.DeidentifyFileRequest{
-				File: common.FileInput{
-					FilePath: filepath.Join(tempDir, "detect.txt"),
-				},
-				MaskingMethod: "INVALID_METHOD",
-			}
-			validationErr := ValidateDeidentifyFileRequest(req)
-			Expect(validationErr).ToNot(BeNil())
-			Expect(validationErr.GetMessage()).To(ContainSubstring(errors.INVALID_MASKING_METHOD))
-		})
-
-		It("should accept valid masking methods", func() {
-			validMethods := []common.MaskingMethod{common.BLACKBOX, common.BLUR}
-			for _, method := range validMethods {
-				req := common.DeidentifyFileRequest{
-					File: common.FileInput{
-						FilePath: filepath.Join(tempDir, "detect.txt"),
-					},
-					MaskingMethod: method,
-				}
-				err := ValidateDeidentifyFileRequest(req)
-				Expect(err).To(BeNil())
-			}
-		})
-
-		It("should return error when max resolution is negative", func() {
-			req := common.DeidentifyFileRequest{
-				File: common.FileInput{
-					FilePath: filepath.Join(tempDir, "detect.txt"),
-				},
-				MaxResolution: -1,
-			}
-			validationErr := ValidateDeidentifyFileRequest(req)
-			Expect(validationErr).ToNot(BeNil())
-			Expect(validationErr.GetMessage()).To(ContainSubstring(errors.INVALID_MAX_RESOLUTION))
-		})
-
-		Context("Output Directory Validation", func() {
-			It("should return error for non-existent directory", func() {
-				req := common.DeidentifyFileRequest{
-					File: common.FileInput{
-						FilePath: filepath.Join(tempDir, "detect.txt"),
-					},
-					OutputDirectory: "/non/existent/directory",
-				}
-				validationErr := ValidateDeidentifyFileRequest(req)
-				Expect(validationErr).ToNot(BeNil())
-				Expect(validationErr.GetMessage()).To(ContainSubstring(errors.OUTPUT_DIRECTORY_NOT_FOUND))
-			})
-
-			It("should return nil for valid directory", func() {
-				req := common.DeidentifyFileRequest{
-					File: common.FileInput{
-						FilePath: filepath.Join(tempDir, "detect.txt"),
-					},
-					OutputDirectory: tempDir,
-				}
-				validationErr := ValidateDeidentifyFileRequest(req)
-				Expect(validationErr).To(BeNil())
-			})
-
-			It("should return error for invalid directory permissions", func() {
-				tempDir, err := os.MkdirTemp("", "testdir")
-				Expect(err).To(BeNil())
-				defer os.RemoveAll(tempDir)
-
-				testFile := filepath.Join(tempDir, "detect.txt")
-				err = os.WriteFile(testFile, []byte("dummy content"), 0644)
-				Expect(err).To(BeNil())
-
-				restrictedDir := filepath.Join(tempDir, "restricted")
-				err = os.Mkdir(restrictedDir, 0700)
-				Expect(err).To(BeNil())
-
-				err = os.Chmod(restrictedDir, 0000)
-				Expect(err).To(BeNil())
-
-				defer os.Chmod(restrictedDir, 0755)
-
-				// Build request with restricted output directory
-				req := common.DeidentifyFileRequest{
-					File: common.FileInput{
-						FilePath: testFile,
-					},
-					OutputDirectory: restrictedDir,
-				}
-				validationErr := ValidateDeidentifyFileRequest(req)
-				Expect(validationErr).ToNot(BeNil())
-				Expect(validationErr.GetMessage()).To(ContainSubstring(errors.INVALID_PERMISSION))
-			})
-		})
-
-		Context("Wait Time Validation", func() {
-			It("should return error for negative wait time", func() {
-				req := common.DeidentifyFileRequest{
-					File: common.FileInput{
-						FilePath: filepath.Join(tempDir, "detect.txt"),
-					},
-					WaitTime: -1,
-				}
-				validationErr := ValidateDeidentifyFileRequest(req)
-				Expect(validationErr).ToNot(BeNil())
-				Expect(validationErr.GetMessage()).To(ContainSubstring(errors.INVALID_WAIT_TIME))
-			})
-
-			It("should return error for wait time exceeding limit", func() {
-				req := common.DeidentifyFileRequest{
-					File: common.FileInput{
-						FilePath: filepath.Join(tempDir, "detect.txt"),
-					},
-					WaitTime: 65,
-				}
-				validationErr := ValidateDeidentifyFileRequest(req)
-				Expect(validationErr).ToNot(BeNil())
-				Expect(validationErr.GetMessage()).To(ContainSubstring(errors.WAIT_TIME_EXCEEDS_LIMIT))
-			})
-
-			It("should accept valid wait time", func() {
-				req := common.DeidentifyFileRequest{
-					File: common.FileInput{
-						FilePath: filepath.Join(tempDir, "detect.txt"),
-					},
-					WaitTime: 30,
-				}
-				err := ValidateDeidentifyFileRequest(req)
-				Expect(err).To(BeNil())
-			})
-		})
-
-		Context("ValidateFilePermissions", func() {
-			var resourcePath string
-
-			BeforeEach(func() {
-				resourcePath = filepath.Join(tempDir, "detect.txt")
-			})
-
-			It("should return error when file does not exist", func() {
-				err := ValidateFilePermissions("/non/existent/file.txt", nil)
-				Expect(err).ToNot(BeNil())
-				Expect(err.GetMessage()).To(ContainSubstring(fmt.Sprintf(errors.FILE_NOT_FOUND_TO_DEIDENTIFY, "/non/existent/file.txt")))
-			})
-
-			It("should return error when file is not regular", func() {
-				dirPath := tempDir
-				validationErr := ValidateFilePermissions(dirPath, nil)
-				Expect(validationErr).ToNot(BeNil())
-				Expect(validationErr.GetMessage()).To(ContainSubstring(fmt.Sprintf(errors.NOT_REGULAR_FILE_TO_DEIDENTIFY, dirPath)))
-			})
-
-			Context("File based validation", func() {
-				It("should return error when file stat fails for file pointer", func() {
-					file, err := os.Open(resourcePath)
-					Expect(err).To(BeNil())
-
-					// Close file to cause stat to fail
-					file.Close()
-
-					validationErr := ValidateFilePermissions("", file)
-					Expect(validationErr).ToNot(BeNil())
-					Expect(validationErr.GetMessage()).To(ContainSubstring(fmt.Sprintf(errors.UNABLE_TO_STAT_FILE_TO_DEIDENTIFY, file.Name())))
-				})
-
-				It("should return error when file pointer is not a regular file", func() {
-					// Use directory instead of file
-					testFilePath := tempDir
-
-					// Now open the file
-					dirFile, err := os.Open(testFilePath)
-					Expect(err).To(BeNil(), "Failed to open test file")
-					defer dirFile.Close()
-
-					validationErr := ValidateFilePermissions("", dirFile)
-					Expect(validationErr).ToNot(BeNil())
-					Expect(validationErr.GetMessage()).To(ContainSubstring(fmt.Sprintf(errors.NOT_REGULAR_FILE_TO_DEIDENTIFY, dirFile.Name())))
-				})
-
-				It("should return nil for valid file", func() {
-					file, err := os.Open(resourcePath)
-					Expect(err).To(BeNil())
-					defer file.Close()
-
-					err = ValidateFilePermissions("", file)
-					Expect(err).To(BeNil())
-				})
-			})
-		})
-	})
-	Context("ValidateGetRequest", func() {
-
-		It("should not return error for valid Fields", func() {
-			getRequest := common.GetRequest{Table: "table", Ids: []string{"id1", "id2"}}
-			options := common.GetOptions{Fields: []string{"field1", "field2"}}
-			err := ValidateGetRequest(getRequest, options)
-			Expect(err).To(BeNil())
-		})
-
-		It("should return error when table is empty", func() {
-			getRequest := common.GetRequest{Table: ""}
-			options := common.GetOptions{}
-			err := ValidateGetRequest(getRequest, options)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_TABLE))
-		})
-
-		It("should return error when Ids is empty slice", func() {
-			getRequest := common.GetRequest{Table: "table", Ids: []string{}}
-			options := common.GetOptions{}
-			err := ValidateGetRequest(getRequest, options)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_IDS))
-		})
-
-		It("should return error when Ids contains empty string", func() {
-			getRequest := common.GetRequest{Table: "table", Ids: []string{"", "id2"}}
-			options := common.GetOptions{}
-			err := ValidateGetRequest(getRequest, options)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_ID_IN_IDS))
-		})
-
-		It("should return error when Fields is empty slice", func() {
-			getRequest := common.GetRequest{Table: "table"}
-			options := common.GetOptions{Fields: []string{}}
-			err := ValidateGetRequest(getRequest, options)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_FIELDS))
-		})
-
-		It("should return error when Fields contains empty string", func() {
-			getRequest := common.GetRequest{Table: "table"}
-			options := common.GetOptions{Fields: []string{"field1", ""}}
-			err := ValidateGetRequest(getRequest, options)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_FIELD_IN_FIELDS))
-		})
-
-		It("should return error when ReturnTokens is true and ColumnName is set", func() {
-			getRequest := common.GetRequest{Table: "table"}
-			options := common.GetOptions{ReturnTokens: true, ColumnName: "col"}
-			err := ValidateGetRequest(getRequest, options)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.TOKENS_GET_COLUMN_NOT_SUPPORTED))
-		})
-
-		It("should return error when ReturnTokens is true and ColumnValues is set", func() {
-			getRequest := common.GetRequest{Table: "table"}
-			options := common.GetOptions{ReturnTokens: true, ColumnValues: []string{"val"}}
-			err := ValidateGetRequest(getRequest, options)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.TOKENS_GET_COLUMN_NOT_SUPPORTED))
-		})
-
-		It("should return error when ReturnTokens is true and RedactionType is set", func() {
-			getRequest := common.GetRequest{Table: "table"}
-			options := common.GetOptions{ReturnTokens: true, RedactionType: "PLAIN_TEXT"}
-			err := ValidateGetRequest(getRequest, options)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.REDACTION_WITH_TOKENS_NOT_SUPPORTED))
-		})
-
-		It("should return error when neither Ids nor ColumnName/ColumnValues are set", func() {
-			getRequest := common.GetRequest{Table: "table"}
-			options := common.GetOptions{}
-			err := ValidateGetRequest(getRequest, options)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.UNIQUE_COLUMN_OR_IDS_KEY_ERROR))
-		})
-
-		It("should return error when both Ids and ColumnName/ColumnValues are set", func() {
-			getRequest := common.GetRequest{Table: "table", Ids: []string{"id1"}}
-			options := common.GetOptions{ColumnName: "col", ColumnValues: []string{"val"}}
-			err := ValidateGetRequest(getRequest, options)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.BOTH_IDS_AND_COLUMN_DETAILS_SPECIFIED))
-		})
-
-		It("should return error when ColumnValues is set but ColumnName is empty", func() {
-			getRequest := common.GetRequest{Table: "table"}
-			options := common.GetOptions{ColumnValues: []string{"val"}}
-			err := ValidateGetRequest(getRequest, options)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.COLUMN_NAME_KEY_ERROR))
-		})
-
-		It("should return error when ColumnName is set but ColumnValues is nil", func() {
-			getRequest := common.GetRequest{Table: "table"}
-			options := common.GetOptions{ColumnName: "col"}
-			err := ValidateGetRequest(getRequest, options)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_COLUMN_VALUES))
-		})
-
-		It("should return error when ColumnName is set and ColumnValues is empty slice", func() {
-			getRequest := common.GetRequest{Table: "table"}
-			options := common.GetOptions{ColumnName: "col", ColumnValues: []string{}}
-			err := ValidateGetRequest(getRequest, options)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_COLUMN_VALUES))
-		})
-
-		It("should return error when ColumnName is set and ColumnValues contains empty string", func() {
-			getRequest := common.GetRequest{Table: "table"}
-			options := common.GetOptions{ColumnName: "col", ColumnValues: []string{"val1", ""}}
-			err := ValidateGetRequest(getRequest, options)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_VALUE_IN_COLUMN_VALUES))
-		})
-
-		It("should not return error for valid Ids", func() {
-			getRequest := common.GetRequest{Table: "table", Ids: []string{"id1", "id2"}}
-			options := common.GetOptions{}
-			err := ValidateGetRequest(getRequest, options)
-			Expect(err).To(BeNil())
-		})
-
-		It("should not return error for valid ColumnName and ColumnValues", func() {
-			getRequest := common.GetRequest{Table: "table"}
-			options := common.GetOptions{ColumnName: "col", ColumnValues: []string{"val1", "val2"}}
-			err := ValidateGetRequest(getRequest, options)
-			Expect(err).To(BeNil())
-		})
-
-	})
 })

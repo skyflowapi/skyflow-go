@@ -17,7 +17,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/skyflowapi/skyflow-go/v2/internal/generated/core"
 	. "github.com/skyflowapi/skyflow-go/v2/internal/helpers"
 	"github.com/skyflowapi/skyflow-go/v2/utils/common"
 	. "github.com/skyflowapi/skyflow-go/v2/utils/error"
@@ -344,19 +343,13 @@ MIIBAAIBADANINVALIDKEY==
 
 			// Test case 2: roles is an empty slice
 			It("should return an empty string when roles is an empty slice", func() {
-				result := GetScopeUsingRoles([]*string{})
+				result := GetScopeUsingRoles([]string{})
 				Expect(result).To(Equal(""))
 			})
 
 			// Test case 3: roles contains multiple roles
 			It("should return a string with roles prefixed by ' role:'", func() {
-				role1 := "admin"
-				role2 := "user"
-				role3 := "editor"
-				roles := []*string{}
-				roles = append(roles, &role1)
-				roles = append(roles, &role2)
-				roles = append(roles, &role3)
+				roles := []string{"admin", "user", "editor"}
 				result := GetScopeUsingRoles(roles)
 				expected := " role:admin role:user role:editor"
 				Expect(result).To(Equal(expected))
@@ -364,9 +357,7 @@ MIIBAAIBADANINVALIDKEY==
 
 			// Test case 4: roles contains one role
 			It("should return a string with a single role", func() {
-				role1 := "admin"
-				roles := []*string{}
-				roles = append(roles, &role1)
+				roles := []string{"admin"}
 				result := GetScopeUsingRoles(roles)
 				expected := " role:admin"
 				Expect(result).To(Equal(expected))
@@ -374,9 +365,7 @@ MIIBAAIBADANINVALIDKEY==
 
 			// Test case 5: roles contains one empty string role
 			It("should handle empty role string correctly", func() {
-				role := ""
-				roles := []*string{}
-				roles = append(roles, &role)
+				roles := []string{""}
 				result := GetScopeUsingRoles(roles)
 				expected := " role:"
 				Expect(result).To(Equal(expected))
@@ -519,67 +508,6 @@ MIIBAAIBADANINVALIDKEY==
 				Expect(err.GetMessage()).Should(ContainSubstring(INVALID_TOKEN_URI))
 			})
 
-		})
-	})
-	Describe("GetHeader", func() {
-
-		It("should return empty header and false when error is nil", func() {
-			h, ok := GetHeader(nil)
-			Expect(ok).To(BeFalse())
-			Expect(h).To(Equal(http.Header{}))
-		})
-
-		It("should return header and true when error is core.APIError", func() {
-			headers := http.Header{}
-			headers.Set("X-Request-Id", "value")
-			err := &core.APIError{Header: headers}
-			_, ok := GetHeader(err)
-			Expect(ok).To(BeTrue())
-		})
-		It("should return empty header and false for non-APIError", func() {
-			h, ok := GetHeader(os.ErrNotExist)
-			Expect(ok).To(BeFalse())
-			Expect(h).To(Equal(http.Header{}))
-		})
-	})
-	Describe("Float64Ptr", func() {
-		It("should return pointer to float64 value", func() {
-			val := 3.14
-			ptr := Float64Ptr(val)
-			Expect(ptr).ToNot(BeNil())
-			Expect(*ptr).To(Equal(val))
-		})
-	})
-	Describe("GetSkyflowID", func() {
-		It("should return skyflow_id and true if present", func() {
-			m := map[string]interface{}{"skyflow_id": "id123"}
-			id, ok := GetSkyflowID(m)
-			Expect(ok).To(BeTrue())
-			Expect(id).To(Equal("id123"))
-		})
-		It("should return empty string and false if skyflow_id not present", func() {
-			m := map[string]interface{}{"other": "val"}
-			id, ok := GetSkyflowID(m)
-			Expect(ok).To(BeFalse())
-			Expect(id).To(Equal(""))
-		})
-		It("should return empty string and false if skyflow_id is not a string", func() {
-			m := map[string]interface{}{"skyflow_id": 123}
-			id, ok := GetSkyflowID(m)
-			Expect(ok).To(BeFalse())
-			Expect(id).To(Equal(""))
-		})
-	})
-	Describe("CreateJsonMetadata", func() {
-		It("should return valid JSON string with expected keys", func() {
-			jsonStr := CreateJsonMetadata()
-			var m map[string]interface{}
-			err := json.Unmarshal([]byte(jsonStr), &m)
-			Expect(err).To(BeNil())
-			Expect(m).To(HaveKey("sdk_name_version"))
-			Expect(m).To(HaveKey("sdk_client_device_model"))
-			Expect(m).To(HaveKey("sdk_client_os_details"))
-			Expect(m).To(HaveKey("sdk_runtime_details"))
 		})
 	})
 })
