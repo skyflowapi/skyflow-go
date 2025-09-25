@@ -127,7 +127,7 @@ const (
     EMPTY_COLUMN_NAME_FILE_UPLOAD        = SDK_LOG_PREFIX +   "Invalid %s request. Column name can not be empty."
     FILE_IS_REQUIRED        = SDK_LOG_PREFIX +   "Invalid %s request. File is required."
     EMPTY_FILE        = SDK_LOG_PREFIX +   "Invalid %s request. File can not be empty."
-    INVALID_FILE_TYPE        = SDK_LOG_PREFIX +   "Invalid %s request. File should be of type java.io.File"
+    INVALID_FILE_TYPE        = SDK_LOG_PREFIX +   "Invalid %s request. File should be of type io.File"
     MISSING_FILE_SOURCE_IN_UPLOAD_FILE        = SDK_LOG_PREFIX +   "Invalid %s request. Provide exactly one of filePath base64 or fileObject."
     UPLOAD_FILE_REQUEST_REJECTED        = SDK_LOG_PREFIX +   "Upload file request resulted in failure."
     SKYFLOW_ID_IS_REQUIRED 			 = SDK_LOG_PREFIX + "Invalid %s request. Skyflow Id is required."
