@@ -8,11 +8,14 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/pem"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 	. "github.com/onsi/ginkgo/v2"
@@ -21,6 +24,7 @@ import (
 	. "github.com/skyflowapi/skyflow-go/v2/internal/helpers"
 	"github.com/skyflowapi/skyflow-go/v2/utils/common"
 	. "github.com/skyflowapi/skyflow-go/v2/utils/error"
+	skyflowError "github.com/skyflowapi/skyflow-go/v2/utils/error"
 )
 
 func TestController(t *testing.T) {

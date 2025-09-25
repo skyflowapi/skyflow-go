@@ -29,7 +29,6 @@ type VaultController struct {
 
 var CreateRequestClientFunc = CreateRequestClient
 
-
 // GenerateToken generates a bearer token using the provided credentials.
 func GenerateToken(credentials common.Credentials) (*string, *skyflowError.SkyflowError) {
 	var bearerToken string
@@ -504,7 +503,7 @@ func (v *VaultController) UploadFile(ctx context.Context, request common.FileUpl
 		return nil, errs
 	}
 
-		if err := CreateRequestClientFunc(v); err != nil {
+	if err := CreateRequestClientFunc(v); err != nil {
 		return nil, err
 	}
 	file, fileObjError := helpers.GetFileForFileUpload(request)

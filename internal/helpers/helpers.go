@@ -4,11 +4,12 @@ import (
 	"context"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"github.com/skyflowapi/skyflow-go/v2/internal/generated/option"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -23,7 +24,9 @@ import (
 	"github.com/golang-jwt/jwt"
 	constants "github.com/skyflowapi/skyflow-go/v2/internal/constants"
 	internal "github.com/skyflowapi/skyflow-go/v2/internal/generated"
+	vaultapis "github.com/skyflowapi/skyflow-go/v2/internal/generated"
 	internalAuthApi "github.com/skyflowapi/skyflow-go/v2/internal/generated/authentication"
+	"github.com/skyflowapi/skyflow-go/v2/internal/generated/option"
 	common "github.com/skyflowapi/skyflow-go/v2/utils/common"
 	skyflowError "github.com/skyflowapi/skyflow-go/v2/utils/error"
 	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
@@ -51,6 +54,7 @@ func ParseCredentialsFile(credentialsFilePath string) (map[string]interface{}, *
 	}
 	return credKeys, nil
 }
+
 // SetTokenMode sets the tokenization mode in the request body.
 func SetTokenMode(tokenMode common.BYOT) (*vaultapis.V1Byot, error) {
 	var tokenModes vaultapis.V1Byot
@@ -251,6 +255,7 @@ func GetTokenizePayload(request []common.TokenizeRequest) vaultapis.V1TokenizePa
 	payload.TokenizationParameters = records
 	return payload
 }
+
 // GetURLWithEnv constructs the URL for the given environment and clusterId.
 func GetURLWithEnv(env common.Env, clusterId string) string {
 	var url = constants.SECURE_PROTOCOL + clusterId
@@ -278,35 +283,42 @@ func ParseTokenizeResponse(apiResponse vaultapis.V1TokenizeResponse) *common.Tok
 		Tokens: tokens,
 	}
 }
-
 func GetFileForFileUpload(request common.FileUploadRequest) (*os.File, error) {
-    if request.FilePath != "" {
-        file, err := os.Open(request.FilePath)
-        if err != nil {
-            return nil, err
-        }
-        return file, nil
-    } else if request.Base64 != "" {
-        decodedBytes, err := base64.StdEncoding.DecodeString(request.Base64)
-        if err != nil {
-            return nil, err
-        }
-        // if request.FileName == "" {
-        //     return nil, os.ErrInvalid
-        // }
-        err = ioutil.WriteFile(request.FileName, decodedBytes, 0644)
-        if err != nil {
-            return nil, err
-        }
-        file, err := os.Open(request.FileName)
-        if err != nil {
-            return nil, err
-        }
-        return file, nil
-    } else if request.FileObject != (os.File{}) {
-        return &request.FileObject, nil
-    }
-    return nil, nil
+	if request.FilePath != "" {
+		file, err := os.Open(request.FilePath)
+		if err != nil {
+			return nil, err
+		}
+		return file, nil
+	}
+	if request.Base64 != "" {
+		data, err := base64.StdEncoding.DecodeString(request.Base64)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode base64: %w", err)
+		}
+		file, err := os.Create(request.FileName)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create file: %w", err)
+		}
+		// Write data
+		_, err = file.Write(data)
+		if err != nil {
+			file.Close()
+			return nil, err
+		}
+		// Reset pointer
+		file.Seek(0, io.SeekStart)
+
+		// Remove from disk but keep open
+		os.Remove(request.FileName)
+		return file, nil
+	}
+
+	if request.FileObject != (os.File{}) {
+		// make *os.File act as ReadCloser
+		return &request.FileObject, nil
+	}
+	return nil, nil
 }
 
 // Generate and Sign Tokens
