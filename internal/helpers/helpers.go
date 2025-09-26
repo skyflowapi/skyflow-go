@@ -19,12 +19,10 @@ import (
 
 	"github.com/skyflowapi/skyflow-go/v2/internal/generated/core"
 
-    "encoding/base64"
 	vaultapis "github.com/skyflowapi/skyflow-go/v2/internal/generated"
 	"github.com/golang-jwt/jwt"
 	constants "github.com/skyflowapi/skyflow-go/v2/internal/constants"
 	internal "github.com/skyflowapi/skyflow-go/v2/internal/generated"
-	vaultapis "github.com/skyflowapi/skyflow-go/v2/internal/generated"
 	internalAuthApi "github.com/skyflowapi/skyflow-go/v2/internal/generated/authentication"
 	"github.com/skyflowapi/skyflow-go/v2/internal/generated/option"
 	common "github.com/skyflowapi/skyflow-go/v2/utils/common"

@@ -68,7 +68,7 @@ func CreateDetectRequestClient(v *DetectController) *skyflowError.SkyflowError {
 	header := http.Header{}
 	header.Set(constants.SDK_METRICS_HEADER_KEY, helpers.CreateJsonMetadata())
 
-	client := text.NewClient(option.WithBaseURL(GetURLWithEnv(v.Config.Env, v.Config.ClusterId)),
+	client := text.NewClient(option.WithBaseURL(helpers.GetURLWithEnv(v.Config.Env, v.Config.ClusterId)),
 		option.WithToken(token),
 		option.WithHTTPHeader(header),
 		option.WithMaxAttempts(1),
@@ -76,7 +76,7 @@ func CreateDetectRequestClient(v *DetectController) *skyflowError.SkyflowError {
 
 	v.TextApiClient = *client
 
-	clientFiles := files.NewClient(option.WithBaseURL(GetURLWithEnv(v.Config.Env, v.Config.ClusterId)),
+	clientFiles := files.NewClient(option.WithBaseURL(helpers.GetURLWithEnv(v.Config.Env, v.Config.ClusterId)),
 		option.WithToken(token),
 		option.WithHTTPHeader(header),
 		option.WithMaxAttempts(1),
