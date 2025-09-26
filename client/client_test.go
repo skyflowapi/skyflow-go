@@ -56,17 +56,24 @@ var _ = Describe("Skyflow Client", func() {
 			Expect(client).NotTo(BeNil())
 			Expect(client.GetLoglevel()).To(Equal(&logLevel))
 		})
-		It("should return error when initialize with configuration with nil vault array", func() {
-			client, err := NewSkyflow(
-				WithVaults())
+		It("should return error when WithVaults called with nil vault array", func() {
+			var nilConfig []common.VaultConfig = nil
+			client, err := NewSkyflow(WithVaults(nilConfig...))
 			Expect(client).To(BeNil())
 			Expect(err).To(HaveOccurred())
 			Expect(err.GetMessage()).To(ContainSubstring(error.EMPTY_VAULT_CONFIG))
 		})
-		It("should return error when initialize with configuration with empty vault array", func() {
-			var config []common.VaultConfig
-			client, err := NewSkyflow(
-				WithVaults(config...))
+
+		It("should return error when WithVaults called with no parameters", func() {
+			client, err := NewSkyflow(WithVaults())
+			Expect(client).To(BeNil())
+			Expect(err).To(HaveOccurred())
+			Expect(err.GetMessage()).To(ContainSubstring(error.EMPTY_VAULT_CONFIG))
+		})
+
+		It("should return error when WithVaults called with empty vault array", func() {
+			var config []common.VaultConfig = make([]common.VaultConfig, 0)
+			client, err := NewSkyflow(WithVaults(config...))
 			Expect(client).To(BeNil())
 			Expect(err).To(HaveOccurred())
 			Expect(err.GetMessage()).To(ContainSubstring(error.EMPTY_VAULT_CONFIG))
@@ -97,16 +104,23 @@ var _ = Describe("Skyflow Client", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 		It("should return error when initialize with configuration with nil connection config array", func() {
-			client, err := NewSkyflow(
-				WithConnections())
+			var nilConfig []common.ConnectionConfig = nil
+			client, err := NewSkyflow(WithConnections(nilConfig...))
 			Expect(client).To(BeNil())
 			Expect(err).To(HaveOccurred())
 			Expect(err.GetMessage()).To(ContainSubstring(error.EMPTY_CONNECTION_CONFIG))
 		})
+
 		It("should return error when initialize with configuration with empty connection config array", func() {
-			var config []common.ConnectionConfig
-			client, err := NewSkyflow(
-				WithConnections(config...))
+			emptyConfig := make([]common.ConnectionConfig, 0)
+			client, err := NewSkyflow(WithConnections(emptyConfig...))
+			Expect(client).To(BeNil())
+			Expect(err).To(HaveOccurred())
+			Expect(err.GetMessage()).To(ContainSubstring(error.EMPTY_CONNECTION_CONFIG))
+		})
+
+		It("should return error when WithConnections called with no parameters", func() {
+			client, err := NewSkyflow(WithConnections())
 			Expect(client).To(BeNil())
 			Expect(err).To(HaveOccurred())
 			Expect(err.GetMessage()).To(ContainSubstring(error.EMPTY_CONNECTION_CONFIG))
@@ -166,9 +180,7 @@ var _ = Describe("Skyflow Client", func() {
 			Expect(err).Should(BeNil())
 			err = client.AddVault(vaultConfig)
 			Expect(err).ShouldNot(BeNil())
-			fmt.Println("here is msg", err.GetMessage())
-			Expect(err.GetMessage()).To(ContainSubstring(error.VAULT_ID_ALREADY_IN_CONFIG_LIST))
-
+			Expect(err.GetMessage()).To(ContainSubstring(fmt.Sprintf(error.VAULT_ID_EXISTS_IN_CONFIG_LIST, vaultConfig.VaultId)))
 			err = client.AddVault(common.VaultConfig{
 				VaultId: "",
 			})
@@ -422,5 +434,48 @@ var _ = Describe("Skyflow Client", func() {
 			Expect(err).To(HaveOccurred())
 		})
 
+	})
+})
+
+var _ = Describe("Detect and getDetectConfig scenarios", func() {
+	It("should return error if no detect configs exist", func() {
+		client, _ := NewSkyflow()
+		service, err := client.Detect("any")
+		Expect(service).To(BeNil())
+		Expect(err).To(HaveOccurred())
+	})
+
+	It("should return error if detect config not found by ID", func() {
+		vaultCfg := common.VaultConfig{VaultId: "v1", ClusterId: "c1"}
+		client, _ := NewSkyflow(WithVaults(vaultCfg))
+		service, err := client.Detect("notfound")
+		Expect(service).To(BeNil())
+		Expect(err).To(HaveOccurred())
+	})
+
+	It("should return detect service if found by ID", func() {
+		vaultCfg := common.VaultConfig{VaultId: "v2", ClusterId: "c2", Credentials: common.Credentials{Token: "t"}}
+		client, _ := NewSkyflow(WithVaults(vaultCfg))
+		service, err := client.Detect("v2")
+		Expect(err).To(BeNil())
+		Expect(service).NotTo(BeNil())
+	})
+
+	It("should return first detect service if called with no ID", func() {
+		vaultCfg1 := common.VaultConfig{VaultId: "v3", ClusterId: "c3", Credentials: common.Credentials{Token: "t1"}}
+		vaultCfg2 := common.VaultConfig{VaultId: "v4", ClusterId: "c4", Credentials: common.Credentials{Token: "t2"}}
+		client, _ := NewSkyflow(WithVaults(vaultCfg1, vaultCfg2))
+		service, err := client.Detect()
+		Expect(err).To(BeNil())
+		Expect(service).NotTo(BeNil())
+	})
+
+	It("should use client credentials if detect config has empty credentials, client credentials not empty", func() {
+		vaultCfg := common.VaultConfig{VaultId: "v6", ClusterId: "c6"}
+		creds := common.Credentials{Token: "token"}
+		client, _ := NewSkyflow(WithVaults(vaultCfg), WithCredentials(creds))
+		service, err := client.Detect("v6")
+		Expect(err).To(BeNil())
+		Expect(service).NotTo(BeNil())
 	})
 })

@@ -1,82 +1,90 @@
-package serviceaccount
+package main
 
 import (
 	"context"
 	"fmt"
+
 	"github.com/skyflowapi/skyflow-go/v2/client"
 	"github.com/skyflowapi/skyflow-go/v2/utils/common"
-	"github.com/skyflowapi/skyflow-go/v2/utils/error"
+	errors "github.com/skyflowapi/skyflow-go/v2/utils/error"
 	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
 )
-//   * This example demonstrates how to configure and use the Skyflow SDK
-//   * to detokenize sensitive data stored in a Skyflow vault.
-//   * It includes setting up credentials, configuring the vault, and
-//   * making a detokenization request. The code also implements a retry
-//   * mechanism to handle unauthorized access errors (HTTP 401).
 
-func DetokenizeData(skyflowClient, vaultID) error.SkyflowError {
-	service, serviceError := skyflowInstance.Vault(vaultID)
+/**
+ * This example demonstrates how to use the Skyflow Go SDK to detokenize sensitive data stored a Skyflow vault.
+ * by converting tokens back into their original sensitive data values. It also retries detokenization on unauthorized access errors (HTTP 401).
+ * <p>
+ * Steps include:
+ * 1. Set up Skyflow vault credentials.
+ * 2. Configure the vault.
+ * 3. Create a new Skyflow client.
+ * 4. Detokenizing records by providing tokens and receiving original values.
+ * 5. Handling the response and errors and retrying on token expiry.
+ */
+
+func DetokenizeData(skyflowClient *client.Skyflow, vaultID string) *errors.SkyflowError {
+	service, serviceError := skyflowClient.Vault(vaultID)
+
 	if serviceError != nil {
-		fmt.Println(serviceError)
-		return serviceError
+		fmt.Println(*serviceError)
+	}
+
+	detokenizeRes := &common.DetokenizeResponse{}
+	errDetokenize := &errors.SkyflowError{}
+
+	if serviceError != nil {
+		fmt.Println(*serviceError)
 	} else {
 		ctx := context.TODO()
-		//  Creating a list of tokens to be detokenized
-		detokenizeData := []common.DetokenizeData{
+		detokenizeDataReq := common.DetokenizeRequest{DetokenizeData: []common.DetokenizeData{
 			{
 				Token:         "<TOKEN1>",
-				RedactionType: common.REDACTED,
+				RedactionType: common.PLAIN_TEXT,
 			},
 			{
 				Token:         "<TOKEN2>",
-				RedactionType: common.MASKED,
+				RedactionType: common.PLAIN_TEXT,
 			},
-		}
-		//  Building a detokenization request
-		req := common.DetokenizeRequest{DetokenizeData: detokenizeData}
-		//  Sending the detokenization request and receiving the response
-		res, errDetokenize := service.Detokenize(ctx, req, common.DetokenizeOptions{
+		}}
+		// Step 4: Detokenize records by providing tokens and receiving original values
+		detokenizeRes, errDetokenize = service.Detokenize(ctx, detokenizeDataReq, common.DetokenizeOptions{
 			ContinueOnError: true,
 		})
-		if errDetokenize != nil {
-			
-			fmt.Println("Unexpected error occurred: ", errDetokenize)
-			return errDetokenize
-		} else {
-			// Printing the detokenized response
-			fmt.Println("Skyflow error occurred: ", res)
-		}
-	}
-	return nil
-}
-func main(){
-	// Setting up credentials for accessing the Skyflow vault
-	//  Credentials string for authentication
-	credentials := common.Credentials{
-		CredentialsString: "<STRINGIFIED_JSON_VALUE>", 
+		fmt.Println("RESPONSE: ", detokenizeRes)
 	}
 
-	// Configuring the Skyflow vault with necessary details
+	return errDetokenize
+}
+
+func main() {
+	// Step 1: Set up Skyflow vault credentials.
+	credentials := common.Credentials{
+		CredentialsString: "<STRINGIFIED_JSON_VALUE>",
+	}
+
+	// Step 2: Configure the vault.
 	privaryVaultConfig := common.VaultConfig{
 		VaultId:     "<YOUR_VAULT_ID1>",
 		ClusterId:   "<YOUR_CLUSTER_ID1>",
 		Env:         common.DEV,
 		Credentials: credentials,
 	}
-	// Create a new Skyflow client
+	// Step 3: Create a new Skyflow client
 	skyflowClient, err := client.NewSkyflow(
 		client.WithVaults(privaryVaultConfig),
 		client.WithCredentials(credentials),
-		client.WithLogLevel(logger.DEBUG),
+		client.WithLogLevel(logger.ERROR),
 	)
+
 	if err != nil {
 		fmt.Println("Error creating Skyflow client:", err)
 		return
 	}
 	//  Attempting to detokenize data using the Skyflow client
 	err = DetokenizeData(skyflowClient, "<VAULT_ID>")
+	// Step 5: Handling the response and errors and retrying on token expiry.
 	if err != nil {
-		fmt.Println("Error detokenizing data:", err)
+		fmt.Println("Error detokenizing data:", *err)
 		// Retry detokenization if the error is due to unauthorized access (HTTP 401)
 		if err.GetCode() == "401" {
 			fmt.Println("Unauthorized access. Retrying...")

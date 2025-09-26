@@ -2,7 +2,7 @@
 Copyright (c) 2022 Skyflow, Inc.
 */
 
-package serviceaccount
+package main
 
 import (
 	"fmt"
@@ -10,6 +10,12 @@ import (
 	"github.com/skyflowapi/skyflow-go/v2/utils/common"
 	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
 )
+
+/**
+ * Example program to generate a Signed Token
+ * The token can be generated in two ways:
+ * Using the file path to a credentials.json file.
+ */
 
 func SignedDataTokenGenerationSample() {
 	var filePath = "<FILE_PATH>"
@@ -42,4 +48,8 @@ func SignedDataTokenGenerationSample() {
 		fmt.Println("RESPONSE:", res2)
 	}
 
+}
+
+func main() {
+	SignedDataTokenGenerationSample()
 }

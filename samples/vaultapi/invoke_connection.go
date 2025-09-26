@@ -12,7 +12,19 @@ import (
 	. "github.com/skyflowapi/skyflow-go/v2/utils/common"
 )
 
+/**
+ * This example demonstrates how to use the Skyflow Go SDK to invoke API connections
+ * <p>
+ * Steps include:
+ * 1. Setting up Connection credentials.
+ * 2. Configure the Skyflow client.
+ * 3. Configure Skyflow client with connection ID.
+ * 4. Invoking connections with proper parameters and handling responses.
+ * 5. Handle the response and errors.
+ */
+
 func main() {
+	// Step 1: Setting up Connection credentials
 	// Add connection configurations 1
 	connConfig1 := ConnectionConfig{ConnectionId: "<CONNECTION_ID1>", ConnectionUrl: "<CONNECTION_URL1>", Credentials: Credentials{CredentialsString: "<STRINGIFIED_JSON_VALUE>"}}
 
@@ -22,15 +34,17 @@ func main() {
 	var arr []ConnectionConfig
 	arr = append(arr, connConfig1, connConfig2)
 
+	// Step 2: Configure the Skyflow client
 	// Initialize Skyflow client
-	client1, clientError := NewSkyflow(
+	skyflowClient, clientError := NewSkyflow(
 		WithConnections(arr...),
 		WithLogLevel(logger.DEBUG),
 	)
 	if clientError != nil {
 		fmt.Println("Error:", clientError)
 	} else {
-		service, conError := client1.Connection("<CONNECTION_ID1>")
+		// Step 3: Configure Skyflow client with connection ID
+		service, conError := skyflowClient.Connection("<CONNECTION_ID1>")
 		if conError != nil {
 			fmt.Println("Error:", conError)
 		} else {
@@ -54,7 +68,10 @@ func main() {
 				QueryParams: queryParams,
 				PathParams:  pathParams,
 			}
+			// Step 4: Invoke connections with proper parameters and handle responses
 			res, invokeError := service.Invoke(ctx, req)
+
+			// Step 5: Handle the response and errors
 			if invokeError != nil {
 				fmt.Println("ERROR: ", *invokeError)
 			} else {
