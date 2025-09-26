@@ -114,62 +114,6 @@ func (b BatchRecordMethod) Ptr() *BatchRecordMethod {
 	return &b
 }
 
-// Response schema for uploading a file, optionally creating a new record.
-type UploadFileV2Response struct {
-	// Skyflow ID of the record the file was uploaded to.
-	SkyflowId    *string     `json:"skyflowID,omitempty" url:"skyflowID,omitempty"`
-	FileMetadata interface{} `json:"fileMetadata,omitempty" url:"fileMetadata,omitempty"`
-
-	extraProperties map[string]interface{}
-	rawJSON         json.RawMessage
-}
-
-func (u *UploadFileV2Response) GetSkyflowId() *string {
-	if u == nil {
-		return nil
-	}
-	return u.SkyflowId
-}
-
-func (u *UploadFileV2Response) GetFileMetadata() interface{} {
-	if u == nil {
-		return nil
-	}
-	return u.FileMetadata
-}
-
-func (u *UploadFileV2Response) GetExtraProperties() map[string]interface{} {
-	return u.extraProperties
-}
-
-func (u *UploadFileV2Response) UnmarshalJSON(data []byte) error {
-	type unmarshaler UploadFileV2Response
-	var value unmarshaler
-	if err := json.Unmarshal(data, &value); err != nil {
-		return err
-	}
-	*u = UploadFileV2Response(value)
-	extraProperties, err := internal.ExtractExtraProperties(data, *u)
-	if err != nil {
-		return err
-	}
-	u.extraProperties = extraProperties
-	u.rawJSON = json.RawMessage(data)
-	return nil
-}
-
-func (u *UploadFileV2Response) String() string {
-	if len(u.rawJSON) > 0 {
-		if value, err := internal.StringifyJSON(u.rawJSON); err == nil {
-			return value
-		}
-	}
-	if value, err := internal.StringifyJSON(u); err == nil {
-		return value
-	}
-	return fmt.Sprintf("%#v", u)
-}
-
 type V1BatchOperationResponse struct {
 	// ID of the vault.
 	VaultId *string `json:"vaultID,omitempty" url:"vaultID,omitempty"`
@@ -916,16 +860,4 @@ func NewRecordServiceGetRecordRequestRedactionFromString(s string) (RecordServic
 
 func (r RecordServiceGetRecordRequestRedaction) Ptr() *RecordServiceGetRecordRequestRedaction {
 	return &r
-}
-
-type UploadFileV2Request struct {
-	File io.Reader `json:"-" url:"-"`
-	// Name of the table to upload the file to.
-	TableName string `json:"tableName" url:"-"`
-	// Name of the column to upload the file to. The column must have a `file` data type.
-	ColumnName string `json:"columnName" url:"-"`
-	// Skyflow ID of the record to upload the file to. If `skyflowID` isn't specified, a new record will be created.
-	SkyflowId *string `json:"skyflowID,omitempty" url:"-"`
-	// If `true`, returns metadata about the uploaded file.
-	ReturnFileMetadata *bool `json:"returnFileMetadata,omitempty" url:"-"`
 }
