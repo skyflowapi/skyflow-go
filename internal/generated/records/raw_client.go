@@ -3,7 +3,7 @@ package records
 import (
 	context "context"
 	http "net/http"
-
+	"fmt"
 	generated "github.com/skyflowapi/skyflow-go/v2/internal/generated"
 	core "github.com/skyflowapi/skyflow-go/v2/internal/generated/core"
 	option "github.com/skyflowapi/skyflow-go/v2/internal/generated/option"
@@ -641,6 +641,101 @@ func (r *RawClient) FileServiceGetFileScanStatus(
 		return nil, err
 	}
 	return &core.Response[*generated.V1GetFileScanStatusResponse]{
+		StatusCode: raw.StatusCode,
+		Header:     raw.Header,
+		Body:       response,
+	}, nil
+}
+
+func (r *RawClient) UploadFileV2(
+	ctx context.Context,
+	// ID of the vault.
+	vaultId string,
+	request *generated.UploadFileV2Request,
+	opts ...option.RequestOption,
+) (*core.Response[*generated.UploadFileV2Response], error) {
+	options := core.NewRequestOptions(opts...)
+	baseURL := internal.ResolveBaseURL(
+		options.BaseURL,
+		r.baseURL,
+		"https://identifier.vault.skyflowapis.com",
+	)
+	endpointURL := internal.EncodeURL(
+		baseURL+"/v2/vaults/%v/files/upload",
+		vaultId,
+	)
+	headers := internal.MergeHeaders(
+		r.header.Clone(),
+		options.ToHeader(),
+	)
+	headers.Add("Content-Type", "multipart/form-data")
+	errorCodes := internal.ErrorCodes{
+		400: func(apiError *core.APIError) error {
+			return &generated.BadRequestError{
+				APIError: apiError,
+			}
+		},
+		401: func(apiError *core.APIError) error {
+			return &generated.UnauthorizedError{
+				APIError: apiError,
+			}
+		},
+		404: func(apiError *core.APIError) error {
+			return &generated.NotFoundError{
+				APIError: apiError,
+			}
+		},
+		500: func(apiError *core.APIError) error {
+			return &generated.InternalServerError{
+				APIError: apiError,
+			}
+		},
+	}
+	writer := internal.NewMultipartWriter()
+	if err := writer.WriteField("tableName", request.TableName); err != nil {
+		return nil, err
+	}
+	if err := writer.WriteField("columnName", request.ColumnName); err != nil {
+		return nil, err
+	}
+	if err := writer.WriteFile("file", request.File); err != nil {
+		return nil, err
+	}
+	if request.SkyflowId != nil {
+		if err := writer.WriteField("skyflowID", *request.SkyflowId); err != nil {
+			return nil, err
+		}
+	}
+	if request.ReturnFileMetadata != nil {
+		if err := writer.WriteField("returnFileMetadata", fmt.Sprintf("%v", request.ReturnFileMetadata)); err != nil {
+			return nil, err
+		}
+	}
+	if err := writer.Close(); err != nil {
+		return nil, err
+	}
+	headers.Set("Content-Type", writer.ContentType())
+
+	var response *generated.UploadFileV2Response
+	raw, err := r.caller.Call(
+		ctx,
+		&internal.CallParams{
+			URL:             endpointURL,
+			Method:          http.MethodPost,
+			Headers:         headers,
+			MaxAttempts:     options.MaxAttempts,
+			BodyProperties:  options.BodyProperties,
+			QueryParameters: options.QueryParameters,
+			Client:          options.HTTPClient,
+			Request:         writer.Buffer(),
+			Response:        &response,
+			ErrorDecoder:    internal.NewErrorDecoder(errorCodes),
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &core.Response[*generated.UploadFileV2Response]{
 		StatusCode: raw.StatusCode,
 		Header:     raw.Header,
 		Body:       response,

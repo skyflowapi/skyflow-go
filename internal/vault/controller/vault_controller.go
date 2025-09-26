@@ -458,7 +458,7 @@ func (v *VaultController) Update(ctx context.Context, request common.UpdateReque
 		updateRes = updateApiRes.Body
 		id = updateApiRes.Body.GetSkyflowId()
 	}
-	res := GetFormattedUpdateRecord(*updateRes)
+	res := helpers.GetFormattedUpdateRecord(*updateRes)
 	logger.Info(logs.UPDATE_SUCCESS)
 	return &common.UpdateResponse{
 		Tokens:    res,
@@ -519,7 +519,7 @@ func (v *VaultController) UploadFile(ctx context.Context, request common.FileUpl
 	payload.ReturnFileMetadata = &returnFileMetadata
 	payload.TableName = request.Table
 
-	fileResp, fileErr := v.ApiClient.Records.UploadFileV2(ctx, v.Config.VaultId, &payload)
+	fileResp, fileErr := v.ApiClient.Records.WithRawResponse.UploadFileV2(ctx, v.Config.VaultId, &payload)
 
 	if fileErr != nil {
 		logger.Error(logs.UPLOAD_FILE_REQUEST_REJECTED)
@@ -528,6 +528,6 @@ func (v *VaultController) UploadFile(ctx context.Context, request common.FileUpl
 	}
 	logger.Info(logs.UPLOAD_FILE_REQUEST_RESOLVED)
 	return &common.FileUploadResponse{
-		SkyflowId: *fileResp.GetSkyflowId(),
+		SkyflowId: *fileResp.Body.GetSkyflowId(),
 	}, nil
 }

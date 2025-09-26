@@ -53,11 +53,7 @@ func (r *RequestOptions) ToHeader() http.Header {
 }
 
 func (r *RequestOptions) cloneHeader() http.Header {
-	headers := r.HTTPHeader.Clone()
-	headers.Set("X-Fern-Language", "Go")
-	headers.Set("X-Fern-SDK-Name", "https://github.com/skyflowapi/skyflow-go")
-	headers.Set("X-Fern-SDK-Version", "v0.0.348")
-	return headers
+	return r.HTTPHeader.Clone()
 }
 
 // BaseURLOption implements the RequestOption interface.
