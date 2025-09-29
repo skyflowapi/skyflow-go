@@ -1,6 +1,7 @@
 package validation
 
 import (
+	"encoding/base64"
 	"fmt"
 	"net/url"
 	"os"
@@ -802,64 +803,60 @@ func ValidateUpdateRequest(request common.UpdateRequest, options common.UpdateOp
 }
 // ValidateFileUploadRequest validates the required fields of FileUploadRequest.
 func ValidateFileUploadRequest(req common.FileUploadRequest) *skyflowError.SkyflowError {
-    tag := "UploadFile"
+	tag := "UploadFile"
 
-    // if req == nil {
-    //     logger.Error(fmt.Sprintf(logs.EMPTY_REQUEST_BODY, tag))
-    //     return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_REQUEST_BODY)
-    // }
 
-    if strings.TrimSpace(req.Table) == "" {
-        logger.Error(fmt.Sprintf(logs.EMPTY_TABLE, tag))
-        return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.TABLE_KEY_ERROR)
-    }
-	
-    if strings.TrimSpace(req.SkyflowId) == "" {
-        logger.Error(fmt.Sprintf(logs.EMPTY_SKYFLOW_ID, tag))
-        return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.SKYFLOW_ID_KEY_ERROR)
-    }
+	if strings.TrimSpace(req.Table) == "" {
+		logger.Error(fmt.Sprintf(logs.EMPTY_TABLE, tag))
+		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.TABLE_KEY_ERROR)
+	}
 
-    if strings.TrimSpace(req.ColumnName) == "" {
-        logger.Error(fmt.Sprintf(logs.EMPTY_COLUMN_NAME, tag))
-        return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.COLUMN_NAME_KEY_ERROR)
-    }
+	if strings.TrimSpace(req.SkyflowId) == "" {
+		logger.Error(fmt.Sprintf(logs.EMPTY_SKYFLOW_ID, tag))
+		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.SKYFLOW_ID_KEY_ERROR)
+	}
 
-    // At least one file source must be provided
-    if strings.TrimSpace(req.FilePath) == "" && strings.TrimSpace(req.Base64) == "" && req.FileObject == (os.File{}) {
-        logger.Error(fmt.Sprintf(logs.MISSING_FILE_SOURCE_IN_UPLOAD_FILE, tag))
-        return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.MISSING_FILE_SOURCE_IN_UPLOAD_FILE)
-    }
+	if strings.TrimSpace(req.ColumnName) == "" {
+		logger.Error(fmt.Sprintf(logs.EMPTY_COLUMN_NAME, tag))
+		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.COLUMN_NAME_KEY_ERROR)
+	}
 
-    // Validate FilePath
-    if strings.TrimSpace(req.FilePath) != "" {
-        fileInfo, err := os.Stat(req.FilePath)
-        if err != nil || fileInfo.IsDir() {
-            // logger.Error(fmt.Sprintf(logs.INVALID_FILE_PATH, tag))
-            return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_FILE_PATH)
-        }
-    }
+	// At least one file source must be provided
+	if strings.TrimSpace(req.FilePath) == "" && strings.TrimSpace(req.Base64) == "" && req.FileObject == (os.File{}) {
+		logger.Error(fmt.Sprintf(logs.MISSING_FILE_SOURCE_IN_UPLOAD_FILE, tag))
+		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.MISSING_FILE_SOURCE_IN_UPLOAD_FILE)
+	}
 
-    // Validate Base64
-    if strings.TrimSpace(req.Base64) != "" {
-        if strings.TrimSpace(req.FileName) == "" {
-            logger.Error(logs.FILE_NAME_MUST_BE_PROVIDED_WITH_FILE_OBJECT)
-            return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.FILE_NAME_MUST_BE_PROVIDED_WITH_FILE_OBJECT)
-        }
-        _, err := base64.StdEncoding.DecodeString(req.Base64)
-        if err != nil {
-            logger.Error(fmt.Sprintf(logs.INVALID_BASE64, tag))
-            return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_BASE64)
-        }
-    }
+	// Validate FilePath
+	if strings.TrimSpace(req.FilePath) != "" {
+		fileInfo, err := os.Stat(req.FilePath)
+		if err != nil || fileInfo.IsDir() {
+			// logger.Error(fmt.Sprintf(logs.INVALID_FILE_PATH, tag))
+			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_FILE_PATH)
+		}
+	}
 
-    // Validate FileObject
-    if req.FileObject != (os.File{}) {
-        fileInfo, err := req.FileObject.Stat()
-        if err != nil || fileInfo.IsDir() {
-            logger.Error(logs.INVALID_FILE_OBJECT)
-            return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_FILE_OBJECT)
-        }
-    }
+	// Validate Base64
+	if strings.TrimSpace(req.Base64) != "" {
+		if strings.TrimSpace(req.FileName) == "" {
+			logger.Error(logs.FILE_NAME_MUST_BE_PROVIDED_WITH_FILE_OBJECT)
+			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.FILE_NAME_MUST_BE_PROVIDED_WITH_FILE_OBJECT)
+		}
+		_, err := base64.StdEncoding.DecodeString(req.Base64)
+		if err != nil {
+			logger.Error(fmt.Sprintf(logs.INVALID_BASE64, tag))
+			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_BASE64)
+		}
+	}
 
-    return nil
+	// Validate FileObject
+	if req.FileObject != (os.File{}) {
+		fileInfo, err := req.FileObject.Stat()
+		if err != nil || fileInfo.IsDir() {
+			logger.Error(logs.INVALID_FILE_OBJECT)
+			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_FILE_OBJECT)
+		}
+	}
+
+	return nil
 }

@@ -510,13 +510,11 @@ func (v *VaultController) UploadFile(ctx context.Context, request common.FileUpl
 	if fileObjError != nil {
 		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fileObjError.Error())
 	}
-	returnFileMetadata := false
 	// create payload
 	payload := vaultapis.UploadFileV2Request{}
 	payload.File = file
 	payload.SkyflowId = &request.SkyflowId
 	payload.ColumnName = request.ColumnName
-	payload.ReturnFileMetadata = &returnFileMetadata
 	payload.TableName = request.Table
 
 	fileResp, fileErr := v.ApiClient.Records.WithRawResponse.UploadFileV2(ctx, v.Config.VaultId, &payload)
