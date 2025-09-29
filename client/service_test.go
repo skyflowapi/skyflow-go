@@ -494,7 +494,6 @@ var _ = Describe("Vault controller Test cases", func() {
 			Expect(err1).To(BeNil())
 			ctx = context.TODO()
 			res, err := service.UploadFile(ctx, request)
-			fmt.Println("response from upload file", res)
 			Expect(err).To(BeNil())
 			Expect(res).ToNot(BeNil())
 		})

@@ -831,7 +831,7 @@ func ValidateFileUploadRequest(req common.FileUploadRequest) *skyflowError.Skyfl
 	if strings.TrimSpace(req.FilePath) != "" {
 		fileInfo, err := os.Stat(req.FilePath)
 		if err != nil || fileInfo.IsDir() {
-			// logger.Error(fmt.Sprintf(logs.INVALID_FILE_PATH, tag))
+			logger.Error(fmt.Sprintf(logs.INVALID_FILE_PATH, tag))
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_FILE_PATH)
 		}
 	}
