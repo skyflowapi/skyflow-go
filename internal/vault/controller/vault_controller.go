@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -29,24 +28,6 @@ type VaultController struct {
 }
 
 var CreateRequestClientFunc = CreateRequestClient
-
-// GetURLWithEnv constructs the URL for the given environment and clusterId.
-func GetURLWithEnv(env common.Env, clusterId string) string {
-	var url = constants.SECURE_PROTOCOL + clusterId
-	switch env {
-	case common.DEV:
-		url = url + constants.DEV_DOMAIN
-	case common.PROD:
-		url = url + constants.PROD_DOMAIN
-	case common.STAGE:
-		url = url + constants.STAGE_DOMAIN
-	case common.SANDBOX:
-		url = url + constants.SANDBOX_DOMAIN
-	default:
-		url = url + constants.PROD_DOMAIN
-	}
-	return url
-}
 
 // GenerateToken generates a bearer token using the provided credentials.
 func GenerateToken(credentials common.Credentials) (*string, *skyflowError.SkyflowError) {
@@ -124,7 +105,7 @@ func CreateRequestClient(v *VaultController) *skyflowError.SkyflowError {
 	header := http.Header{}
 	header.Set(constants.SDK_METRICS_HEADER_KEY, helpers.CreateJsonMetadata())
 
-	client := client.NewClient(option.WithBaseURL(GetURLWithEnv(v.Config.Env, v.Config.ClusterId)),
+	client := client.NewClient(option.WithBaseURL(helpers.GetURLWithEnv(v.Config.Env, v.Config.ClusterId)),
 		option.WithToken(token),
 		option.WithMaxAttempts(1),
 		option.WithHTTPHeader(header),
@@ -132,221 +113,6 @@ func CreateRequestClient(v *VaultController) *skyflowError.SkyflowError {
 
 	v.ApiClient = *client
 	return nil
-}
-
-// CreateInsertBulkBodyRequest createInsertBodyRequest generates the request body for bulk inserts.
-func CreateInsertBulkBodyRequest(request *common.InsertRequest, options *common.InsertOptions) (*vaultapis.RecordServiceInsertRecordBody, *skyflowError.SkyflowError) {
-	var records []*vaultapis.V1FieldRecords
-	for i, value := range request.Values {
-		field := vaultapis.V1FieldRecords{}
-		field.Fields = value
-		// Ensure options.Tokens are not nil and the index i exists
-		if options.Tokens != nil && i < len(options.Tokens) {
-			field.Tokens = options.Tokens[i]
-		}
-		records = append(records, &field)
-	}
-	tokenMode, tokenError := SetTokenMode(options.TokenMode)
-	if tokenError != nil {
-		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_BYOT)
-	}
-	insertBody := vaultapis.RecordServiceInsertRecordBody{}
-	insertBody.Records = records
-	insertBody.Upsert = &options.Upsert
-	insertBody.Tokenization = &options.ReturnTokens
-	insertBody.Byot = tokenMode
-	return &insertBody, nil
-}
-
-// CreateInsertBatchBodyRequest generates the request body for batch inserts.
-func CreateInsertBatchBodyRequest(request *common.InsertRequest, options *common.InsertOptions) (*vaultapis.RecordServiceBatchOperationBody, error) {
-	records := make([]*vaultapis.V1BatchRecord, len(request.Values))
-	for index, record := range request.Values {
-		batchRecord := vaultapis.V1BatchRecord{}
-		batchRecord.TableName = &request.Table
-		batchRecord.Upsert = &options.Upsert
-		batchRecord.Tokenization = &options.ReturnTokens
-		batchRecord.Fields = record
-		batchRecord.Method = vaultapis.BatchRecordMethodPost.Ptr()
-		if options.Tokens != nil && index < len(options.Tokens) {
-			batchRecord.Tokens = options.Tokens[index]
-		}
-		records[index] = &batchRecord
-	}
-
-	body := vaultapis.RecordServiceBatchOperationBody{}
-	body.Records = records
-	body.ContinueOnError = &options.ContinueOnError
-
-	tokenMode, tokenError := SetTokenMode(options.TokenMode)
-	if tokenError != nil {
-		return nil, tokenError
-	}
-	body.Byot = tokenMode
-	return &body, nil
-}
-
-// SetTokenMode sets the tokenization mode in the request body.
-func SetTokenMode(tokenMode common.BYOT) (*vaultapis.V1Byot, error) {
-	var tokenModes vaultapis.V1Byot
-	var tokenError error
-	switch tokenMode {
-	case common.ENABLE_STRICT:
-		tokenModes, tokenError = vaultapis.NewV1ByotFromString(string(common.ENABLE_STRICT))
-	case common.ENABLE:
-		tokenModes, tokenError = vaultapis.NewV1ByotFromString(string(common.ENABLE))
-	default:
-		tokenModes, tokenError = vaultapis.NewV1ByotFromString(string(common.DISABLE))
-	}
-	if tokenError != nil {
-		return nil, tokenError
-	}
-	return &tokenModes, nil
-}
-func GetFormattedGetRecord(record vaultapis.V1FieldRecords) map[string]interface{} {
-	getRecord := make(map[string]interface{})
-	var sourceMap map[string]interface{}
-
-	// Decide whether to use Tokens or Fields
-	if record.Tokens != nil {
-		sourceMap = record.Tokens
-	} else {
-		sourceMap = record.Fields
-	}
-
-	// Copy elements from sourceMap to getRecord
-	if sourceMap != nil {
-		for key, value := range sourceMap {
-			getRecord[key] = value
-		}
-	}
-
-	return getRecord
-}
-func GetDetokenizePayload(request common.DetokenizeRequest, options common.DetokenizeOptions) vaultapis.V1DetokenizePayload {
-	payload := vaultapis.V1DetokenizePayload{}
-	payload.ContinueOnError = &options.ContinueOnError
-	var reqArray []*vaultapis.V1DetokenizeRecordRequest
-
-	for index := range request.DetokenizeData {
-		req := vaultapis.V1DetokenizeRecordRequest{}
-		req.Token = &request.DetokenizeData[index].Token
-		if request.DetokenizeData[index].RedactionType != "" {
-			redaction, _ := vaultapis.NewRedactionEnumRedactionFromString(string(request.DetokenizeData[index].RedactionType))
-			req.Redaction = &redaction
-		}
-		reqArray = append(reqArray, &req)
-	}
-	if len(reqArray) > 0 {
-		payload.DetokenizationParameters = reqArray
-	}
-	return payload
-}
-func GetFormattedBatchInsertRecord(record interface{}, requestIndex int) (map[string]interface{}, *skyflowError.SkyflowError) {
-	insertRecord := make(map[string]interface{})
-	// Convert the record to JSON and unmarshal it
-	jsonData, err := json.Marshal(record)
-	if err != nil {
-		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_RESPONSE)
-	}
-
-	var bodyObject map[string]interface{}
-	if err := json.Unmarshal(jsonData, &bodyObject); err != nil {
-		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_RESPONSE)
-	}
-
-	// Extract relevant data from "Body"
-	body, bodyExists := bodyObject["Body"].(map[string]interface{})
-	if !bodyExists {
-		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_RESPONSE)
-	}
-
-	// Handle extracted data
-	if records, ok := body["records"].([]interface{}); ok {
-		for _, rec := range records {
-			recordObject, isMap := rec.(map[string]interface{})
-			if !isMap {
-				continue
-			}
-			if skyflowID, exists := recordObject["skyflow_id"].(string); exists {
-				insertRecord["skyflow_id"] = skyflowID
-			}
-			if tokens, exists := recordObject["tokens"].(map[string]interface{}); exists {
-				for key, value := range tokens {
-					insertRecord[key] = value
-				}
-			}
-		}
-	}
-
-	if errorField, exists := body["error"].(string); exists {
-		insertRecord["error"] = errorField
-	}
-
-	insertRecord["request_index"] = requestIndex
-	return insertRecord, nil
-}
-func GetFormattedBulkInsertRecord(record vaultapis.V1RecordMetaProperties) map[string]interface{} {
-	insertRecord := make(map[string]interface{})
-	insertRecord["skyflow_id"] = *record.GetSkyflowId()
-
-	tokensMap := record.GetTokens()
-	if len(tokensMap) > 0 {
-		for key, value := range tokensMap {
-			insertRecord[key] = value
-		}
-	}
-	return insertRecord
-}
-func GetFormattedQueryRecord(record vaultapis.V1FieldRecords) map[string]interface{} {
-	queryRecord := make(map[string]interface{})
-	if record.Fields == nil {
-		return queryRecord
-	}
-	if record.Fields != nil {
-		for key, value := range record.Fields {
-			queryRecord[key] = value
-		}
-	}
-	return queryRecord
-}
-func GetFormattedUpdateRecord(record vaultapis.V1UpdateRecordResponse) map[string]interface{} {
-	updateTokens := make(map[string]interface{})
-	if record.Tokens == nil {
-		return updateTokens
-	}
-
-	// Check if tokens are not nil
-	if record.Tokens != nil {
-		// Iterate through the map and populate updateTokens
-		for key, value := range record.Tokens {
-			updateTokens[key] = value
-		}
-	}
-
-	return updateTokens
-}
-func getTokenizePayload(request []common.TokenizeRequest) vaultapis.V1TokenizePayload {
-	payload := vaultapis.V1TokenizePayload{}
-	var records []*vaultapis.V1TokenizeRecordRequest
-	for _, tokenizeRequest := range request {
-		record := vaultapis.V1TokenizeRecordRequest{
-			Value:       &tokenizeRequest.Value,
-			ColumnGroup: &tokenizeRequest.ColumnGroup,
-		}
-		records = append(records, &record)
-	}
-	payload.TokenizationParameters = records
-	return payload
-}
-func ParseTokenizeResponse(apiResponse vaultapis.V1TokenizeResponse) *common.TokenizeResponse {
-	var tokens []string
-	for _, record := range apiResponse.GetRecords() {
-		tokens = append(tokens, *record.GetToken())
-	}
-	return &common.TokenizeResponse{
-		Tokens: tokens,
-	}
 }
 
 func (v *VaultController) callBulkInsertAPI(ctx context.Context, body vaultapis.RecordServiceInsertRecordBody, table string) (*vaultapis.V1InsertRecordResponse, error) {
@@ -387,7 +153,7 @@ func (v *VaultController) Insert(ctx context.Context, request common.InsertReque
 	}
 	if options.ContinueOnError {
 		// Batch insert handling
-		body, bodyErr := CreateInsertBatchBodyRequest(&request, &options)
+		body, bodyErr := helpers.CreateInsertBatchBodyRequest(&request, &options)
 		if bodyErr != nil {
 			return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf("%v", bodyErr))
 		}
@@ -406,7 +172,7 @@ func (v *VaultController) Insert(ctx context.Context, request common.InsertReque
 			}
 		}
 		for index, record := range batchResp.Body.GetResponses() {
-			formattedRecord, parseErr := GetFormattedBatchInsertRecord(record, index)
+			formattedRecord, parseErr := helpers.GetFormattedBatchInsertRecord(record, index)
 			if parseErr != nil {
 				return nil, parseErr
 			}
@@ -424,7 +190,7 @@ func (v *VaultController) Insert(ctx context.Context, request common.InsertReque
 		}
 	} else {
 		// Bulk insert handling
-		body, bodyErr := CreateInsertBulkBodyRequest(&request, &options)
+		body, bodyErr := helpers.CreateInsertBulkBodyRequest(&request, &options)
 		if bodyErr != nil {
 			return nil, bodyErr
 		}
@@ -437,7 +203,7 @@ func (v *VaultController) Insert(ctx context.Context, request common.InsertReque
 		}
 
 		for _, record := range bulkResp.GetRecords() {
-			formattedRes := GetFormattedBulkInsertRecord(*record)
+			formattedRes := helpers.GetFormattedBulkInsertRecord(*record)
 			insertedFields = append(insertedFields, formattedRes)
 		}
 		resp = common.InsertResponse{InsertedFields: insertedFields}
@@ -460,7 +226,7 @@ func (v *VaultController) Detokenize(ctx context.Context, request common.Detoken
 		return nil, err
 	}
 
-	payload := GetDetokenizePayload(request, options)
+	payload := helpers.GetDetokenizePayload(request, options)
 	detokenizeApiRes, apiErr := v.ApiClient.Tokens.WithRawResponse.RecordServiceDetokenize(ctx, v.Config.VaultId, &payload)
 	var header http.Header
 
@@ -577,7 +343,7 @@ func (v *VaultController) Get(ctx context.Context, request common.GetRequest, op
 		records := getApiRes.Body.GetRecords()
 		if len(records) > 0 {
 			for _, record := range records {
-				data = append(data, GetFormattedGetRecord(*record))
+				data = append(data, helpers.GetFormattedGetRecord(*record))
 			}
 		}
 	}
@@ -640,7 +406,7 @@ func (v *VaultController) Query(ctx context.Context, queryRequest common.QueryRe
 	queryRes := &common.QueryResponse{}
 	if queryApiRes.Body != nil && queryApiRes.Body.GetRecords() != nil {
 		for _, record := range queryApiRes.Body.GetRecords() {
-			fields = append(fields, GetFormattedQueryRecord(*record))
+			fields = append(fields, helpers.GetFormattedQueryRecord(*record))
 			tokenizedData = append(tokenizedData, record.Tokens)
 		}
 		queryRes.Fields = fields
@@ -664,7 +430,7 @@ func (v *VaultController) Update(ctx context.Context, request common.UpdateReque
 		return nil, err
 	}
 	payload := vaultapis.RecordServiceUpdateRecordBody{}
-	tokenMode, tokenError := SetTokenMode(options.TokenMode)
+	tokenMode, tokenError := helpers.SetTokenMode(options.TokenMode)
 	if tokenError != nil {
 		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_BYOT)
 	}
@@ -692,7 +458,7 @@ func (v *VaultController) Update(ctx context.Context, request common.UpdateReque
 		updateRes = updateApiRes.Body
 		id = updateApiRes.Body.GetSkyflowId()
 	}
-	res := GetFormattedUpdateRecord(*updateRes)
+	res := helpers.GetFormattedUpdateRecord(*updateRes)
 	logger.Info(logs.UPDATE_SUCCESS)
 	return &common.UpdateResponse{
 		Tokens:    res,
@@ -712,7 +478,7 @@ func (v *VaultController) Tokenize(ctx context.Context, request []common.Tokeniz
 	if err := CreateRequestClientFunc(v); err != nil {
 		return nil, err
 	}
-	payload := getTokenizePayload(request)
+	payload := helpers.GetTokenizePayload(request)
 	tokenizeApiRes, apiErr := v.ApiClient.Tokens.WithRawResponse.RecordServiceTokenize(ctx, v.Config.VaultId, &payload)
 
 	if apiErr != nil {
@@ -725,5 +491,41 @@ func (v *VaultController) Tokenize(ctx context.Context, request []common.Tokeniz
 		tokenizeRes = tokenizeApiRes.Body
 	}
 	logger.Info(logs.TOKENIZE_SUCCESS)
-	return ParseTokenizeResponse(*tokenizeRes), nil
+	return helpers.ParseTokenizeResponse(*tokenizeRes), nil
+}
+
+func (v *VaultController) UploadFile(ctx context.Context, request common.FileUploadRequest) (*common.FileUploadResponse, *skyflowError.SkyflowError) {
+	logger.Info(logs.UPLOAD_FILE_TRIGGERED)
+	logger.Info(logs.VALIDATE_UPDATE_INPUT)
+	// validate the request
+	errs := validation.ValidateFileUploadRequest(request)
+	if errs != nil {
+		return nil, errs
+	}
+
+	if err := CreateRequestClientFunc(v); err != nil {
+		return nil, err
+	}
+	file, fileObjError := helpers.GetFileForFileUpload(request)
+	if fileObjError != nil {
+		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fileObjError.Error())
+	}
+	// create payload
+	payload := vaultapis.UploadFileV2Request{}
+	payload.File = file
+	payload.SkyflowId = &request.SkyflowId
+	payload.ColumnName = request.ColumnName
+	payload.TableName = request.Table
+
+	fileResp, fileErr := v.ApiClient.Records.WithRawResponse.UploadFileV2(ctx, v.Config.VaultId, &payload)
+
+	if fileErr != nil {
+		logger.Error(logs.UPLOAD_FILE_REQUEST_REJECTED)
+		header, _ := helpers.GetHeader(fileErr)
+		return nil, skyflowError.SkyflowErrorApi(fileErr, header)
+	}
+	logger.Info(logs.UPLOAD_FILE_REQUEST_RESOLVED)
+	return &common.FileUploadResponse{
+		SkyflowId: *fileResp.Body.GetSkyflowId(),
+	}, nil
 }

@@ -8,17 +8,17 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"reflect"
 	"testing"
 
 	"github.com/skyflowapi/skyflow-go/v2/internal/generated/option"
 
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	constants "github.com/skyflowapi/skyflow-go/v2/internal/constants"
 	vaultapis "github.com/skyflowapi/skyflow-go/v2/internal/generated"
 	client "github.com/skyflowapi/skyflow-go/v2/internal/generated/client"
 	. "github.com/skyflowapi/skyflow-go/v2/internal/vault/controller"
+	"github.com/skyflowapi/skyflow-go/v2/utils/common"
 	. "github.com/skyflowapi/skyflow-go/v2/utils/common"
 	skyflowError "github.com/skyflowapi/skyflow-go/v2/utils/error"
 )
@@ -57,375 +57,6 @@ func TestController(t *testing.T) {
 }
 
 var _ = Describe("Vault controller Test cases", func() {
-	Describe("Test helper functions", func() {
-		Context("Test Get URL Function", func() {
-			tests := []struct {
-				name      string
-				env       Env
-				clusterId string
-				expected  string
-			}{
-				{
-					name:      "Development Environment",
-					env:       DEV,
-					clusterId: "test-cluster",
-					expected:  constants.SECURE_PROTOCOL + "test-cluster" + constants.DEV_DOMAIN,
-				},
-				{
-					name:      "Production Environment",
-					env:       PROD,
-					clusterId: "prod-cluster",
-					expected:  constants.SECURE_PROTOCOL + "prod-cluster" + constants.PROD_DOMAIN,
-				},
-				{
-					name:      "Staging Environment",
-					env:       STAGE,
-					clusterId: "stage-cluster",
-					expected:  constants.SECURE_PROTOCOL + "stage-cluster" + constants.STAGE_DOMAIN,
-				},
-				{
-					name:      "Sandbox Environment",
-					env:       SANDBOX,
-					clusterId: "sandbox-cluster",
-					expected:  constants.SECURE_PROTOCOL + "sandbox-cluster" + constants.SANDBOX_DOMAIN,
-				},
-				{
-					name:      "Default Environment",
-					env:       Env(9),
-					clusterId: "default-cluster",
-					expected:  constants.SECURE_PROTOCOL + "default-cluster" + constants.PROD_DOMAIN,
-				},
-			}
-
-			for _, tt := range tests {
-				// Use a sub-describe block for each test case
-				test := tt // capture range variable
-				It("returns the expected URL", func() {
-					result := GetURLWithEnv(test.env, test.clusterId)
-					Expect(result).To(Equal(test.expected))
-				})
-			}
-		})
-		Context("CreateInsertBulkBodyRequest", func() {
-			var records []*vaultapis.V1FieldRecords
-
-			tests := []struct {
-				name         string
-				request      InsertRequest
-				options      InsertOptions
-				expectedBody *vaultapis.RecordServiceInsertRecordBody
-			}{
-				{
-					name: "Default behavior",
-					request: InsertRequest{
-						Values: []map[string]interface{}{
-							{"field1": "value1"},
-							{"field2": "value2"},
-						},
-					},
-					options: InsertOptions{
-						ReturnTokens: true,
-						Upsert:       "upsert",
-						TokenMode:    DISABLE,
-					},
-					expectedBody: func() *vaultapis.RecordServiceInsertRecordBody {
-						tokenMode := true
-						upsert := "upsert"
-						byot := vaultapis.V1ByotDisable
-						body := vaultapis.RecordServiceInsertRecordBody{}
-						body.Tokenization = &tokenMode
-						body.Upsert = &upsert
-						body.Byot = &byot
-						body.Records = []*vaultapis.V1FieldRecords{
-							{Fields: map[string]interface{}{"field1": "value1"}},
-							{Fields: map[string]interface{}{"field2": "value2"}},
-						}
-						return &body
-					}(),
-				},
-				{
-					name: "With tokens",
-					request: InsertRequest{
-						Values: []map[string]interface{}{
-							{"field1": "value1"},
-						},
-					},
-					options: InsertOptions{
-						ReturnTokens: true,
-						Upsert:       "upsert",
-						Tokens: []map[string]interface{}{
-							{"token1": "value1_token"},
-						},
-						TokenMode: ENABLE_STRICT,
-					},
-					expectedBody: func() *vaultapis.RecordServiceInsertRecordBody {
-						tokens := true
-						upsert := "upsert"
-						tokenMode := vaultapis.V1ByotEnableStrict
-						body := vaultapis.RecordServiceInsertRecordBody{}
-						body.Tokenization = &tokens
-						body.Upsert = &upsert
-						body.Byot = &tokenMode
-						body.Records = []*vaultapis.V1FieldRecords{
-							{
-								Fields: map[string]interface{}{"field1": "value1"},
-								Tokens: map[string]interface{}{"token1": "value1_token"},
-							},
-						}
-						return &body
-					}(),
-				},
-				{
-					name: "Empty input",
-					request: InsertRequest{
-						Values: []map[string]interface{}{},
-					},
-					options: InsertOptions{
-						ReturnTokens: false,
-						Upsert:       "upsert",
-						TokenMode:    ENABLE,
-					},
-					expectedBody: func() *vaultapis.RecordServiceInsertRecordBody {
-						tokens := false
-						upsert := "upsert"
-						tokenMode := vaultapis.V1ByotEnable
-						body := vaultapis.RecordServiceInsertRecordBody{}
-						body.Tokenization = &tokens
-						body.Upsert = &upsert
-						body.Byot = &tokenMode
-						body.Records = records
-						return &body
-					}(),
-				},
-			}
-
-			for _, test := range tests {
-				// Capture the current range variable to avoid closure issues
-				test := test
-
-				It("should create the correct request body", func() {
-					actualBody, err := CreateInsertBulkBodyRequest(&test.request, &test.options)
-					Expect(err).To(BeNil())
-					Expect(*actualBody.Tokenization).To(Equal(*test.expectedBody.Tokenization))
-					Expect(actualBody.Byot).To(Equal(test.expectedBody.Byot))
-					Expect(actualBody.Upsert).To(Equal(test.expectedBody.Upsert))
-					Expect(actualBody.Records).To(Equal(test.expectedBody.Records))
-				})
-			}
-
-		})
-		Context("SetTokenMode", func() {
-			tests := []struct {
-				name         string
-				tokenMode    BYOT
-				expectedByot vaultapis.V1Byot
-			}{
-				{
-					name:         "Enable Strict Mode",
-					tokenMode:    ENABLE_STRICT,
-					expectedByot: vaultapis.V1ByotEnableStrict,
-				},
-				{
-					name:         "Enable Mode",
-					tokenMode:    ENABLE,
-					expectedByot: vaultapis.V1ByotEnable,
-				},
-				{
-					name:         "Default Disable Mode",
-					tokenMode:    DISABLE,
-					expectedByot: vaultapis.V1ByotDisable,
-				},
-				{
-					name:         "Unknown Mode Defaults to Disable",
-					tokenMode:    BYOT("UNKNOWN"),
-					expectedByot: vaultapis.V1ByotDisable,
-				},
-			}
-
-			for index, test := range tests {
-				test := test // capture range variable
-
-				It(fmt.Sprintf("should set the correct token mode %v", index), func() {
-					body := vaultapis.RecordServiceBatchOperationBody{}
-
-					mode, err := SetTokenMode(test.tokenMode)
-					if err != nil {
-						return
-					}
-					body.Byot = mode
-
-					Expect(*mode).To(Equal(test.expectedByot),
-						"Expected token mode to be %v but got %v", test.expectedByot, body.Byot)
-				})
-			}
-		})
-
-		type testCase struct {
-			name          string
-			record        interface{}
-			requestIndex  int
-			expected      map[string]interface{}
-			expectedError error
-		}
-		Context("GetFormattedBatchInsertRecord", func() {
-			var tests = []testCase{
-				{
-					name: "Valid record with skyflow_id and tokens",
-					record: map[string]interface{}{
-						"Body": map[string]interface{}{
-							"records": []interface{}{
-								map[string]interface{}{
-									"skyflow_id": "12345",
-									"tokens": map[string]interface{}{
-										"token1": "value1",
-										"token2": "value2",
-									},
-								},
-							},
-						},
-					},
-					requestIndex: 1,
-					expected: map[string]interface{}{
-						"skyflow_id":    "12345",
-						"token1":        "value1",
-						"token2":        "value2",
-						"request_index": 1,
-					},
-					expectedError: nil,
-				},
-				{
-					name: "Record missing Body field",
-					record: map[string]interface{}{
-						"SomeOtherField": "value",
-					},
-					requestIndex:  2,
-					expected:      nil,
-					expectedError: fmt.Errorf("Body field not found in JSON"),
-				},
-				{
-					name: "Record with error field",
-					record: map[string]interface{}{
-						"Body": map[string]interface{}{
-							"error": "Some error occurred",
-						},
-					},
-					requestIndex: 3,
-					expected: map[string]interface{}{
-						"error":         "Some error occurred",
-						"request_index": 3,
-					},
-					expectedError: nil,
-				},
-				{
-					name: "Invalid record data type in records",
-					record: map[string]interface{}{
-						"Body": map[string]interface{}{
-							"records": []interface{}{"invalid_record"},
-						},
-					},
-					requestIndex: 4,
-					expected: map[string]interface{}{
-						"request_index": 4,
-					},
-					expectedError: nil,
-				},
-				{
-					name:          "Failed to marshal record",
-					record:        func() {}, // invalid type
-					requestIndex:  5,
-					expected:      nil,
-					expectedError: fmt.Errorf("failed to marshal record"),
-				},
-			}
-
-			for _, test := range tests {
-				test := test // capture range variable
-				It("should return the expected result or error", func() {
-					result, err := GetFormattedBatchInsertRecord(test.record, test.requestIndex)
-
-					if test.expectedError != nil {
-						Expect(err).To(HaveOccurred())
-						Expect(err.GetMessage()).To(ContainSubstring(skyflowError.INVALID_RESPONSE))
-					} else {
-						Expect(err).To(BeNil())
-					}
-
-					Expect(reflect.DeepEqual(result, test.expected)).To(BeTrue(),
-						"Expected result: %v, got: %v", test.expected, result)
-				})
-			}
-		})
-		Context("GetFormattedBulkInsertRecord", func() {
-			var (
-				skyflowid = "12345"
-				emptyid   = ""
-			)
-
-			tests := []struct {
-				name     string
-				record   vaultapis.V1RecordMetaProperties
-				expected map[string]interface{}
-			}{
-				{
-					name: "Record with skyflowId and tokens",
-					record: vaultapis.V1RecordMetaProperties{
-						SkyflowId: &skyflowid,
-						Tokens: map[string]interface{}{
-							"token1": "value1",
-							"token2": "value2",
-						},
-					},
-					expected: map[string]interface{}{
-						"skyflow_id": skyflowid,
-						"token1":     "value1",
-						"token2":     "value2",
-					},
-				},
-				{
-					name: "Record with skyflowId and no tokens",
-					record: vaultapis.V1RecordMetaProperties{
-						SkyflowId: &skyflowid,
-					},
-					expected: map[string]interface{}{
-						"skyflow_id": skyflowid,
-					},
-				},
-				{
-					name: "Record with no skyflowId and tokens",
-					record: vaultapis.V1RecordMetaProperties{
-						SkyflowId: &emptyid,
-						Tokens: map[string]interface{}{
-							"tokenA": "valueA",
-						},
-					},
-					expected: map[string]interface{}{
-						"skyflow_id": emptyid,
-						"tokenA":     "valueA",
-					},
-				},
-				{
-					name: "Record with no skyflowId and no tokens",
-					record: vaultapis.V1RecordMetaProperties{
-						SkyflowId: &emptyid,
-						Tokens:    map[string]interface{}{},
-					},
-					expected: map[string]interface{}{
-						"skyflow_id": emptyid,
-					},
-				},
-			}
-
-			for _, test := range tests {
-				test := test // capture the loop variable
-				It("should return the expected formatted record", func() {
-					// Call the function
-					result := GetFormattedBulkInsertRecord(test.record)
-					// Validate the result
-					Expect(result).To(Equal(test.expected))
-				})
-			}
-		})
-	})
 	Describe("Test Insert functions", func() {
 		var (
 			mockJSONResponse string
@@ -835,77 +466,6 @@ var _ = Describe("Vault controller Test cases", func() {
 			}
 			options = DetokenizeOptions{
 				ContinueOnError: true,
-			}
-		})
-		Context("Test Detokenize payload", func() {
-			var (
-				token1               = "token1"
-				token2               = "token2"
-				redaction            = vaultapis.RedactionEnumRedactionMasked
-				ContinueOnError      = true
-				ContinueOnErrorFalse = false
-			)
-
-			tests := []struct {
-				name     string
-				request  DetokenizeRequest
-				options  DetokenizeOptions
-				expected vaultapis.V1DetokenizePayload
-			}{
-				{
-					name: "Test with valid tokens and redaction type",
-					request: DetokenizeRequest{
-						DetokenizeData: []DetokenizeData{{
-							Token:         "token1",
-							RedactionType: MASKED,
-						}, {
-							Token:         "token2",
-							RedactionType: MASKED,
-						}},
-					},
-					options: DetokenizeOptions{
-						ContinueOnError: true,
-					},
-					expected: vaultapis.V1DetokenizePayload{
-						DetokenizationParameters: []*vaultapis.V1DetokenizeRecordRequest{
-							{
-								Token:     &token1,
-								Redaction: &redaction,
-							},
-							{
-								Token:     &token2,
-								Redaction: &redaction,
-							},
-						},
-						ContinueOnError: &ContinueOnError,
-					},
-				},
-				{
-					name: "Test with no tokens",
-					request: DetokenizeRequest{
-						DetokenizeData: nil,
-					},
-					options: DetokenizeOptions{
-						ContinueOnError: false,
-					},
-					expected: vaultapis.V1DetokenizePayload{
-						DetokenizationParameters: nil,
-						ContinueOnError:          &ContinueOnErrorFalse,
-					},
-				},
-			}
-
-			// Iterate over the test cases
-			for _, test := range tests {
-				Context(test.name, func() {
-					It(test.name, func() {
-						// Call the function being tested
-						result := GetDetokenizePayload(test.request, test.options)
-
-						// Compare the result with the expected value using Gomega's Expect
-						Expect(result).To(Equal(test.expected))
-					})
-				})
 			}
 		})
 		Context("When Detokenize is called", func() {
@@ -1480,6 +1040,100 @@ var _ = Describe("Vault controller Test cases", func() {
 				Expect(res).To(BeNil())
 				Expect(err).ToNot(BeNil())
 			})
+		})
+	})
+	Describe("Test Upload file functions", func() {
+		var vaultController VaultController
+		var ctx context.Context
+		BeforeEach(func() {
+			// Initialize the VaultController instance
+			vaultController = VaultController{
+				Config: VaultConfig{
+					VaultId: "vaultID",
+					Credentials: Credentials{
+						ApiKey: "sky-token",
+					},
+					Env:       PROD,
+					ClusterId: "clusterID",
+				},
+			}
+			ctx = context.TODO()
+		})
+		It("should return success response when file upload is valid", func() {
+			response := make(map[string]interface{})
+			mockJSONResponse := `{"skyflowID":"id"}`
+			_ = json.Unmarshal([]byte(mockJSONResponse), &response)
+			// // Set the mock server URL in the controller's client
+			ts := setupMockServer(response, "ok", "/vaults/v2/vaults/")
+
+			// Set the mock server URL in the controller's client
+			header := http.Header{}
+			header.Set("Content-Type", "application/json")
+			CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				client := client.NewClient(
+					option.WithBaseURL(ts.URL+"/vaults"),
+					option.WithToken("token"),
+					option.WithHTTPHeader(header),
+				)
+				v.ApiClient = *client
+				return nil
+			}
+			request := common.FileUploadRequest{
+				Table:      "table",
+				ColumnName: "column",
+				FilePath:   "../../../credentials.json",
+				SkyflowId:  "skyflowid",
+			}
+
+			res, err := vaultController.UploadFile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(res).ToNot(BeNil())
+			Expect(res.SkyflowId).To(Equal("id"))
+		})
+		It("should return error response when api throw error", func() {
+			response := make(map[string]interface{})
+			mockJSONResponse := `{"error":"error occurred"}`
+			_ = json.Unmarshal([]byte(mockJSONResponse), &response)
+			// // Set the mock server URL in the controller's client
+			ts := setupMockServer(response, "", "/vaults/v2/vaults/")
+
+			// Set the mock server URL in the controller's client
+			header := http.Header{}
+			header.Set("Content-Type", "application/json")
+			CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				client := client.NewClient(
+					option.WithBaseURL(ts.URL+"/vaults"),
+					option.WithToken("token"),
+					option.WithHTTPHeader(header),
+				)
+				v.ApiClient = *client
+				return nil
+			}
+			request := common.FileUploadRequest{
+				Table:      "table",
+				ColumnName: "column",
+				FilePath:   "../../../credentials.json",
+				SkyflowId:  "skyflowid",
+			}
+
+			res, err := vaultController.UploadFile(ctx, request)
+			Expect(res).To(BeNil())
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(Equal("Message: error occurred"))
+		})
+		It("should return error response when file path is invalid in file upload", func() {
+
+			request := common.FileUploadRequest{
+				Table:      "table",
+				ColumnName: "column",
+				FilePath:   "",
+				SkyflowId:  "skyflowid",
+			}
+
+			res, err := vaultController.UploadFile(ctx, request)
+			Expect(res).To(BeNil())
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(skyflowError.MISSING_FILE_SOURCE_IN_UPLOAD_FILE))
 		})
 	})
 })

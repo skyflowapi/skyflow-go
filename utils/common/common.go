@@ -469,19 +469,26 @@ type GetResponse struct {
 	Errors []map[string]interface{}
 }
 
-type UploadFileRequest struct {
-	TableName  string
-	SkyflowId  string
-	ColumnName string
-	FilePath   string
-}
-
 type QueryRequest struct {
 	Query string
 }
 type TokenizeRequest struct {
 	ColumnGroup string
 	Value       string
+}
+type FileUploadRequest struct {
+	Table  string
+	SkyflowId  string
+	ColumnName string
+	FilePath   string
+	Base64     string
+	FileName   string
+	FileObject os.File
+}
+
+type FileUploadResponse struct {
+	SkyflowId string
+	Errors  []map[string]interface{}
 }
 
 type TokenizeResponse struct {

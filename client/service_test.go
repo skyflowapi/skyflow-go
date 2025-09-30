@@ -449,6 +449,79 @@ var _ = Describe("Vault controller Test cases", func() {
 			})
 		})
 	})
+	Context("Test Upload file function", func() {
+		var client *Skyflow
+		var ctx context.Context
+		var request FileUploadRequest
+		BeforeEach(func() {
+			// Initialize the VaultController instance
+			client, _ = NewSkyflow(WithVaults(VaultConfig{
+				VaultId:   "id",
+				ClusterId: "cid",
+				Env:       0,
+				Credentials: Credentials{
+					ApiKey: "sky-abcde-1234567890abcdef1234567890abcdef",
+				},
+			}))
+			request = FileUploadRequest{
+				Table:      "table",
+				SkyflowId:  "id1",
+				FilePath:   os.Getenv("CRED_FILE_PATH"),
+				ColumnName: "fileColumn",
+			}
+		})
+
+		It("should return success response when valid id passed in Uploadfile", func() {
+			response := make(map[string]interface{})
+			mockJSONResponse := `{"SkyflowId":"id1"}`
+			_ = json.Unmarshal([]byte(mockJSONResponse), &response)
+			// Set the mock server URL in the controller's client
+			ts := setupMockServer(response, "ok", "/vaults/v2/vaults/")
+
+			// Set the mock server URL in the controller's client
+			header := http.Header{}
+			header.Set("Content-Type", "application/json")
+			CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				client := client2.NewClient(
+					option.WithBaseURL(ts.URL+"/vaults"),
+					option.WithToken("token"),
+					option.WithHTTPHeader(header),
+				)
+				v.ApiClient = *client
+				return nil
+			}
+			var service, err1 = client.Vault()
+			Expect(err1).To(BeNil())
+			ctx = context.TODO()
+			res, err := service.UploadFile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(res).ToNot(BeNil())
+		})
+		It("should return error response when invalid ids passed in Get", func() {
+			response := make(map[string]interface{})
+			mockJSONResponse := `{"error":{"grpc_code":5,"http_code":404,"message":"Get failed. [faild fail] isn't a valid Skyflow ID. Specify a valid Skyflow ID.","http_status":"Not Found","details":[]}}`
+			_ = json.Unmarshal([]byte(mockJSONResponse), &response)
+			// Set the mock server URL in the controller's client
+			ts := setupMockServer(response, "err", "/vaults/v2/vaults/")
+
+			// Set the mock server URL in the controller's client
+			header := http.Header{}
+			header.Set("Content-Type", "application/json")
+			CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				client := client2.NewClient(
+					option.WithBaseURL(ts.URL+"/vaults"),
+					option.WithToken("token"),
+					option.WithHTTPHeader(header),
+				)
+				v.ApiClient = *client
+				return nil
+			}
+			service, _ := client.Vault()
+			res, err := service.UploadFile(ctx, request)
+			Expect(res).To(BeNil())
+			Expect(err).ToNot(BeNil())
+		})	
+	})
 
 	Describe("Test Query functions", func() {
 		var client *Skyflow
@@ -1379,6 +1452,7 @@ func setupMockServer(mockResponse map[string]interface{}, status string, path st
 		case "partial":
 			w.WriteHeader(http.StatusMultiStatus)
 		default:
+			fmt.Println("status is", status)
 			w.WriteHeader(http.StatusBadRequest)
 		}
 		//_, _ = w.Write(jsonData)

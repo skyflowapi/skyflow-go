@@ -80,4 +80,8 @@ const (
     GET_DETECT_RUN_TRIGGERED = SDK_LOG_PREFIX + "Get detect run method triggered."
     VALIDATE_GET_DETECT_RUN_REQUEST = SDK_LOG_PREFIX + "Validating get detect run request."
     REIDENTIFY_TEXT_SUCCESS = SDK_LOG_PREFIX + "Text data re-identified."
+	UPLOAD_FILE_TRIGGERED               = SDK_LOG_PREFIX + "Upload file method triggered."
+	VALIDATE_FILE_UPLOAD_INPUT          = SDK_LOG_PREFIX + "Validating file upload request."
+	VALIDATE_UPLOAD_INPUT               = SDK_LOG_PREFIX + "Validating upload file request."
+	UPLOAD_FILE_REQUEST_RESOLVED       = SDK_LOG_PREFIX + "Upload file request is resolved."
 )
