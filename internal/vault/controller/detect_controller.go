@@ -513,12 +513,12 @@ func (d *DetectController) DeidentifyText(ctx context.Context, request common.De
 				Entity: *entity.EntityType,
 				Scores: entity.EntityScores,
 				TextIndex: common.TextIndex{
-					StartIndex: *entity.Location.StartIndex,
-					EndIndex:   *entity.Location.EndIndex,
+					Start: *entity.Location.StartIndex,
+					End:   *entity.Location.EndIndex,
 				},
 				ProcessedIndex: common.TextIndex{
-					StartIndex: *entity.Location.StartIndexProcessed,
-					EndIndex:   *entity.Location.EndIndexProcessed,
+					Start: *entity.Location.StartIndexProcessed,
+					End:   *entity.Location.EndIndexProcessed,
 				},
 			}
 			deidentifiedTextResponse.Entities = append(deidentifiedTextResponse.Entities, entityInfo)

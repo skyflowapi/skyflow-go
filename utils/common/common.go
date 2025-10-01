@@ -246,8 +246,8 @@ type EntityInfo struct {
 	TextIndex      TextIndex
 }
 type TextIndex struct {
-	StartIndex int
-	EndIndex   int
+	Start int
+	End   int
 }
 type ReidentifyTextResponse struct {
 	ProcessedText string
