@@ -234,7 +234,7 @@ type DeidentifyTextResponse struct {
 	ProcessedText  string
 	Entities       []EntityInfo
 	WordCount      int
-	CharacterCount int
+	CharCount int
 }
 
 type EntityInfo struct {

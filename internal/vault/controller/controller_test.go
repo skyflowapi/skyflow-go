@@ -2009,7 +2009,7 @@ var _ = Describe("DetectController", func() {
 				Expect(result).ToNot(BeNil())
 				Expect(result.ProcessedText).To(Equal("My name is [NAME] and email is [EMAIL]"))
 				Expect(result.WordCount).To(Equal(int(8)))
-				Expect(result.CharacterCount).To(Equal(int(45)))
+				Expect(result.CharCount).To(Equal(int(45)))
 				Expect(result.Entities).To(HaveLen(2))
 				Expect(result.Entities[0].Entity).To(Equal("NAME"))
 				Expect(result.Entities[1].Entity).To(Equal("EMAIL_ADDRESS"))

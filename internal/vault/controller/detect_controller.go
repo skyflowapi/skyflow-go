@@ -502,7 +502,7 @@ func (d *DetectController) DeidentifyText(ctx context.Context, request common.De
 	// Map the API response to the common.DeidentifyTextResponse struct
 	deidentifiedTextResponse.ProcessedText = response.Body.ProcessedText
 	deidentifiedTextResponse.WordCount = response.Body.WordCount
-	deidentifiedTextResponse.CharacterCount = response.Body.CharacterCount
+	deidentifiedTextResponse.CharCount = response.Body.CharacterCount
 
 	// Map entities if present
 	if response.Body.Entities != nil {

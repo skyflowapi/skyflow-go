@@ -790,7 +790,7 @@ var _ = Describe("Detect controller Test cases", func() {
 				Expect(res).ToNot(BeNil())
 				Expect(res.ProcessedText).To(Equal("My name is [NAME] and my email is [EMAIL]"))
 				Expect(res.WordCount).To(Equal(int(8)))
-				Expect(res.CharacterCount).To(Equal(int(45)))
+				Expect(res.CharCount).To(Equal(int(45)))
 				Expect(res.Entities).To(HaveLen(2))
 				Expect(res.Entities[0].Entity).To(Equal("NAME"))
 				Expect(res.Entities[1].Entity).To(Equal("EMAIL_ADDRESS"))
