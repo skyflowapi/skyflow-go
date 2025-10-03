@@ -1084,25 +1084,6 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			})
 		})
 
-		Context("when ShiftDates.Entities is empty", func() {
-			It("should return an error", func() {
-				req := common.DeidentifyTextRequest{
-					Text: "Sensitive text",
-					Transformations: common.Transformations{
-						ShiftDates: common.DateTransformation{
-							MaxDays:  5,
-							MinDays:  2,
-							Entities: []common.TransformationsShiftDatesEntityTypesItem{},
-						},
-					},
-				}
-				err := ValidateDeidentifyTextRequest(req)
-				Expect(err).ToNot(BeNil())
-				Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
-				Expect(err.GetMessage()).To(ContainSubstring(errors.DETECT_ENTITIES_REQUIRED_ON_SHIFT_DATES))
-			})
-		})
-
 		Context("when ShiftDates.MaxDays and MinDays are zero", func() {
 			It("should throw an error", func() {
 				req := common.DeidentifyTextRequest{

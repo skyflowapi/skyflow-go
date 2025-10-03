@@ -109,10 +109,6 @@ func validateTransformations(transformations common.Transformations) *skyflowErr
 		if shift.MaxDays < shift.MinDays {
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_DATE_TRANSFORMATION_RANGE)
 		}
-		// Entities must be provided if shift is requested
-		if len(shift.Entities) == 0 {
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.DETECT_ENTITIES_REQUIRED_ON_SHIFT_DATES)
-		}
 	}
 	return nil
 }
