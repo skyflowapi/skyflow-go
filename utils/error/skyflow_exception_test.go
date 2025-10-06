@@ -79,7 +79,7 @@ var _ = Describe("Skyflow Error", func() {
 			Expect(skyflowError.GetMessage()).To(Equal("Message: Invalid Input"))
 			Expect(skyflowError.GetGrpcCode()).To(Equal("3"))
 			Expect(skyflowError.GetRequestId()).To(Equal("req-12345"))
-			Expect(skyflowError.GetDetails()["errorFromClient"]).To(Equal("true"))
+			Expect(skyflowError.GetDetails()[0]).To(Equal(map[string]interface{}{"errorFromClient": "true"}))
 		})
 		It("should parse error response correctly when error is string type", func() {
 			header := http.Header{}
