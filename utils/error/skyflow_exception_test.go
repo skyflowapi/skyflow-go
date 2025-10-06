@@ -79,7 +79,31 @@ var _ = Describe("Skyflow Error", func() {
 			Expect(skyflowError.GetMessage()).To(Equal("Message: Invalid Input"))
 			Expect(skyflowError.GetGrpcCode()).To(Equal("3"))
 			Expect(skyflowError.GetRequestId()).To(Equal("req-12345"))
-			Expect(skyflowError.GetDetails()[0]).To(Equal(map[string]interface{}{"errorFromClient": "true"}))
+			Expect(skyflowError.GetDetails()[0]).To(Equal(map[string]interface{}{"errorFromClient": true}))
+		})
+		It("should parse JSON response correctly when error-from-client is in wrong format", func() {
+			header := http.Header{}
+			header.Set("Content-Type", "application/json")
+			header.Set("x-request-id", "req-12345")
+			header.Set("error-from-client", "maybe")
+			response := http.Response{
+				Header: header,
+				Body: io.NopCloser(strings.NewReader(`{
+					"error": {
+						"http_code": 400,
+						"message": "Invalid Input",
+						"grpc_code": 3,
+						"http_status": "Not found"
+					}
+				}`)),
+			}
+
+			skyflowError := SkyflowApiError(response)
+			Expect(skyflowError.GetCode()).To(Equal("Code: 400"))
+			Expect(skyflowError.GetMessage()).To(Equal("Message: Invalid Input"))
+			Expect(skyflowError.GetGrpcCode()).To(Equal("3"))
+			Expect(skyflowError.GetRequestId()).To(Equal("req-12345"))
+			Expect(skyflowError.GetDetails()[0]).To(Equal(map[string]interface{}{"errorFromClient": false}))
 		})
 		It("should parse error response correctly when error is string type", func() {
 			header := http.Header{}

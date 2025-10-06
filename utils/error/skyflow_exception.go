@@ -157,7 +157,14 @@ func SkyflowApiError(responseHeaders http.Response) *SkyflowError {
 		}
 		// create a map to hold the error detail
 		errorDetail := make(map[string]interface{})
-		errorDetail["errorFromClient"] = responseHeaders.Header.Get(constants.ERROR_FROM_CLIENT)
+		// convert the header value to boolean string
+		boolValue, err := strconv.ParseBool(responseHeaders.Header.Get(constants.ERROR_FROM_CLIENT))
+		if err != nil {
+			boolValue = false
+		}
+		// set the error detail
+
+		errorDetail["errorFromClient"] = boolValue
 		skyflowError.details = append(skyflowError.details, errorDetail)
 	}
 	return &skyflowError
