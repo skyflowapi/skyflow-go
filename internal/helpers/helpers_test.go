@@ -830,15 +830,13 @@ MIIBAAIBADANINVALIDKEY==
 				Expect(err).To(BeNil())
 				Expect(file).ToNot(BeNil())
 			})
-			It("should return error for valid base64 data", func() {
+			It("should return error for valid base64 data when file name is not passed", func() {
 				data := "SGVsbG8sIFdvcmxkIQ==" // base64 for "Hello, World!"
 				file, err := GetFileForFileUpload(common.FileUploadRequest{Base64: data})
 				Expect(err).ToNot(BeNil())
 				Expect(file).To(BeNil())
 			})
-			// for file ojbect
 			It("should not return error for valid file object", func() {
-				// read file from this "../../credentials.json"
 				tmpfile, err := os.Open("../../credentials.json")
 				Expect(err).To(BeNil())
 				file, err := GetFileForFileUpload(common.FileUploadRequest{FileObject: *tmpfile})
