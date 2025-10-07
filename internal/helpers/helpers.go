@@ -101,6 +101,9 @@ func GetDetokenizePayload(request common.DetokenizeRequest, options common.Detok
 		if request.DetokenizeData[index].RedactionType != "" {
 			redaction, _ := vaultapis.NewRedactionEnumRedactionFromString(string(request.DetokenizeData[index].RedactionType))
 			req.Redaction = &redaction
+		} else {
+			redaction, _ := vaultapis.NewRedactionEnumRedactionFromString(string(common.DEFAULT))
+			req.Redaction = &redaction
 		}
 		reqArray = append(reqArray, &req)
 	}

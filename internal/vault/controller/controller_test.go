@@ -915,6 +915,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				})
 				Expect(err).To(BeNil())
 				Expect(res).ToNot(BeNil())
+				Expect(res.Errors).To(BeNil())
 			})
 
 			It("should return error response when invalid data passed in Update", func() {

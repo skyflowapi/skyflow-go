@@ -17,6 +17,7 @@ import (
 	"testing"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	vaultapis "github.com/skyflowapi/skyflow-go/v2/internal/generated"
 	"github.com/skyflowapi/skyflow-go/v2/internal/generated/core"
 	. "github.com/skyflowapi/skyflow-go/v2/internal/helpers"
 	"github.com/skyflowapi/skyflow-go/v2/utils/common"
@@ -382,205 +383,477 @@ MIIBAAIBADANINVALIDKEY==
 				Expect(result).To(Equal(expected))
 			})
 		})
-	})
-	Context("GenerateBearerTokenHelper", func() {
-		var (
-			credKeys   map[string]interface{}
-			options    common.BearerTokenOptions
-			mockServer *httptest.Server
-		)
+		Context("GenerateBearerTokenHelper", func() {
+			var (
+				credKeys   map[string]interface{}
+				options    common.BearerTokenOptions
+				mockServer *httptest.Server
+			)
 
-		BeforeEach(func() {
-			credKeys = map[string]interface{}{
-				"privateKey": "dummyPrivateKey",
-				"clientID":   "client_123",
-				"tokenURI":   "http://mock-api.com/token",
-				"keyID":      "key_456",
-			}
-			options = common.BearerTokenOptions{
-				Ctx:     "testContext",
-				RoleIDs: []string{"roleid1", "roleid2"},
-			}
-		})
-
-		AfterEach(func() {
-			mockServer.Close()
-		})
-
-		Context("When the API call is successful", func() {
-			It("should return a valid access token", func() {
-				// Set the base URL for the mock server
-				credKeys = getValidCreds()
-				mockServer = mockserver("ok")
-				credKeys["tokenURI"] = mockServer.URL
-				originalGetBaseURLHelper := GetBaseURLHelper
-
-				defer func() { GetBaseURLHelper = originalGetBaseURLHelper }()
-				GetBaseURLHelper = func(urlStr string) (string, *SkyflowError) {
-					return mockServer.URL, nil
+			BeforeEach(func() {
+				credKeys = map[string]interface{}{
+					"privateKey": "dummyPrivateKey",
+					"clientID":   "client_123",
+					"tokenURI":   "http://mock-api.com/token",
+					"keyID":      "key_456",
 				}
-
-				// Call the function under test
-				response, err := GenerateBearerTokenHelper(credKeys, options)
-
-				// Assertions
-				Expect(err).Should(BeNil())
-				Expect(response).ShouldNot(BeNil())
-				Expect(*response.AccessToken).Should(Equal("mockAccessToken"))
-			})
-			It("should return a error", func() {
-				// Set the base URL for the mock server
-				credKeys = getValidCreds()
-				credKeys["tokenURI"] = mockServer.URL
-				mockServer = mockserver("err")
-				originalGetBaseURLHelper := GetBaseURLHelper
-
-				defer func() { GetBaseURLHelper = originalGetBaseURLHelper }()
-
-				GetBaseURLHelper = func(urlStr string) (string, *SkyflowError) {
-					return mockServer.URL, nil
+				options = common.BearerTokenOptions{
+					Ctx:     "testContext",
+					RoleIDs: []string{"roleid1", "roleid2"},
 				}
-
-				// Call the function under test
-				response, err := GenerateBearerTokenHelper(credKeys, options)
-
-				// Assertions
-				Expect(err).ShouldNot(BeNil())
-				Expect(response).Should(BeNil())
 			})
 
-		})
-
-		Context("When the keys are missing", func() {
-			It("should return an error when privateKey is missing", func() {
-				// Remove privateKey from credKeys to simulate missing key
-				credKeys = getValidCreds()
-				delete(credKeys, "privateKey")
-
-				// Call the function under test
-				response, err := GenerateBearerTokenHelper(credKeys, options)
-
-				// Assertions
-				Expect(err).ShouldNot(BeNil())
-				Expect(response).Should(BeNil())
-				Expect(err.GetCode()).Should(Equal("Code: 400"))
-				Expect(err.GetMessage()).Should(ContainSubstring(MISSING_PRIVATE_KEY))
-			})
-			It("should return an error when clientID is missing", func() {
-				// Remove privateKey from credKeys to simulate missing key
-				credKeys = getValidCreds()
-				delete(credKeys, "clientID")
-				// Call the function under test
-				response, err := GenerateBearerTokenHelper(credKeys, options)
-
-				// Assertions
-				Expect(err).ShouldNot(BeNil())
-				Expect(response).Should(BeNil())
-				Expect(err.GetCode()).Should(Equal("Code: 400"))
-				Expect(err.GetMessage()).Should(ContainSubstring(MISSING_CLIENT_ID))
-			})
-			It("should return an error when tokenURI is missing", func() {
-				// Remove privateKey from credKeys to simulate missing key
-				credKeys = getValidCreds()
-				delete(credKeys, "tokenURI")
-				// Call the function under test
-				response, err := GenerateBearerTokenHelper(credKeys, options)
-
-				// Assertions
-				Expect(err).ShouldNot(BeNil())
-				Expect(response).Should(BeNil())
-				Expect(err.GetCode()).Should(Equal("Code: 400"))
-				Expect(err.GetMessage()).Should(ContainSubstring(MISSING_TOKEN_URI))
-			})
-			It("should return an error when keyID is missing", func() {
-				// Remove privateKey from credKeys to simulate missing key
-				credKeys = getValidCreds()
-				delete(credKeys, "keyID")
-				// Call the function under test
-				response, err := GenerateBearerTokenHelper(credKeys, options)
-
-				// Assertions
-				Expect(err).ShouldNot(BeNil())
-				Expect(response).Should(BeNil())
-				Expect(err.GetCode()).Should(Equal("Code: 400"))
-				Expect(err.GetMessage()).Should(ContainSubstring(MISSING_KEY_ID))
-			})
-			It("should return an error when invalid token uri passed", func() {
-				// Remove privateKey from credKeys to simulate missing key
-				credKeys = getValidCreds()
-				credKeys["tokenURI"] = ""
-				// Call the function under test
-				response, err := GenerateBearerTokenHelper(credKeys, options)
-
-				// Assertions
-				Expect(err).ShouldNot(BeNil())
-				Expect(response).Should(BeNil())
-				Expect(err.GetCode()).Should(Equal("Code: 400"))
-				Expect(err.GetMessage()).Should(ContainSubstring(INVALID_TOKEN_URI))
+			AfterEach(func() {
+				mockServer.Close()
 			})
 
-		})
-	})
-	Describe("GetHeader", func() {
+			Context("When the API call is successful", func() {
+				It("should return a valid access token", func() {
+					// Set the base URL for the mock server
+					credKeys = getValidCreds()
+					mockServer = mockserver("ok")
+					credKeys["tokenURI"] = mockServer.URL
+					originalGetBaseURLHelper := GetBaseURLHelper
 
-		It("should return empty header and false when error is nil", func() {
-			h, ok := GetHeader(nil)
-			Expect(ok).To(BeFalse())
-			Expect(h).To(Equal(http.Header{}))
+					defer func() { GetBaseURLHelper = originalGetBaseURLHelper }()
+					GetBaseURLHelper = func(urlStr string) (string, *SkyflowError) {
+						return mockServer.URL, nil
+					}
+
+					// Call the function under test
+					response, err := GenerateBearerTokenHelper(credKeys, options)
+
+					// Assertions
+					Expect(err).Should(BeNil())
+					Expect(response).ShouldNot(BeNil())
+					Expect(*response.AccessToken).Should(Equal("mockAccessToken"))
+				})
+				It("should return a error", func() {
+					// Set the base URL for the mock server
+					credKeys = getValidCreds()
+					credKeys["tokenURI"] = mockServer.URL
+					mockServer = mockserver("err")
+					originalGetBaseURLHelper := GetBaseURLHelper
+
+					defer func() { GetBaseURLHelper = originalGetBaseURLHelper }()
+
+					GetBaseURLHelper = func(urlStr string) (string, *SkyflowError) {
+						return mockServer.URL, nil
+					}
+
+					// Call the function under test
+					response, err := GenerateBearerTokenHelper(credKeys, options)
+
+					// Assertions
+					Expect(err).ShouldNot(BeNil())
+					Expect(response).Should(BeNil())
+				})
+
+			})
+
+			Context("When the keys are missing", func() {
+				It("should return an error when privateKey is missing", func() {
+					// Remove privateKey from credKeys to simulate missing key
+					credKeys = getValidCreds()
+					delete(credKeys, "privateKey")
+
+					// Call the function under test
+					response, err := GenerateBearerTokenHelper(credKeys, options)
+
+					// Assertions
+					Expect(err).ShouldNot(BeNil())
+					Expect(response).Should(BeNil())
+					Expect(err.GetCode()).Should(Equal("Code: 400"))
+					Expect(err.GetMessage()).Should(ContainSubstring(MISSING_PRIVATE_KEY))
+				})
+				It("should return an error when clientID is missing", func() {
+					// Remove privateKey from credKeys to simulate missing key
+					credKeys = getValidCreds()
+					delete(credKeys, "clientID")
+					// Call the function under test
+					response, err := GenerateBearerTokenHelper(credKeys, options)
+
+					// Assertions
+					Expect(err).ShouldNot(BeNil())
+					Expect(response).Should(BeNil())
+					Expect(err.GetCode()).Should(Equal("Code: 400"))
+					Expect(err.GetMessage()).Should(ContainSubstring(MISSING_CLIENT_ID))
+				})
+				It("should return an error when tokenURI is missing", func() {
+					// Remove privateKey from credKeys to simulate missing key
+					credKeys = getValidCreds()
+					delete(credKeys, "tokenURI")
+					// Call the function under test
+					response, err := GenerateBearerTokenHelper(credKeys, options)
+
+					// Assertions
+					Expect(err).ShouldNot(BeNil())
+					Expect(response).Should(BeNil())
+					Expect(err.GetCode()).Should(Equal("Code: 400"))
+					Expect(err.GetMessage()).Should(ContainSubstring(MISSING_TOKEN_URI))
+				})
+				It("should return an error when keyID is missing", func() {
+					// Remove privateKey from credKeys to simulate missing key
+					credKeys = getValidCreds()
+					delete(credKeys, "keyID")
+					// Call the function under test
+					response, err := GenerateBearerTokenHelper(credKeys, options)
+
+					// Assertions
+					Expect(err).ShouldNot(BeNil())
+					Expect(response).Should(BeNil())
+					Expect(err.GetCode()).Should(Equal("Code: 400"))
+					Expect(err.GetMessage()).Should(ContainSubstring(MISSING_KEY_ID))
+				})
+				It("should return an error when invalid token uri passed", func() {
+					// Remove privateKey from credKeys to simulate missing key
+					credKeys = getValidCreds()
+					credKeys["tokenURI"] = ""
+					// Call the function under test
+					response, err := GenerateBearerTokenHelper(credKeys, options)
+
+					// Assertions
+					Expect(err).ShouldNot(BeNil())
+					Expect(response).Should(BeNil())
+					Expect(err.GetCode()).Should(Equal("Code: 400"))
+					Expect(err.GetMessage()).Should(ContainSubstring(INVALID_TOKEN_URI))
+				})
+
+			})
+		})
+		Context("GetHeader", func() {
+
+			It("should return empty header and false when error is nil", func() {
+				h, ok := GetHeader(nil)
+				Expect(ok).To(BeFalse())
+				Expect(h).To(Equal(http.Header{}))
+			})
+
+			It("should return header and true when error is core.APIError", func() {
+				headers := http.Header{}
+				headers.Set("X-Request-Id", "value")
+				err := &core.APIError{Header: headers}
+				_, ok := GetHeader(err)
+				Expect(ok).To(BeTrue())
+			})
+			It("should return empty header and false for non-APIError", func() {
+				h, ok := GetHeader(os.ErrNotExist)
+				Expect(ok).To(BeFalse())
+				Expect(h).To(Equal(http.Header{}))
+			})
+		})
+		Context("Float64Ptr", func() {
+			It("should return pointer to float64 value", func() {
+				val := 3.14
+				ptr := Float64Ptr(val)
+				Expect(ptr).ToNot(BeNil())
+				Expect(*ptr).To(Equal(val))
+			})
+		})
+		Context("GetSkyflowID", func() {
+			It("should return skyflow_id and true if present", func() {
+				m := map[string]interface{}{"skyflow_id": "id123"}
+				id, ok := GetSkyflowID(m)
+				Expect(ok).To(BeTrue())
+				Expect(id).To(Equal("id123"))
+			})
+			It("should return empty string and false if skyflow_id not present", func() {
+				m := map[string]interface{}{"other": "val"}
+				id, ok := GetSkyflowID(m)
+				Expect(ok).To(BeFalse())
+				Expect(id).To(Equal(""))
+			})
+			It("should return empty string and false if skyflow_id is not a string", func() {
+				m := map[string]interface{}{"skyflow_id": 123}
+				id, ok := GetSkyflowID(m)
+				Expect(ok).To(BeFalse())
+				Expect(id).To(Equal(""))
+			})
+		})
+		Context("CreateJsonMetadata", func() {
+			It("should return valid JSON string with expected keys", func() {
+				jsonStr := CreateJsonMetadata()
+				var m map[string]interface{}
+				err := json.Unmarshal([]byte(jsonStr), &m)
+				Expect(err).To(BeNil())
+				Expect(m).To(HaveKey("sdk_name_version"))
+				Expect(m).To(HaveKey("sdk_client_device_model"))
+				Expect(m).To(HaveKey("sdk_client_os_details"))
+				Expect(m).To(HaveKey("sdk_runtime_details"))
+			})
+		})
+		Context("GetDetokenizePayload", func() {
+			It("should build payload with custom redaction types", func() {
+				request := common.DetokenizeRequest{
+					DetokenizeData: []common.DetokenizeData{
+						{Token: "token1", RedactionType: "PLAIN_TEXT"},
+						{Token: "token2", RedactionType: "MASKED"},
+					},
+				}
+				options := common.DetokenizeOptions{ContinueOnError: true}
+				payload := GetDetokenizePayload(request, options)
+				Expect(payload.ContinueOnError).ToNot(BeNil())
+				Expect(*payload.ContinueOnError).To(BeTrue())
+				Expect(payload.DetokenizationParameters).To(HaveLen(2))
+				Expect(payload.DetokenizationParameters[0].Token).ToNot(BeNil())
+				Expect(*payload.DetokenizationParameters[0].Token).To(Equal("token1"))
+				Expect(payload.DetokenizationParameters[1].Token).ToNot(BeNil())
+				Expect(*payload.DetokenizationParameters[1].Token).To(Equal("token2"))
+				Expect(payload.DetokenizationParameters[0].Redaction).ToNot(BeNil())
+				Expect(payload.DetokenizationParameters[1].Redaction).ToNot(BeNil())
+			})
+
+			It("should use default redaction when RedactionType is empty", func() {
+				request := common.DetokenizeRequest{
+					DetokenizeData: []common.DetokenizeData{
+						{Token: "token3", RedactionType: ""},
+					},
+				}
+				options := common.DetokenizeOptions{ContinueOnError: false}
+				payload := GetDetokenizePayload(request, options)
+				Expect(payload.ContinueOnError).ToNot(BeNil())
+				Expect(*payload.ContinueOnError).To(BeFalse())
+				Expect(payload.DetokenizationParameters).To(HaveLen(1))
+				Expect(payload.DetokenizationParameters[0].Token).ToNot(BeNil())
+				Expect(*payload.DetokenizationParameters[0].Token).To(Equal("token3"))
+				Expect(payload.DetokenizationParameters[0].Redaction).ToNot(BeNil())
+			})
+
+			It("should return empty parameters if DetokenizeData is empty", func() {
+				request := common.DetokenizeRequest{DetokenizeData: []common.DetokenizeData{}}
+				options := common.DetokenizeOptions{ContinueOnError: true}
+				payload := GetDetokenizePayload(request, options)
+				Expect(payload.DetokenizationParameters).To(BeNil())
+			})
+		})
+		Context("SetTokenMode", func() {
+			It("should return ENABLE_STRICT mode", func() {
+				byot, err := SetTokenMode(common.ENABLE_STRICT)
+				Expect(err).To(BeNil())
+				Expect(byot).ToNot(BeNil())
+				Expect(string(*byot)).To(Equal(string(common.ENABLE_STRICT)))
+			})
+
+			It("should return ENABLE mode", func() {
+				byot, err := SetTokenMode(common.ENABLE)
+				Expect(err).To(BeNil())
+				Expect(byot).ToNot(BeNil())
+				Expect(string(*byot)).To(Equal(string(common.ENABLE)))
+			})
+
+			It("should return DISABLE mode for unknown input", func() {
+				byot, err := SetTokenMode("UNKNOWN_MODE")
+				Expect(err).To(BeNil())
+				Expect(byot).ToNot(BeNil())
+				Expect(string(*byot)).To(Equal(string(common.DISABLE)))
+			})
+		})
+		Context("GetFormattedGetRecord", func() {
+			It("should return tokens if present", func() {
+				record := vaultapis.V1FieldRecords{
+					Tokens: map[string]interface{}{"field1": "token1", "field2": 123},
+					Fields: map[string]interface{}{"field1": "value1", "field2": "value2"},
+				}
+				result := GetFormattedGetRecord(record)
+				Expect(result).To(HaveKeyWithValue("field1", "token1"))
+				Expect(result).To(HaveKeyWithValue("field2", 123))
+				Expect(result).ToNot(HaveKeyWithValue("field1", "value1"))
+			})
+
+			It("should return fields if tokens is nil", func() {
+				record := vaultapis.V1FieldRecords{
+					Tokens: nil,
+					Fields: map[string]interface{}{"field1": "value1", "field2": "value2"},
+				}
+				result := GetFormattedGetRecord(record)
+				Expect(result).To(HaveKeyWithValue("field1", "value1"))
+				Expect(result).To(HaveKeyWithValue("field2", "value2"))
+			})
+
+			It("should return empty map if both tokens and fields are nil", func() {
+				record := vaultapis.V1FieldRecords{
+					Tokens: nil,
+					Fields: nil,
+				}
+				result := GetFormattedGetRecord(record)
+				Expect(result).To(BeEmpty())
+			})
+		})
+		Context("GetFormattedBatchInsertRecord", func() {
+			It("should extract skyflow_id and tokens from valid record", func() {
+				record := map[string]interface{}{
+					"Body": map[string]interface{}{
+						"records": []interface{}{
+							map[string]interface{}{
+								"skyflow_id": "id123",
+								"tokens":     map[string]interface{}{"field1": "token1"},
+							},
+						},
+					},
+				}
+				result, err := GetFormattedBatchInsertRecord(record, 0)
+				Expect(err).To(BeNil())
+				Expect(result).To(HaveKeyWithValue("skyflow_id", "id123"))
+				Expect(result).To(HaveKeyWithValue("field1", "token1"))
+				Expect(result).To(HaveKeyWithValue("request_index", 0))
+			})
+
+			It("should extract error field if present", func() {
+				record := map[string]interface{}{
+					"Body": map[string]interface{}{
+						"error":   "some error",
+						"records": []interface{}{},
+					},
+				}
+				result, err := GetFormattedBatchInsertRecord(record, 2)
+				Expect(err).To(BeNil())
+				Expect(result).To(HaveKeyWithValue("error", "some error"))
+				Expect(result).To(HaveKeyWithValue("request_index", 2))
+			})
+
+			It("should return error if Body is missing", func() {
+				record := map[string]interface{}{}
+				result, err := GetFormattedBatchInsertRecord(record, 1)
+				Expect(err).ToNot(BeNil())
+				Expect(result).To(BeNil())
+			})
+
+			It("should return error if record is not valid JSON", func() {
+				ch := make(chan int) // not serializable
+				result, err := GetFormattedBatchInsertRecord(ch, 1)
+				Expect(err).ToNot(BeNil())
+				Expect(result).To(BeNil())
+			})
+		})
+		Context("GetFormattedQueryRecord", func() {
+			It("should return fields map", func() {
+				record := vaultapis.V1FieldRecords{
+					Fields: map[string]interface{}{"f1": "v1", "f2": 2},
+				}
+				result := GetFormattedQueryRecord(record)
+				Expect(result).To(HaveKeyWithValue("f1", "v1"))
+				Expect(result).To(HaveKeyWithValue("f2", 2))
+			})
+			It("should return empty map if fields is nil", func() {
+				record := vaultapis.V1FieldRecords{}
+				result := GetFormattedQueryRecord(record)
+				Expect(result).To(BeEmpty())
+			})
+		})
+		Context("GetFormattedUpdateRecord", func() {
+			It("should return tokens map", func() {
+				record := vaultapis.V1UpdateRecordResponse{
+					Tokens: map[string]interface{}{"f": "t"},
+				}
+				result := GetFormattedUpdateRecord(record)
+				Expect(result).To(HaveKeyWithValue("f", "t"))
+			})
+			It("should return empty map if tokens is nil", func() {
+				record := vaultapis.V1UpdateRecordResponse{}
+				result := GetFormattedUpdateRecord(record)
+				Expect(result).To(BeEmpty())
+			})
+		})
+		Context("CreateInsertBulkBodyRequest", func() {
+			It("should create valid insert body", func() {
+				request := &common.InsertRequest{Values: []map[string]interface{}{{"a": 1}}}
+				options := &common.InsertOptions{Upsert: "true", ReturnTokens: true, TokenMode: common.ENABLE}
+				body, err := CreateInsertBulkBodyRequest(request, options)
+				Expect(err).To(BeNil())
+				Expect(body).ToNot(BeNil())
+				Expect(body.Records).To(HaveLen(1))
+			})
+		})
+		Context("CreateInsertBatchBodyRequest", func() {
+			It("should create valid batch body", func() {
+				request := &common.InsertRequest{Table: "t", Values: []map[string]interface{}{{"a": 1}}}
+				options := &common.InsertOptions{Upsert: "true", ReturnTokens: true, TokenMode: common.ENABLE}
+				body, err := CreateInsertBatchBodyRequest(request, options)
+				Expect(err).To(BeNil())
+				Expect(body).ToNot(BeNil())
+				Expect(body.Records).To(HaveLen(1))
+			})
+		})
+		Context("GetTokenizePayload", func() {
+			It("should build payload from requests", func() {
+				requests := []common.TokenizeRequest{{Value: "v", ColumnGroup: "cg"}}
+				payload := GetTokenizePayload(requests)
+				Expect(payload.TokenizationParameters).To(HaveLen(1))
+				Expect(payload.TokenizationParameters[0].Value).ToNot(BeNil())
+				Expect(*payload.TokenizationParameters[0].Value).To(Equal("v"))
+				Expect(payload.TokenizationParameters[0].ColumnGroup).ToNot(BeNil())
+				Expect(*payload.TokenizationParameters[0].ColumnGroup).To(Equal("cg"))
+			})
+		})
+		Context("GetURLWithEnv", func() {
+			It("should return correct URL for each env", func() {
+				Expect(GetURLWithEnv(common.DEV, "cid")).To(ContainSubstring("cid"))
+				Expect(GetURLWithEnv(common.PROD, "cid")).To(ContainSubstring("cid"))
+				Expect(GetURLWithEnv(common.STAGE, "cid")).To(ContainSubstring("cid"))
+				Expect(GetURLWithEnv(common.SANDBOX, "cid")).To(ContainSubstring("cid"))
+			})
+		})
+		Context("ParseTokenizeResponse", func() {
+			It("should parse tokens from response", func() {
+				resp := vaultapis.V1TokenizeResponse{}
+				token := "token"
+				record := vaultapis.V1TokenizeRecordResponse{Token: &token}
+				records := []*vaultapis.V1TokenizeRecordResponse{&record}
+				resp.Records = records
+				result := ParseTokenizeResponse(resp)
+				Expect(result.Tokens).To(ContainElement("token"))
+			})
+		})
+		Context("GetFileForFileUpload", func() {
+			It("should not return error for empty input", func() {
+				_, err := GetFileForFileUpload(common.FileUploadRequest{})
+				Expect(err).To(BeNil())
+			})
+			It("should return error for invalid file path", func() {
+				_, err := GetFileForFileUpload(common.FileUploadRequest{FilePath: "invalid_path.txt"})
+				Expect(err).ToNot(BeNil())
+				Expect(err.Error()).To(Equal("open invalid_path.txt: no such file or directory"))
+			})
+			It("should not return error for valid file path", func() {
+				_, err := GetFileForFileUpload(common.FileUploadRequest{FilePath: "../../credentials.json"})
+				Expect(err).To(BeNil())
+			})
+			It("should return error for invalid base64 data", func() {
+				_, err := GetFileForFileUpload(common.FileUploadRequest{Base64: "invalid_base64"})
+				Expect(err).ToNot(BeNil())
+				Expect(err.Error()).To(ContainSubstring("illegal base64 data at input byte"))
+			})
+			// create file object
+			It("should not return error for valid base64 data", func() {
+				data := "SGVsbG8sIFdvcmxkIQ==" // base64 for "Hello, World!"
+				file, err := GetFileForFileUpload(common.FileUploadRequest{Base64: data, FileName: "hello.txt"})
+				Expect(err).To(BeNil())
+				Expect(file).ToNot(BeNil())
+			})
+			It("should return error for valid base64 data when file name is not passed", func() {
+				data := "SGVsbG8sIFdvcmxkIQ==" // base64 for "Hello, World!"
+				file, err := GetFileForFileUpload(common.FileUploadRequest{Base64: data})
+				Expect(err).ToNot(BeNil())
+				Expect(file).To(BeNil())
+			})
+			It("should not return error for valid file object", func() {
+				tmpfile, err := os.Open("../../credentials.json")
+				Expect(err).To(BeNil())
+				file, err := GetFileForFileUpload(common.FileUploadRequest{FileObject: *tmpfile})
+				Expect(err).To(BeNil())
+				Expect(file).ToNot(BeNil())
+				defer tmpfile.Close()
+			})
+			It("should return error for nil file object", func() {
+				// empty file object
+				var tmpfile os.File = os.File{}
+				file, err := GetFileForFileUpload(common.FileUploadRequest{FileObject: tmpfile})
+				Expect(err).To(BeNil())
+				Expect(file).To(BeNil())
+			})
 		})
 
-		It("should return header and true when error is core.APIError", func() {
-			headers := http.Header{}
-			headers.Set("X-Request-Id", "value")
-			err := &core.APIError{Header: headers}
-			_, ok := GetHeader(err)
-			Expect(ok).To(BeTrue())
-		})
-		It("should return empty header and false for non-APIError", func() {
-			h, ok := GetHeader(os.ErrNotExist)
-			Expect(ok).To(BeFalse())
-			Expect(h).To(Equal(http.Header{}))
-		})
-	})
-	Describe("Float64Ptr", func() {
-		It("should return pointer to float64 value", func() {
-			val := 3.14
-			ptr := Float64Ptr(val)
-			Expect(ptr).ToNot(BeNil())
-			Expect(*ptr).To(Equal(val))
-		})
-	})
-	Describe("GetSkyflowID", func() {
-		It("should return skyflow_id and true if present", func() {
-			m := map[string]interface{}{"skyflow_id": "id123"}
-			id, ok := GetSkyflowID(m)
-			Expect(ok).To(BeTrue())
-			Expect(id).To(Equal("id123"))
-		})
-		It("should return empty string and false if skyflow_id not present", func() {
-			m := map[string]interface{}{"other": "val"}
-			id, ok := GetSkyflowID(m)
-			Expect(ok).To(BeFalse())
-			Expect(id).To(Equal(""))
-		})
-		It("should return empty string and false if skyflow_id is not a string", func() {
-			m := map[string]interface{}{"skyflow_id": 123}
-			id, ok := GetSkyflowID(m)
-			Expect(ok).To(BeFalse())
-			Expect(id).To(Equal(""))
-		})
-	})
-	Describe("CreateJsonMetadata", func() {
-		It("should return valid JSON string with expected keys", func() {
-			jsonStr := CreateJsonMetadata()
-			var m map[string]interface{}
-			err := json.Unmarshal([]byte(jsonStr), &m)
-			Expect(err).To(BeNil())
-			Expect(m).To(HaveKey("sdk_name_version"))
-			Expect(m).To(HaveKey("sdk_client_device_model"))
-			Expect(m).To(HaveKey("sdk_client_os_details"))
-			Expect(m).To(HaveKey("sdk_runtime_details"))
-		})
+
 	})
 })
 
