@@ -442,9 +442,8 @@ type UpdateOptions struct {
 }
 type UpdateResponse struct {
 	// Response fields
-	SkyflowId string
-	Tokens    map[string]interface{}
-	Errors    []map[string]interface{}
+	UpdatedField map[string]interface{} 
+	Errors       []map[string]interface{}
 }
 
 type GetRequest struct {

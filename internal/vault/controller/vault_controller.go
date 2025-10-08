@@ -460,9 +460,12 @@ func (v *VaultController) Update(ctx context.Context, request common.UpdateReque
 	}
 	res := helpers.GetFormattedUpdateRecord(*updateRes)
 	logger.Info(logs.UPDATE_SUCCESS)
+	var updatedField map[string]interface{}
+	updatedField = make(map[string]interface{})
+	updatedField = res
+	updatedField["skyflowId"] = *id
 	return &common.UpdateResponse{
-		Tokens:    res,
-		SkyflowId: *id,
+		UpdatedField:    updatedField,
 		Errors:    nil,
 	}, nil
 }
