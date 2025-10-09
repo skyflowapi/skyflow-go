@@ -28,6 +28,7 @@ func GetToken() (string, error) {
 	}
 	return bearerToken, nil
 }
+
 func main() {
 
 	defer func() {
@@ -35,23 +36,19 @@ func main() {
 			fmt.Println("error: ", r)
 		}
 	}()
-
 	logger.SetLogLevel(logger.INFO) //set loglevel to INFO
 	configuration := common.Configuration{VaultID: "<vault_id>", VaultURL: "<vault_url>", TokenProvider: GetToken}
 	var client = Skyflow.Init(configuration)
 	var records = make(map[string]interface{})
 	var record1 = make(map[string]interface{})
-	record1["token"] = "<token>"
-	var record2 = make(map[string]interface{})
-	record2["token"] = "<token>"
+	record1["ids"] = []interface{}{"<id1>", "<id2>"}
+	record1["table"] = "cards"
+	record1["redaction"] = "PLAIN_TEXT"
 
 	var recordsArray []interface{}
 	recordsArray = append(recordsArray, record1)
-	recordsArray = append(recordsArray, record2)
 	records["records"] = recordsArray
-	//default value for ContinueOnError is true
-	var options = common.DetokenizeOptions{ ContinueOnError: false };
-	res, err := client.Detokenize(records, options)
+	res, err := client.GetById(records)
 	if err == nil {
 		fmt.Println("Records : ", res.Records)
 	} else {

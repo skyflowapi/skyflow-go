@@ -1,0 +1,694 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>helpers: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/skyflowapi/skyflow-go/v2/internal/helpers/helpers.go (88.5%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package helpers
+
+import (
+        "context"
+        "crypto/rsa"
+        "crypto/x509"
+        "encoding/base64"
+        "encoding/json"
+        "encoding/pem"
+        "errors"
+        "fmt"
+        "io"
+        "io/ioutil"
+        "net/http"
+        "net/url"
+        "os"
+        "runtime"
+        "time"
+
+        "github.com/skyflowapi/skyflow-go/v2/internal/generated/core"
+
+        vaultapis "github.com/skyflowapi/skyflow-go/v2/internal/generated"
+        "github.com/golang-jwt/jwt"
+        constants "github.com/skyflowapi/skyflow-go/v2/internal/constants"
+        internal "github.com/skyflowapi/skyflow-go/v2/internal/generated"
+        internalAuthApi "github.com/skyflowapi/skyflow-go/v2/internal/generated/authentication"
+        "github.com/skyflowapi/skyflow-go/v2/internal/generated/option"
+        common "github.com/skyflowapi/skyflow-go/v2/utils/common"
+        skyflowError "github.com/skyflowapi/skyflow-go/v2/utils/error"
+        "github.com/skyflowapi/skyflow-go/v2/utils/logger"
+        logs "github.com/skyflowapi/skyflow-go/v2/utils/messages"
+)
+
+// Helper function to read and parse credentials from file
+func ParseCredentialsFile(credentialsFilePath string) (map[string]interface{}, *skyflowError.SkyflowError) <span class="cov8" title="1">{
+        file, err := os.Open(credentialsFilePath)
+        if err != nil </span><span class="cov8" title="1">{
+                logger.Error(fmt.Sprintf(logs.FILE_NOT_FOUND, credentialsFilePath))
+                return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.FILE_NOT_FOUND, credentialsFilePath))
+        }</span>
+        <span class="cov8" title="1">defer file.Close()
+
+        bytes, err := ioutil.ReadAll(file)
+        if err != nil </span><span class="cov0" title="0">{
+                logger.Error(fmt.Sprintf(logs.INVALID_INPUT_FILE, credentialsFilePath))
+                return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(logs.INVALID_INPUT_FILE, credentialsFilePath))
+        }</span>
+        <span class="cov8" title="1">var credKeys map[string]interface{}
+        if err := json.Unmarshal(bytes, &amp;credKeys); err != nil </span><span class="cov8" title="1">{
+                logger.Error(logs.NOT_A_VALID_JSON)
+                return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.CREDENTIALS_STRING_INVALID_JSON)
+        }</span>
+        <span class="cov8" title="1">return credKeys, nil</span>
+}
+
+// SetTokenMode sets the tokenization mode in the request body.
+func SetTokenMode(tokenMode common.BYOT) (*vaultapis.V1Byot, error) <span class="cov8" title="1">{
+        var tokenModes vaultapis.V1Byot
+        var tokenError error
+        switch tokenMode </span>{
+        case common.ENABLE_STRICT:<span class="cov8" title="1">
+                tokenModes, tokenError = vaultapis.NewV1ByotFromString(string(common.ENABLE_STRICT))</span>
+        case common.ENABLE:<span class="cov8" title="1">
+                tokenModes, tokenError = vaultapis.NewV1ByotFromString(string(common.ENABLE))</span>
+        default:<span class="cov8" title="1">
+                tokenModes, tokenError = vaultapis.NewV1ByotFromString(string(common.DISABLE))</span>
+        }
+        <span class="cov8" title="1">if tokenError != nil </span><span class="cov0" title="0">{
+                return nil, tokenError
+        }</span>
+        <span class="cov8" title="1">return &amp;tokenModes, nil</span>
+}
+func GetFormattedGetRecord(record vaultapis.V1FieldRecords) map[string]interface{} <span class="cov8" title="1">{
+        getRecord := make(map[string]interface{})
+        var sourceMap map[string]interface{}
+
+        // Decide whether to use Tokens or Fields
+        if record.Tokens != nil </span><span class="cov8" title="1">{
+                sourceMap = record.Tokens
+        }</span> else<span class="cov8" title="1"> {
+                sourceMap = record.Fields
+        }</span>
+
+        // Copy elements from sourceMap to getRecord
+        <span class="cov8" title="1">if sourceMap != nil </span><span class="cov8" title="1">{
+                for key, value := range sourceMap </span><span class="cov8" title="1">{
+                        getRecord[key] = value
+                }</span>
+        }
+
+        <span class="cov8" title="1">return getRecord</span>
+}
+func GetDetokenizePayload(request common.DetokenizeRequest, options common.DetokenizeOptions) vaultapis.V1DetokenizePayload <span class="cov8" title="1">{
+        payload := vaultapis.V1DetokenizePayload{}
+        payload.ContinueOnError = &amp;options.ContinueOnError
+        var reqArray []*vaultapis.V1DetokenizeRecordRequest
+
+        for index := range request.DetokenizeData </span><span class="cov8" title="1">{
+                req := vaultapis.V1DetokenizeRecordRequest{}
+                req.Token = &amp;request.DetokenizeData[index].Token
+                if request.DetokenizeData[index].RedactionType != "" </span><span class="cov8" title="1">{
+                        redaction, _ := vaultapis.NewRedactionEnumRedactionFromString(string(request.DetokenizeData[index].RedactionType))
+                        req.Redaction = &amp;redaction
+                }</span> else<span class="cov8" title="1"> {
+                        redaction, _ := vaultapis.NewRedactionEnumRedactionFromString(string(common.DEFAULT))
+                        req.Redaction = &amp;redaction
+                }</span>
+                <span class="cov8" title="1">reqArray = append(reqArray, &amp;req)</span>
+        }
+        <span class="cov8" title="1">if len(reqArray) &gt; 0 </span><span class="cov8" title="1">{
+                payload.DetokenizationParameters = reqArray
+        }</span>
+        <span class="cov8" title="1">return payload</span>
+}
+func GetFormattedBatchInsertRecord(record interface{}, requestIndex int) (map[string]interface{}, *skyflowError.SkyflowError) <span class="cov8" title="1">{
+        insertRecord := make(map[string]interface{})
+        // Convert the record to JSON and unmarshal it
+        jsonData, err := json.Marshal(record)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_RESPONSE)
+        }</span>
+
+        <span class="cov8" title="1">var bodyObject map[string]interface{}
+        if err := json.Unmarshal(jsonData, &amp;bodyObject); err != nil </span><span class="cov0" title="0">{
+                return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_RESPONSE)
+        }</span>
+
+        // Extract relevant data from "Body"
+        <span class="cov8" title="1">body, bodyExists := bodyObject["Body"].(map[string]interface{})
+        if !bodyExists </span><span class="cov8" title="1">{
+                return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_RESPONSE)
+        }</span>
+
+        // Handle extracted data
+        <span class="cov8" title="1">if records, ok := body["records"].([]interface{}); ok </span><span class="cov8" title="1">{
+                for _, rec := range records </span><span class="cov8" title="1">{
+                        recordObject, isMap := rec.(map[string]interface{})
+                        if !isMap </span><span class="cov0" title="0">{
+                                continue</span>
+                        }
+                        <span class="cov8" title="1">if skyflowID, exists := recordObject["skyflow_id"].(string); exists </span><span class="cov8" title="1">{
+                                insertRecord["skyflow_id"] = skyflowID
+                        }</span>
+                        <span class="cov8" title="1">if tokens, exists := recordObject["tokens"].(map[string]interface{}); exists </span><span class="cov8" title="1">{
+                                for key, value := range tokens </span><span class="cov8" title="1">{
+                                        insertRecord[key] = value
+                                }</span>
+                        }
+                }
+        }
+
+        <span class="cov8" title="1">if errorField, exists := body["error"].(string); exists </span><span class="cov8" title="1">{
+                insertRecord["error"] = errorField
+        }</span>
+
+        <span class="cov8" title="1">insertRecord["request_index"] = requestIndex
+        return insertRecord, nil</span>
+}
+func GetFormattedBulkInsertRecord(record vaultapis.V1RecordMetaProperties) map[string]interface{} <span class="cov0" title="0">{
+        insertRecord := make(map[string]interface{})
+        insertRecord["skyflow_id"] = *record.GetSkyflowId()
+
+        tokensMap := record.GetTokens()
+        if len(tokensMap) &gt; 0 </span><span class="cov0" title="0">{
+                for key, value := range tokensMap </span><span class="cov0" title="0">{
+                        insertRecord[key] = value
+                }</span>
+        }
+        <span class="cov0" title="0">return insertRecord</span>
+}
+func GetFormattedQueryRecord(record vaultapis.V1FieldRecords) map[string]interface{} <span class="cov8" title="1">{
+        queryRecord := make(map[string]interface{})
+        if record.Fields != nil </span><span class="cov8" title="1">{
+                for key, value := range record.Fields </span><span class="cov8" title="1">{
+                        queryRecord[key] = value
+                }</span>
+        }
+        <span class="cov8" title="1">return queryRecord</span>
+}
+func GetFormattedUpdateRecord(record vaultapis.V1UpdateRecordResponse) map[string]interface{} <span class="cov8" title="1">{
+        updateTokens := make(map[string]interface{})
+
+        // Check if tokens are not nil
+        if record.Tokens != nil </span><span class="cov8" title="1">{
+                // Iterate through the map and populate updateTokens
+                for key, value := range record.Tokens </span><span class="cov8" title="1">{
+                        updateTokens[key] = value
+                }</span>
+        }
+
+        <span class="cov8" title="1">return updateTokens</span>
+}
+
+// CreateInsertBulkBodyRequest createInsertBodyRequest generates the request body for bulk inserts.
+func CreateInsertBulkBodyRequest(request *common.InsertRequest, options *common.InsertOptions) (*vaultapis.RecordServiceInsertRecordBody, *skyflowError.SkyflowError) <span class="cov8" title="1">{
+        var records []*vaultapis.V1FieldRecords
+        for i, value := range request.Values </span><span class="cov8" title="1">{
+                field := vaultapis.V1FieldRecords{}
+                field.Fields = value
+                // Ensure options.Tokens are not nil and the index i exists
+                if options.Tokens != nil &amp;&amp; i &lt; len(options.Tokens) </span><span class="cov0" title="0">{
+                        field.Tokens = options.Tokens[i]
+                }</span>
+                <span class="cov8" title="1">records = append(records, &amp;field)</span>
+        }
+        <span class="cov8" title="1">tokenMode, tokenError := SetTokenMode(options.TokenMode)
+        if tokenError != nil </span><span class="cov0" title="0">{
+                return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_BYOT)
+        }</span>
+        <span class="cov8" title="1">insertBody := vaultapis.RecordServiceInsertRecordBody{}
+        insertBody.Records = records
+        insertBody.Upsert = &amp;options.Upsert
+        insertBody.Tokenization = &amp;options.ReturnTokens
+        insertBody.Byot = tokenMode
+        return &amp;insertBody, nil</span>
+}
+
+// CreateInsertBatchBodyRequest generates the request body for batch inserts.
+func CreateInsertBatchBodyRequest(request *common.InsertRequest, options *common.InsertOptions) (*vaultapis.RecordServiceBatchOperationBody, error) <span class="cov8" title="1">{
+        records := make([]*vaultapis.V1BatchRecord, len(request.Values))
+        for index, record := range request.Values </span><span class="cov8" title="1">{
+                batchRecord := vaultapis.V1BatchRecord{}
+                batchRecord.TableName = &amp;request.Table
+                batchRecord.Upsert = &amp;options.Upsert
+                batchRecord.Tokenization = &amp;options.ReturnTokens
+                batchRecord.Fields = record
+                batchRecord.Method = vaultapis.BatchRecordMethodPost.Ptr()
+                if options.Tokens != nil &amp;&amp; index &lt; len(options.Tokens) </span><span class="cov0" title="0">{
+                        batchRecord.Tokens = options.Tokens[index]
+                }</span>
+                <span class="cov8" title="1">records[index] = &amp;batchRecord</span>
+        }
+
+        <span class="cov8" title="1">body := vaultapis.RecordServiceBatchOperationBody{}
+        body.Records = records
+        body.ContinueOnError = &amp;options.ContinueOnError
+
+        tokenMode, tokenError := SetTokenMode(options.TokenMode)
+        if tokenError != nil </span><span class="cov0" title="0">{
+                return nil, tokenError
+        }</span>
+        <span class="cov8" title="1">body.Byot = tokenMode
+        return &amp;body, nil</span>
+}
+
+func GetTokenizePayload(request []common.TokenizeRequest) vaultapis.V1TokenizePayload <span class="cov8" title="1">{
+        payload := vaultapis.V1TokenizePayload{}
+        var records []*vaultapis.V1TokenizeRecordRequest
+        for _, tokenizeRequest := range request </span><span class="cov8" title="1">{
+                record := vaultapis.V1TokenizeRecordRequest{
+                        Value:       &amp;tokenizeRequest.Value,
+                        ColumnGroup: &amp;tokenizeRequest.ColumnGroup,
+                }
+                records = append(records, &amp;record)
+        }</span>
+        <span class="cov8" title="1">payload.TokenizationParameters = records
+        return payload</span>
+}
+
+// GetURLWithEnv constructs the URL for the given environment and clusterId.
+func GetURLWithEnv(env common.Env, clusterId string) string <span class="cov8" title="1">{
+        var url = constants.SECURE_PROTOCOL + clusterId
+        switch env </span>{
+        case common.DEV:<span class="cov8" title="1">
+                url = url + constants.DEV_DOMAIN</span>
+        case common.PROD:<span class="cov8" title="1">
+                url = url + constants.PROD_DOMAIN</span>
+        case common.STAGE:<span class="cov8" title="1">
+                url = url + constants.STAGE_DOMAIN</span>
+        case common.SANDBOX:<span class="cov8" title="1">
+                url = url + constants.SANDBOX_DOMAIN</span>
+        default:<span class="cov0" title="0">
+                url = url + constants.PROD_DOMAIN</span>
+        }
+        <span class="cov8" title="1">return url</span>
+}
+
+func ParseTokenizeResponse(apiResponse vaultapis.V1TokenizeResponse) *common.TokenizeResponse <span class="cov8" title="1">{
+        var tokens []string
+        for _, record := range apiResponse.GetRecords() </span><span class="cov8" title="1">{
+                tokens = append(tokens, *record.GetToken())
+        }</span>
+        <span class="cov8" title="1">return &amp;common.TokenizeResponse{
+                Tokens: tokens,
+        }</span>
+}
+func GetFileForFileUpload(request common.FileUploadRequest) (*os.File, error) <span class="cov8" title="1">{
+        if request.FilePath != "" </span><span class="cov8" title="1">{
+                file, err := os.Open(request.FilePath)
+                if err != nil </span><span class="cov8" title="1">{
+                        return nil, err
+                }</span>
+                <span class="cov8" title="1">return file, nil</span>
+        }
+        <span class="cov8" title="1">if request.Base64 != "" </span><span class="cov8" title="1">{
+                data, err := base64.StdEncoding.DecodeString(request.Base64)
+                if err != nil </span><span class="cov8" title="1">{
+                        return nil, fmt.Errorf("failed to decode base64: %w", err)
+                }</span>
+                <span class="cov8" title="1">file, err := os.Create(request.FileName)
+                if err != nil </span><span class="cov8" title="1">{
+                        return nil, fmt.Errorf("failed to create file: %w", err)
+                }</span>
+                // Write data
+                <span class="cov8" title="1">_, err = file.Write(data)
+                if err != nil </span><span class="cov0" title="0">{
+                        file.Close()
+                        return nil, err
+                }</span>
+                // Reset pointer
+                <span class="cov8" title="1">file.Seek(0, io.SeekStart)
+
+                // Remove from disk but keep open
+                os.Remove(request.FileName)
+                return file, nil</span>
+        }
+
+        <span class="cov8" title="1">if request.FileObject != (os.File{}) </span><span class="cov0" title="0">{
+                // make *os.File act as ReadCloser
+                return &amp;request.FileObject, nil
+        }</span>
+        <span class="cov8" title="1">return nil, nil</span>
+}
+
+// Generate and Sign Tokens
+func GetSignedDataTokens(credKeys map[string]interface{}, options common.SignedDataTokensOptions) ([]common.SignedDataTokensResponse, *skyflowError.SkyflowError) <span class="cov8" title="1">{
+        pvtKey, err := GetPrivateKey(credKeys)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">clientID, tokenURI, keyID, err := GetCredentialParams(credKeys)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+
+        <span class="cov8" title="1">return GenerateSignedDataTokensHelper(clientID, keyID, pvtKey, options, tokenURI)</span>
+}
+
+// Helper for extracting credentials
+func GetCredentialParams(credKeys map[string]interface{}) (string, string, string, *skyflowError.SkyflowError) <span class="cov8" title="1">{
+        clientID, ok := credKeys["clientID"].(string)
+        tokenURI, ok2 := credKeys["tokenURI"].(string)
+        keyID, ok3 := credKeys["keyID"].(string)
+        if !ok || !ok2 || !ok3 </span><span class="cov8" title="1">{
+                logger.Error(logs.INVALID_CREDENTIALS_FILE_FORMAT)
+                return "", "", "", skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_CREDENTIALS)
+        }</span>
+        <span class="cov8" title="1">return clientID, tokenURI, keyID, nil</span>
+}
+
+// Generate signed tokens
+func GenerateSignedDataTokensHelper(clientID, keyID string, pvtKey *rsa.PrivateKey, options common.SignedDataTokensOptions, tokenURI string) ([]common.SignedDataTokensResponse, *skyflowError.SkyflowError) <span class="cov8" title="1">{
+        var responseArray []common.SignedDataTokensResponse
+        for _, token := range options.DataTokens </span><span class="cov8" title="1">{
+                claims := jwt.MapClaims{
+                        "iss": "sdk",
+                        "key": keyID,
+                        "aud": tokenURI,
+                        "iat": time.Now().Unix(),
+                        "sub": clientID,
+                        "tok": token,
+                }
+                if options.TimeToLive &gt; 0 </span><span class="cov8" title="1">{
+                        claims["exp"] = time.Now().Add(time.Duration(options.TimeToLive) * time.Second).Unix()
+                }</span> else<span class="cov8" title="1"> {
+                        claims["exp"] = time.Now().Add(time.Duration(60) * time.Second).Unix()
+                }</span>
+                <span class="cov8" title="1">if options.Ctx != "" </span><span class="cov8" title="1">{
+                        claims["ctx"] = options.Ctx
+                }</span>
+
+                <span class="cov8" title="1">tokenString, err := jwt.NewWithClaims(jwt.SigningMethodRS256, claims).SignedString(pvtKey)
+                if err != nil </span><span class="cov0" title="0">{
+                        logger.Error(logs.PARSE_JWT_PAYLOAD)
+                        return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.ERROR_OCCURRED+"%v", err))
+                }</span>
+                <span class="cov8" title="1">responseArray = append(responseArray, common.SignedDataTokensResponse{Token: token, SignedToken: "signed_token_" + tokenString})</span>
+        }
+        <span class="cov8" title="1">logger.Info(logs.GENERATE_SIGNED_DATA_TOKEN_SUCCESS)
+        return responseArray, nil</span>
+}
+
+func GetPrivateKey(credKeys map[string]interface{}) (*rsa.PrivateKey, *skyflowError.SkyflowError) <span class="cov8" title="1">{
+        privateKeyStr, ok := credKeys["privateKey"].(string)
+        if !ok </span><span class="cov8" title="1">{
+                logger.Error(logs.PRIVATE_KEY_NOT_FOUND)
+                return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.MISSING_PRIVATE_KEY)
+        }</span>
+        <span class="cov8" title="1">return ParsePrivateKey(privateKeyStr)</span>
+}
+
+// ParsePrivateKey Parse RSA Private Key from PEM
+func ParsePrivateKey(pemKey string) (*rsa.PrivateKey, *skyflowError.SkyflowError) <span class="cov8" title="1">{
+        privPem, _ := pem.Decode([]byte(pemKey))
+        if privPem == nil </span><span class="cov8" title="1">{
+                logger.Error(logs.JWT_INVALID_FORMAT)
+                return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.JWT_INVALID_FORMAT)
+        }</span>
+        <span class="cov8" title="1">if privPem.Type != "PRIVATE KEY" </span><span class="cov8" title="1">{
+                logger.Error(fmt.Sprintf(logs.PRIVATE_KEY_TYPE, privPem.Type))
+                return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.JWT_INVALID_FORMAT)
+        }</span>
+
+        <span class="cov8" title="1">key, err := x509.ParsePKCS1PrivateKey(privPem.Bytes)
+        if err == nil </span><span class="cov8" title="1">{
+                return key, nil
+        }</span>
+        <span class="cov8" title="1">parsedKey, err := x509.ParsePKCS8PrivateKey(privPem.Bytes)
+        if err != nil </span><span class="cov8" title="1">{
+                logger.Error(logs.INVALID_ALGORITHM)
+                return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_ALGORITHM)
+        }</span>
+
+        <span class="cov8" title="1">if privateKey, ok := parsedKey.(*rsa.PrivateKey); ok </span><span class="cov8" title="1">{
+                return privateKey, nil
+        }</span>
+        <span class="cov8" title="1">logger.Error(logs.INVALID_KEY_SPEC)
+        return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_KEY_SPEC)</span>
+}
+
+var GetBaseURLHelper = GetBaseURL
+
+// GenerateBearerTokenHelper  helper functions
+func GenerateBearerTokenHelper(credKeys map[string]interface{}, options common.BearerTokenOptions) (*internal.V1GetAuthTokenResponse, *skyflowError.SkyflowError) <span class="cov8" title="1">{
+        privateKey := credKeys["privateKey"]
+        if privateKey == nil </span><span class="cov8" title="1">{
+                logger.Error(fmt.Sprintf(logs.PRIVATE_KEY_NOT_FOUND))
+                return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.MISSING_PRIVATE_KEY)
+        }</span>
+        <span class="cov8" title="1">pvtKey, err1 := GetPrivateKeyFromPem(privateKey.(string))
+        if err1 != nil </span><span class="cov0" title="0">{
+                return nil, err1
+        }</span>
+        <span class="cov8" title="1">clientID, ok := credKeys["clientID"].(string)
+        if !ok </span><span class="cov8" title="1">{
+                logger.Error(fmt.Sprintf(logs.CLIENT_ID_NOT_FOUND))
+                return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.MISSING_CLIENT_ID)
+        }</span>
+        <span class="cov8" title="1">tokenURI, ok1 := credKeys["tokenURI"].(string)
+        if !ok1 </span><span class="cov8" title="1">{
+                logger.Error(fmt.Sprintf(logs.TOKEN_URI_NOT_FOUND))
+                return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.MISSING_TOKEN_URI)
+        }</span>
+        <span class="cov8" title="1">keyID, ok2 := credKeys["keyID"].(string)
+        if !ok2 </span><span class="cov8" title="1">{
+                logger.Error(fmt.Sprintf(logs.KEY_ID_NOT_FOUND))
+                return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.MISSING_KEY_ID)
+        }</span>
+
+        <span class="cov8" title="1">signedUserJWT, e := GetSignedBearerUserToken(clientID, keyID, tokenURI, pvtKey, options)
+        if e != nil </span><span class="cov0" title="0">{
+                return nil, e
+        }</span>
+        // 1. config
+        //config := internal.V1GetAuthTokenRequest{}
+        <span class="cov8" title="1">var err *skyflowError.SkyflowError
+        var url string
+        url, err = GetBaseURLHelper(tokenURI)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, err
+        }</span>
+        // 2. client
+        //client := internalAuthApi.NewAPIClient(config)
+        <span class="cov8" title="1">client := internalAuthApi.NewClient(option.WithBaseURL(url))
+        //3. request
+        body := internal.V1GetAuthTokenRequest{}
+        body.GrantType = constants.GRANT_TYPE
+        body.Assertion = signedUserJWT
+        if len(options.RoleIDs) &gt; 0 </span><span class="cov8" title="1">{
+                var roles []*string
+                for _, roleID := range options.RoleIDs </span><span class="cov8" title="1">{
+                        roles = append(roles, &amp;roleID)
+                }</span>
+                <span class="cov8" title="1">roleString := GetScopeUsingRoles(roles)
+                body.Scope = &amp;roleString</span>
+        }
+        // 5. send request
+        <span class="cov8" title="1">authApi, apiErr := client.WithRawResponse.AuthenticationServiceGetAuthToken(context.Background(), &amp;body)
+        if apiErr != nil </span><span class="cov8" title="1">{
+                header, _ := GetHeader(apiErr)
+                return nil, skyflowError.SkyflowErrorApi(apiErr, header)
+        }</span>
+        <span class="cov8" title="1">return authApi.Body, nil</span>
+}
+func GetScopeUsingRoles(roles []*string) string <span class="cov8" title="1">{
+        scope := ""
+        if roles != nil </span><span class="cov8" title="1">{
+                for _, role := range roles </span><span class="cov8" title="1">{
+                        scope += " role:" + *role
+                }</span>
+        }
+        <span class="cov8" title="1">return scope</span>
+}
+func GetBaseURL(urlStr string) (string, *skyflowError.SkyflowError) <span class="cov8" title="1">{
+        parsedUrl, err := url.Parse(urlStr)
+        if err != nil || parsedUrl.Scheme != "https" || parsedUrl.Host == "" </span><span class="cov8" title="1">{
+                logger.Error(logs.INVALID_TOKEN_URI)
+                return "", skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_TOKEN_URI) // return error if URL parsing fails
+        }</span>
+        // Construct the base URL using the scheme and host
+        <span class="cov8" title="1">baseURL := fmt.Sprintf("%s://%s", parsedUrl.Scheme, parsedUrl.Host)
+        return baseURL, nil</span>
+}
+func GetSignedBearerUserToken(clientID, keyID, tokenURI string, pvtKey *rsa.PrivateKey, options common.BearerTokenOptions) (string, *skyflowError.SkyflowError) <span class="cov8" title="1">{
+
+        token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
+                "iss": clientID,
+                "key": keyID,
+                "aud": tokenURI,
+                "sub": clientID,
+                "exp": time.Now().Add(60 * time.Minute).Unix(),
+        })
+        if options.Ctx != "" </span><span class="cov8" title="1">{
+                token.Claims.(jwt.MapClaims)["ctx"] = options.Ctx
+        }</span>
+        <span class="cov8" title="1">var err error
+        signedToken, err := token.SignedString(pvtKey)
+        if err != nil </span><span class="cov0" title="0">{
+                logger.Error(fmt.Sprintf("%s", "unable to parse jwt payload"))
+                return "", skyflowError.NewSkyflowError(skyflowError.SERVER, fmt.Sprintf(skyflowError.UNKNOWN_ERROR, err))
+        }</span>
+        <span class="cov8" title="1">return signedToken, nil</span>
+}
+func GetPrivateKeyFromPem(pemKey string) (*rsa.PrivateKey, *skyflowError.SkyflowError) <span class="cov8" title="1">{
+        var err error
+        privPem, _ := pem.Decode([]byte(pemKey))
+        if privPem == nil </span><span class="cov0" title="0">{
+                logger.Error(fmt.Sprintf(logs.JWT_INVALID_FORMAT))
+                return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.JWT_INVALID_FORMAT)
+        }</span>
+        <span class="cov8" title="1">if privPem.Type != "PRIVATE KEY" </span><span class="cov0" title="0">{
+                logger.Error(logs.JWT_INVALID_FORMAT)
+                return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.JWT_INVALID_FORMAT)
+        }</span>
+        <span class="cov8" title="1">var parsedKey interface{}
+        if parsedKey, err = x509.ParsePKCS1PrivateKey(privPem.Bytes); err != nil </span><span class="cov8" title="1">{
+                if parsedKey, err = x509.ParsePKCS8PrivateKey(privPem.Bytes); err != nil </span><span class="cov0" title="0">{
+                        logger.Error(logs.INVALID_KEY_SPEC)
+                        return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_ALGORITHM)
+                }</span>
+        }
+        <span class="cov8" title="1">var privateKey *rsa.PrivateKey
+        var ok bool
+        privateKey, ok = parsedKey.(*rsa.PrivateKey)
+        if !ok </span><span class="cov0" title="0">{
+                logger.Error(logs.INVALID_KEY_SPEC)
+                return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_KEY_SPEC)
+        }</span>
+
+        <span class="cov8" title="1">return privateKey, nil</span>
+}
+
+func CreateJsonMetadata() string <span class="cov8" title="1">{
+        // Create a map to hold the key-value pairs
+        data := map[string]string{
+                "sdk_name_version":        fmt.Sprintf("%s@%s", constants.SDK_NAME, constants.SDK_VERSION),
+                "sdk_client_device_model": string(runtime.GOOS),
+                "sdk_client_os_details":   fmt.Sprintf("%s %s", runtime.GOOS, runtime.GOARCH),
+                "sdk_runtime_details":     runtime.Version(),
+        }
+
+        // Marshal the map into JSON format
+        jsonData, err := json.Marshal(data)
+        if err != nil </span><span class="cov0" title="0">{
+                logger.Debug("failed for marshalling json data in createJSONMetadata()")
+                return ""
+        }</span>
+        <span class="cov8" title="1">return string(jsonData)</span>
+}
+
+func Float64Ptr(v float64) *float64 <span class="cov8" title="1">{
+        return &amp;v
+}</span>
+
+func GetHeader(err error) (http.Header, bool) <span class="cov8" title="1">{
+        if err == nil </span><span class="cov8" title="1">{
+                return http.Header{}, false
+        }</span>
+        <span class="cov8" title="1">var apiError *core.APIError
+        if errors.As(err, &amp;apiError) </span><span class="cov8" title="1">{
+                return apiError.Header, true
+        }</span>
+        <span class="cov8" title="1">return http.Header{}, false</span>
+}
+
+func GetSkyflowID(data map[string]interface{}) (string, bool) <span class="cov8" title="1">{
+        if id, ok := data["skyflow_id"].(string); ok </span><span class="cov8" title="1">{
+                return id, true
+        }</span>
+        <span class="cov8" title="1">return "", false</span>
+}</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>

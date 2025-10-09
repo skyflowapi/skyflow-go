@@ -163,7 +163,6 @@ func SkyflowApiError(responseHeaders http.Response) *SkyflowError {
 			boolValue = false
 		}
 		// set the error detail
-
 		errorDetail["errorFromClient"] = boolValue
 		skyflowError.details = append(skyflowError.details, errorDetail)
 	}
