@@ -495,7 +495,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 
 				It("should return nil for valid API key", func() {
 					credentials := common.Credentials{
-						ApiKey: "sky-abcde-1234567890abcdef1234567890abcdef",
+						ApiKey: os.Getenv("API_KEY"),
 					}
 					err := ValidateCredentials(credentials)
 					Expect(err).To(BeNil())

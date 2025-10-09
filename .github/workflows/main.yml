@@ -42,7 +42,7 @@ jobs:
       - name: 'Run Tests for v2'
         run: |
           cd v2
-          CRED_FILE_PATH=../credentials.json EXPIRED_TOKEN=${{ secrets.EXPIRED_TOKEN }} VALID_CREDS_PVT_KEY=${{secrets.VALID_CREDS_PVT_KEY}} go test $(go list ./... | grep -v -e "internal/generated") -coverprofile=coverage.out
+          API_KEY=${{ secrets.API_KEY }} CRED_FILE_PATH=../../credentials.json EXPIRED_TOKEN=${{ secrets.EXPIRED_TOKEN }} VALID_CREDS_PVT_KEY=${{secrets.VALID_CREDS_PVT_KEY}} go test $(go list ./... | grep -v -e "internal/generated") -coverprofile=coverage.out
   
       - name: Codecov
         uses: codecov/codecov-action@v2.1.0

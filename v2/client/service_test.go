@@ -460,7 +460,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				ClusterId: "cid",
 				Env:       0,
 				Credentials: Credentials{
-					ApiKey: "sky-abcde-1234567890abcdef1234567890abcdef",
+					ApiKey: os.Getenv("API_KEY"),
 				},
 			}))
 			request = FileUploadRequest{

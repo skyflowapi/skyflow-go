@@ -1612,7 +1612,7 @@ var _ = Describe("DetectController", func() {
 				Expect(err).To(BeNil())
 				Expect(detectController.Token).ToNot(BeNil())
 			})
-			It("should reuse token if valid token is provided", func() {
+			It("should reuse token if valid token is provided case 2", func() {
 				detectController.Token = ""
 				detectController.Config.Credentials.Path = "../../" + os.Getenv("CRED_FILE_PATH")
 
@@ -1648,7 +1648,7 @@ var _ = Describe("DetectController", func() {
 
 		Context("Create Detect Request Client", func() {
 			It("should create an API client with a valid token", func() {
-				detectController.Config.Credentials.Path = "../../" + os.Getenv("CRED_FILE_PATH")
+				detectController.Config.Credentials.Path =  "../../" + os.Getenv("CRED_FILE_PATH")
 				err1 := SetBearerTokenForDetectControllerFunc(detectController)
 				Expect(err1).To(BeNil())
 
