@@ -1891,7 +1891,7 @@ func main() {
           FilePath: "<FILE_PATH>" // Optional 
           Base64: "<BASE_64>" // Optional
       	ColumnName: "<COLUMN_NAME>", // Replace column name with your file column
-      	SkyflowId:  "<SKYFLOW_ID>", // Replaceskyflow id for file upload
+      	SkyflowId:  "<SKYFLOW_ID>", // Replace skyflow id for file upload
           FileName: "<FILE_NAME>" // Optional, File name is required in case of base64
       }
         // Step 4: Send the file upload request to the Skyflow vault
@@ -1953,11 +1953,11 @@ func main() {
       request := common.FileUploadRequest{
       	Table: "table1", // Replace with the actual table name into which file is to upload 
       	FileObject: *fileObj,   // Optional
-          FilePath: filePath // Optional 
-          Base64: "<BASE_64>" // Optional
+        FilePath: filePath // Optional 
+        Base64: "<BASE_64>" // Optional
       	ColumnName: "file", // Replace column name with your file column
-      	SkyflowId:  "5b699e2c-4301-4f9f-bcff-0a8fd3057413", // Replaceskyflow id for file upload
-          FileName: "<FILE_NAME>" // Optional, File name is required in case of base64
+      	SkyflowId:  "5b699e2c-4301-4f9f-bcff-0a8fd3057413", // Replace skyflow id for file upload
+        FileName: "<FILE_NAME>" // Optional, File name is required in case of base64
       }
         // Step 4: Send the file upload request to the Skyflow vault
       fileResponse, errFile := service.UploadFile(ctx, request)
@@ -2481,20 +2481,20 @@ Sample Response:
 - If the API takes more than 64 seconds to process the file, it will return only the run ID in the response.
 
 Sample response (when the API takes more than 64 seconds):
-```typescript
+```go
 {
-  Entities: nil,
-  File: nil,
-  Type: nil,
-  Extension: nil,
-  WordCount: nil,
-  CharCount: nil,
-  SizeInKb: nil,
-  DurationInSeconds: nil,
-  PageCount: nil,
-  SlideCount: nil,
-  RunId: "1ad6dc12-8405-46cf-1c13-db1123f9f4c5",
-  Status: "IN_PROGRESS"
+  "Entities": nil,
+  "File": nil,
+  "Type": nil,
+  "Extension": nil,
+  "WordCount": nil,
+  "CharCount": nil,
+  "SizeInKb": nil,
+  "DurationInSeconds": nil,
+  "PageCount": nil,
+  "SlideCount": nil,
+  "RunId": "1ad6dc12-8405-46cf-1c13-db1123f9f4c5",
+  "Status": "IN_PROGRESS"
 }
 ```
 
@@ -2571,24 +2571,24 @@ func main() {
 ```
 
 Sample response
-```typescript
+```json
 {
-  Entities: [
+  "Entities": [
     {
-      File: '0X2xhYmVsIjoiQ1JFRElUX0NB==',
-      Extension: 'json'
+      "File": "0X2xhYmVsIjoiQ1JFRElUX0NB==",
+      "Extension": "json"
     }
   ],
-  File: 'TXkgU1NOIGlzIFtTU0==',
-  Type: 'redacted_file',
-  Extension: 'txt',
-  WordCount: 12,
-  CharCount: 58,
-  SizeInKb: 0.06,
-  DurationInSeconds: 0,
-  PageCount: 0,
-  SlideCount: 0,
-  Status: 'SUCCESS'
+  "File": "TXkgU1NOIGlzIFtTU0==",
+  "Type": "redacted_file",
+  "Extension": "txt",
+  "WordCount": 12,
+  "CharCount": 58,
+  "SizeInKb": 0.06,
+  "DurationInSeconds": 0,
+  "PageCount": 0,
+  "SlideCount": 0,
+  "Status": "SUCCESS"
 }
 ```
 
