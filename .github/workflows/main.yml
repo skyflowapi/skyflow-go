@@ -9,37 +9,45 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-    - name: Set up Go
-      uses: actions/setup-go@v2
-      with:
-        go-version: 1.18
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.18
 
-    - name: create-json
-      id: create-json
-      uses: jsdaniell/create-json@1.1.2
-      with:
-        name: "credentials.json"
-        json: ${{ secrets.CREDENTIALS_FILE_STR }}
+      - name: create-json
+        id: create-json
+        uses: jsdaniell/create-json@1.1.2
+        with:
+          name: "credentials.json"
+          json: ${{ secrets.CREDENTIALS_FILE_STR }}
 
-    - name: 'Setup .env'
-      run: |
-        touch .env
-        echo CREDENTIALS_FILE_PATH=../../credentials.json >> .env
-        echo EXPIRED_TOKEN=${{secrets.EXPIRED_TOKEN}} >> .env
+      - name: 'Setup .env'
+        run: |
+          touch .env
+          echo CREDENTIALS_FILE_PATH=../../credentials.json >> .env
+          echo EXPIRED_TOKEN=${{secrets.EXPIRED_TOKEN}} >> .env
+          echo VALID_CREDS_PVT_KEY=${{secrets.VALID_CREDS_PVT_KEY}} >> .env
+          echo CREDENTIALS_FILE_STR=${{secrets.CREDENTIALS_FILE_STR}} >> .env
+          echo PRIVATE_KEY=${{secrets.PRIVATE_KEY}} >> .env
 
-    - name: 'Run Tests'
-      run: |
-        cd serviceaccount
-        VALID_CREDS_PVT_KEY=${{secrets.VALID_PVT_KEY}} go test ./... -coverprofile=coverage.out
-        cd ../skyflow
-        go test ./... -coverprofile=coverage.out
-
-    - name: Codecov
-      uses: codecov/codecov-action@v2.1.0
-      with:
-        token: ${{ secrets.CODECOV_REPO_UPLOAD_TOKEN }}
-        files: serviceaccount/coverage.out, skyflow/coverage.out
-        name: codecov-skyflow-go
-        verbose: true
+      - name: 'Run Tests for v1'
+        run: |
+          cd serviceaccount
+          go test ./... -coverprofile=coverage.out
+          cd ../skyflow
+          go test ./... -coverprofile=coverage.out
+      
+      - name: 'Run Tests for v2'
+        run: |
+          cd v2
+          API_KEY=${{ secrets.API_KEY }} CRED_FILE_PATH=../../credentials.json EXPIRED_TOKEN=${{ secrets.EXPIRED_TOKEN }} VALID_CREDS_PVT_KEY=${{secrets.VALID_CREDS_PVT_KEY}} go test $(go list ./... | grep -v -e "internal/generated") -coverprofile=coverage.out
+  
+      - name: Codecov
+        uses: codecov/codecov-action@v2.1.0
+        with:
+          token: ${{ secrets.CODECOV_REPO_UPLOAD_TOKEN }}
+          files: serviceaccount/coverage.out, skyflow/coverage.out
+          name: codecov-skyflow-go
+          verbose: true
