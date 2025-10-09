@@ -28,30 +28,39 @@ func GetToken() (string, error) {
 	}
 	return bearerToken, nil
 }
+
 func main() {
 
 	defer func() {
-		if r := recover(); r != nil {
-			fmt.Println("error: ", r)
+		if err := recover(); err != nil {
+			fmt.Println("error : ", err)
 		}
 	}()
-
-	logger.SetLogLevel(logger.INFO) //set loglevel to INFO
+	logger.SetLogLevel(logger.INFO) // Set loglevel to INFO
 	configuration := common.Configuration{VaultID: "<vault_id>", VaultURL: "<vault_url>", TokenProvider: GetToken}
 	var client = Skyflow.Init(configuration)
-	var records = make(map[string]interface{})
-	var record1 = make(map[string]interface{})
-	record1["token"] = "<token>"
-	var record2 = make(map[string]interface{})
-	record2["token"] = "<token>"
 
+	var records = make(map[string]interface{})
+	var record = make(map[string]interface{})
+	record["table"] = "cards"
+	var fields = make(map[string]interface{})
+	fields["cardNumber"] = "4111111111111111"
+	fields["fullname"] = "name"
+	record["fields"] = fields
 	var recordsArray []interface{}
-	recordsArray = append(recordsArray, record1)
-	recordsArray = append(recordsArray, record2)
+	recordsArray = append(recordsArray, record)
 	records["records"] = recordsArray
-	//default value for ContinueOnError is true
-	var options = common.DetokenizeOptions{ ContinueOnError: false };
-	res, err := client.Detokenize(records, options)
+
+	var upsertArray []common.UpsertOptions
+	var upsertOption = common.UpsertOptions{Table:"cards",Column:"cardNumber"}
+	upsertArray = append(upsertArray,upsertOption)
+	
+    var options = common.InsertOptions {
+        Tokens: true
+        Upsert: upsertArray
+    }
+
+	res, err := client.Insert(records, options)
 	if err == nil {
 		fmt.Println("Records : ", res.Records)
 	} else {

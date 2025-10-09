@@ -28,6 +28,7 @@ func GetToken() (string, error) {
 	}
 	return bearerToken, nil
 }
+
 func main() {
 
 	defer func() {
@@ -35,34 +36,24 @@ func main() {
 			fmt.Println("error : ", err)
 		}
 	}()
-
 	logger.SetLogLevel(logger.INFO) //set loglevel to INFO
-	configuration := common.Configuration{TokenProvider: GetToken}
+	configuration := common.Configuration{VaultID: "<vault_id>", VaultURL: "<vault_url>", TokenProvider: GetToken}
 	var client = Skyflow.Init(configuration)
-
-	connectionUrl := "<CONNECTION_URL>"
-	pathParams := make(map[string]string)
-	pathParams["card_number"] = "<card_number>"
-
-	//queryParams := make(map[string]interface{})
-	//["cc"] = true
-
-	requestBody := make(map[string]interface{})
-	expiryDate := make(map[string]interface{})
-	expiryDate["mm"] = "06"
-	expiryDate["yy"] = "22"
-	requestBody["expirationDate"] = expiryDate
-
-	requestHeader := make(map[string]string)
-	requestHeader["Authorization"] = "<Your-Authorization-Value>"
-
-	var connectionConfig = common.ConnectionConfig{ConnectionURL: connectionUrl, MethodName: common.POST,
-		PathParams: pathParams, RequestBody: requestBody, RequestHeader: requestHeader}
-
-	res, err := client.InvokeConnection(connectionConfig)
-
+	var options = common.InsertOptions{Tokens: false, ContinueOnError: true}
+	var records = make(map[string]interface{})
+	var record = make(map[string]interface{})
+	record["table"] = "cards"
+	var fields = make(map[string]interface{})
+	fields["cvv"] = "123"
+	fields["fullname"] = "name"
+	record["fields"] = fields
+	var recordsArray []interface{}
+	recordsArray = append(recordsArray, record)
+	records["records"] = recordsArray
+	res, err := client.Insert(records, options)
 	if err == nil {
-		fmt.Println(res)
+		fmt.Println("Records : ", res.Records)
+		fmt.Println("Errors: ", res.Errors) // for Partial Error case, print errors here
 	} else {
 		panic(err.GetMessage())
 	}

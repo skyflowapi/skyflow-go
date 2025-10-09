@@ -37,15 +37,36 @@ jobs:
       run: |
         go mod tidy
         go mod vendor
+        cd v2
+        go mod tidy
+        go mod vendor
+
+    - name: 'Setup .env'
+      run: |
+        touch .env
+        echo CREDENTIALS_FILE_PATH=../../credentials.json >> .env
+        echo EXPIRED_TOKEN=${{secrets.EXPIRED_TOKEN}} >> .env
+        echo VALID_CREDS_PVT_KEY=${{secrets.VALID_CREDS_PVT_KEY}} >> .env
+        echo CREDENTIALS_FILE_STR=${{secrets.CREDENTIALS_FILE_STR}} >> .env
+        echo PRIVATE_KEY=${{secrets.PRIVATE_KEY}} >> .env
 
     - name: Build
       run: |
         go build -v ./...
-
-
-    - name: 'Run Tests'
+        cd v2
+        go build -v ./...
+        
+    - name: 'Run Tests for V1'
       run: |
-        CRED_FILE_PATH=../credentials.json EXPIRED_TOKEN=${{ secrets.EXPIRED_TOKEN }} VALID_CREDS_PVT_KEY=${{secrets.VALID_CREDS_PVT_KEY}} go test $(go list ./... | grep -v -e "internal/generated") -coverprofile=coverage.out
+        cd serviceaccount
+        go test ./... -coverprofile=coverage.out
+        cd ../skyflow
+        go test ./... -coverprofile=coverage.out
+
+    - name: 'Run Tests for V2'
+      run: |
+        cd v2
+        API_KEY=${{ secrets.API_KEY }} CRED_FILE_PATH=../../credentials.json EXPIRED_TOKEN=${{ secrets.EXPIRED_TOKEN }} VALID_CREDS_PVT_KEY=${{secrets.VALID_CREDS_PVT_KEY}} go test $(go list ./... | grep -v -e "internal/generated") -coverprofile=coverage.out
 
     - name: Codecov
       uses: codecov/codecov-action@v2.1.0
