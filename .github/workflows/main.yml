@@ -30,6 +30,7 @@ jobs:
           echo EXPIRED_TOKEN=${{secrets.EXPIRED_TOKEN}} >> .env
           echo VALID_CREDS_PVT_KEY=${{secrets.VALID_CREDS_PVT_KEY}} >> .env
           echo CREDENTIALS_FILE_STR=${{secrets.CREDENTIALS_FILE_STR}} >> .env
+          echo PRIVATE_KEY=${{secrets.PRIVATE_KEY}} >> .env
 
       - name: 'Run Tests for v1'
         run: |

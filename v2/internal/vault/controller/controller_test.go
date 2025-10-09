@@ -1082,7 +1082,7 @@ var _ = Describe("Vault controller Test cases", func() {
 			request := common.FileUploadRequest{
 				Table:      "table",
 				ColumnName: "column",
-				FilePath:   "../../../credentials.json",
+				FilePath:   "../../../../credentials.json",
 				SkyflowId:  "skyflowid",
 			}
 
@@ -1113,7 +1113,7 @@ var _ = Describe("Vault controller Test cases", func() {
 			request := common.FileUploadRequest{
 				Table:      "table",
 				ColumnName: "column",
-				FilePath:   "../../../credentials.json",
+				FilePath:   "../../../../credentials.json",
 				SkyflowId:  "skyflowid",
 			}
 

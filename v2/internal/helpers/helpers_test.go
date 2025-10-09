@@ -815,7 +815,7 @@ MIIBAAIBADANINVALIDKEY==
 				Expect(err.Error()).To(Equal("open invalid_path.txt: no such file or directory"))
 			})
 			It("should not return error for valid file path", func() {
-				_, err := GetFileForFileUpload(common.FileUploadRequest{FilePath: "../../credentials.json"})
+				_, err := GetFileForFileUpload(common.FileUploadRequest{FilePath: "../../../credentials.json"})
 				Expect(err).To(BeNil())
 			})
 			It("should return error for invalid base64 data", func() {
@@ -837,7 +837,7 @@ MIIBAAIBADANINVALIDKEY==
 				Expect(file).To(BeNil())
 			})
 			It("should not return error for valid file object", func() {
-				tmpfile, err := os.Open("../../credentials.json")
+				tmpfile, err := os.Open("../../../credentials.json")
 				Expect(err).To(BeNil())
 				file, err := GetFileForFileUpload(common.FileUploadRequest{FileObject: *tmpfile})
 				Expect(err).To(BeNil())

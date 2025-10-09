@@ -60,8 +60,7 @@ func setUpGenerateBearerTokenTests() []generateBearerTokenTest {
 }
 
 func setUpGenerateBearerTokenFromCredsTests() []generateBearerTokenFromCredsTest {
-
-	pvtKey := os.Getenv("VALID_CREDS_PVT_KEY")
+	pvtKey := os.Getenv("PRIVATE_KEY")
 	invalidKeyType := strings.Replace(pvtKey, "PRIVATE KEY", "PUBLIC KEY", 2)
 
 	invalidPvtKeyCreds := fmt.Sprintf("{\"privateKey\" : \"%s\"}", "invalidKey")
