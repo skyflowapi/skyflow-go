@@ -14,7 +14,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.18
+          go-version: 1.21
 
       - name: create-json
         id: create-json
@@ -22,6 +22,14 @@ jobs:
         with:
           name: "credentials.json"
           json: ${{ secrets.CREDENTIALS_FILE_STR }}
+      
+      - name : install packages
+        run: |
+          go mod tidy
+          go mod vendor
+          cd v2
+          go mod tidy
+          go mod vendor      
 
       - name: 'Setup .env'
         run: |
@@ -48,6 +56,6 @@ jobs:
         uses: codecov/codecov-action@v2.1.0
         with:
           token: ${{ secrets.CODECOV_REPO_UPLOAD_TOKEN }}
-          files: serviceaccount/coverage.out, skyflow/coverage.out
+          files: coverage.out
           name: codecov-skyflow-go
           verbose: true
