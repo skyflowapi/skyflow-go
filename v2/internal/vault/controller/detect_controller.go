@@ -780,7 +780,6 @@ func (d *DetectController) DeidentifyFile(ctx context.Context, request common.De
 
 	// Handle successful response
 	if pollResponse.Status != nil && strings.EqualFold(string(*pollResponse.Status), string(common.SUCCESS)) {
-		// fmt.Printf("Deidentification successful for file: %s\n", pollResponse)
 		processDeidentifyFileResponse(pollResponse, request.OutputDirectory, fileName, strings.TrimSuffix(fileName, filepath.Ext(fileName)))
 	}
 
@@ -881,7 +880,6 @@ func processDeidentifyFileResponse(data *vaultapis.DetectRunsResponse, outputDir
 	}
 
 	deidentifyFilePrefix := "processed-"
-	fmt.Println("ressponse ", data.Output[0])
 	processedFile := data.Output[0].ProcessedFile
 	decodedBytes, err := base64.StdEncoding.DecodeString(string(*processedFile))
 	if err != nil {
