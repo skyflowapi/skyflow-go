@@ -2,12 +2,11 @@ package guardrails
 
 import (
 	context "context"
-	http "net/http"
-
 	generated "github.com/skyflowapi/skyflow-go/v2/internal/generated"
 	core "github.com/skyflowapi/skyflow-go/v2/internal/generated/core"
-	option "github.com/skyflowapi/skyflow-go/v2/internal/generated/option"
 	internal "github.com/skyflowapi/skyflow-go/v2/internal/generated/internal"
+	option "github.com/skyflowapi/skyflow-go/v2/internal/generated/option"
+	http "net/http"
 )
 
 type RawClient struct {
@@ -31,9 +30,9 @@ func NewRawClient(options *core.RequestOptions) *RawClient {
 
 func (r *RawClient) CheckGuardrails(
 	ctx context.Context,
-	request *generated.CheckGuardrailsRequest,
+	request *generated.DetectGuardrailsRequest,
 	opts ...option.RequestOption,
-) (*core.Response[*generated.CheckGuardrailsResponse], error) {
+) (*core.Response[*generated.DetectGuardrailsResponse], error) {
 	options := core.NewRequestOptions(opts...)
 	baseURL := internal.ResolveBaseURL(
 		options.BaseURL,
@@ -63,7 +62,7 @@ func (r *RawClient) CheckGuardrails(
 			}
 		},
 	}
-	var response *generated.CheckGuardrailsResponse
+	var response *generated.DetectGuardrailsResponse
 	raw, err := r.caller.Call(
 		ctx,
 		&internal.CallParams{
@@ -82,7 +81,7 @@ func (r *RawClient) CheckGuardrails(
 	if err != nil {
 		return nil, err
 	}
-	return &core.Response[*generated.CheckGuardrailsResponse]{
+	return &core.Response[*generated.DetectGuardrailsResponse]{
 		StatusCode: raw.StatusCode,
 		Header:     raw.Header,
 		Body:       response,

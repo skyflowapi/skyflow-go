@@ -8,110 +8,110 @@ import (
 	internal "github.com/skyflowapi/skyflow-go/v2/internal/generated/internal"
 )
 
-type CheckGuardrailsRequest struct {
-	VaultId VaultId `json:"vault_id" url:"-"`
+type DetectGuardrailsRequest struct {
 	// Text to check against guardrails.
 	Text string `json:"text" url:"-"`
-	// Check for toxicity in the text.
+	// If `true`, checks for toxicity in the text.
 	CheckToxicity *bool `json:"check_toxicity,omitempty" url:"-"`
 	// List of topics to deny.
 	DenyTopics []string `json:"deny_topics,omitempty" url:"-"`
+	// ID of the vault.
+	VaultId string `json:"vault_id" url:"-"`
 }
 
-// Response to check guardrails.
-type CheckGuardrailsResponse struct {
+type DetectGuardrailsResponse struct {
 	// Text that was checked against guardrails.
-	Text *string `json:"text,omitempty" url:"text,omitempty"`
+	Text string `json:"text" url:"text"`
 	// Whether the text is toxic.
-	Toxicity *bool `json:"toxicity,omitempty" url:"toxicity,omitempty"`
-	// Whether any denied topics were found.
-	DeniedTopics *bool `json:"denied_topics,omitempty" url:"denied_topics,omitempty"`
-	// Validation result.
-	Validation *CheckGuardrailsResponseValidation `json:"validation,omitempty" url:"validation,omitempty"`
+	Toxic *bool `json:"toxic,omitempty" url:"toxic,omitempty"`
+	// Whether the text included a denied topic.
+	DeniedTopic *bool `json:"denied_topic,omitempty" url:"denied_topic,omitempty"`
+	// Whether the text passed validation.
+	Validation DetectGuardrailsResponseValidation `json:"validation" url:"validation"`
 
 	extraProperties map[string]interface{}
 	rawJSON         json.RawMessage
 }
 
-func (c *CheckGuardrailsResponse) GetText() *string {
-	if c == nil {
+func (d *DetectGuardrailsResponse) GetText() string {
+	if d == nil {
+		return ""
+	}
+	return d.Text
+}
+
+func (d *DetectGuardrailsResponse) GetToxic() *bool {
+	if d == nil {
 		return nil
 	}
-	return c.Text
+	return d.Toxic
 }
 
-func (c *CheckGuardrailsResponse) GetToxicity() *bool {
-	if c == nil {
+func (d *DetectGuardrailsResponse) GetDeniedTopic() *bool {
+	if d == nil {
 		return nil
 	}
-	return c.Toxicity
+	return d.DeniedTopic
 }
 
-func (c *CheckGuardrailsResponse) GetDeniedTopics() *bool {
-	if c == nil {
-		return nil
+func (d *DetectGuardrailsResponse) GetValidation() DetectGuardrailsResponseValidation {
+	if d == nil {
+		return ""
 	}
-	return c.DeniedTopics
+	return d.Validation
 }
 
-func (c *CheckGuardrailsResponse) GetValidation() *CheckGuardrailsResponseValidation {
-	if c == nil {
-		return nil
-	}
-	return c.Validation
+func (d *DetectGuardrailsResponse) GetExtraProperties() map[string]interface{} {
+	return d.extraProperties
 }
 
-func (c *CheckGuardrailsResponse) GetExtraProperties() map[string]interface{} {
-	return c.extraProperties
-}
-
-func (c *CheckGuardrailsResponse) UnmarshalJSON(data []byte) error {
-	type unmarshaler CheckGuardrailsResponse
+func (d *DetectGuardrailsResponse) UnmarshalJSON(data []byte) error {
+	type unmarshaler DetectGuardrailsResponse
 	var value unmarshaler
 	if err := json.Unmarshal(data, &value); err != nil {
 		return err
 	}
-	*c = CheckGuardrailsResponse(value)
-	extraProperties, err := internal.ExtractExtraProperties(data, *c)
+	*d = DetectGuardrailsResponse(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *d)
 	if err != nil {
 		return err
 	}
-	c.extraProperties = extraProperties
-	c.rawJSON = json.RawMessage(data)
+	d.extraProperties = extraProperties
+	d.rawJSON = json.RawMessage(data)
 	return nil
 }
 
-func (c *CheckGuardrailsResponse) String() string {
-	if len(c.rawJSON) > 0 {
-		if value, err := internal.StringifyJSON(c.rawJSON); err == nil {
+func (d *DetectGuardrailsResponse) String() string {
+	if len(d.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(d.rawJSON); err == nil {
 			return value
 		}
 	}
-	if value, err := internal.StringifyJSON(c); err == nil {
+	if value, err := internal.StringifyJSON(d); err == nil {
 		return value
 	}
-	return fmt.Sprintf("%#v", c)
+	return fmt.Sprintf("%#v", d)
 }
 
-// Validation result.
-type CheckGuardrailsResponseValidation string
+// Whether the text passed validation.
+type DetectGuardrailsResponseValidation string
 
 const (
-	CheckGuardrailsResponseValidationFailed CheckGuardrailsResponseValidation = "failed"
-	CheckGuardrailsResponseValidationPassed CheckGuardrailsResponseValidation = "passed"
+	DetectGuardrailsResponseValidationFailed DetectGuardrailsResponseValidation = "failed"
+	DetectGuardrailsResponseValidationPassed DetectGuardrailsResponseValidation = "passed"
 )
 
-func NewCheckGuardrailsResponseValidationFromString(s string) (CheckGuardrailsResponseValidation, error) {
+func NewDetectGuardrailsResponseValidationFromString(s string) (DetectGuardrailsResponseValidation, error) {
 	switch s {
 	case "failed":
-		return CheckGuardrailsResponseValidationFailed, nil
+		return DetectGuardrailsResponseValidationFailed, nil
 	case "passed":
-		return CheckGuardrailsResponseValidationPassed, nil
+		return DetectGuardrailsResponseValidationPassed, nil
 	}
-	var t CheckGuardrailsResponseValidation
+	var t DetectGuardrailsResponseValidation
 	return "", fmt.Errorf("%s is not a valid %T", s, t)
 }
 
-func (c CheckGuardrailsResponseValidation) Ptr() *CheckGuardrailsResponseValidation {
-	return &c
+func (d DetectGuardrailsResponseValidation) Ptr() *DetectGuardrailsResponseValidation {
+	return &d
 }

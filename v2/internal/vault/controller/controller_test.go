@@ -1849,15 +1849,15 @@ var _ = Describe("DetectController", func() {
 			Expect(payload.VaultId).To(Equal(config.VaultId))
 			Expect(payload.File.Base64).To(Equal(base64))
 			Expect(payload.AllowRegex).ToNot(BeNil())
-			Expect(*payload.AllowRegex).To(HaveLen(len(allowRegexList)))
-			Expect(*payload.AllowRegex).To(ContainElements(allowRegexList))
-			Expect(*payload.AllowRegex).To(Equal(allowRegexList))
+			Expect(payload.AllowRegex).To(HaveLen(len(allowRegexList)))
+			Expect(payload.AllowRegex).To(ContainElements(allowRegexList))
+			Expect(payload.AllowRegex).To(Equal(allowRegexList))
 			Expect(payload.RestrictRegex).ToNot(BeNil())
-			Expect(*payload.RestrictRegex).To(HaveLen(len(restrictRegexList)))
-			Expect(*payload.RestrictRegex).To(ContainElements(restrictRegexList))
-			Expect(*payload.RestrictRegex).To(Equal(restrictRegexList))
+			Expect(payload.RestrictRegex).To(HaveLen(len(restrictRegexList)))
+			Expect(payload.RestrictRegex).To(ContainElements(restrictRegexList))
+			Expect(payload.RestrictRegex).To(Equal(restrictRegexList))
 			var actualEntities []string
-			for _, e := range *payload.EntityTypes {
+			for _, e := range payload.EntityTypes {
 				actualEntities = append(actualEntities, string(e))
 			}
 
@@ -1868,8 +1868,8 @@ var _ = Describe("DetectController", func() {
 			Expect(*payload.Transformations.ShiftDates.MaxDays).To(Equal(10))
 			Expect(*payload.Transformations.ShiftDates.MinDays).To(Equal(1))
 
-			expected := []vaultapis.TransformationsShiftDatesEntityTypesItem{
-				vaultapis.TransformationsShiftDatesEntityTypesItemDate,
+			expected := []vaultapis.ShiftDatesEntityTypesItem{
+				vaultapis.ShiftDatesEntityTypesItemDate,
 			}
 
 			Expect(payload.Transformations.ShiftDates.EntityTypes).To(Equal(expected))
@@ -1894,15 +1894,15 @@ var _ = Describe("DetectController", func() {
 			Expect(payload.VaultId).To(Equal(config.VaultId))
 			Expect(payload.File.Base64).To(Equal(base64))
 			Expect(payload.AllowRegex).ToNot(BeNil())
-			Expect(*payload.AllowRegex).To(HaveLen(len(allowRegexList)))
-			Expect(*payload.AllowRegex).To(ContainElements(allowRegexList))
-			Expect(*payload.AllowRegex).To(Equal(allowRegexList))
+			Expect(payload.AllowRegex).To(HaveLen(len(allowRegexList)))
+			Expect(payload.AllowRegex).To(ContainElements(allowRegexList))
+			Expect(payload.AllowRegex).To(Equal(allowRegexList))
 			Expect(payload.RestrictRegex).ToNot(BeNil())
-			Expect(*payload.RestrictRegex).To(HaveLen(len(restrictRegexList)))
-			Expect(*payload.RestrictRegex).To(ContainElements(restrictRegexList))
-			Expect(*payload.RestrictRegex).To(Equal(restrictRegexList))
+			Expect(payload.RestrictRegex).To(HaveLen(len(restrictRegexList)))
+			Expect(payload.RestrictRegex).To(ContainElements(restrictRegexList))
+			Expect(payload.RestrictRegex).To(Equal(restrictRegexList))
 			var actualEntities []string
-			for _, e := range *payload.EntityTypes {
+			for _, e := range payload.EntityTypes {
 				actualEntities = append(actualEntities, string(e))
 			}
 
@@ -1933,15 +1933,15 @@ var _ = Describe("DetectController", func() {
 			Expect(payload.VaultId).To(Equal(config.VaultId))
 			Expect(payload.File.Base64).To(Equal(base64))
 			Expect(payload.AllowRegex).ToNot(BeNil())
-			Expect(*payload.AllowRegex).To(HaveLen(len(allowRegexList)))
-			Expect(*payload.AllowRegex).To(ContainElements(allowRegexList))
-			Expect(*payload.AllowRegex).To(Equal(allowRegexList))
+			Expect(payload.AllowRegex).To(HaveLen(len(allowRegexList)))
+			Expect(payload.AllowRegex).To(ContainElements(allowRegexList))
+			Expect(payload.AllowRegex).To(Equal(allowRegexList))
 			Expect(payload.RestrictRegex).ToNot(BeNil())
-			Expect(*payload.RestrictRegex).To(HaveLen(len(restrictRegexList)))
-			Expect(*payload.RestrictRegex).To(ContainElements(restrictRegexList))
-			Expect(*payload.RestrictRegex).To(Equal(restrictRegexList))
+			Expect(payload.RestrictRegex).To(HaveLen(len(restrictRegexList)))
+			Expect(payload.RestrictRegex).To(ContainElements(restrictRegexList))
+			Expect(payload.RestrictRegex).To(Equal(restrictRegexList))
 			var actualEntities []string
-			for _, e := range *payload.EntityTypes {
+			for _, e := range payload.EntityTypes {
 				actualEntities = append(actualEntities, string(e))
 			}
 
@@ -2477,7 +2477,7 @@ var _ = Describe("DetectController", func() {
 							},
 							OutputOcrText: true,
 							MaxResolution: 200,
-							PixelDensity:  200.12,
+							PixelDensity:  200,
 							Bleep: AudioBleep{
 								Gain:         2,
 								Frequency:    1000,
@@ -2522,7 +2522,7 @@ var _ = Describe("DetectController", func() {
 							},
 							OutputOcrText: true,
 							MaxResolution: 200,
-							PixelDensity:  200.12,
+							PixelDensity:  200,
 							AllowRegexList: []string{
 								"My",
 							},

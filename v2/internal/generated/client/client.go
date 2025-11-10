@@ -3,20 +3,19 @@
 package client
 
 import (
-	http "net/http"
-
 	audit "github.com/skyflowapi/skyflow-go/v2/internal/generated/audit"
 	authentication "github.com/skyflowapi/skyflow-go/v2/internal/generated/authentication"
 	binlookup "github.com/skyflowapi/skyflow-go/v2/internal/generated/binlookup"
 	core "github.com/skyflowapi/skyflow-go/v2/internal/generated/core"
 	files "github.com/skyflowapi/skyflow-go/v2/internal/generated/files"
 	guardrails "github.com/skyflowapi/skyflow-go/v2/internal/generated/guardrails"
+	internal "github.com/skyflowapi/skyflow-go/v2/internal/generated/internal"
 	option "github.com/skyflowapi/skyflow-go/v2/internal/generated/option"
 	query "github.com/skyflowapi/skyflow-go/v2/internal/generated/query"
 	records "github.com/skyflowapi/skyflow-go/v2/internal/generated/records"
-	strings "github.com/skyflowapi/skyflow-go/v2/internal/generated/strings"
+	generatedstrings "github.com/skyflowapi/skyflow-go/v2/internal/generated/strings"
 	tokens "github.com/skyflowapi/skyflow-go/v2/internal/generated/tokens"
-	internal "github.com/skyflowapi/skyflow-go/v2/internal/generated/internal"
+	http "net/http"
 )
 
 type Client struct {
@@ -30,9 +29,9 @@ type Client struct {
 	Tokens         *tokens.Client
 	Query          *query.Client
 	Authentication *authentication.Client
-	Guardrails     *guardrails.Client
-	Strings        *strings.Client
 	Files          *files.Client
+	Strings        *generatedstrings.Client
+	Guardrails     *guardrails.Client
 }
 
 func NewClient(opts ...option.RequestOption) *Client {
@@ -52,8 +51,8 @@ func NewClient(opts ...option.RequestOption) *Client {
 		Tokens:         tokens.NewClient(opts...),
 		Query:          query.NewClient(opts...),
 		Authentication: authentication.NewClient(opts...),
-		Guardrails:     guardrails.NewClient(opts...),
-		Strings:        strings.NewClient(opts...),
 		Files:          files.NewClient(opts...),
+		Strings:        generatedstrings.NewClient(opts...),
+		Guardrails:     guardrails.NewClient(opts...),
 	}
 }
