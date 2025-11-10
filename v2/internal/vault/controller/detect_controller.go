@@ -277,7 +277,7 @@ func CreatePdfRequest(request *common.DeidentifyFileRequest, base64Content, vaul
 
 func CreatePresentationRequest(request *common.DeidentifyFileRequest, base64Content, vaultID, fileExt string) *vaultapis.DeidentifyFileRequestDeidentifyPresentation {
 	var entityTypes []vaultapis.DeidentifyFileRequestDeidentifyPresentationEntityTypesItem
-	if result := CreateEntityTypesRef(request.Entities, "pdf"); result != nil {
+	if result := CreateEntityTypesRef(request.Entities, "ppt"); result != nil {
 		entityTypes = result.([]vaultapis.DeidentifyFileRequestDeidentifyPresentationEntityTypesItem)
 	}
 	return &vaultapis.DeidentifyFileRequestDeidentifyPresentation{
