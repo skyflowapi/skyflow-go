@@ -900,32 +900,32 @@ func processDeidentifyFileResponse(data *vaultapis.DetectRunsResponse, outputDir
 
 	deidentifyFilePrefix := "processed-"
 	processedFile := data.Output[0].ProcessedFile
-	decodedBytes, err := base64.StdEncoding.DecodeString(string(*processedFile))
-	if err != nil {
-		return skyflowError.NewSkyflowError(skyflowError.SERVER, logs.FAILED_TO_DECODE_PROCESSED_FILE)
+	if processedFile != nil {
+		decodedBytes, err := base64.StdEncoding.DecodeString(string(*processedFile))
+		if err != nil {
+			return skyflowError.NewSkyflowError(skyflowError.SERVER, logs.FAILED_TO_DECODE_PROCESSED_FILE)
+		}
+
+		outputFileName := filepath.Join(outputDir, deidentifyFilePrefix+fileName)
+
+		if err := os.WriteFile(outputFileName, decodedBytes, 0644); err != nil {
+			return skyflowError.NewSkyflowError(skyflowError.SERVER, skyflowError.FAILED_TO_SAVED_PROCESSED_FILE)
+		}
 	}
-
-	outputFileName := filepath.Join(outputDir, deidentifyFilePrefix+fileName)
-
-	if err := os.WriteFile(outputFileName, decodedBytes, 0644); err != nil {
-		return skyflowError.NewSkyflowError(skyflowError.SERVER, skyflowError.FAILED_TO_SAVED_PROCESSED_FILE)
-	}
-
 	if len(data.Output) > 1 {
 		for _, output := range data.Output[1:] {
-			if *output.ProcessedFile == "" || *output.ProcessedFileExtension == "" {
-				continue
-			}
-			outputFileName := fmt.Sprintf("%s%s.%s", deidentifyFilePrefix, fileBaseName, *output.ProcessedFileExtension)
-			outputPath := filepath.Join(outputDir, outputFileName)
+			if output != nil && output.ProcessedFile != nil {
+				outputFileName := fmt.Sprintf("%s%s.%s", deidentifyFilePrefix, fileBaseName, *output.ProcessedFileExtension)
+				outputPath := filepath.Join(outputDir, outputFileName)
 
-			decodedData, err := base64.StdEncoding.DecodeString(string(*output.ProcessedFile))
-			if err != nil {
-				return skyflowError.NewSkyflowError(skyflowError.SERVER, logs.FAILED_TO_DECODE_PROCESSED_FILE)
-			}
+				decodedData, err := base64.StdEncoding.DecodeString(string(*output.ProcessedFile))
+				if err != nil {
+					return skyflowError.NewSkyflowError(skyflowError.SERVER, logs.FAILED_TO_DECODE_PROCESSED_FILE)
+				}
 
-			if err := os.WriteFile(outputPath, decodedData, 0644); err != nil {
-				return skyflowError.NewSkyflowError(skyflowError.SERVER, skyflowError.FAILED_TO_SAVED_PROCESSED_FILE)
+				if err := os.WriteFile(outputPath, decodedData, 0644); err != nil {
+					return skyflowError.NewSkyflowError(skyflowError.SERVER, skyflowError.FAILED_TO_SAVED_PROCESSED_FILE)
+				}
 			}
 		}
 	}
