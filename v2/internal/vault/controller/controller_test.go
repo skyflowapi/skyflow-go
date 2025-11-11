@@ -12,7 +12,6 @@ import (
 
 	"github.com/skyflowapi/skyflow-go/v2/internal/generated/option"
 
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	vaultapis "github.com/skyflowapi/skyflow-go/v2/internal/generated"
@@ -46,8 +45,8 @@ var (
 	mockReidentifyTextErrorJSON        = `{"error":{"message":"Invalid request"}}`
 	mockDeidentifyFileErrorJSON        = `{"error":{"message":"Invalid file format"}}`
 	mockGetDetectRunInProgressJSON     = `{"status": "in_progress", "message": "Processing in progress"}`
-	mockGetDetectRunFailedJSON         = `{"status": "FAILED", "message": "Processing failed", "output_type": "UNKNOWN"}`
-	mockGetDetectRunExpiredJSON        = `{ "status": "UNKNOWN", "output_type": "UNKNOWN", "output": [], "message": "", "size": 0}`
+	mockGetDetectRunFailedJSON         = `{"status": "FAILED", "message": "Processing failed", "outputType": "UNKNOWN"}`
+	mockGetDetectRunExpiredJSON        = `{ "status": "UNKNOWN", "outputType": "UNKNOWN", "output": [], "message": "", "size": 0}`
 	mockGetDetectRunApiErrorJSON       = `{"error": {"message": "Invalid run ID"}}`
 )
 
@@ -1601,7 +1600,6 @@ var _ = Describe("DetectController", func() {
 				detectController.Config.Credentials.Path = "../../" + os.Getenv("CRED_FILE_PATH")
 
 				err := SetBearerTokenForDetectControllerFunc(detectController)
-
 				Expect(err).To(BeNil())
 			})
 			It("should generate token if file path is provided", func() {
@@ -1648,7 +1646,7 @@ var _ = Describe("DetectController", func() {
 
 		Context("Create Detect Request Client", func() {
 			It("should create an API client with a valid token", func() {
-				detectController.Config.Credentials.Path =  "../../" + os.Getenv("CRED_FILE_PATH")
+				detectController.Config.Credentials.Path = "../../" + os.Getenv("CRED_FILE_PATH")
 				err1 := SetBearerTokenForDetectControllerFunc(detectController)
 				Expect(err1).To(BeNil())
 
@@ -1782,8 +1780,8 @@ var _ = Describe("DetectController", func() {
 				payload, err := CreateReidentifyTextRequest(request, config)
 
 				Expect(err).To(BeNil())
-				Expect(payload.VaultId).To(Equal(config.VaultId))
-				Expect(payload.Text).To(Equal(request.Text))
+				Expect(*payload.VaultId).To(Equal(config.VaultId))
+				Expect(*payload.Text).To(Equal(request.Text))
 				Expect(payload.Format.Redacted).To(HaveLen(2))
 				Expect(payload.Format.Masked).To(HaveLen(1))
 				Expect(payload.Format.Plaintext).To(HaveLen(1))
@@ -1949,8 +1947,8 @@ var _ = Describe("DetectController", func() {
 			Expect(actualEntities).To(ContainElements(expectedEntities))
 			Expect(actualEntities).To(Equal(expectedEntities))
 			Expect(payload.Transformations).To(BeNil())
-			Expect(*payload.MaxResolution).To(Equal(float64(300)))
-			Expect(*payload.Density).To(Equal(float64(200)))
+			Expect(*payload.MaxResolution).To(Equal(300))
+			Expect(*payload.Density).To(Equal(200))
 		})
 	})
 	Describe("DeidentifyText tests", func() {
@@ -2184,10 +2182,10 @@ var _ = Describe("DetectController", func() {
 							"value": "John",
 							"entity_type": "NAME",
 							"location": {
-								"start_index": 11,
-								"end_index": 15,
-								"start_index_processed": 11,
-								"end_index_processed": 17
+								"startIndex": 11,
+								"endIndex": 15,
+								"startIndexProcessed": 11,
+								"endIndexProcessed": 17
 							}
 						}
 					]
@@ -2636,30 +2634,30 @@ var _ = Describe("DetectController", func() {
 							"status": "SUCCESS",
 							"output": []map[string]interface{}{
 								{
-									"processed_file":           "dGVzdCBjb250ZW50",
-									"processed_file_extension": tc.fileExt,
-									"processed_file_type":      tc.fileType,
+									"processedFile":          "dGVzdCBjb250ZW50",
+									"processedFileExtension": tc.fileExt,
+									"processedFileType":      tc.fileType,
 								},
 								{
-									"processed_file":           "eyJlbnRpdGllcyI6W119",
-									"processed_file_type":      "entities",
-									"processed_file_extension": "json",
+									"processedFile":          "eyJlbnRpdGllcyI6W119",
+									"processedFileType":      "entities",
+									"processedFileExtension": "json",
 								},
 							},
-							"output_type": "FILE",
-							"message":     "Processing completed successfully",
-							"size":        1024.5,
-							"duration":    60.5,
-							"pages":       5,
+							"outputType": "FILE",
+							"message":    "Processing completed successfully",
+							"size":       1024.5,
+							"duration":   60.5,
+							"pages":      5,
 							"slides": func() int {
 								if tc.fileType == "PPTX" {
 									return 10
 								}
 								return 0
 							}(),
-							"word_character_count": map[string]interface{}{
-								"word_count":      150,
-								"character_count": 750,
+							"wordCharacterCount": map[string]interface{}{
+								"wordCount":      150,
+								"characterCount": 750,
 							},
 						}
 
@@ -2898,7 +2896,7 @@ var _ = Describe("DetectController", func() {
 					json.NewEncoder(w).Encode(map[string]interface{}{
 						"status":      "FAILED",
 						"message":     "Processing failed",
-						"output_type": "UNKNOWN",
+						"outputType": "UNKNOWN",
 					})
 				})
 
@@ -2956,25 +2954,25 @@ var _ = Describe("DetectController", func() {
 					"status": "SUCCESS",
 					"output": []map[string]interface{}{
 						{
-							"processed_file":           "dGVzdCBjb250ZW50",
-							"processed_file_extension": "txt",
-							"processed_file_type":      "TEXT",
+							"processedFile":          "dGVzdCBjb250ZW50",
+							"processedFileExtension": "txt",
+							"processedFileType":      "TEXT",
 						},
 						{
-							"processed_file":           "eyJlbnRpdGllcyI6W119",
-							"processed_file_type":      "ENTITIES",
-							"processed_file_extension": "json",
+							"processedFile":          "eyJlbnRpdGllcyI6W119",
+							"processedFileType":      "ENTITIES",
+							"processedFileExtension": "json",
 						},
 					},
-					"output_type": "FILE",
-					"message":     "Processing completed successfully",
-					"size":        1024.5,
-					"duration":    1.2,
-					"pages":       0,
-					"slides":      0,
-					"word_character_count": map[string]interface{}{
-						"word_count":      150,
-						"character_count": 750,
+					"outputType": "FILE",
+					"message":    "Processing completed successfully",
+					"size":       1024.5,
+					"duration":   1.2,
+					"pages":      0,
+					"slides":     0,
+					"wordCharacterCount": map[string]interface{}{
+						"wordCount":      150,
+						"characterCount": 750,
 					},
 				}
 
@@ -3148,7 +3146,6 @@ var _ = Describe("DetectController", func() {
 				}
 
 				result, err := detectController.GetDetectRun(ctx, request)
-
 				Expect(err).To(BeNil())
 				Expect(result).ToNot(BeNil())
 				Expect(result.Status).To(Equal("UNKNOWN"))

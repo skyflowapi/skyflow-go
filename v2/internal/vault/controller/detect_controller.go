@@ -640,28 +640,47 @@ func (d *DetectController) DeidentifyText(ctx context.Context, request common.De
 	if response == nil || response.Body == nil {
 		return &deidentifiedTextResponse, nil
 	}
-
 	// Map the API response to the common.DeidentifyTextResponse struct
-	deidentifiedTextResponse.ProcessedText = *response.Body.ProcessedText
-	deidentifiedTextResponse.WordCount = *response.Body.WordCount
-	deidentifiedTextResponse.CharCount = *response.Body.CharacterCount
-
+	if response.Body.ProcessedText != nil {
+		deidentifiedTextResponse.ProcessedText = *response.Body.ProcessedText
+	}
+	if response.Body.WordCount != nil {
+		deidentifiedTextResponse.WordCount = *response.Body.WordCount
+	}
+	if response.Body.CharacterCount != nil {
+		deidentifiedTextResponse.CharCount = *response.Body.CharacterCount
+	}
 	// Map entities if present
 	if response.Body.Entities != nil {
 		for _, entity := range response.Body.Entities {
-			entityInfo := common.EntityInfo{
-				Token:  *entity.Token,
-				Value:  *entity.Value,
-				Entity: *entity.EntityType,
-				Scores: entity.EntityScores,
-				TextIndex: common.TextIndex{
-					Start: *entity.Location.StartIndex,
-					End:   *entity.Location.EndIndex,
-				},
-				ProcessedIndex: common.TextIndex{
-					Start: *entity.Location.StartIndexProcessed,
-					End:   *entity.Location.EndIndexProcessed,
-				},
+			entityInfo := common.EntityInfo{}
+			if entity != nil {
+				if entity.EntityType != nil {
+					entityInfo.Entity = *entity.EntityType
+				}
+				if entity.Value != nil {
+					entityInfo.Value = *entity.Value
+				}
+				if entity.Token != nil {
+					entityInfo.Token = *entity.Token
+				}
+				if entity.Location != nil {
+					if entity.Location.StartIndex != nil && entity.Location.EndIndex != nil {
+						entityInfo.TextIndex = common.TextIndex{
+							Start: *entity.Location.StartIndex,
+							End:   *entity.Location.EndIndex,
+						}
+					}
+					if entity.Location.StartIndexProcessed != nil && entity.Location.EndIndexProcessed != nil {
+						entityInfo.ProcessedIndex = common.TextIndex{
+							Start: *entity.Location.StartIndexProcessed,
+							End:   *entity.Location.EndIndexProcessed,
+						}
+					}
+				}
+				if entity.EntityScores != nil {
+					entityInfo.Scores = entity.EntityScores
+				}
 			}
 			deidentifiedTextResponse.Entities = append(deidentifiedTextResponse.Entities, entityInfo)
 		}
@@ -925,7 +944,9 @@ func parseDeidentifyFileResponse(response *vaultapis.DetectRunsResponse, runID s
 
 	// In case of expired/invalid run id
 	if len(response.Output) == 0 {
-		fileResponse.Type = string(*response.OutputType)
+		if response.OutputType != nil {
+			fileResponse.Type = string(*response.OutputType)
+		}
 		return fileResponse, nil
 	}
 
@@ -959,17 +980,12 @@ func parseDeidentifyFileResponse(response *vaultapis.DetectRunsResponse, runID s
 			}
 		}
 	}
-
-	if extra := response.GetExtraProperties(); extra != nil {
-		if wcRaw, ok := extra["word_character_count"]; ok && wcRaw != nil {
-			if wcMap, ok := wcRaw.(map[string]interface{}); ok {
-				if charCount, ok := wcMap["character_count"].(float64); ok {
-					fileResponse.CharCount = int(charCount)
-				}
-				if wordCount, ok := wcMap["word_count"].(float64); ok {
-					fileResponse.WordCount = int(wordCount)
-				}
-			}
+	if response.WordCharacterCount != nil {
+		if response.WordCharacterCount.CharacterCount != nil {
+			fileResponse.CharCount = *response.WordCharacterCount.CharacterCount
+		}
+		if response.WordCharacterCount.WordCount != nil {
+			fileResponse.WordCount = *response.WordCharacterCount.WordCount
 		}
 	}
 
@@ -993,15 +1009,13 @@ func parseDeidentifyFileResponse(response *vaultapis.DetectRunsResponse, runID s
 			continue
 		}
 
-		if *output.ProcessedFileType != "processed_file" {
-			continue
-		}
-
 		entityInfo := common.FileEntityInfo{}
 		if output.ProcessedFile != nil {
 			entityInfo.File = *output.ProcessedFile
 		}
-		entityInfo.Type = string(*output.ProcessedFileType)
+		if output.ProcessedFileType != nil {
+			entityInfo.Type = string(*output.ProcessedFileType)
+		}
 		if output.ProcessedFileExtension != nil {
 			entityInfo.Extension = string(*output.ProcessedFileExtension)
 		}
