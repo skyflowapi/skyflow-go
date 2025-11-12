@@ -25,28 +25,28 @@ func ValidateDeidentifyTextRequest(req common.DeidentifyTextRequest) *skyflowErr
 
 	// Validate entities
 	if len(req.Entities) > 0 {
-		if err := validateEntities(req.Entities); err != nil {
+		if err := validateEntities(req.Entities, "text"); err != nil {
 			return err
 		}
 	}
 
 	// Validate token format
 	if req.TokenFormat.DefaultType != "" {
-		if _, err := vaultapis.NewTokenTypeDefaultFromString(string(req.TokenFormat.DefaultType)); err != nil {
+		if _, err := vaultapis.NewTokenTypeMappingDefaultFromString(string(req.TokenFormat.DefaultType)); err != nil {
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_TOKEN_FORMAT)
 		}
 	}
 
 	// Validate EntityOnly tokens
 	if len(req.TokenFormat.EntityOnly) > 0 {
-		if err := validateEntities(req.TokenFormat.EntityOnly); err != nil {
+		if err := validateEntities(req.TokenFormat.EntityOnly, "entity_only"); err != nil {
 			return err
 		}
 	}
 
 	// Validate VaultToken entities
 	if len(req.TokenFormat.VaultToken) > 0 {
-		if err := validateEntities(req.TokenFormat.VaultToken); err != nil {
+		if err := validateEntities(req.TokenFormat.VaultToken, "vault_token"); err != nil {
 			return err
 		}
 	}
@@ -67,21 +67,21 @@ func ValidateReidentifyTextRequest(req common.ReidentifyTextRequest) *skyflowErr
 
 	// Validate RedactedEntities
 	if len(req.RedactedEntities) > 0 {
-		if err := validateEntities(req.RedactedEntities); err != nil {
+		if err := validateEntities(req.RedactedEntities, "redacted"); err != nil {
 			return err
 		}
 	}
 
 	// Validate MaskedEntities
 	if len(req.MaskedEntities) > 0 {
-		if err := validateEntities(req.MaskedEntities); err != nil {
+		if err := validateEntities(req.MaskedEntities, "masked"); err != nil {
 			return err
 		}
 	}
 
 	// Validate PlainTextEntities
 	if len(req.PlainTextEntities) > 0 {
-		if err := validateEntities(req.PlainTextEntities); err != nil {
+		if err := validateEntities(req.PlainTextEntities, "plain_text"); err != nil {
 			return err
 		}
 	}
@@ -89,10 +89,37 @@ func ValidateReidentifyTextRequest(req common.ReidentifyTextRequest) *skyflowErr
 	return nil
 }
 
-func validateEntities(entities []common.DetectEntities) *skyflowError.SkyflowError {
+func validateEntities(entities []common.DetectEntities, entityType string) *skyflowError.SkyflowError {
 	for _, entity := range entities {
-		if _, err := vaultapis.NewEntityTypeFromString(string(entity)); err != nil {
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.INVALID_ENTITY_TYPE, entity))
+		// add entity type validation
+		if entityType == "redacted" {
+			if _, err := vaultapis.NewFormatRedactedItemFromString(string(entity)); err != nil {
+				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.INVALID_ENTITY_TYPE, entity))
+			}
+		} else if entityType == "masked" {
+			if _, err := vaultapis.NewFormatMaskedItemFromString(string(entity)); err != nil {
+				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.INVALID_ENTITY_TYPE, entity))
+			}
+		} else if entityType == "plain_text" {
+			if _, err := vaultapis.NewFormatPlaintextItemFromString(string(entity)); err != nil {
+				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.INVALID_ENTITY_TYPE, entity))
+			}
+		} else if entityType == "text" {
+			if _, err := vaultapis.NewDeidentifyStringRequestEntityTypesItemFromString(string(entity)); err != nil {
+				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.INVALID_ENTITY_TYPE, entity))
+			}
+		} else if entityType == "entity_only" {
+			if _, err := vaultapis.NewTokenTypeMappingEntityOnlyItemFromString(string(entity)); err != nil {
+				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.INVALID_ENTITY_TYPE, entity))
+			}
+		} else if entityType == "vault_token" {
+			if _, err := vaultapis.NewTokenTypeMappingVaultTokenItemFromString(string(entity)); err != nil {
+				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.INVALID_ENTITY_TYPE, entity))
+			}
+		} else if entityType == "entity_unique_counter" {
+			if _, err := vaultapis.NewTokenTypeMappingEntityUnqCounterItemFromString(string(entity)); err != nil {
+				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.INVALID_ENTITY_TYPE, entity))
+			}
 		}
 	}
 	return nil
@@ -180,7 +207,7 @@ func ValidateDeidentifyFileRequest(req common.DeidentifyFileRequest) *skyflowErr
 
 	// Validate entities
 	if len(req.Entities) > 0 {
-		if err := validateEntities(req.Entities); err != nil {
+		if err := validateEntities(req.Entities, "entities"); err != nil {
 			return err
 		}
 	}
@@ -196,19 +223,19 @@ func ValidateDeidentifyFileRequest(req common.DeidentifyFileRequest) *skyflowErr
 	}
 
 	if req.TokenFormat.DefaultType != "" {
-		if _, err := vaultapis.NewTokenTypeDefaultFromString(string(req.TokenFormat.DefaultType)); err != nil {
+		if _, err := vaultapis.NewTokenTypeMappingDefaultFromString(string(req.TokenFormat.DefaultType)); err != nil {
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_TOKEN_FORMAT)
 		}
 	}
 
 	if len(req.TokenFormat.EntityOnly) > 0 {
-		if err := validateEntities(req.TokenFormat.EntityOnly); err != nil {
+		if err := validateEntities(req.TokenFormat.EntityOnly, "entity_only"); err != nil {
 			return err
 		}
 	}
 
 	if len(req.TokenFormat.EntityUniqueCounter) > 0 {
-		if err := validateEntities(req.TokenFormat.EntityUniqueCounter); err != nil {
+		if err := validateEntities(req.TokenFormat.EntityUniqueCounter, "entity_unique_counter"); err != nil {
 			return err
 		}
 	}

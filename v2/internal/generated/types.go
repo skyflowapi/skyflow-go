@@ -8,242 +8,6 @@ import (
 	internal "github.com/skyflowapi/skyflow-go/v2/internal/generated/internal"
 )
 
-// Regular expressions to display in plaintext. Expressions must match the entirety of a detected entity, not just a substring, for the entity to display in plaintext. Expressions don't match across entity boundaries. If a string or entity matches both `allow_regex` and `restrict_regex`, the entity is displayed in plaintext.
-type AllowRegex = []string
-
-// ID of the Detect configuration to use for de-identification. Can't be specified with fields other than `vault_id`, `text`, and `file`.
-type ConfigurationId = string
-
-// Kinds of entities to de-identify. For details on specific entity types, how they're processed, and language support, see [Entity types and languages](/detect-entity-types).
-type EntityType string
-
-const (
-	EntityTypeAccountNumber               EntityType = "account_number"
-	EntityTypeAge                         EntityType = "age"
-	EntityTypeAll                         EntityType = "all"
-	EntityTypeBankAccount                 EntityType = "bank_account"
-	EntityTypeBloodType                   EntityType = "blood_type"
-	EntityTypeCondition                   EntityType = "condition"
-	EntityTypeCorporateAction             EntityType = "corporate_action"
-	EntityTypeCreditCard                  EntityType = "credit_card"
-	EntityTypeCreditCardExpiration        EntityType = "credit_card_expiration"
-	EntityTypeCvv                         EntityType = "cvv"
-	EntityTypeDate                        EntityType = "date"
-	EntityTypeDateInterval                EntityType = "date_interval"
-	EntityTypeDay                         EntityType = "day"
-	EntityTypeDob                         EntityType = "dob"
-	EntityTypeDose                        EntityType = "dose"
-	EntityTypeDriverLicense               EntityType = "driver_license"
-	EntityTypeDrug                        EntityType = "drug"
-	EntityTypeDuration                    EntityType = "duration"
-	EntityTypeEffect                      EntityType = "effect"
-	EntityTypeEmailAddress                EntityType = "email_address"
-	EntityTypeEvent                       EntityType = "event"
-	EntityTypeFilename                    EntityType = "filename"
-	EntityTypeFinancialMetric             EntityType = "financial_metric"
-	EntityTypeGender                      EntityType = "gender"
-	EntityTypeHealthcareNumber            EntityType = "healthcare_number"
-	EntityTypeInjury                      EntityType = "injury"
-	EntityTypeIpAddress                   EntityType = "ip_address"
-	EntityTypeLanguage                    EntityType = "language"
-	EntityTypeLocation                    EntityType = "location"
-	EntityTypeLocationAddress             EntityType = "location_address"
-	EntityTypeLocationAddressStreet       EntityType = "location_address_street"
-	EntityTypeLocationCity                EntityType = "location_city"
-	EntityTypeLocationCoordinate          EntityType = "location_coordinate"
-	EntityTypeLocationCountry             EntityType = "location_country"
-	EntityTypeLocationState               EntityType = "location_state"
-	EntityTypeLocationZip                 EntityType = "location_zip"
-	EntityTypeMaritalStatus               EntityType = "marital_status"
-	EntityTypeMedicalCode                 EntityType = "medical_code"
-	EntityTypeMedicalProcess              EntityType = "medical_process"
-	EntityTypeMoney                       EntityType = "money"
-	EntityTypeMonth                       EntityType = "month"
-	EntityTypeName                        EntityType = "name"
-	EntityTypeNameFamily                  EntityType = "name_family"
-	EntityTypeNameGiven                   EntityType = "name_given"
-	EntityTypeNameMedicalProfessional     EntityType = "name_medical_professional"
-	EntityTypeNumericalPii                EntityType = "numerical_pii"
-	EntityTypeOccupation                  EntityType = "occupation"
-	EntityTypeOrganization                EntityType = "organization"
-	EntityTypeOrganizationId              EntityType = "organization_id"
-	EntityTypeOrganizationMedicalFacility EntityType = "organization_medical_facility"
-	EntityTypeOrigin                      EntityType = "origin"
-	EntityTypePassportNumber              EntityType = "passport_number"
-	EntityTypePassword                    EntityType = "password"
-	EntityTypePhoneNumber                 EntityType = "phone_number"
-	EntityTypePhysicalAttribute           EntityType = "physical_attribute"
-	EntityTypePoliticalAffiliation        EntityType = "political_affiliation"
-	EntityTypeProduct                     EntityType = "product"
-	EntityTypeProject                     EntityType = "project"
-	EntityTypeReligion                    EntityType = "religion"
-	EntityTypeRoutingNumber               EntityType = "routing_number"
-	EntityTypeSexuality                   EntityType = "sexuality"
-	EntityTypeSsn                         EntityType = "ssn"
-	EntityTypeStatistics                  EntityType = "statistics"
-	EntityTypeTime                        EntityType = "time"
-	EntityTypeTrend                       EntityType = "trend"
-	EntityTypeUrl                         EntityType = "url"
-	EntityTypeUsername                    EntityType = "username"
-	EntityTypeVehicleId                   EntityType = "vehicle_id"
-	EntityTypeYear                        EntityType = "year"
-	EntityTypeZodiacSign                  EntityType = "zodiac_sign"
-)
-
-func NewEntityTypeFromString(s string) (EntityType, error) {
-	switch s {
-	case "account_number":
-		return EntityTypeAccountNumber, nil
-	case "age":
-		return EntityTypeAge, nil
-	case "all":
-		return EntityTypeAll, nil
-	case "bank_account":
-		return EntityTypeBankAccount, nil
-	case "blood_type":
-		return EntityTypeBloodType, nil
-	case "condition":
-		return EntityTypeCondition, nil
-	case "corporate_action":
-		return EntityTypeCorporateAction, nil
-	case "credit_card":
-		return EntityTypeCreditCard, nil
-	case "credit_card_expiration":
-		return EntityTypeCreditCardExpiration, nil
-	case "cvv":
-		return EntityTypeCvv, nil
-	case "date":
-		return EntityTypeDate, nil
-	case "date_interval":
-		return EntityTypeDateInterval, nil
-	case "day":
-		return EntityTypeDay, nil
-	case "dob":
-		return EntityTypeDob, nil
-	case "dose":
-		return EntityTypeDose, nil
-	case "driver_license":
-		return EntityTypeDriverLicense, nil
-	case "drug":
-		return EntityTypeDrug, nil
-	case "duration":
-		return EntityTypeDuration, nil
-	case "effect":
-		return EntityTypeEffect, nil
-	case "email_address":
-		return EntityTypeEmailAddress, nil
-	case "event":
-		return EntityTypeEvent, nil
-	case "filename":
-		return EntityTypeFilename, nil
-	case "financial_metric":
-		return EntityTypeFinancialMetric, nil
-	case "gender":
-		return EntityTypeGender, nil
-	case "healthcare_number":
-		return EntityTypeHealthcareNumber, nil
-	case "injury":
-		return EntityTypeInjury, nil
-	case "ip_address":
-		return EntityTypeIpAddress, nil
-	case "language":
-		return EntityTypeLanguage, nil
-	case "location":
-		return EntityTypeLocation, nil
-	case "location_address":
-		return EntityTypeLocationAddress, nil
-	case "location_address_street":
-		return EntityTypeLocationAddressStreet, nil
-	case "location_city":
-		return EntityTypeLocationCity, nil
-	case "location_coordinate":
-		return EntityTypeLocationCoordinate, nil
-	case "location_country":
-		return EntityTypeLocationCountry, nil
-	case "location_state":
-		return EntityTypeLocationState, nil
-	case "location_zip":
-		return EntityTypeLocationZip, nil
-	case "marital_status":
-		return EntityTypeMaritalStatus, nil
-	case "medical_code":
-		return EntityTypeMedicalCode, nil
-	case "medical_process":
-		return EntityTypeMedicalProcess, nil
-	case "money":
-		return EntityTypeMoney, nil
-	case "month":
-		return EntityTypeMonth, nil
-	case "name":
-		return EntityTypeName, nil
-	case "name_family":
-		return EntityTypeNameFamily, nil
-	case "name_given":
-		return EntityTypeNameGiven, nil
-	case "name_medical_professional":
-		return EntityTypeNameMedicalProfessional, nil
-	case "numerical_pii":
-		return EntityTypeNumericalPii, nil
-	case "occupation":
-		return EntityTypeOccupation, nil
-	case "organization":
-		return EntityTypeOrganization, nil
-	case "organization_id":
-		return EntityTypeOrganizationId, nil
-	case "organization_medical_facility":
-		return EntityTypeOrganizationMedicalFacility, nil
-	case "origin":
-		return EntityTypeOrigin, nil
-	case "passport_number":
-		return EntityTypePassportNumber, nil
-	case "password":
-		return EntityTypePassword, nil
-	case "phone_number":
-		return EntityTypePhoneNumber, nil
-	case "physical_attribute":
-		return EntityTypePhysicalAttribute, nil
-	case "political_affiliation":
-		return EntityTypePoliticalAffiliation, nil
-	case "product":
-		return EntityTypeProduct, nil
-	case "project":
-		return EntityTypeProject, nil
-	case "religion":
-		return EntityTypeReligion, nil
-	case "routing_number":
-		return EntityTypeRoutingNumber, nil
-	case "sexuality":
-		return EntityTypeSexuality, nil
-	case "ssn":
-		return EntityTypeSsn, nil
-	case "statistics":
-		return EntityTypeStatistics, nil
-	case "time":
-		return EntityTypeTime, nil
-	case "trend":
-		return EntityTypeTrend, nil
-	case "url":
-		return EntityTypeUrl, nil
-	case "username":
-		return EntityTypeUsername, nil
-	case "vehicle_id":
-		return EntityTypeVehicleId, nil
-	case "year":
-		return EntityTypeYear, nil
-	case "zodiac_sign":
-		return EntityTypeZodiacSign, nil
-	}
-	var t EntityType
-	return "", fmt.Errorf("%s is not a valid %T", s, t)
-}
-
-func (e EntityType) Ptr() *EntityType {
-	return &e
-}
-
-// Entities to detect and de-identify.
-type EntityTypes = []EntityType
-
 type ErrorResponse struct {
 	Error *ErrorResponseError `json:"error" url:"error"`
 
@@ -292,10 +56,8 @@ func (e *ErrorResponse) String() string {
 
 type ErrorResponseError struct {
 	// gRPC status codes. See https://grpc.io/docs/guides/status-codes.
-	GrpcCode int `json:"grpc_code" url:"grpc_code"`
-	// HTTP status codes. See https://developer.mozilla.org/en-US/docs/Web/HTTP/Status.
-	HttpCode int `json:"http_code" url:"http_code"`
-	// HTTP status message.
+	GrpcCode   int                      `json:"grpc_code" url:"grpc_code"`
+	HttpCode   HttpCode                 `json:"http_code" url:"http_code"`
 	HttpStatus string                   `json:"http_status" url:"http_status"`
 	Message    string                   `json:"message" url:"message"`
 	Details    []map[string]interface{} `json:"details,omitempty" url:"details,omitempty"`
@@ -311,7 +73,7 @@ func (e *ErrorResponseError) GetGrpcCode() int {
 	return e.GrpcCode
 }
 
-func (e *ErrorResponseError) GetHttpCode() int {
+func (e *ErrorResponseError) GetHttpCode() HttpCode {
 	if e == nil {
 		return 0
 	}
@@ -369,6 +131,750 @@ func (e *ErrorResponseError) String() string {
 		return value
 	}
 	return fmt.Sprintf("%#v", e)
+}
+
+// Mapping of preferred data formatting options to entity types. Returned values are dependent on the configuration of the vault storing the data and the permissions of the user or account making the request.
+type Format struct {
+	// Entity types to fully redact.
+	Redacted []FormatRedactedItem `json:"redacted,omitempty" url:"redacted,omitempty"`
+	// Entity types to mask.
+	Masked []FormatMaskedItem `json:"masked,omitempty" url:"masked,omitempty"`
+	// Entity types to return in plaintext.
+	Plaintext []FormatPlaintextItem `json:"plaintext,omitempty" url:"plaintext,omitempty"`
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (f *Format) GetRedacted() []FormatRedactedItem {
+	if f == nil {
+		return nil
+	}
+	return f.Redacted
+}
+
+func (f *Format) GetMasked() []FormatMaskedItem {
+	if f == nil {
+		return nil
+	}
+	return f.Masked
+}
+
+func (f *Format) GetPlaintext() []FormatPlaintextItem {
+	if f == nil {
+		return nil
+	}
+	return f.Plaintext
+}
+
+func (f *Format) GetExtraProperties() map[string]interface{} {
+	return f.extraProperties
+}
+
+func (f *Format) UnmarshalJSON(data []byte) error {
+	type unmarshaler Format
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*f = Format(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *f)
+	if err != nil {
+		return err
+	}
+	f.extraProperties = extraProperties
+	f.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (f *Format) String() string {
+	if len(f.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(f.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(f); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", f)
+}
+
+type FormatMaskedItem string
+
+const (
+	FormatMaskedItemAge                         FormatMaskedItem = "age"
+	FormatMaskedItemBankAccount                 FormatMaskedItem = "bank_account"
+	FormatMaskedItemCreditCard                  FormatMaskedItem = "credit_card"
+	FormatMaskedItemCreditCardExpiration        FormatMaskedItem = "credit_card_expiration"
+	FormatMaskedItemCvv                         FormatMaskedItem = "cvv"
+	FormatMaskedItemDate                        FormatMaskedItem = "date"
+	FormatMaskedItemDateInterval                FormatMaskedItem = "date_interval"
+	FormatMaskedItemDob                         FormatMaskedItem = "dob"
+	FormatMaskedItemDriverLicense               FormatMaskedItem = "driver_license"
+	FormatMaskedItemEmailAddress                FormatMaskedItem = "email_address"
+	FormatMaskedItemHealthcareNumber            FormatMaskedItem = "healthcare_number"
+	FormatMaskedItemIpAddress                   FormatMaskedItem = "ip_address"
+	FormatMaskedItemLocation                    FormatMaskedItem = "location"
+	FormatMaskedItemName                        FormatMaskedItem = "name"
+	FormatMaskedItemNumericalPii                FormatMaskedItem = "numerical_pii"
+	FormatMaskedItemPhoneNumber                 FormatMaskedItem = "phone_number"
+	FormatMaskedItemSsn                         FormatMaskedItem = "ssn"
+	FormatMaskedItemUrl                         FormatMaskedItem = "url"
+	FormatMaskedItemVehicleId                   FormatMaskedItem = "vehicle_id"
+	FormatMaskedItemMedicalCode                 FormatMaskedItem = "medical_code"
+	FormatMaskedItemNameFamily                  FormatMaskedItem = "name_family"
+	FormatMaskedItemNameGiven                   FormatMaskedItem = "name_given"
+	FormatMaskedItemAccountNumber               FormatMaskedItem = "account_number"
+	FormatMaskedItemEvent                       FormatMaskedItem = "event"
+	FormatMaskedItemFilename                    FormatMaskedItem = "filename"
+	FormatMaskedItemGender                      FormatMaskedItem = "gender"
+	FormatMaskedItemLanguage                    FormatMaskedItem = "language"
+	FormatMaskedItemLocationAddress             FormatMaskedItem = "location_address"
+	FormatMaskedItemLocationCity                FormatMaskedItem = "location_city"
+	FormatMaskedItemLocationCoordinate          FormatMaskedItem = "location_coordinate"
+	FormatMaskedItemLocationCountry             FormatMaskedItem = "location_country"
+	FormatMaskedItemLocationState               FormatMaskedItem = "location_state"
+	FormatMaskedItemLocationZip                 FormatMaskedItem = "location_zip"
+	FormatMaskedItemMaritalStatus               FormatMaskedItem = "marital_status"
+	FormatMaskedItemMoney                       FormatMaskedItem = "money"
+	FormatMaskedItemNameMedicalProfessional     FormatMaskedItem = "name_medical_professional"
+	FormatMaskedItemOccupation                  FormatMaskedItem = "occupation"
+	FormatMaskedItemOrganization                FormatMaskedItem = "organization"
+	FormatMaskedItemOrganizationMedicalFacility FormatMaskedItem = "organization_medical_facility"
+	FormatMaskedItemOrigin                      FormatMaskedItem = "origin"
+	FormatMaskedItemPassportNumber              FormatMaskedItem = "passport_number"
+	FormatMaskedItemPassword                    FormatMaskedItem = "password"
+	FormatMaskedItemPhysicalAttribute           FormatMaskedItem = "physical_attribute"
+	FormatMaskedItemPoliticalAffiliation        FormatMaskedItem = "political_affiliation"
+	FormatMaskedItemReligion                    FormatMaskedItem = "religion"
+	FormatMaskedItemTime                        FormatMaskedItem = "time"
+	FormatMaskedItemUsername                    FormatMaskedItem = "username"
+	FormatMaskedItemZodiacSign                  FormatMaskedItem = "zodiac_sign"
+	FormatMaskedItemBloodType                   FormatMaskedItem = "blood_type"
+	FormatMaskedItemCondition                   FormatMaskedItem = "condition"
+	FormatMaskedItemDose                        FormatMaskedItem = "dose"
+	FormatMaskedItemDrug                        FormatMaskedItem = "drug"
+	FormatMaskedItemInjury                      FormatMaskedItem = "injury"
+	FormatMaskedItemMedicalProcess              FormatMaskedItem = "medical_process"
+	FormatMaskedItemStatistics                  FormatMaskedItem = "statistics"
+	FormatMaskedItemRoutingNumber               FormatMaskedItem = "routing_number"
+	FormatMaskedItemCorporateAction             FormatMaskedItem = "corporate_action"
+	FormatMaskedItemFinancialMetric             FormatMaskedItem = "financial_metric"
+	FormatMaskedItemProduct                     FormatMaskedItem = "product"
+	FormatMaskedItemTrend                       FormatMaskedItem = "trend"
+	FormatMaskedItemDuration                    FormatMaskedItem = "duration"
+	FormatMaskedItemLocationAddressStreet       FormatMaskedItem = "location_address_street"
+	FormatMaskedItemAll                         FormatMaskedItem = "all"
+	FormatMaskedItemSexuality                   FormatMaskedItem = "sexuality"
+	FormatMaskedItemEffect                      FormatMaskedItem = "effect"
+	FormatMaskedItemProject                     FormatMaskedItem = "project"
+	FormatMaskedItemOrganizationId              FormatMaskedItem = "organization_id"
+	FormatMaskedItemDay                         FormatMaskedItem = "day"
+	FormatMaskedItemMonth                       FormatMaskedItem = "month"
+	FormatMaskedItemYear                        FormatMaskedItem = "year"
+)
+
+func NewFormatMaskedItemFromString(s string) (FormatMaskedItem, error) {
+	switch s {
+	case "age":
+		return FormatMaskedItemAge, nil
+	case "bank_account":
+		return FormatMaskedItemBankAccount, nil
+	case "credit_card":
+		return FormatMaskedItemCreditCard, nil
+	case "credit_card_expiration":
+		return FormatMaskedItemCreditCardExpiration, nil
+	case "cvv":
+		return FormatMaskedItemCvv, nil
+	case "date":
+		return FormatMaskedItemDate, nil
+	case "date_interval":
+		return FormatMaskedItemDateInterval, nil
+	case "dob":
+		return FormatMaskedItemDob, nil
+	case "driver_license":
+		return FormatMaskedItemDriverLicense, nil
+	case "email_address":
+		return FormatMaskedItemEmailAddress, nil
+	case "healthcare_number":
+		return FormatMaskedItemHealthcareNumber, nil
+	case "ip_address":
+		return FormatMaskedItemIpAddress, nil
+	case "location":
+		return FormatMaskedItemLocation, nil
+	case "name":
+		return FormatMaskedItemName, nil
+	case "numerical_pii":
+		return FormatMaskedItemNumericalPii, nil
+	case "phone_number":
+		return FormatMaskedItemPhoneNumber, nil
+	case "ssn":
+		return FormatMaskedItemSsn, nil
+	case "url":
+		return FormatMaskedItemUrl, nil
+	case "vehicle_id":
+		return FormatMaskedItemVehicleId, nil
+	case "medical_code":
+		return FormatMaskedItemMedicalCode, nil
+	case "name_family":
+		return FormatMaskedItemNameFamily, nil
+	case "name_given":
+		return FormatMaskedItemNameGiven, nil
+	case "account_number":
+		return FormatMaskedItemAccountNumber, nil
+	case "event":
+		return FormatMaskedItemEvent, nil
+	case "filename":
+		return FormatMaskedItemFilename, nil
+	case "gender":
+		return FormatMaskedItemGender, nil
+	case "language":
+		return FormatMaskedItemLanguage, nil
+	case "location_address":
+		return FormatMaskedItemLocationAddress, nil
+	case "location_city":
+		return FormatMaskedItemLocationCity, nil
+	case "location_coordinate":
+		return FormatMaskedItemLocationCoordinate, nil
+	case "location_country":
+		return FormatMaskedItemLocationCountry, nil
+	case "location_state":
+		return FormatMaskedItemLocationState, nil
+	case "location_zip":
+		return FormatMaskedItemLocationZip, nil
+	case "marital_status":
+		return FormatMaskedItemMaritalStatus, nil
+	case "money":
+		return FormatMaskedItemMoney, nil
+	case "name_medical_professional":
+		return FormatMaskedItemNameMedicalProfessional, nil
+	case "occupation":
+		return FormatMaskedItemOccupation, nil
+	case "organization":
+		return FormatMaskedItemOrganization, nil
+	case "organization_medical_facility":
+		return FormatMaskedItemOrganizationMedicalFacility, nil
+	case "origin":
+		return FormatMaskedItemOrigin, nil
+	case "passport_number":
+		return FormatMaskedItemPassportNumber, nil
+	case "password":
+		return FormatMaskedItemPassword, nil
+	case "physical_attribute":
+		return FormatMaskedItemPhysicalAttribute, nil
+	case "political_affiliation":
+		return FormatMaskedItemPoliticalAffiliation, nil
+	case "religion":
+		return FormatMaskedItemReligion, nil
+	case "time":
+		return FormatMaskedItemTime, nil
+	case "username":
+		return FormatMaskedItemUsername, nil
+	case "zodiac_sign":
+		return FormatMaskedItemZodiacSign, nil
+	case "blood_type":
+		return FormatMaskedItemBloodType, nil
+	case "condition":
+		return FormatMaskedItemCondition, nil
+	case "dose":
+		return FormatMaskedItemDose, nil
+	case "drug":
+		return FormatMaskedItemDrug, nil
+	case "injury":
+		return FormatMaskedItemInjury, nil
+	case "medical_process":
+		return FormatMaskedItemMedicalProcess, nil
+	case "statistics":
+		return FormatMaskedItemStatistics, nil
+	case "routing_number":
+		return FormatMaskedItemRoutingNumber, nil
+	case "corporate_action":
+		return FormatMaskedItemCorporateAction, nil
+	case "financial_metric":
+		return FormatMaskedItemFinancialMetric, nil
+	case "product":
+		return FormatMaskedItemProduct, nil
+	case "trend":
+		return FormatMaskedItemTrend, nil
+	case "duration":
+		return FormatMaskedItemDuration, nil
+	case "location_address_street":
+		return FormatMaskedItemLocationAddressStreet, nil
+	case "all":
+		return FormatMaskedItemAll, nil
+	case "sexuality":
+		return FormatMaskedItemSexuality, nil
+	case "effect":
+		return FormatMaskedItemEffect, nil
+	case "project":
+		return FormatMaskedItemProject, nil
+	case "organization_id":
+		return FormatMaskedItemOrganizationId, nil
+	case "day":
+		return FormatMaskedItemDay, nil
+	case "month":
+		return FormatMaskedItemMonth, nil
+	case "year":
+		return FormatMaskedItemYear, nil
+	}
+	var t FormatMaskedItem
+	return "", fmt.Errorf("%s is not a valid %T", s, t)
+}
+
+func (f FormatMaskedItem) Ptr() *FormatMaskedItem {
+	return &f
+}
+
+type FormatPlaintextItem string
+
+const (
+	FormatPlaintextItemAge                         FormatPlaintextItem = "age"
+	FormatPlaintextItemBankAccount                 FormatPlaintextItem = "bank_account"
+	FormatPlaintextItemCreditCard                  FormatPlaintextItem = "credit_card"
+	FormatPlaintextItemCreditCardExpiration        FormatPlaintextItem = "credit_card_expiration"
+	FormatPlaintextItemCvv                         FormatPlaintextItem = "cvv"
+	FormatPlaintextItemDate                        FormatPlaintextItem = "date"
+	FormatPlaintextItemDateInterval                FormatPlaintextItem = "date_interval"
+	FormatPlaintextItemDob                         FormatPlaintextItem = "dob"
+	FormatPlaintextItemDriverLicense               FormatPlaintextItem = "driver_license"
+	FormatPlaintextItemEmailAddress                FormatPlaintextItem = "email_address"
+	FormatPlaintextItemHealthcareNumber            FormatPlaintextItem = "healthcare_number"
+	FormatPlaintextItemIpAddress                   FormatPlaintextItem = "ip_address"
+	FormatPlaintextItemLocation                    FormatPlaintextItem = "location"
+	FormatPlaintextItemName                        FormatPlaintextItem = "name"
+	FormatPlaintextItemNumericalPii                FormatPlaintextItem = "numerical_pii"
+	FormatPlaintextItemPhoneNumber                 FormatPlaintextItem = "phone_number"
+	FormatPlaintextItemSsn                         FormatPlaintextItem = "ssn"
+	FormatPlaintextItemUrl                         FormatPlaintextItem = "url"
+	FormatPlaintextItemVehicleId                   FormatPlaintextItem = "vehicle_id"
+	FormatPlaintextItemMedicalCode                 FormatPlaintextItem = "medical_code"
+	FormatPlaintextItemNameFamily                  FormatPlaintextItem = "name_family"
+	FormatPlaintextItemNameGiven                   FormatPlaintextItem = "name_given"
+	FormatPlaintextItemAccountNumber               FormatPlaintextItem = "account_number"
+	FormatPlaintextItemEvent                       FormatPlaintextItem = "event"
+	FormatPlaintextItemFilename                    FormatPlaintextItem = "filename"
+	FormatPlaintextItemGender                      FormatPlaintextItem = "gender"
+	FormatPlaintextItemLanguage                    FormatPlaintextItem = "language"
+	FormatPlaintextItemLocationAddress             FormatPlaintextItem = "location_address"
+	FormatPlaintextItemLocationCity                FormatPlaintextItem = "location_city"
+	FormatPlaintextItemLocationCoordinate          FormatPlaintextItem = "location_coordinate"
+	FormatPlaintextItemLocationCountry             FormatPlaintextItem = "location_country"
+	FormatPlaintextItemLocationState               FormatPlaintextItem = "location_state"
+	FormatPlaintextItemLocationZip                 FormatPlaintextItem = "location_zip"
+	FormatPlaintextItemMaritalStatus               FormatPlaintextItem = "marital_status"
+	FormatPlaintextItemMoney                       FormatPlaintextItem = "money"
+	FormatPlaintextItemNameMedicalProfessional     FormatPlaintextItem = "name_medical_professional"
+	FormatPlaintextItemOccupation                  FormatPlaintextItem = "occupation"
+	FormatPlaintextItemOrganization                FormatPlaintextItem = "organization"
+	FormatPlaintextItemOrganizationMedicalFacility FormatPlaintextItem = "organization_medical_facility"
+	FormatPlaintextItemOrigin                      FormatPlaintextItem = "origin"
+	FormatPlaintextItemPassportNumber              FormatPlaintextItem = "passport_number"
+	FormatPlaintextItemPassword                    FormatPlaintextItem = "password"
+	FormatPlaintextItemPhysicalAttribute           FormatPlaintextItem = "physical_attribute"
+	FormatPlaintextItemPoliticalAffiliation        FormatPlaintextItem = "political_affiliation"
+	FormatPlaintextItemReligion                    FormatPlaintextItem = "religion"
+	FormatPlaintextItemTime                        FormatPlaintextItem = "time"
+	FormatPlaintextItemUsername                    FormatPlaintextItem = "username"
+	FormatPlaintextItemZodiacSign                  FormatPlaintextItem = "zodiac_sign"
+	FormatPlaintextItemBloodType                   FormatPlaintextItem = "blood_type"
+	FormatPlaintextItemCondition                   FormatPlaintextItem = "condition"
+	FormatPlaintextItemDose                        FormatPlaintextItem = "dose"
+	FormatPlaintextItemDrug                        FormatPlaintextItem = "drug"
+	FormatPlaintextItemInjury                      FormatPlaintextItem = "injury"
+	FormatPlaintextItemMedicalProcess              FormatPlaintextItem = "medical_process"
+	FormatPlaintextItemStatistics                  FormatPlaintextItem = "statistics"
+	FormatPlaintextItemRoutingNumber               FormatPlaintextItem = "routing_number"
+	FormatPlaintextItemCorporateAction             FormatPlaintextItem = "corporate_action"
+	FormatPlaintextItemFinancialMetric             FormatPlaintextItem = "financial_metric"
+	FormatPlaintextItemProduct                     FormatPlaintextItem = "product"
+	FormatPlaintextItemTrend                       FormatPlaintextItem = "trend"
+	FormatPlaintextItemDuration                    FormatPlaintextItem = "duration"
+	FormatPlaintextItemLocationAddressStreet       FormatPlaintextItem = "location_address_street"
+	FormatPlaintextItemAll                         FormatPlaintextItem = "all"
+	FormatPlaintextItemSexuality                   FormatPlaintextItem = "sexuality"
+	FormatPlaintextItemEffect                      FormatPlaintextItem = "effect"
+	FormatPlaintextItemProject                     FormatPlaintextItem = "project"
+	FormatPlaintextItemOrganizationId              FormatPlaintextItem = "organization_id"
+	FormatPlaintextItemDay                         FormatPlaintextItem = "day"
+	FormatPlaintextItemMonth                       FormatPlaintextItem = "month"
+	FormatPlaintextItemYear                        FormatPlaintextItem = "year"
+)
+
+func NewFormatPlaintextItemFromString(s string) (FormatPlaintextItem, error) {
+	switch s {
+	case "age":
+		return FormatPlaintextItemAge, nil
+	case "bank_account":
+		return FormatPlaintextItemBankAccount, nil
+	case "credit_card":
+		return FormatPlaintextItemCreditCard, nil
+	case "credit_card_expiration":
+		return FormatPlaintextItemCreditCardExpiration, nil
+	case "cvv":
+		return FormatPlaintextItemCvv, nil
+	case "date":
+		return FormatPlaintextItemDate, nil
+	case "date_interval":
+		return FormatPlaintextItemDateInterval, nil
+	case "dob":
+		return FormatPlaintextItemDob, nil
+	case "driver_license":
+		return FormatPlaintextItemDriverLicense, nil
+	case "email_address":
+		return FormatPlaintextItemEmailAddress, nil
+	case "healthcare_number":
+		return FormatPlaintextItemHealthcareNumber, nil
+	case "ip_address":
+		return FormatPlaintextItemIpAddress, nil
+	case "location":
+		return FormatPlaintextItemLocation, nil
+	case "name":
+		return FormatPlaintextItemName, nil
+	case "numerical_pii":
+		return FormatPlaintextItemNumericalPii, nil
+	case "phone_number":
+		return FormatPlaintextItemPhoneNumber, nil
+	case "ssn":
+		return FormatPlaintextItemSsn, nil
+	case "url":
+		return FormatPlaintextItemUrl, nil
+	case "vehicle_id":
+		return FormatPlaintextItemVehicleId, nil
+	case "medical_code":
+		return FormatPlaintextItemMedicalCode, nil
+	case "name_family":
+		return FormatPlaintextItemNameFamily, nil
+	case "name_given":
+		return FormatPlaintextItemNameGiven, nil
+	case "account_number":
+		return FormatPlaintextItemAccountNumber, nil
+	case "event":
+		return FormatPlaintextItemEvent, nil
+	case "filename":
+		return FormatPlaintextItemFilename, nil
+	case "gender":
+		return FormatPlaintextItemGender, nil
+	case "language":
+		return FormatPlaintextItemLanguage, nil
+	case "location_address":
+		return FormatPlaintextItemLocationAddress, nil
+	case "location_city":
+		return FormatPlaintextItemLocationCity, nil
+	case "location_coordinate":
+		return FormatPlaintextItemLocationCoordinate, nil
+	case "location_country":
+		return FormatPlaintextItemLocationCountry, nil
+	case "location_state":
+		return FormatPlaintextItemLocationState, nil
+	case "location_zip":
+		return FormatPlaintextItemLocationZip, nil
+	case "marital_status":
+		return FormatPlaintextItemMaritalStatus, nil
+	case "money":
+		return FormatPlaintextItemMoney, nil
+	case "name_medical_professional":
+		return FormatPlaintextItemNameMedicalProfessional, nil
+	case "occupation":
+		return FormatPlaintextItemOccupation, nil
+	case "organization":
+		return FormatPlaintextItemOrganization, nil
+	case "organization_medical_facility":
+		return FormatPlaintextItemOrganizationMedicalFacility, nil
+	case "origin":
+		return FormatPlaintextItemOrigin, nil
+	case "passport_number":
+		return FormatPlaintextItemPassportNumber, nil
+	case "password":
+		return FormatPlaintextItemPassword, nil
+	case "physical_attribute":
+		return FormatPlaintextItemPhysicalAttribute, nil
+	case "political_affiliation":
+		return FormatPlaintextItemPoliticalAffiliation, nil
+	case "religion":
+		return FormatPlaintextItemReligion, nil
+	case "time":
+		return FormatPlaintextItemTime, nil
+	case "username":
+		return FormatPlaintextItemUsername, nil
+	case "zodiac_sign":
+		return FormatPlaintextItemZodiacSign, nil
+	case "blood_type":
+		return FormatPlaintextItemBloodType, nil
+	case "condition":
+		return FormatPlaintextItemCondition, nil
+	case "dose":
+		return FormatPlaintextItemDose, nil
+	case "drug":
+		return FormatPlaintextItemDrug, nil
+	case "injury":
+		return FormatPlaintextItemInjury, nil
+	case "medical_process":
+		return FormatPlaintextItemMedicalProcess, nil
+	case "statistics":
+		return FormatPlaintextItemStatistics, nil
+	case "routing_number":
+		return FormatPlaintextItemRoutingNumber, nil
+	case "corporate_action":
+		return FormatPlaintextItemCorporateAction, nil
+	case "financial_metric":
+		return FormatPlaintextItemFinancialMetric, nil
+	case "product":
+		return FormatPlaintextItemProduct, nil
+	case "trend":
+		return FormatPlaintextItemTrend, nil
+	case "duration":
+		return FormatPlaintextItemDuration, nil
+	case "location_address_street":
+		return FormatPlaintextItemLocationAddressStreet, nil
+	case "all":
+		return FormatPlaintextItemAll, nil
+	case "sexuality":
+		return FormatPlaintextItemSexuality, nil
+	case "effect":
+		return FormatPlaintextItemEffect, nil
+	case "project":
+		return FormatPlaintextItemProject, nil
+	case "organization_id":
+		return FormatPlaintextItemOrganizationId, nil
+	case "day":
+		return FormatPlaintextItemDay, nil
+	case "month":
+		return FormatPlaintextItemMonth, nil
+	case "year":
+		return FormatPlaintextItemYear, nil
+	}
+	var t FormatPlaintextItem
+	return "", fmt.Errorf("%s is not a valid %T", s, t)
+}
+
+func (f FormatPlaintextItem) Ptr() *FormatPlaintextItem {
+	return &f
+}
+
+type FormatRedactedItem string
+
+const (
+	FormatRedactedItemAge                         FormatRedactedItem = "age"
+	FormatRedactedItemBankAccount                 FormatRedactedItem = "bank_account"
+	FormatRedactedItemCreditCard                  FormatRedactedItem = "credit_card"
+	FormatRedactedItemCreditCardExpiration        FormatRedactedItem = "credit_card_expiration"
+	FormatRedactedItemCvv                         FormatRedactedItem = "cvv"
+	FormatRedactedItemDate                        FormatRedactedItem = "date"
+	FormatRedactedItemDateInterval                FormatRedactedItem = "date_interval"
+	FormatRedactedItemDob                         FormatRedactedItem = "dob"
+	FormatRedactedItemDriverLicense               FormatRedactedItem = "driver_license"
+	FormatRedactedItemEmailAddress                FormatRedactedItem = "email_address"
+	FormatRedactedItemHealthcareNumber            FormatRedactedItem = "healthcare_number"
+	FormatRedactedItemIpAddress                   FormatRedactedItem = "ip_address"
+	FormatRedactedItemLocation                    FormatRedactedItem = "location"
+	FormatRedactedItemName                        FormatRedactedItem = "name"
+	FormatRedactedItemNumericalPii                FormatRedactedItem = "numerical_pii"
+	FormatRedactedItemPhoneNumber                 FormatRedactedItem = "phone_number"
+	FormatRedactedItemSsn                         FormatRedactedItem = "ssn"
+	FormatRedactedItemUrl                         FormatRedactedItem = "url"
+	FormatRedactedItemVehicleId                   FormatRedactedItem = "vehicle_id"
+	FormatRedactedItemMedicalCode                 FormatRedactedItem = "medical_code"
+	FormatRedactedItemNameFamily                  FormatRedactedItem = "name_family"
+	FormatRedactedItemNameGiven                   FormatRedactedItem = "name_given"
+	FormatRedactedItemAccountNumber               FormatRedactedItem = "account_number"
+	FormatRedactedItemEvent                       FormatRedactedItem = "event"
+	FormatRedactedItemFilename                    FormatRedactedItem = "filename"
+	FormatRedactedItemGender                      FormatRedactedItem = "gender"
+	FormatRedactedItemLanguage                    FormatRedactedItem = "language"
+	FormatRedactedItemLocationAddress             FormatRedactedItem = "location_address"
+	FormatRedactedItemLocationCity                FormatRedactedItem = "location_city"
+	FormatRedactedItemLocationCoordinate          FormatRedactedItem = "location_coordinate"
+	FormatRedactedItemLocationCountry             FormatRedactedItem = "location_country"
+	FormatRedactedItemLocationState               FormatRedactedItem = "location_state"
+	FormatRedactedItemLocationZip                 FormatRedactedItem = "location_zip"
+	FormatRedactedItemMaritalStatus               FormatRedactedItem = "marital_status"
+	FormatRedactedItemMoney                       FormatRedactedItem = "money"
+	FormatRedactedItemNameMedicalProfessional     FormatRedactedItem = "name_medical_professional"
+	FormatRedactedItemOccupation                  FormatRedactedItem = "occupation"
+	FormatRedactedItemOrganization                FormatRedactedItem = "organization"
+	FormatRedactedItemOrganizationMedicalFacility FormatRedactedItem = "organization_medical_facility"
+	FormatRedactedItemOrigin                      FormatRedactedItem = "origin"
+	FormatRedactedItemPassportNumber              FormatRedactedItem = "passport_number"
+	FormatRedactedItemPassword                    FormatRedactedItem = "password"
+	FormatRedactedItemPhysicalAttribute           FormatRedactedItem = "physical_attribute"
+	FormatRedactedItemPoliticalAffiliation        FormatRedactedItem = "political_affiliation"
+	FormatRedactedItemReligion                    FormatRedactedItem = "religion"
+	FormatRedactedItemTime                        FormatRedactedItem = "time"
+	FormatRedactedItemUsername                    FormatRedactedItem = "username"
+	FormatRedactedItemZodiacSign                  FormatRedactedItem = "zodiac_sign"
+	FormatRedactedItemBloodType                   FormatRedactedItem = "blood_type"
+	FormatRedactedItemCondition                   FormatRedactedItem = "condition"
+	FormatRedactedItemDose                        FormatRedactedItem = "dose"
+	FormatRedactedItemDrug                        FormatRedactedItem = "drug"
+	FormatRedactedItemInjury                      FormatRedactedItem = "injury"
+	FormatRedactedItemMedicalProcess              FormatRedactedItem = "medical_process"
+	FormatRedactedItemStatistics                  FormatRedactedItem = "statistics"
+	FormatRedactedItemRoutingNumber               FormatRedactedItem = "routing_number"
+	FormatRedactedItemCorporateAction             FormatRedactedItem = "corporate_action"
+	FormatRedactedItemFinancialMetric             FormatRedactedItem = "financial_metric"
+	FormatRedactedItemProduct                     FormatRedactedItem = "product"
+	FormatRedactedItemTrend                       FormatRedactedItem = "trend"
+	FormatRedactedItemDuration                    FormatRedactedItem = "duration"
+	FormatRedactedItemLocationAddressStreet       FormatRedactedItem = "location_address_street"
+	FormatRedactedItemAll                         FormatRedactedItem = "all"
+	FormatRedactedItemSexuality                   FormatRedactedItem = "sexuality"
+	FormatRedactedItemEffect                      FormatRedactedItem = "effect"
+	FormatRedactedItemProject                     FormatRedactedItem = "project"
+	FormatRedactedItemOrganizationId              FormatRedactedItem = "organization_id"
+	FormatRedactedItemDay                         FormatRedactedItem = "day"
+	FormatRedactedItemMonth                       FormatRedactedItem = "month"
+	FormatRedactedItemYear                        FormatRedactedItem = "year"
+)
+
+func NewFormatRedactedItemFromString(s string) (FormatRedactedItem, error) {
+	switch s {
+	case "age":
+		return FormatRedactedItemAge, nil
+	case "bank_account":
+		return FormatRedactedItemBankAccount, nil
+	case "credit_card":
+		return FormatRedactedItemCreditCard, nil
+	case "credit_card_expiration":
+		return FormatRedactedItemCreditCardExpiration, nil
+	case "cvv":
+		return FormatRedactedItemCvv, nil
+	case "date":
+		return FormatRedactedItemDate, nil
+	case "date_interval":
+		return FormatRedactedItemDateInterval, nil
+	case "dob":
+		return FormatRedactedItemDob, nil
+	case "driver_license":
+		return FormatRedactedItemDriverLicense, nil
+	case "email_address":
+		return FormatRedactedItemEmailAddress, nil
+	case "healthcare_number":
+		return FormatRedactedItemHealthcareNumber, nil
+	case "ip_address":
+		return FormatRedactedItemIpAddress, nil
+	case "location":
+		return FormatRedactedItemLocation, nil
+	case "name":
+		return FormatRedactedItemName, nil
+	case "numerical_pii":
+		return FormatRedactedItemNumericalPii, nil
+	case "phone_number":
+		return FormatRedactedItemPhoneNumber, nil
+	case "ssn":
+		return FormatRedactedItemSsn, nil
+	case "url":
+		return FormatRedactedItemUrl, nil
+	case "vehicle_id":
+		return FormatRedactedItemVehicleId, nil
+	case "medical_code":
+		return FormatRedactedItemMedicalCode, nil
+	case "name_family":
+		return FormatRedactedItemNameFamily, nil
+	case "name_given":
+		return FormatRedactedItemNameGiven, nil
+	case "account_number":
+		return FormatRedactedItemAccountNumber, nil
+	case "event":
+		return FormatRedactedItemEvent, nil
+	case "filename":
+		return FormatRedactedItemFilename, nil
+	case "gender":
+		return FormatRedactedItemGender, nil
+	case "language":
+		return FormatRedactedItemLanguage, nil
+	case "location_address":
+		return FormatRedactedItemLocationAddress, nil
+	case "location_city":
+		return FormatRedactedItemLocationCity, nil
+	case "location_coordinate":
+		return FormatRedactedItemLocationCoordinate, nil
+	case "location_country":
+		return FormatRedactedItemLocationCountry, nil
+	case "location_state":
+		return FormatRedactedItemLocationState, nil
+	case "location_zip":
+		return FormatRedactedItemLocationZip, nil
+	case "marital_status":
+		return FormatRedactedItemMaritalStatus, nil
+	case "money":
+		return FormatRedactedItemMoney, nil
+	case "name_medical_professional":
+		return FormatRedactedItemNameMedicalProfessional, nil
+	case "occupation":
+		return FormatRedactedItemOccupation, nil
+	case "organization":
+		return FormatRedactedItemOrganization, nil
+	case "organization_medical_facility":
+		return FormatRedactedItemOrganizationMedicalFacility, nil
+	case "origin":
+		return FormatRedactedItemOrigin, nil
+	case "passport_number":
+		return FormatRedactedItemPassportNumber, nil
+	case "password":
+		return FormatRedactedItemPassword, nil
+	case "physical_attribute":
+		return FormatRedactedItemPhysicalAttribute, nil
+	case "political_affiliation":
+		return FormatRedactedItemPoliticalAffiliation, nil
+	case "religion":
+		return FormatRedactedItemReligion, nil
+	case "time":
+		return FormatRedactedItemTime, nil
+	case "username":
+		return FormatRedactedItemUsername, nil
+	case "zodiac_sign":
+		return FormatRedactedItemZodiacSign, nil
+	case "blood_type":
+		return FormatRedactedItemBloodType, nil
+	case "condition":
+		return FormatRedactedItemCondition, nil
+	case "dose":
+		return FormatRedactedItemDose, nil
+	case "drug":
+		return FormatRedactedItemDrug, nil
+	case "injury":
+		return FormatRedactedItemInjury, nil
+	case "medical_process":
+		return FormatRedactedItemMedicalProcess, nil
+	case "statistics":
+		return FormatRedactedItemStatistics, nil
+	case "routing_number":
+		return FormatRedactedItemRoutingNumber, nil
+	case "corporate_action":
+		return FormatRedactedItemCorporateAction, nil
+	case "financial_metric":
+		return FormatRedactedItemFinancialMetric, nil
+	case "product":
+		return FormatRedactedItemProduct, nil
+	case "trend":
+		return FormatRedactedItemTrend, nil
+	case "duration":
+		return FormatRedactedItemDuration, nil
+	case "location_address_street":
+		return FormatRedactedItemLocationAddressStreet, nil
+	case "all":
+		return FormatRedactedItemAll, nil
+	case "sexuality":
+		return FormatRedactedItemSexuality, nil
+	case "effect":
+		return FormatRedactedItemEffect, nil
+	case "project":
+		return FormatRedactedItemProject, nil
+	case "organization_id":
+		return FormatRedactedItemOrganizationId, nil
+	case "day":
+		return FormatRedactedItemDay, nil
+	case "month":
+		return FormatRedactedItemMonth, nil
+	case "year":
+		return FormatRedactedItemYear, nil
+	}
+	var t FormatRedactedItem
+	return "", fmt.Errorf("%s is not a valid %T", s, t)
+}
+
+func (f FormatRedactedItem) Ptr() *FormatRedactedItem {
+	return &f
 }
 
 type GooglerpcStatus struct {
@@ -432,6 +938,9 @@ func (g *GooglerpcStatus) String() string {
 	}
 	return fmt.Sprintf("%#v", g)
 }
+
+// HTTP status codes. See https://developer.mozilla.org/en-US/docs/Web/HTTP/Status.
+type HttpCode = int
 
 type ProtobufAny struct {
 	Type *string `json:"@type,omitempty" url:"@type,omitempty"`
@@ -508,19 +1017,888 @@ func (r RedactionEnumRedaction) Ptr() *RedactionEnumRedaction {
 	return &r
 }
 
-// Regular expressions to replace with '[RESTRICTED]'. Expressions must match the entirety of a detected entity, not just a substring, for the entity to be restricted. Expressions don't match across entity boundaries. If a string or entity matches both `allow_regex` and `restrict_regex`, the entity is displayed in plaintext.
-type RestrictRegex = []string
+// ID of a resource.
+type ResourceId = string
 
-// Transformations to apply to the detected entities.
-type Transformations struct {
-	// Shift dates by a specified number of days.
-	ShiftDates *TransformationsShiftDates `json:"shift_dates,omitempty" url:"shift_dates,omitempty"`
+// Shift dates by a specified number of days.
+type ShiftDates struct {
+	// Minimum number of days to shift the date by.
+	MinDays *int `json:"min_days,omitempty" url:"min_days,omitempty"`
+	// Maximum number of days to shift the date by.
+	MaxDays *int `json:"max_days,omitempty" url:"max_days,omitempty"`
+	// Entity types to shift dates for.
+	EntityTypes []ShiftDatesEntityTypesItem `json:"entity_types,omitempty" url:"entity_types,omitempty"`
 
 	extraProperties map[string]interface{}
 	rawJSON         json.RawMessage
 }
 
-func (t *Transformations) GetShiftDates() *TransformationsShiftDates {
+func (s *ShiftDates) GetMinDays() *int {
+	if s == nil {
+		return nil
+	}
+	return s.MinDays
+}
+
+func (s *ShiftDates) GetMaxDays() *int {
+	if s == nil {
+		return nil
+	}
+	return s.MaxDays
+}
+
+func (s *ShiftDates) GetEntityTypes() []ShiftDatesEntityTypesItem {
+	if s == nil {
+		return nil
+	}
+	return s.EntityTypes
+}
+
+func (s *ShiftDates) GetExtraProperties() map[string]interface{} {
+	return s.extraProperties
+}
+
+func (s *ShiftDates) UnmarshalJSON(data []byte) error {
+	type unmarshaler ShiftDates
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*s = ShiftDates(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *s)
+	if err != nil {
+		return err
+	}
+	s.extraProperties = extraProperties
+	s.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (s *ShiftDates) String() string {
+	if len(s.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(s.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(s); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", s)
+}
+
+type ShiftDatesEntityTypesItem string
+
+const (
+	ShiftDatesEntityTypesItemDate         ShiftDatesEntityTypesItem = "date"
+	ShiftDatesEntityTypesItemDateInterval ShiftDatesEntityTypesItem = "date_interval"
+	ShiftDatesEntityTypesItemDob          ShiftDatesEntityTypesItem = "dob"
+)
+
+func NewShiftDatesEntityTypesItemFromString(s string) (ShiftDatesEntityTypesItem, error) {
+	switch s {
+	case "date":
+		return ShiftDatesEntityTypesItemDate, nil
+	case "date_interval":
+		return ShiftDatesEntityTypesItemDateInterval, nil
+	case "dob":
+		return ShiftDatesEntityTypesItemDob, nil
+	}
+	var t ShiftDatesEntityTypesItem
+	return "", fmt.Errorf("%s is not a valid %T", s, t)
+}
+
+func (s ShiftDatesEntityTypesItem) Ptr() *ShiftDatesEntityTypesItem {
+	return &s
+}
+
+// Mapping of token types to detected entities.
+type TokenTypeMapping struct {
+	// Entity types to replace with vault tokens.
+	VaultToken []TokenTypeMappingVaultTokenItem `json:"vault_token,omitempty" url:"vault_token,omitempty"`
+	// Entity types to replace with entity tokens.
+	EntityOnly []TokenTypeMappingEntityOnlyItem `json:"entity_only,omitempty" url:"entity_only,omitempty"`
+	// Entity types to replace with entity tokens with unique counters.
+	EntityUnqCounter []TokenTypeMappingEntityUnqCounterItem `json:"entity_unq_counter,omitempty" url:"entity_unq_counter,omitempty"`
+	// Default token type to generate for detected entities.
+	Default *TokenTypeMappingDefault `json:"default,omitempty" url:"default,omitempty"`
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (t *TokenTypeMapping) GetVaultToken() []TokenTypeMappingVaultTokenItem {
+	if t == nil {
+		return nil
+	}
+	return t.VaultToken
+}
+
+func (t *TokenTypeMapping) GetEntityOnly() []TokenTypeMappingEntityOnlyItem {
+	if t == nil {
+		return nil
+	}
+	return t.EntityOnly
+}
+
+func (t *TokenTypeMapping) GetEntityUnqCounter() []TokenTypeMappingEntityUnqCounterItem {
+	if t == nil {
+		return nil
+	}
+	return t.EntityUnqCounter
+}
+
+func (t *TokenTypeMapping) GetDefault() *TokenTypeMappingDefault {
+	if t == nil {
+		return nil
+	}
+	return t.Default
+}
+
+func (t *TokenTypeMapping) GetExtraProperties() map[string]interface{} {
+	return t.extraProperties
+}
+
+func (t *TokenTypeMapping) UnmarshalJSON(data []byte) error {
+	type unmarshaler TokenTypeMapping
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*t = TokenTypeMapping(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *t)
+	if err != nil {
+		return err
+	}
+	t.extraProperties = extraProperties
+	t.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (t *TokenTypeMapping) String() string {
+	if len(t.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(t.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(t); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", t)
+}
+
+// Default token type to generate for detected entities.
+type TokenTypeMappingDefault string
+
+const (
+	TokenTypeMappingDefaultEntityUnqCounter TokenTypeMappingDefault = "entity_unq_counter"
+	TokenTypeMappingDefaultEntityOnly       TokenTypeMappingDefault = "entity_only"
+	TokenTypeMappingDefaultVaultToken       TokenTypeMappingDefault = "vault_token"
+)
+
+func NewTokenTypeMappingDefaultFromString(s string) (TokenTypeMappingDefault, error) {
+	switch s {
+	case "entity_unq_counter":
+		return TokenTypeMappingDefaultEntityUnqCounter, nil
+	case "entity_only":
+		return TokenTypeMappingDefaultEntityOnly, nil
+	case "vault_token":
+		return TokenTypeMappingDefaultVaultToken, nil
+	}
+	var t TokenTypeMappingDefault
+	return "", fmt.Errorf("%s is not a valid %T", s, t)
+}
+
+func (t TokenTypeMappingDefault) Ptr() *TokenTypeMappingDefault {
+	return &t
+}
+
+type TokenTypeMappingEntityOnlyItem string
+
+const (
+	TokenTypeMappingEntityOnlyItemAge                         TokenTypeMappingEntityOnlyItem = "age"
+	TokenTypeMappingEntityOnlyItemBankAccount                 TokenTypeMappingEntityOnlyItem = "bank_account"
+	TokenTypeMappingEntityOnlyItemCreditCard                  TokenTypeMappingEntityOnlyItem = "credit_card"
+	TokenTypeMappingEntityOnlyItemCreditCardExpiration        TokenTypeMappingEntityOnlyItem = "credit_card_expiration"
+	TokenTypeMappingEntityOnlyItemCvv                         TokenTypeMappingEntityOnlyItem = "cvv"
+	TokenTypeMappingEntityOnlyItemDate                        TokenTypeMappingEntityOnlyItem = "date"
+	TokenTypeMappingEntityOnlyItemDateInterval                TokenTypeMappingEntityOnlyItem = "date_interval"
+	TokenTypeMappingEntityOnlyItemDob                         TokenTypeMappingEntityOnlyItem = "dob"
+	TokenTypeMappingEntityOnlyItemDriverLicense               TokenTypeMappingEntityOnlyItem = "driver_license"
+	TokenTypeMappingEntityOnlyItemEmailAddress                TokenTypeMappingEntityOnlyItem = "email_address"
+	TokenTypeMappingEntityOnlyItemHealthcareNumber            TokenTypeMappingEntityOnlyItem = "healthcare_number"
+	TokenTypeMappingEntityOnlyItemIpAddress                   TokenTypeMappingEntityOnlyItem = "ip_address"
+	TokenTypeMappingEntityOnlyItemLocation                    TokenTypeMappingEntityOnlyItem = "location"
+	TokenTypeMappingEntityOnlyItemName                        TokenTypeMappingEntityOnlyItem = "name"
+	TokenTypeMappingEntityOnlyItemNumericalPii                TokenTypeMappingEntityOnlyItem = "numerical_pii"
+	TokenTypeMappingEntityOnlyItemPhoneNumber                 TokenTypeMappingEntityOnlyItem = "phone_number"
+	TokenTypeMappingEntityOnlyItemSsn                         TokenTypeMappingEntityOnlyItem = "ssn"
+	TokenTypeMappingEntityOnlyItemUrl                         TokenTypeMappingEntityOnlyItem = "url"
+	TokenTypeMappingEntityOnlyItemVehicleId                   TokenTypeMappingEntityOnlyItem = "vehicle_id"
+	TokenTypeMappingEntityOnlyItemMedicalCode                 TokenTypeMappingEntityOnlyItem = "medical_code"
+	TokenTypeMappingEntityOnlyItemNameFamily                  TokenTypeMappingEntityOnlyItem = "name_family"
+	TokenTypeMappingEntityOnlyItemNameGiven                   TokenTypeMappingEntityOnlyItem = "name_given"
+	TokenTypeMappingEntityOnlyItemAccountNumber               TokenTypeMappingEntityOnlyItem = "account_number"
+	TokenTypeMappingEntityOnlyItemEvent                       TokenTypeMappingEntityOnlyItem = "event"
+	TokenTypeMappingEntityOnlyItemFilename                    TokenTypeMappingEntityOnlyItem = "filename"
+	TokenTypeMappingEntityOnlyItemGender                      TokenTypeMappingEntityOnlyItem = "gender"
+	TokenTypeMappingEntityOnlyItemLanguage                    TokenTypeMappingEntityOnlyItem = "language"
+	TokenTypeMappingEntityOnlyItemLocationAddress             TokenTypeMappingEntityOnlyItem = "location_address"
+	TokenTypeMappingEntityOnlyItemLocationCity                TokenTypeMappingEntityOnlyItem = "location_city"
+	TokenTypeMappingEntityOnlyItemLocationCoordinate          TokenTypeMappingEntityOnlyItem = "location_coordinate"
+	TokenTypeMappingEntityOnlyItemLocationCountry             TokenTypeMappingEntityOnlyItem = "location_country"
+	TokenTypeMappingEntityOnlyItemLocationState               TokenTypeMappingEntityOnlyItem = "location_state"
+	TokenTypeMappingEntityOnlyItemLocationZip                 TokenTypeMappingEntityOnlyItem = "location_zip"
+	TokenTypeMappingEntityOnlyItemMaritalStatus               TokenTypeMappingEntityOnlyItem = "marital_status"
+	TokenTypeMappingEntityOnlyItemMoney                       TokenTypeMappingEntityOnlyItem = "money"
+	TokenTypeMappingEntityOnlyItemNameMedicalProfessional     TokenTypeMappingEntityOnlyItem = "name_medical_professional"
+	TokenTypeMappingEntityOnlyItemOccupation                  TokenTypeMappingEntityOnlyItem = "occupation"
+	TokenTypeMappingEntityOnlyItemOrganization                TokenTypeMappingEntityOnlyItem = "organization"
+	TokenTypeMappingEntityOnlyItemOrganizationMedicalFacility TokenTypeMappingEntityOnlyItem = "organization_medical_facility"
+	TokenTypeMappingEntityOnlyItemOrigin                      TokenTypeMappingEntityOnlyItem = "origin"
+	TokenTypeMappingEntityOnlyItemPassportNumber              TokenTypeMappingEntityOnlyItem = "passport_number"
+	TokenTypeMappingEntityOnlyItemPassword                    TokenTypeMappingEntityOnlyItem = "password"
+	TokenTypeMappingEntityOnlyItemPhysicalAttribute           TokenTypeMappingEntityOnlyItem = "physical_attribute"
+	TokenTypeMappingEntityOnlyItemPoliticalAffiliation        TokenTypeMappingEntityOnlyItem = "political_affiliation"
+	TokenTypeMappingEntityOnlyItemReligion                    TokenTypeMappingEntityOnlyItem = "religion"
+	TokenTypeMappingEntityOnlyItemTime                        TokenTypeMappingEntityOnlyItem = "time"
+	TokenTypeMappingEntityOnlyItemUsername                    TokenTypeMappingEntityOnlyItem = "username"
+	TokenTypeMappingEntityOnlyItemZodiacSign                  TokenTypeMappingEntityOnlyItem = "zodiac_sign"
+	TokenTypeMappingEntityOnlyItemBloodType                   TokenTypeMappingEntityOnlyItem = "blood_type"
+	TokenTypeMappingEntityOnlyItemCondition                   TokenTypeMappingEntityOnlyItem = "condition"
+	TokenTypeMappingEntityOnlyItemDose                        TokenTypeMappingEntityOnlyItem = "dose"
+	TokenTypeMappingEntityOnlyItemDrug                        TokenTypeMappingEntityOnlyItem = "drug"
+	TokenTypeMappingEntityOnlyItemInjury                      TokenTypeMappingEntityOnlyItem = "injury"
+	TokenTypeMappingEntityOnlyItemMedicalProcess              TokenTypeMappingEntityOnlyItem = "medical_process"
+	TokenTypeMappingEntityOnlyItemStatistics                  TokenTypeMappingEntityOnlyItem = "statistics"
+	TokenTypeMappingEntityOnlyItemRoutingNumber               TokenTypeMappingEntityOnlyItem = "routing_number"
+	TokenTypeMappingEntityOnlyItemCorporateAction             TokenTypeMappingEntityOnlyItem = "corporate_action"
+	TokenTypeMappingEntityOnlyItemFinancialMetric             TokenTypeMappingEntityOnlyItem = "financial_metric"
+	TokenTypeMappingEntityOnlyItemProduct                     TokenTypeMappingEntityOnlyItem = "product"
+	TokenTypeMappingEntityOnlyItemTrend                       TokenTypeMappingEntityOnlyItem = "trend"
+	TokenTypeMappingEntityOnlyItemDuration                    TokenTypeMappingEntityOnlyItem = "duration"
+	TokenTypeMappingEntityOnlyItemLocationAddressStreet       TokenTypeMappingEntityOnlyItem = "location_address_street"
+	TokenTypeMappingEntityOnlyItemAll                         TokenTypeMappingEntityOnlyItem = "all"
+	TokenTypeMappingEntityOnlyItemSexuality                   TokenTypeMappingEntityOnlyItem = "sexuality"
+	TokenTypeMappingEntityOnlyItemEffect                      TokenTypeMappingEntityOnlyItem = "effect"
+	TokenTypeMappingEntityOnlyItemProject                     TokenTypeMappingEntityOnlyItem = "project"
+	TokenTypeMappingEntityOnlyItemOrganizationId              TokenTypeMappingEntityOnlyItem = "organization_id"
+	TokenTypeMappingEntityOnlyItemDay                         TokenTypeMappingEntityOnlyItem = "day"
+	TokenTypeMappingEntityOnlyItemMonth                       TokenTypeMappingEntityOnlyItem = "month"
+	TokenTypeMappingEntityOnlyItemYear                        TokenTypeMappingEntityOnlyItem = "year"
+)
+
+func NewTokenTypeMappingEntityOnlyItemFromString(s string) (TokenTypeMappingEntityOnlyItem, error) {
+	switch s {
+	case "age":
+		return TokenTypeMappingEntityOnlyItemAge, nil
+	case "bank_account":
+		return TokenTypeMappingEntityOnlyItemBankAccount, nil
+	case "credit_card":
+		return TokenTypeMappingEntityOnlyItemCreditCard, nil
+	case "credit_card_expiration":
+		return TokenTypeMappingEntityOnlyItemCreditCardExpiration, nil
+	case "cvv":
+		return TokenTypeMappingEntityOnlyItemCvv, nil
+	case "date":
+		return TokenTypeMappingEntityOnlyItemDate, nil
+	case "date_interval":
+		return TokenTypeMappingEntityOnlyItemDateInterval, nil
+	case "dob":
+		return TokenTypeMappingEntityOnlyItemDob, nil
+	case "driver_license":
+		return TokenTypeMappingEntityOnlyItemDriverLicense, nil
+	case "email_address":
+		return TokenTypeMappingEntityOnlyItemEmailAddress, nil
+	case "healthcare_number":
+		return TokenTypeMappingEntityOnlyItemHealthcareNumber, nil
+	case "ip_address":
+		return TokenTypeMappingEntityOnlyItemIpAddress, nil
+	case "location":
+		return TokenTypeMappingEntityOnlyItemLocation, nil
+	case "name":
+		return TokenTypeMappingEntityOnlyItemName, nil
+	case "numerical_pii":
+		return TokenTypeMappingEntityOnlyItemNumericalPii, nil
+	case "phone_number":
+		return TokenTypeMappingEntityOnlyItemPhoneNumber, nil
+	case "ssn":
+		return TokenTypeMappingEntityOnlyItemSsn, nil
+	case "url":
+		return TokenTypeMappingEntityOnlyItemUrl, nil
+	case "vehicle_id":
+		return TokenTypeMappingEntityOnlyItemVehicleId, nil
+	case "medical_code":
+		return TokenTypeMappingEntityOnlyItemMedicalCode, nil
+	case "name_family":
+		return TokenTypeMappingEntityOnlyItemNameFamily, nil
+	case "name_given":
+		return TokenTypeMappingEntityOnlyItemNameGiven, nil
+	case "account_number":
+		return TokenTypeMappingEntityOnlyItemAccountNumber, nil
+	case "event":
+		return TokenTypeMappingEntityOnlyItemEvent, nil
+	case "filename":
+		return TokenTypeMappingEntityOnlyItemFilename, nil
+	case "gender":
+		return TokenTypeMappingEntityOnlyItemGender, nil
+	case "language":
+		return TokenTypeMappingEntityOnlyItemLanguage, nil
+	case "location_address":
+		return TokenTypeMappingEntityOnlyItemLocationAddress, nil
+	case "location_city":
+		return TokenTypeMappingEntityOnlyItemLocationCity, nil
+	case "location_coordinate":
+		return TokenTypeMappingEntityOnlyItemLocationCoordinate, nil
+	case "location_country":
+		return TokenTypeMappingEntityOnlyItemLocationCountry, nil
+	case "location_state":
+		return TokenTypeMappingEntityOnlyItemLocationState, nil
+	case "location_zip":
+		return TokenTypeMappingEntityOnlyItemLocationZip, nil
+	case "marital_status":
+		return TokenTypeMappingEntityOnlyItemMaritalStatus, nil
+	case "money":
+		return TokenTypeMappingEntityOnlyItemMoney, nil
+	case "name_medical_professional":
+		return TokenTypeMappingEntityOnlyItemNameMedicalProfessional, nil
+	case "occupation":
+		return TokenTypeMappingEntityOnlyItemOccupation, nil
+	case "organization":
+		return TokenTypeMappingEntityOnlyItemOrganization, nil
+	case "organization_medical_facility":
+		return TokenTypeMappingEntityOnlyItemOrganizationMedicalFacility, nil
+	case "origin":
+		return TokenTypeMappingEntityOnlyItemOrigin, nil
+	case "passport_number":
+		return TokenTypeMappingEntityOnlyItemPassportNumber, nil
+	case "password":
+		return TokenTypeMappingEntityOnlyItemPassword, nil
+	case "physical_attribute":
+		return TokenTypeMappingEntityOnlyItemPhysicalAttribute, nil
+	case "political_affiliation":
+		return TokenTypeMappingEntityOnlyItemPoliticalAffiliation, nil
+	case "religion":
+		return TokenTypeMappingEntityOnlyItemReligion, nil
+	case "time":
+		return TokenTypeMappingEntityOnlyItemTime, nil
+	case "username":
+		return TokenTypeMappingEntityOnlyItemUsername, nil
+	case "zodiac_sign":
+		return TokenTypeMappingEntityOnlyItemZodiacSign, nil
+	case "blood_type":
+		return TokenTypeMappingEntityOnlyItemBloodType, nil
+	case "condition":
+		return TokenTypeMappingEntityOnlyItemCondition, nil
+	case "dose":
+		return TokenTypeMappingEntityOnlyItemDose, nil
+	case "drug":
+		return TokenTypeMappingEntityOnlyItemDrug, nil
+	case "injury":
+		return TokenTypeMappingEntityOnlyItemInjury, nil
+	case "medical_process":
+		return TokenTypeMappingEntityOnlyItemMedicalProcess, nil
+	case "statistics":
+		return TokenTypeMappingEntityOnlyItemStatistics, nil
+	case "routing_number":
+		return TokenTypeMappingEntityOnlyItemRoutingNumber, nil
+	case "corporate_action":
+		return TokenTypeMappingEntityOnlyItemCorporateAction, nil
+	case "financial_metric":
+		return TokenTypeMappingEntityOnlyItemFinancialMetric, nil
+	case "product":
+		return TokenTypeMappingEntityOnlyItemProduct, nil
+	case "trend":
+		return TokenTypeMappingEntityOnlyItemTrend, nil
+	case "duration":
+		return TokenTypeMappingEntityOnlyItemDuration, nil
+	case "location_address_street":
+		return TokenTypeMappingEntityOnlyItemLocationAddressStreet, nil
+	case "all":
+		return TokenTypeMappingEntityOnlyItemAll, nil
+	case "sexuality":
+		return TokenTypeMappingEntityOnlyItemSexuality, nil
+	case "effect":
+		return TokenTypeMappingEntityOnlyItemEffect, nil
+	case "project":
+		return TokenTypeMappingEntityOnlyItemProject, nil
+	case "organization_id":
+		return TokenTypeMappingEntityOnlyItemOrganizationId, nil
+	case "day":
+		return TokenTypeMappingEntityOnlyItemDay, nil
+	case "month":
+		return TokenTypeMappingEntityOnlyItemMonth, nil
+	case "year":
+		return TokenTypeMappingEntityOnlyItemYear, nil
+	}
+	var t TokenTypeMappingEntityOnlyItem
+	return "", fmt.Errorf("%s is not a valid %T", s, t)
+}
+
+func (t TokenTypeMappingEntityOnlyItem) Ptr() *TokenTypeMappingEntityOnlyItem {
+	return &t
+}
+
+type TokenTypeMappingEntityUnqCounterItem string
+
+const (
+	TokenTypeMappingEntityUnqCounterItemAge                         TokenTypeMappingEntityUnqCounterItem = "age"
+	TokenTypeMappingEntityUnqCounterItemBankAccount                 TokenTypeMappingEntityUnqCounterItem = "bank_account"
+	TokenTypeMappingEntityUnqCounterItemCreditCard                  TokenTypeMappingEntityUnqCounterItem = "credit_card"
+	TokenTypeMappingEntityUnqCounterItemCreditCardExpiration        TokenTypeMappingEntityUnqCounterItem = "credit_card_expiration"
+	TokenTypeMappingEntityUnqCounterItemCvv                         TokenTypeMappingEntityUnqCounterItem = "cvv"
+	TokenTypeMappingEntityUnqCounterItemDate                        TokenTypeMappingEntityUnqCounterItem = "date"
+	TokenTypeMappingEntityUnqCounterItemDateInterval                TokenTypeMappingEntityUnqCounterItem = "date_interval"
+	TokenTypeMappingEntityUnqCounterItemDob                         TokenTypeMappingEntityUnqCounterItem = "dob"
+	TokenTypeMappingEntityUnqCounterItemDriverLicense               TokenTypeMappingEntityUnqCounterItem = "driver_license"
+	TokenTypeMappingEntityUnqCounterItemEmailAddress                TokenTypeMappingEntityUnqCounterItem = "email_address"
+	TokenTypeMappingEntityUnqCounterItemHealthcareNumber            TokenTypeMappingEntityUnqCounterItem = "healthcare_number"
+	TokenTypeMappingEntityUnqCounterItemIpAddress                   TokenTypeMappingEntityUnqCounterItem = "ip_address"
+	TokenTypeMappingEntityUnqCounterItemLocation                    TokenTypeMappingEntityUnqCounterItem = "location"
+	TokenTypeMappingEntityUnqCounterItemName                        TokenTypeMappingEntityUnqCounterItem = "name"
+	TokenTypeMappingEntityUnqCounterItemNumericalPii                TokenTypeMappingEntityUnqCounterItem = "numerical_pii"
+	TokenTypeMappingEntityUnqCounterItemPhoneNumber                 TokenTypeMappingEntityUnqCounterItem = "phone_number"
+	TokenTypeMappingEntityUnqCounterItemSsn                         TokenTypeMappingEntityUnqCounterItem = "ssn"
+	TokenTypeMappingEntityUnqCounterItemUrl                         TokenTypeMappingEntityUnqCounterItem = "url"
+	TokenTypeMappingEntityUnqCounterItemVehicleId                   TokenTypeMappingEntityUnqCounterItem = "vehicle_id"
+	TokenTypeMappingEntityUnqCounterItemMedicalCode                 TokenTypeMappingEntityUnqCounterItem = "medical_code"
+	TokenTypeMappingEntityUnqCounterItemNameFamily                  TokenTypeMappingEntityUnqCounterItem = "name_family"
+	TokenTypeMappingEntityUnqCounterItemNameGiven                   TokenTypeMappingEntityUnqCounterItem = "name_given"
+	TokenTypeMappingEntityUnqCounterItemAccountNumber               TokenTypeMappingEntityUnqCounterItem = "account_number"
+	TokenTypeMappingEntityUnqCounterItemEvent                       TokenTypeMappingEntityUnqCounterItem = "event"
+	TokenTypeMappingEntityUnqCounterItemFilename                    TokenTypeMappingEntityUnqCounterItem = "filename"
+	TokenTypeMappingEntityUnqCounterItemGender                      TokenTypeMappingEntityUnqCounterItem = "gender"
+	TokenTypeMappingEntityUnqCounterItemLanguage                    TokenTypeMappingEntityUnqCounterItem = "language"
+	TokenTypeMappingEntityUnqCounterItemLocationAddress             TokenTypeMappingEntityUnqCounterItem = "location_address"
+	TokenTypeMappingEntityUnqCounterItemLocationCity                TokenTypeMappingEntityUnqCounterItem = "location_city"
+	TokenTypeMappingEntityUnqCounterItemLocationCoordinate          TokenTypeMappingEntityUnqCounterItem = "location_coordinate"
+	TokenTypeMappingEntityUnqCounterItemLocationCountry             TokenTypeMappingEntityUnqCounterItem = "location_country"
+	TokenTypeMappingEntityUnqCounterItemLocationState               TokenTypeMappingEntityUnqCounterItem = "location_state"
+	TokenTypeMappingEntityUnqCounterItemLocationZip                 TokenTypeMappingEntityUnqCounterItem = "location_zip"
+	TokenTypeMappingEntityUnqCounterItemMaritalStatus               TokenTypeMappingEntityUnqCounterItem = "marital_status"
+	TokenTypeMappingEntityUnqCounterItemMoney                       TokenTypeMappingEntityUnqCounterItem = "money"
+	TokenTypeMappingEntityUnqCounterItemNameMedicalProfessional     TokenTypeMappingEntityUnqCounterItem = "name_medical_professional"
+	TokenTypeMappingEntityUnqCounterItemOccupation                  TokenTypeMappingEntityUnqCounterItem = "occupation"
+	TokenTypeMappingEntityUnqCounterItemOrganization                TokenTypeMappingEntityUnqCounterItem = "organization"
+	TokenTypeMappingEntityUnqCounterItemOrganizationMedicalFacility TokenTypeMappingEntityUnqCounterItem = "organization_medical_facility"
+	TokenTypeMappingEntityUnqCounterItemOrigin                      TokenTypeMappingEntityUnqCounterItem = "origin"
+	TokenTypeMappingEntityUnqCounterItemPassportNumber              TokenTypeMappingEntityUnqCounterItem = "passport_number"
+	TokenTypeMappingEntityUnqCounterItemPassword                    TokenTypeMappingEntityUnqCounterItem = "password"
+	TokenTypeMappingEntityUnqCounterItemPhysicalAttribute           TokenTypeMappingEntityUnqCounterItem = "physical_attribute"
+	TokenTypeMappingEntityUnqCounterItemPoliticalAffiliation        TokenTypeMappingEntityUnqCounterItem = "political_affiliation"
+	TokenTypeMappingEntityUnqCounterItemReligion                    TokenTypeMappingEntityUnqCounterItem = "religion"
+	TokenTypeMappingEntityUnqCounterItemTime                        TokenTypeMappingEntityUnqCounterItem = "time"
+	TokenTypeMappingEntityUnqCounterItemUsername                    TokenTypeMappingEntityUnqCounterItem = "username"
+	TokenTypeMappingEntityUnqCounterItemZodiacSign                  TokenTypeMappingEntityUnqCounterItem = "zodiac_sign"
+	TokenTypeMappingEntityUnqCounterItemBloodType                   TokenTypeMappingEntityUnqCounterItem = "blood_type"
+	TokenTypeMappingEntityUnqCounterItemCondition                   TokenTypeMappingEntityUnqCounterItem = "condition"
+	TokenTypeMappingEntityUnqCounterItemDose                        TokenTypeMappingEntityUnqCounterItem = "dose"
+	TokenTypeMappingEntityUnqCounterItemDrug                        TokenTypeMappingEntityUnqCounterItem = "drug"
+	TokenTypeMappingEntityUnqCounterItemInjury                      TokenTypeMappingEntityUnqCounterItem = "injury"
+	TokenTypeMappingEntityUnqCounterItemMedicalProcess              TokenTypeMappingEntityUnqCounterItem = "medical_process"
+	TokenTypeMappingEntityUnqCounterItemStatistics                  TokenTypeMappingEntityUnqCounterItem = "statistics"
+	TokenTypeMappingEntityUnqCounterItemRoutingNumber               TokenTypeMappingEntityUnqCounterItem = "routing_number"
+	TokenTypeMappingEntityUnqCounterItemCorporateAction             TokenTypeMappingEntityUnqCounterItem = "corporate_action"
+	TokenTypeMappingEntityUnqCounterItemFinancialMetric             TokenTypeMappingEntityUnqCounterItem = "financial_metric"
+	TokenTypeMappingEntityUnqCounterItemProduct                     TokenTypeMappingEntityUnqCounterItem = "product"
+	TokenTypeMappingEntityUnqCounterItemTrend                       TokenTypeMappingEntityUnqCounterItem = "trend"
+	TokenTypeMappingEntityUnqCounterItemDuration                    TokenTypeMappingEntityUnqCounterItem = "duration"
+	TokenTypeMappingEntityUnqCounterItemLocationAddressStreet       TokenTypeMappingEntityUnqCounterItem = "location_address_street"
+	TokenTypeMappingEntityUnqCounterItemAll                         TokenTypeMappingEntityUnqCounterItem = "all"
+	TokenTypeMappingEntityUnqCounterItemSexuality                   TokenTypeMappingEntityUnqCounterItem = "sexuality"
+	TokenTypeMappingEntityUnqCounterItemEffect                      TokenTypeMappingEntityUnqCounterItem = "effect"
+	TokenTypeMappingEntityUnqCounterItemProject                     TokenTypeMappingEntityUnqCounterItem = "project"
+	TokenTypeMappingEntityUnqCounterItemOrganizationId              TokenTypeMappingEntityUnqCounterItem = "organization_id"
+	TokenTypeMappingEntityUnqCounterItemDay                         TokenTypeMappingEntityUnqCounterItem = "day"
+	TokenTypeMappingEntityUnqCounterItemMonth                       TokenTypeMappingEntityUnqCounterItem = "month"
+	TokenTypeMappingEntityUnqCounterItemYear                        TokenTypeMappingEntityUnqCounterItem = "year"
+)
+
+func NewTokenTypeMappingEntityUnqCounterItemFromString(s string) (TokenTypeMappingEntityUnqCounterItem, error) {
+	switch s {
+	case "age":
+		return TokenTypeMappingEntityUnqCounterItemAge, nil
+	case "bank_account":
+		return TokenTypeMappingEntityUnqCounterItemBankAccount, nil
+	case "credit_card":
+		return TokenTypeMappingEntityUnqCounterItemCreditCard, nil
+	case "credit_card_expiration":
+		return TokenTypeMappingEntityUnqCounterItemCreditCardExpiration, nil
+	case "cvv":
+		return TokenTypeMappingEntityUnqCounterItemCvv, nil
+	case "date":
+		return TokenTypeMappingEntityUnqCounterItemDate, nil
+	case "date_interval":
+		return TokenTypeMappingEntityUnqCounterItemDateInterval, nil
+	case "dob":
+		return TokenTypeMappingEntityUnqCounterItemDob, nil
+	case "driver_license":
+		return TokenTypeMappingEntityUnqCounterItemDriverLicense, nil
+	case "email_address":
+		return TokenTypeMappingEntityUnqCounterItemEmailAddress, nil
+	case "healthcare_number":
+		return TokenTypeMappingEntityUnqCounterItemHealthcareNumber, nil
+	case "ip_address":
+		return TokenTypeMappingEntityUnqCounterItemIpAddress, nil
+	case "location":
+		return TokenTypeMappingEntityUnqCounterItemLocation, nil
+	case "name":
+		return TokenTypeMappingEntityUnqCounterItemName, nil
+	case "numerical_pii":
+		return TokenTypeMappingEntityUnqCounterItemNumericalPii, nil
+	case "phone_number":
+		return TokenTypeMappingEntityUnqCounterItemPhoneNumber, nil
+	case "ssn":
+		return TokenTypeMappingEntityUnqCounterItemSsn, nil
+	case "url":
+		return TokenTypeMappingEntityUnqCounterItemUrl, nil
+	case "vehicle_id":
+		return TokenTypeMappingEntityUnqCounterItemVehicleId, nil
+	case "medical_code":
+		return TokenTypeMappingEntityUnqCounterItemMedicalCode, nil
+	case "name_family":
+		return TokenTypeMappingEntityUnqCounterItemNameFamily, nil
+	case "name_given":
+		return TokenTypeMappingEntityUnqCounterItemNameGiven, nil
+	case "account_number":
+		return TokenTypeMappingEntityUnqCounterItemAccountNumber, nil
+	case "event":
+		return TokenTypeMappingEntityUnqCounterItemEvent, nil
+	case "filename":
+		return TokenTypeMappingEntityUnqCounterItemFilename, nil
+	case "gender":
+		return TokenTypeMappingEntityUnqCounterItemGender, nil
+	case "language":
+		return TokenTypeMappingEntityUnqCounterItemLanguage, nil
+	case "location_address":
+		return TokenTypeMappingEntityUnqCounterItemLocationAddress, nil
+	case "location_city":
+		return TokenTypeMappingEntityUnqCounterItemLocationCity, nil
+	case "location_coordinate":
+		return TokenTypeMappingEntityUnqCounterItemLocationCoordinate, nil
+	case "location_country":
+		return TokenTypeMappingEntityUnqCounterItemLocationCountry, nil
+	case "location_state":
+		return TokenTypeMappingEntityUnqCounterItemLocationState, nil
+	case "location_zip":
+		return TokenTypeMappingEntityUnqCounterItemLocationZip, nil
+	case "marital_status":
+		return TokenTypeMappingEntityUnqCounterItemMaritalStatus, nil
+	case "money":
+		return TokenTypeMappingEntityUnqCounterItemMoney, nil
+	case "name_medical_professional":
+		return TokenTypeMappingEntityUnqCounterItemNameMedicalProfessional, nil
+	case "occupation":
+		return TokenTypeMappingEntityUnqCounterItemOccupation, nil
+	case "organization":
+		return TokenTypeMappingEntityUnqCounterItemOrganization, nil
+	case "organization_medical_facility":
+		return TokenTypeMappingEntityUnqCounterItemOrganizationMedicalFacility, nil
+	case "origin":
+		return TokenTypeMappingEntityUnqCounterItemOrigin, nil
+	case "passport_number":
+		return TokenTypeMappingEntityUnqCounterItemPassportNumber, nil
+	case "password":
+		return TokenTypeMappingEntityUnqCounterItemPassword, nil
+	case "physical_attribute":
+		return TokenTypeMappingEntityUnqCounterItemPhysicalAttribute, nil
+	case "political_affiliation":
+		return TokenTypeMappingEntityUnqCounterItemPoliticalAffiliation, nil
+	case "religion":
+		return TokenTypeMappingEntityUnqCounterItemReligion, nil
+	case "time":
+		return TokenTypeMappingEntityUnqCounterItemTime, nil
+	case "username":
+		return TokenTypeMappingEntityUnqCounterItemUsername, nil
+	case "zodiac_sign":
+		return TokenTypeMappingEntityUnqCounterItemZodiacSign, nil
+	case "blood_type":
+		return TokenTypeMappingEntityUnqCounterItemBloodType, nil
+	case "condition":
+		return TokenTypeMappingEntityUnqCounterItemCondition, nil
+	case "dose":
+		return TokenTypeMappingEntityUnqCounterItemDose, nil
+	case "drug":
+		return TokenTypeMappingEntityUnqCounterItemDrug, nil
+	case "injury":
+		return TokenTypeMappingEntityUnqCounterItemInjury, nil
+	case "medical_process":
+		return TokenTypeMappingEntityUnqCounterItemMedicalProcess, nil
+	case "statistics":
+		return TokenTypeMappingEntityUnqCounterItemStatistics, nil
+	case "routing_number":
+		return TokenTypeMappingEntityUnqCounterItemRoutingNumber, nil
+	case "corporate_action":
+		return TokenTypeMappingEntityUnqCounterItemCorporateAction, nil
+	case "financial_metric":
+		return TokenTypeMappingEntityUnqCounterItemFinancialMetric, nil
+	case "product":
+		return TokenTypeMappingEntityUnqCounterItemProduct, nil
+	case "trend":
+		return TokenTypeMappingEntityUnqCounterItemTrend, nil
+	case "duration":
+		return TokenTypeMappingEntityUnqCounterItemDuration, nil
+	case "location_address_street":
+		return TokenTypeMappingEntityUnqCounterItemLocationAddressStreet, nil
+	case "all":
+		return TokenTypeMappingEntityUnqCounterItemAll, nil
+	case "sexuality":
+		return TokenTypeMappingEntityUnqCounterItemSexuality, nil
+	case "effect":
+		return TokenTypeMappingEntityUnqCounterItemEffect, nil
+	case "project":
+		return TokenTypeMappingEntityUnqCounterItemProject, nil
+	case "organization_id":
+		return TokenTypeMappingEntityUnqCounterItemOrganizationId, nil
+	case "day":
+		return TokenTypeMappingEntityUnqCounterItemDay, nil
+	case "month":
+		return TokenTypeMappingEntityUnqCounterItemMonth, nil
+	case "year":
+		return TokenTypeMappingEntityUnqCounterItemYear, nil
+	}
+	var t TokenTypeMappingEntityUnqCounterItem
+	return "", fmt.Errorf("%s is not a valid %T", s, t)
+}
+
+func (t TokenTypeMappingEntityUnqCounterItem) Ptr() *TokenTypeMappingEntityUnqCounterItem {
+	return &t
+}
+
+type TokenTypeMappingVaultTokenItem string
+
+const (
+	TokenTypeMappingVaultTokenItemAge                         TokenTypeMappingVaultTokenItem = "age"
+	TokenTypeMappingVaultTokenItemBankAccount                 TokenTypeMappingVaultTokenItem = "bank_account"
+	TokenTypeMappingVaultTokenItemCreditCard                  TokenTypeMappingVaultTokenItem = "credit_card"
+	TokenTypeMappingVaultTokenItemCreditCardExpiration        TokenTypeMappingVaultTokenItem = "credit_card_expiration"
+	TokenTypeMappingVaultTokenItemCvv                         TokenTypeMappingVaultTokenItem = "cvv"
+	TokenTypeMappingVaultTokenItemDate                        TokenTypeMappingVaultTokenItem = "date"
+	TokenTypeMappingVaultTokenItemDateInterval                TokenTypeMappingVaultTokenItem = "date_interval"
+	TokenTypeMappingVaultTokenItemDob                         TokenTypeMappingVaultTokenItem = "dob"
+	TokenTypeMappingVaultTokenItemDriverLicense               TokenTypeMappingVaultTokenItem = "driver_license"
+	TokenTypeMappingVaultTokenItemEmailAddress                TokenTypeMappingVaultTokenItem = "email_address"
+	TokenTypeMappingVaultTokenItemHealthcareNumber            TokenTypeMappingVaultTokenItem = "healthcare_number"
+	TokenTypeMappingVaultTokenItemIpAddress                   TokenTypeMappingVaultTokenItem = "ip_address"
+	TokenTypeMappingVaultTokenItemLocation                    TokenTypeMappingVaultTokenItem = "location"
+	TokenTypeMappingVaultTokenItemName                        TokenTypeMappingVaultTokenItem = "name"
+	TokenTypeMappingVaultTokenItemNumericalPii                TokenTypeMappingVaultTokenItem = "numerical_pii"
+	TokenTypeMappingVaultTokenItemPhoneNumber                 TokenTypeMappingVaultTokenItem = "phone_number"
+	TokenTypeMappingVaultTokenItemSsn                         TokenTypeMappingVaultTokenItem = "ssn"
+	TokenTypeMappingVaultTokenItemUrl                         TokenTypeMappingVaultTokenItem = "url"
+	TokenTypeMappingVaultTokenItemVehicleId                   TokenTypeMappingVaultTokenItem = "vehicle_id"
+	TokenTypeMappingVaultTokenItemMedicalCode                 TokenTypeMappingVaultTokenItem = "medical_code"
+	TokenTypeMappingVaultTokenItemNameFamily                  TokenTypeMappingVaultTokenItem = "name_family"
+	TokenTypeMappingVaultTokenItemNameGiven                   TokenTypeMappingVaultTokenItem = "name_given"
+	TokenTypeMappingVaultTokenItemAccountNumber               TokenTypeMappingVaultTokenItem = "account_number"
+	TokenTypeMappingVaultTokenItemEvent                       TokenTypeMappingVaultTokenItem = "event"
+	TokenTypeMappingVaultTokenItemFilename                    TokenTypeMappingVaultTokenItem = "filename"
+	TokenTypeMappingVaultTokenItemGender                      TokenTypeMappingVaultTokenItem = "gender"
+	TokenTypeMappingVaultTokenItemLanguage                    TokenTypeMappingVaultTokenItem = "language"
+	TokenTypeMappingVaultTokenItemLocationAddress             TokenTypeMappingVaultTokenItem = "location_address"
+	TokenTypeMappingVaultTokenItemLocationCity                TokenTypeMappingVaultTokenItem = "location_city"
+	TokenTypeMappingVaultTokenItemLocationCoordinate          TokenTypeMappingVaultTokenItem = "location_coordinate"
+	TokenTypeMappingVaultTokenItemLocationCountry             TokenTypeMappingVaultTokenItem = "location_country"
+	TokenTypeMappingVaultTokenItemLocationState               TokenTypeMappingVaultTokenItem = "location_state"
+	TokenTypeMappingVaultTokenItemLocationZip                 TokenTypeMappingVaultTokenItem = "location_zip"
+	TokenTypeMappingVaultTokenItemMaritalStatus               TokenTypeMappingVaultTokenItem = "marital_status"
+	TokenTypeMappingVaultTokenItemMoney                       TokenTypeMappingVaultTokenItem = "money"
+	TokenTypeMappingVaultTokenItemNameMedicalProfessional     TokenTypeMappingVaultTokenItem = "name_medical_professional"
+	TokenTypeMappingVaultTokenItemOccupation                  TokenTypeMappingVaultTokenItem = "occupation"
+	TokenTypeMappingVaultTokenItemOrganization                TokenTypeMappingVaultTokenItem = "organization"
+	TokenTypeMappingVaultTokenItemOrganizationMedicalFacility TokenTypeMappingVaultTokenItem = "organization_medical_facility"
+	TokenTypeMappingVaultTokenItemOrigin                      TokenTypeMappingVaultTokenItem = "origin"
+	TokenTypeMappingVaultTokenItemPassportNumber              TokenTypeMappingVaultTokenItem = "passport_number"
+	TokenTypeMappingVaultTokenItemPassword                    TokenTypeMappingVaultTokenItem = "password"
+	TokenTypeMappingVaultTokenItemPhysicalAttribute           TokenTypeMappingVaultTokenItem = "physical_attribute"
+	TokenTypeMappingVaultTokenItemPoliticalAffiliation        TokenTypeMappingVaultTokenItem = "political_affiliation"
+	TokenTypeMappingVaultTokenItemReligion                    TokenTypeMappingVaultTokenItem = "religion"
+	TokenTypeMappingVaultTokenItemTime                        TokenTypeMappingVaultTokenItem = "time"
+	TokenTypeMappingVaultTokenItemUsername                    TokenTypeMappingVaultTokenItem = "username"
+	TokenTypeMappingVaultTokenItemZodiacSign                  TokenTypeMappingVaultTokenItem = "zodiac_sign"
+	TokenTypeMappingVaultTokenItemBloodType                   TokenTypeMappingVaultTokenItem = "blood_type"
+	TokenTypeMappingVaultTokenItemCondition                   TokenTypeMappingVaultTokenItem = "condition"
+	TokenTypeMappingVaultTokenItemDose                        TokenTypeMappingVaultTokenItem = "dose"
+	TokenTypeMappingVaultTokenItemDrug                        TokenTypeMappingVaultTokenItem = "drug"
+	TokenTypeMappingVaultTokenItemInjury                      TokenTypeMappingVaultTokenItem = "injury"
+	TokenTypeMappingVaultTokenItemMedicalProcess              TokenTypeMappingVaultTokenItem = "medical_process"
+	TokenTypeMappingVaultTokenItemStatistics                  TokenTypeMappingVaultTokenItem = "statistics"
+	TokenTypeMappingVaultTokenItemRoutingNumber               TokenTypeMappingVaultTokenItem = "routing_number"
+	TokenTypeMappingVaultTokenItemCorporateAction             TokenTypeMappingVaultTokenItem = "corporate_action"
+	TokenTypeMappingVaultTokenItemFinancialMetric             TokenTypeMappingVaultTokenItem = "financial_metric"
+	TokenTypeMappingVaultTokenItemProduct                     TokenTypeMappingVaultTokenItem = "product"
+	TokenTypeMappingVaultTokenItemTrend                       TokenTypeMappingVaultTokenItem = "trend"
+	TokenTypeMappingVaultTokenItemDuration                    TokenTypeMappingVaultTokenItem = "duration"
+	TokenTypeMappingVaultTokenItemLocationAddressStreet       TokenTypeMappingVaultTokenItem = "location_address_street"
+	TokenTypeMappingVaultTokenItemAll                         TokenTypeMappingVaultTokenItem = "all"
+	TokenTypeMappingVaultTokenItemSexuality                   TokenTypeMappingVaultTokenItem = "sexuality"
+	TokenTypeMappingVaultTokenItemEffect                      TokenTypeMappingVaultTokenItem = "effect"
+	TokenTypeMappingVaultTokenItemProject                     TokenTypeMappingVaultTokenItem = "project"
+	TokenTypeMappingVaultTokenItemOrganizationId              TokenTypeMappingVaultTokenItem = "organization_id"
+	TokenTypeMappingVaultTokenItemDay                         TokenTypeMappingVaultTokenItem = "day"
+	TokenTypeMappingVaultTokenItemMonth                       TokenTypeMappingVaultTokenItem = "month"
+	TokenTypeMappingVaultTokenItemYear                        TokenTypeMappingVaultTokenItem = "year"
+)
+
+func NewTokenTypeMappingVaultTokenItemFromString(s string) (TokenTypeMappingVaultTokenItem, error) {
+	switch s {
+	case "age":
+		return TokenTypeMappingVaultTokenItemAge, nil
+	case "bank_account":
+		return TokenTypeMappingVaultTokenItemBankAccount, nil
+	case "credit_card":
+		return TokenTypeMappingVaultTokenItemCreditCard, nil
+	case "credit_card_expiration":
+		return TokenTypeMappingVaultTokenItemCreditCardExpiration, nil
+	case "cvv":
+		return TokenTypeMappingVaultTokenItemCvv, nil
+	case "date":
+		return TokenTypeMappingVaultTokenItemDate, nil
+	case "date_interval":
+		return TokenTypeMappingVaultTokenItemDateInterval, nil
+	case "dob":
+		return TokenTypeMappingVaultTokenItemDob, nil
+	case "driver_license":
+		return TokenTypeMappingVaultTokenItemDriverLicense, nil
+	case "email_address":
+		return TokenTypeMappingVaultTokenItemEmailAddress, nil
+	case "healthcare_number":
+		return TokenTypeMappingVaultTokenItemHealthcareNumber, nil
+	case "ip_address":
+		return TokenTypeMappingVaultTokenItemIpAddress, nil
+	case "location":
+		return TokenTypeMappingVaultTokenItemLocation, nil
+	case "name":
+		return TokenTypeMappingVaultTokenItemName, nil
+	case "numerical_pii":
+		return TokenTypeMappingVaultTokenItemNumericalPii, nil
+	case "phone_number":
+		return TokenTypeMappingVaultTokenItemPhoneNumber, nil
+	case "ssn":
+		return TokenTypeMappingVaultTokenItemSsn, nil
+	case "url":
+		return TokenTypeMappingVaultTokenItemUrl, nil
+	case "vehicle_id":
+		return TokenTypeMappingVaultTokenItemVehicleId, nil
+	case "medical_code":
+		return TokenTypeMappingVaultTokenItemMedicalCode, nil
+	case "name_family":
+		return TokenTypeMappingVaultTokenItemNameFamily, nil
+	case "name_given":
+		return TokenTypeMappingVaultTokenItemNameGiven, nil
+	case "account_number":
+		return TokenTypeMappingVaultTokenItemAccountNumber, nil
+	case "event":
+		return TokenTypeMappingVaultTokenItemEvent, nil
+	case "filename":
+		return TokenTypeMappingVaultTokenItemFilename, nil
+	case "gender":
+		return TokenTypeMappingVaultTokenItemGender, nil
+	case "language":
+		return TokenTypeMappingVaultTokenItemLanguage, nil
+	case "location_address":
+		return TokenTypeMappingVaultTokenItemLocationAddress, nil
+	case "location_city":
+		return TokenTypeMappingVaultTokenItemLocationCity, nil
+	case "location_coordinate":
+		return TokenTypeMappingVaultTokenItemLocationCoordinate, nil
+	case "location_country":
+		return TokenTypeMappingVaultTokenItemLocationCountry, nil
+	case "location_state":
+		return TokenTypeMappingVaultTokenItemLocationState, nil
+	case "location_zip":
+		return TokenTypeMappingVaultTokenItemLocationZip, nil
+	case "marital_status":
+		return TokenTypeMappingVaultTokenItemMaritalStatus, nil
+	case "money":
+		return TokenTypeMappingVaultTokenItemMoney, nil
+	case "name_medical_professional":
+		return TokenTypeMappingVaultTokenItemNameMedicalProfessional, nil
+	case "occupation":
+		return TokenTypeMappingVaultTokenItemOccupation, nil
+	case "organization":
+		return TokenTypeMappingVaultTokenItemOrganization, nil
+	case "organization_medical_facility":
+		return TokenTypeMappingVaultTokenItemOrganizationMedicalFacility, nil
+	case "origin":
+		return TokenTypeMappingVaultTokenItemOrigin, nil
+	case "passport_number":
+		return TokenTypeMappingVaultTokenItemPassportNumber, nil
+	case "password":
+		return TokenTypeMappingVaultTokenItemPassword, nil
+	case "physical_attribute":
+		return TokenTypeMappingVaultTokenItemPhysicalAttribute, nil
+	case "political_affiliation":
+		return TokenTypeMappingVaultTokenItemPoliticalAffiliation, nil
+	case "religion":
+		return TokenTypeMappingVaultTokenItemReligion, nil
+	case "time":
+		return TokenTypeMappingVaultTokenItemTime, nil
+	case "username":
+		return TokenTypeMappingVaultTokenItemUsername, nil
+	case "zodiac_sign":
+		return TokenTypeMappingVaultTokenItemZodiacSign, nil
+	case "blood_type":
+		return TokenTypeMappingVaultTokenItemBloodType, nil
+	case "condition":
+		return TokenTypeMappingVaultTokenItemCondition, nil
+	case "dose":
+		return TokenTypeMappingVaultTokenItemDose, nil
+	case "drug":
+		return TokenTypeMappingVaultTokenItemDrug, nil
+	case "injury":
+		return TokenTypeMappingVaultTokenItemInjury, nil
+	case "medical_process":
+		return TokenTypeMappingVaultTokenItemMedicalProcess, nil
+	case "statistics":
+		return TokenTypeMappingVaultTokenItemStatistics, nil
+	case "routing_number":
+		return TokenTypeMappingVaultTokenItemRoutingNumber, nil
+	case "corporate_action":
+		return TokenTypeMappingVaultTokenItemCorporateAction, nil
+	case "financial_metric":
+		return TokenTypeMappingVaultTokenItemFinancialMetric, nil
+	case "product":
+		return TokenTypeMappingVaultTokenItemProduct, nil
+	case "trend":
+		return TokenTypeMappingVaultTokenItemTrend, nil
+	case "duration":
+		return TokenTypeMappingVaultTokenItemDuration, nil
+	case "location_address_street":
+		return TokenTypeMappingVaultTokenItemLocationAddressStreet, nil
+	case "all":
+		return TokenTypeMappingVaultTokenItemAll, nil
+	case "sexuality":
+		return TokenTypeMappingVaultTokenItemSexuality, nil
+	case "effect":
+		return TokenTypeMappingVaultTokenItemEffect, nil
+	case "project":
+		return TokenTypeMappingVaultTokenItemProject, nil
+	case "organization_id":
+		return TokenTypeMappingVaultTokenItemOrganizationId, nil
+	case "day":
+		return TokenTypeMappingVaultTokenItemDay, nil
+	case "month":
+		return TokenTypeMappingVaultTokenItemMonth, nil
+	case "year":
+		return TokenTypeMappingVaultTokenItemYear, nil
+	}
+	var t TokenTypeMappingVaultTokenItem
+	return "", fmt.Errorf("%s is not a valid %T", s, t)
+}
+
+func (t TokenTypeMappingVaultTokenItem) Ptr() *TokenTypeMappingVaultTokenItem {
+	return &t
+}
+
+// Transformations to apply to detected entities.
+type Transformations struct {
+	ShiftDates *ShiftDates `json:"shift_dates,omitempty" url:"shift_dates,omitempty"`
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (t *Transformations) GetShiftDates() *ShiftDates {
 	if t == nil {
 		return nil
 	}
@@ -559,96 +1937,8 @@ func (t *Transformations) String() string {
 	return fmt.Sprintf("%#v", t)
 }
 
-// Shift dates by a specified number of days.
-type TransformationsShiftDates struct {
-	// Maximum number of days to shift the date by.
-	MaxDays *int `json:"max_days,omitempty" url:"max_days,omitempty"`
-	// Minimum number of days to shift the date by.
-	MinDays *int `json:"min_days,omitempty" url:"min_days,omitempty"`
-	// Entity types to shift dates for.
-	EntityTypes []TransformationsShiftDatesEntityTypesItem `json:"entity_types,omitempty" url:"entity_types,omitempty"`
-
-	extraProperties map[string]interface{}
-	rawJSON         json.RawMessage
-}
-
-func (t *TransformationsShiftDates) GetMaxDays() *int {
-	if t == nil {
-		return nil
-	}
-	return t.MaxDays
-}
-
-func (t *TransformationsShiftDates) GetMinDays() *int {
-	if t == nil {
-		return nil
-	}
-	return t.MinDays
-}
-
-func (t *TransformationsShiftDates) GetEntityTypes() []TransformationsShiftDatesEntityTypesItem {
-	if t == nil {
-		return nil
-	}
-	return t.EntityTypes
-}
-
-func (t *TransformationsShiftDates) GetExtraProperties() map[string]interface{} {
-	return t.extraProperties
-}
-
-func (t *TransformationsShiftDates) UnmarshalJSON(data []byte) error {
-	type unmarshaler TransformationsShiftDates
-	var value unmarshaler
-	if err := json.Unmarshal(data, &value); err != nil {
-		return err
-	}
-	*t = TransformationsShiftDates(value)
-	extraProperties, err := internal.ExtractExtraProperties(data, *t)
-	if err != nil {
-		return err
-	}
-	t.extraProperties = extraProperties
-	t.rawJSON = json.RawMessage(data)
-	return nil
-}
-
-func (t *TransformationsShiftDates) String() string {
-	if len(t.rawJSON) > 0 {
-		if value, err := internal.StringifyJSON(t.rawJSON); err == nil {
-			return value
-		}
-	}
-	if value, err := internal.StringifyJSON(t); err == nil {
-		return value
-	}
-	return fmt.Sprintf("%#v", t)
-}
-
-type TransformationsShiftDatesEntityTypesItem string
-
-const (
-	TransformationsShiftDatesEntityTypesItemDate         TransformationsShiftDatesEntityTypesItem = "date"
-	TransformationsShiftDatesEntityTypesItemDateInterval TransformationsShiftDatesEntityTypesItem = "date_interval"
-	TransformationsShiftDatesEntityTypesItemDob          TransformationsShiftDatesEntityTypesItem = "dob"
-)
-
-func NewTransformationsShiftDatesEntityTypesItemFromString(s string) (TransformationsShiftDatesEntityTypesItem, error) {
-	switch s {
-	case "date":
-		return TransformationsShiftDatesEntityTypesItemDate, nil
-	case "date_interval":
-		return TransformationsShiftDatesEntityTypesItemDateInterval, nil
-	case "dob":
-		return TransformationsShiftDatesEntityTypesItemDob, nil
-	}
-	var t TransformationsShiftDatesEntityTypesItem
-	return "", fmt.Errorf("%s is not a valid %T", s, t)
-}
-
-func (t TransformationsShiftDatesEntityTypesItem) Ptr() *TransformationsShiftDatesEntityTypesItem {
-	return &t
-}
+// UUID.
+type Uuid = string
 
 // Record values and tokens.
 type V1FieldRecords struct {
@@ -706,6 +1996,3 @@ func (v *V1FieldRecords) String() string {
 	}
 	return fmt.Sprintf("%#v", v)
 }
-
-// ID of a vault you have Detect Invoker or Vault Owner permissions for.
-type VaultId = string

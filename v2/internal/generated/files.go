@@ -8,194 +8,228 @@ import (
 	internal "github.com/skyflowapi/skyflow-go/v2/internal/generated/internal"
 )
 
-type DeidentifyAudioRequest struct {
-	VaultId VaultId `json:"vault_id" url:"-"`
-	// File to de-identify. Files are specified as Base64-encoded data.
-	File            *DeidentifyAudioRequestFile `json:"file,omitempty" url:"-"`
-	ConfigurationId *ConfigurationId            `json:"configuration_id,omitempty" url:"-"`
-	// If `true`, includes processed audio file in the response.
-	OutputProcessedAudio *bool `json:"output_processed_audio,omitempty" url:"-"`
+type DeidentifyFileAudioRequestDeidentifyAudio struct {
+	File *FileDataDeidentifyAudio `json:"file,omitempty" url:"-"`
+	// ID of a vault that you have Detect Invoker or Vault Owner permissions for.
+	VaultId string `json:"vault_id" url:"-"`
 	// Type of transcription to output.
-	OutputTranscription *DeidentifyAudioRequestOutputTranscription `json:"output_transcription,omitempty" url:"-"`
-	// Relative loudness of the bleep in dB. Positive values increase its loudness, and negative values decrease it.
-	BleepGain *float64 `json:"bleep_gain,omitempty" url:"-"`
-	// The pitch of the bleep sound, in Hz. The higher the number, the higher the pitch.
-	BleepFrequency *float64 `json:"bleep_frequency,omitempty" url:"-"`
+	OutputTranscription *DeidentifyFileAudioRequestDeidentifyAudioOutputTranscription `json:"output_transcription,omitempty" url:"-"`
+	// Whether to include the processed audio file in the response.
+	OutputProcessedAudio *bool `json:"output_processed_audio,omitempty" url:"-"`
 	// Padding added to the beginning of a bleep, in seconds.
 	BleepStartPadding *float64 `json:"bleep_start_padding,omitempty" url:"-"`
 	// Padding added to the end of a bleep, in seconds.
-	BleepStopPadding *float64               `json:"bleep_stop_padding,omitempty" url:"-"`
-	EntityTypes      *EntityTypes           `json:"entity_types,omitempty" url:"-"`
-	TokenType        *TokenTypeWithoutVault `json:"token_type,omitempty" url:"-"`
-	AllowRegex       *AllowRegex            `json:"allow_regex,omitempty" url:"-"`
-	RestrictRegex    *RestrictRegex         `json:"restrict_regex,omitempty" url:"-"`
-	Transformations  *Transformations       `json:"transformations,omitempty" url:"-"`
+	BleepStopPadding *float64 `json:"bleep_stop_padding,omitempty" url:"-"`
+	// The pitch of the bleep sound, in Hz. The higher the number, the higher the pitch.
+	BleepFrequency *int `json:"bleep_frequency,omitempty" url:"-"`
+	// Relative loudness of the bleep in dB. Positive values increase its loudness, and negative values decrease it.
+	BleepGain *int `json:"bleep_gain,omitempty" url:"-"`
+	// Entities to detect and de-identify.
+	EntityTypes []DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem `json:"entity_types,omitempty" url:"-"`
+	TokenType   *TokenTypeMapping                                          `json:"token_type,omitempty" url:"-"`
+	// Regular expressions to display in plaintext. Entities appear in plaintext if an expression matches either the entirety of a detected entity or a substring of it. Expressions don't match across entity boundaries. If a string or entity matches both `allow_regex` and `restrict_regex`, the entity is displayed in plaintext.
+	AllowRegex []string `json:"allow_regex,omitempty" url:"-"`
+	// Regular expressions to replace with '[RESTRICTED]'. Expressions must match the entirety of a detected entity, not just a substring, for the entity to be restricted. Expressions don't match across entity boundaries. If a string or entity matches both `allow_regex` and `restrict_regex`, the entity is displayed in plaintext. If a string is detected as an entity and a `restrict_regex` pattern matches the entire detected entity, the entity is replaced with '[RESTRICTED]'. If a string is detected as an entity but a `restrict_regex` pattern only matches a substring of it, the `restrict_regex` pattern is ignored, and the entity is processed according to the specified tokenization and transformation settings.
+	RestrictRegex   []string         `json:"restrict_regex,omitempty" url:"-"`
+	Transformations *Transformations `json:"transformations,omitempty" url:"-"`
+	// ID of the Detect configuration to use for de-identification. Can't be specified with fields other than `vault_id`, `text`, and `file`.
+	ConfigurationId *string `json:"configuration_id,omitempty" url:"-"`
 }
 
-type DeidentifyDocumentRequest struct {
-	VaultId VaultId `json:"vault_id" url:"-"`
-	// File to de-identify. Files are specified as Base64-encoded data.
-	File            *DeidentifyDocumentRequestFile `json:"file,omitempty" url:"-"`
-	ConfigurationId *ConfigurationId               `json:"configuration_id,omitempty" url:"-"`
-	EntityTypes     *EntityTypes                   `json:"entity_types,omitempty" url:"-"`
-	TokenType       *TokenTypeWithoutVault         `json:"token_type,omitempty" url:"-"`
-	AllowRegex      *AllowRegex                    `json:"allow_regex,omitempty" url:"-"`
-	RestrictRegex   *RestrictRegex                 `json:"restrict_regex,omitempty" url:"-"`
-	Transformations *Transformations               `json:"transformations,omitempty" url:"-"`
+type DeidentifyFileRequestDeidentifyDocument struct {
+	File *FileDataDeidentifyDocument `json:"file,omitempty" url:"-"`
+	// ID of a vault that you have Detect Invoker or Vault Owner permissions for.
+	VaultId string `json:"vault_id" url:"-"`
+	// Entities to detect and de-identify.
+	EntityTypes []DeidentifyFileRequestDeidentifyDocumentEntityTypesItem `json:"entity_types,omitempty" url:"-"`
+	TokenType   *TokenTypeMapping                                        `json:"token_type,omitempty" url:"-"`
+	// Regular expressions to display in plaintext. Entities appear in plaintext if an expression matches either the entirety of a detected entity or a substring of it. Expressions don't match across entity boundaries. If a string or entity matches both `allow_regex` and `restrict_regex`, the entity is displayed in plaintext.
+	AllowRegex []string `json:"allow_regex,omitempty" url:"-"`
+	// Regular expressions to replace with '[RESTRICTED]'. Expressions must match the entirety of a detected entity, not just a substring, for the entity to be restricted. Expressions don't match across entity boundaries. If a string or entity matches both `allow_regex` and `restrict_regex`, the entity is displayed in plaintext. If a string is detected as an entity and a `restrict_regex` pattern matches the entire detected entity, the entity is replaced with '[RESTRICTED]'. If a string is detected as an entity but a `restrict_regex` pattern only matches a substring of it, the `restrict_regex` pattern is ignored, and the entity is processed according to the specified tokenization and transformation settings.
+	RestrictRegex   []string         `json:"restrict_regex,omitempty" url:"-"`
+	Transformations *Transformations `json:"transformations,omitempty" url:"-"`
+	// ID of the Detect configuration to use for de-identification. Can't be specified with fields other than `vault_id`, `text`, and `file`.
+	ConfigurationId *string `json:"configuration_id,omitempty" url:"-"`
 }
 
 type DeidentifyFileRequest struct {
-	VaultId VaultId `json:"vault_id" url:"-"`
-	// File to de-identify. Files are specified as Base64-encoded data.
-	File            *DeidentifyFileRequestFile `json:"file,omitempty" url:"-"`
-	ConfigurationId *ConfigurationId           `json:"configuration_id,omitempty" url:"-"`
-	EntityTypes     *EntityTypes               `json:"entity_types,omitempty" url:"-"`
-	TokenType       *TokenTypeWithoutVault     `json:"token_type,omitempty" url:"-"`
-	AllowRegex      *AllowRegex                `json:"allow_regex,omitempty" url:"-"`
-	RestrictRegex   *RestrictRegex             `json:"restrict_regex,omitempty" url:"-"`
-	Transformations *Transformations           `json:"transformations,omitempty" url:"-"`
+	File *FileData `json:"file,omitempty" url:"-"`
+	// ID of a vault that you have Detect Invoker or Vault Owner permissions for.
+	VaultId string `json:"vault_id" url:"-"`
+	// Entities to detect and de-identify.
+	EntityTypes []DeidentifyFileRequestEntityTypesItem `json:"entity_types,omitempty" url:"-"`
+	TokenType   *TokenTypeMapping                      `json:"token_type,omitempty" url:"-"`
+	// Regular expressions to display in plaintext. Entities appear in plaintext if an expression matches either the entirety of a detected entity or a substring of it. Expressions don't match across entity boundaries. If a string or entity matches both `allow_regex` and `restrict_regex`, the entity is displayed in plaintext.
+	AllowRegex []string `json:"allow_regex,omitempty" url:"-"`
+	// Regular expressions to replace with '[RESTRICTED]'. Expressions must match the entirety of a detected entity, not just a substring, for the entity to be restricted. Expressions don't match across entity boundaries. If a string or entity matches both `allow_regex` and `restrict_regex`, the entity is displayed in plaintext. If a string is detected as an entity and a `restrict_regex` pattern matches the entire detected entity, the entity is replaced with '[RESTRICTED]'. If a string is detected as an entity but a `restrict_regex` pattern only matches a substring of it, the `restrict_regex` pattern is ignored, and the entity is processed according to the specified tokenization and transformation settings.
+	RestrictRegex   []string         `json:"restrict_regex,omitempty" url:"-"`
+	Transformations *Transformations `json:"transformations,omitempty" url:"-"`
+	// ID of the Detect configuration to use for de-identification. Can't be specified with fields other than `vault_id`, `text`, and `file`.
+	ConfigurationId *string `json:"configuration_id,omitempty" url:"-"`
 }
 
-type DeidentifyImageRequest struct {
-	VaultId VaultId `json:"vault_id" url:"-"`
-	// File to de-identify. Files are specified as Base64-encoded data.
-	File            *DeidentifyImageRequestFile `json:"file,omitempty" url:"-"`
-	ConfigurationId *ConfigurationId            `json:"configuration_id,omitempty" url:"-"`
+type DeidentifyFileImageRequestDeidentifyImage struct {
+	File *FileDataDeidentifyImage `json:"file,omitempty" url:"-"`
+	// ID of a vault that you have Detect Invoker or Vault Owner permissions for.
+	VaultId string `json:"vault_id" url:"-"`
 	// If `true`, includes processed image in the output.
 	OutputProcessedImage *bool `json:"output_processed_image,omitempty" url:"-"`
-	// If `true`, includes OCR text output in the response.
+	// If `true`, includes text detected by OCR in the response.
 	OutputOcrText *bool `json:"output_ocr_text,omitempty" url:"-"`
 	// Method to mask the entities in the image.
-	MaskingMethod   *DeidentifyImageRequestMaskingMethod `json:"masking_method,omitempty" url:"-"`
-	EntityTypes     *EntityTypes                         `json:"entity_types,omitempty" url:"-"`
-	TokenType       *TokenTypeWithoutVault               `json:"token_type,omitempty" url:"-"`
-	AllowRegex      *AllowRegex                          `json:"allow_regex,omitempty" url:"-"`
-	RestrictRegex   *RestrictRegex                       `json:"restrict_regex,omitempty" url:"-"`
-	Transformations *Transformations                     `json:"transformations,omitempty" url:"-"`
+	MaskingMethod *DeidentifyFileImageRequestDeidentifyImageMaskingMethod `json:"masking_method,omitempty" url:"-"`
+	// Entities to detect and de-identify.
+	EntityTypes []DeidentifyFileImageRequestDeidentifyImageEntityTypesItem `json:"entity_types,omitempty" url:"-"`
+	TokenType   *TokenTypeMapping                                          `json:"token_type,omitempty" url:"-"`
+	// Regular expressions to display in plaintext. Entities appear in plaintext if an expression matches either the entirety of a detected entity or a substring of it. Expressions don't match across entity boundaries. If a string or entity matches both `allow_regex` and `restrict_regex`, the entity is displayed in plaintext.
+	AllowRegex []string `json:"allow_regex,omitempty" url:"-"`
+	// Regular expressions to replace with '[RESTRICTED]'. Expressions must match the entirety of a detected entity, not just a substring, for the entity to be restricted. Expressions don't match across entity boundaries. If a string or entity matches both `allow_regex` and `restrict_regex`, the entity is displayed in plaintext. If a string is detected as an entity and a `restrict_regex` pattern matches the entire detected entity, the entity is replaced with '[RESTRICTED]'. If a string is detected as an entity but a `restrict_regex` pattern only matches a substring of it, the `restrict_regex` pattern is ignored, and the entity is processed according to the specified tokenization and transformation settings.
+	RestrictRegex   []string         `json:"restrict_regex,omitempty" url:"-"`
+	Transformations *Transformations `json:"transformations,omitempty" url:"-"`
+	// ID of the Detect configuration to use for de-identification. Can't be specified with fields other than `vault_id`, `text`, and `file`.
+	ConfigurationId *string `json:"configuration_id,omitempty" url:"-"`
 }
 
-type DeidentifyPdfRequest struct {
-	VaultId VaultId `json:"vault_id" url:"-"`
-	// File to de-identify. Files are specified as Base64-encoded data.
-	File            *DeidentifyPdfRequestFile `json:"file,omitempty" url:"-"`
-	ConfigurationId *ConfigurationId          `json:"configuration_id,omitempty" url:"-"`
+type DeidentifyFileDocumentPdfRequestDeidentifyPdf struct {
+	File *FileDataDeidentifyPdf `json:"file,omitempty" url:"-"`
+	// ID of a vault that you have Detect Invoker or Vault Owner permissions for.
+	VaultId string `json:"vault_id" url:"-"`
 	// Pixel density at which to process the PDF file.
-	Density *float64 `json:"density,omitempty" url:"-"`
+	Density *int `json:"density,omitempty" url:"-"`
 	// Max resolution at which to process the PDF file.
-	MaxResolution   *float64               `json:"max_resolution,omitempty" url:"-"`
-	EntityTypes     *EntityTypes           `json:"entity_types,omitempty" url:"-"`
-	TokenType       *TokenTypeWithoutVault `json:"token_type,omitempty" url:"-"`
-	AllowRegex      *AllowRegex            `json:"allow_regex,omitempty" url:"-"`
-	RestrictRegex   *RestrictRegex         `json:"restrict_regex,omitempty" url:"-"`
-	Transformations *Transformations       `json:"transformations,omitempty" url:"-"`
+	MaxResolution *int `json:"max_resolution,omitempty" url:"-"`
+	// Entities to detect and de-identify.
+	EntityTypes []DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem `json:"entity_types,omitempty" url:"-"`
+	TokenType   *TokenTypeMapping                                              `json:"token_type,omitempty" url:"-"`
+	// Regular expressions to display in plaintext. Entities appear in plaintext if an expression matches either the entirety of a detected entity or a substring of it. Expressions don't match across entity boundaries. If a string or entity matches both `allow_regex` and `restrict_regex`, the entity is displayed in plaintext.
+	AllowRegex []string `json:"allow_regex,omitempty" url:"-"`
+	// Regular expressions to replace with '[RESTRICTED]'. Expressions must match the entirety of a detected entity, not just a substring, for the entity to be restricted. Expressions don't match across entity boundaries. If a string or entity matches both `allow_regex` and `restrict_regex`, the entity is displayed in plaintext. If a string is detected as an entity and a `restrict_regex` pattern matches the entire detected entity, the entity is replaced with '[RESTRICTED]'. If a string is detected as an entity but a `restrict_regex` pattern only matches a substring of it, the `restrict_regex` pattern is ignored, and the entity is processed according to the specified tokenization and transformation settings.
+	RestrictRegex   []string         `json:"restrict_regex,omitempty" url:"-"`
+	Transformations *Transformations `json:"transformations,omitempty" url:"-"`
+	// ID of the Detect configuration to use for de-identification. Can't be specified with fields other than `vault_id`, `text`, and `file`.
+	ConfigurationId *string `json:"configuration_id,omitempty" url:"-"`
 }
 
-type DeidentifyPresentationRequest struct {
-	VaultId VaultId `json:"vault_id" url:"-"`
-	// File to de-identify. Files are specified as Base64-encoded data.
-	File            *DeidentifyPresentationRequestFile `json:"file,omitempty" url:"-"`
-	ConfigurationId *ConfigurationId                   `json:"configuration_id,omitempty" url:"-"`
-	EntityTypes     *EntityTypes                       `json:"entity_types,omitempty" url:"-"`
-	TokenType       *TokenTypeWithoutVault             `json:"token_type,omitempty" url:"-"`
-	AllowRegex      *AllowRegex                        `json:"allow_regex,omitempty" url:"-"`
-	RestrictRegex   *RestrictRegex                     `json:"restrict_regex,omitempty" url:"-"`
-	Transformations *Transformations                   `json:"transformations,omitempty" url:"-"`
+type DeidentifyFileRequestDeidentifyPresentation struct {
+	File *FileDataDeidentifyPresentation `json:"file,omitempty" url:"-"`
+	// ID of a vault that you have Detect Invoker or Vault Owner permissions for.
+	VaultId string `json:"vault_id" url:"-"`
+	// Entities to detect and de-identify.
+	EntityTypes []DeidentifyFileRequestDeidentifyPresentationEntityTypesItem `json:"entity_types,omitempty" url:"-"`
+	TokenType   *TokenTypeMapping                                            `json:"token_type,omitempty" url:"-"`
+	// Regular expressions to display in plaintext. Entities appear in plaintext if an expression matches either the entirety of a detected entity or a substring of it. Expressions don't match across entity boundaries. If a string or entity matches both `allow_regex` and `restrict_regex`, the entity is displayed in plaintext.
+	AllowRegex []string `json:"allow_regex,omitempty" url:"-"`
+	// Regular expressions to replace with '[RESTRICTED]'. Expressions must match the entirety of a detected entity, not just a substring, for the entity to be restricted. Expressions don't match across entity boundaries. If a string or entity matches both `allow_regex` and `restrict_regex`, the entity is displayed in plaintext. If a string is detected as an entity and a `restrict_regex` pattern matches the entire detected entity, the entity is replaced with '[RESTRICTED]'. If a string is detected as an entity but a `restrict_regex` pattern only matches a substring of it, the `restrict_regex` pattern is ignored, and the entity is processed according to the specified tokenization and transformation settings.
+	RestrictRegex   []string         `json:"restrict_regex,omitempty" url:"-"`
+	Transformations *Transformations `json:"transformations,omitempty" url:"-"`
+	// ID of the Detect configuration to use for de-identification. Can't be specified with fields other than `vault_id`, `text`, and `file`.
+	ConfigurationId *string `json:"configuration_id,omitempty" url:"-"`
 }
 
-type DeidentifySpreadsheetRequest struct {
-	VaultId VaultId `json:"vault_id" url:"-"`
-	// File to de-identify. Files are specified as Base64-encoded data.
-	File            *DeidentifySpreadsheetRequestFile `json:"file,omitempty" url:"-"`
-	ConfigurationId *ConfigurationId                  `json:"configuration_id,omitempty" url:"-"`
-	EntityTypes     *EntityTypes                      `json:"entity_types,omitempty" url:"-"`
-	TokenType       *TokenTypeWithoutVault            `json:"token_type,omitempty" url:"-"`
-	AllowRegex      *AllowRegex                       `json:"allow_regex,omitempty" url:"-"`
-	RestrictRegex   *RestrictRegex                    `json:"restrict_regex,omitempty" url:"-"`
-	Transformations *Transformations                  `json:"transformations,omitempty" url:"-"`
+type DeidentifyFileRequestDeidentifySpreadsheet struct {
+	File *FileDataDeidentifySpreadsheet `json:"file,omitempty" url:"-"`
+	// ID of a vault that you have Detect Invoker or Vault Owner permissions for.
+	VaultId string `json:"vault_id" url:"-"`
+	// Entities to detect and de-identify.
+	EntityTypes []DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem `json:"entity_types,omitempty" url:"-"`
+	TokenType   *TokenTypeMapping                                           `json:"token_type,omitempty" url:"-"`
+	// Regular expressions to display in plaintext. Entities appear in plaintext if an expression matches either the entirety of a detected entity or a substring of it. Expressions don't match across entity boundaries. If a string or entity matches both `allow_regex` and `restrict_regex`, the entity is displayed in plaintext.
+	AllowRegex []string `json:"allow_regex,omitempty" url:"-"`
+	// Regular expressions to replace with '[RESTRICTED]'. Expressions must match the entirety of a detected entity, not just a substring, for the entity to be restricted. Expressions don't match across entity boundaries. If a string or entity matches both `allow_regex` and `restrict_regex`, the entity is displayed in plaintext. If a string is detected as an entity and a `restrict_regex` pattern matches the entire detected entity, the entity is replaced with '[RESTRICTED]'. If a string is detected as an entity but a `restrict_regex` pattern only matches a substring of it, the `restrict_regex` pattern is ignored, and the entity is processed according to the specified tokenization and transformation settings.
+	RestrictRegex   []string         `json:"restrict_regex,omitempty" url:"-"`
+	Transformations *Transformations `json:"transformations,omitempty" url:"-"`
+	// ID of the Detect configuration to use for de-identification. Can't be specified with fields other than `vault_id`, `text`, and `file`.
+	ConfigurationId *string `json:"configuration_id,omitempty" url:"-"`
 }
 
-type DeidentifyStructuredTextRequest struct {
-	VaultId VaultId `json:"vault_id" url:"-"`
-	// File to de-identify. Files are specified as Base64-encoded data.
-	File            *DeidentifyStructuredTextRequestFile `json:"file,omitempty" url:"-"`
-	ConfigurationId *ConfigurationId                     `json:"configuration_id,omitempty" url:"-"`
-	EntityTypes     *EntityTypes                         `json:"entity_types,omitempty" url:"-"`
-	TokenType       *TokenTypeWithoutVault               `json:"token_type,omitempty" url:"-"`
-	AllowRegex      *AllowRegex                          `json:"allow_regex,omitempty" url:"-"`
-	RestrictRegex   *RestrictRegex                       `json:"restrict_regex,omitempty" url:"-"`
-	Transformations *Transformations                     `json:"transformations,omitempty" url:"-"`
+type DeidentifyFileRequestDeidentifyStructuredText struct {
+	File *FileDataDeidentifyStructuredText `json:"file,omitempty" url:"-"`
+	// ID of a vault that you have Detect Invoker or Vault Owner permissions for.
+	VaultId string `json:"vault_id" url:"-"`
+	// Entities to detect and de-identify.
+	EntityTypes []DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem `json:"entity_types,omitempty" url:"-"`
+	TokenType   *TokenTypeMapping                                              `json:"token_type,omitempty" url:"-"`
+	// Regular expressions to display in plaintext. Entities appear in plaintext if an expression matches either the entirety of a detected entity or a substring of it. Expressions don't match across entity boundaries. If a string or entity matches both `allow_regex` and `restrict_regex`, the entity is displayed in plaintext.
+	AllowRegex []string `json:"allow_regex,omitempty" url:"-"`
+	// Regular expressions to replace with '[RESTRICTED]'. Expressions must match the entirety of a detected entity, not just a substring, for the entity to be restricted. Expressions don't match across entity boundaries. If a string or entity matches both `allow_regex` and `restrict_regex`, the entity is displayed in plaintext. If a string is detected as an entity and a `restrict_regex` pattern matches the entire detected entity, the entity is replaced with '[RESTRICTED]'. If a string is detected as an entity but a `restrict_regex` pattern only matches a substring of it, the `restrict_regex` pattern is ignored, and the entity is processed according to the specified tokenization and transformation settings.
+	RestrictRegex   []string         `json:"restrict_regex,omitempty" url:"-"`
+	Transformations *Transformations `json:"transformations,omitempty" url:"-"`
+	// ID of the Detect configuration to use for de-identification. Can't be specified with fields other than `vault_id`, `text`, and `file`.
+	ConfigurationId *string `json:"configuration_id,omitempty" url:"-"`
 }
 
-type DeidentifyTextRequest struct {
-	VaultId VaultId `json:"vault_id" url:"-"`
-	// File to de-identify. Files are specified as Base64-encoded data.
-	File            *DeidentifyTextRequestFile `json:"file,omitempty" url:"-"`
-	ConfigurationId *ConfigurationId           `json:"configuration_id,omitempty" url:"-"`
-	EntityTypes     *EntityTypes               `json:"entity_types,omitempty" url:"-"`
-	TokenType       *TokenTypeWithoutVault     `json:"token_type,omitempty" url:"-"`
-	AllowRegex      *AllowRegex                `json:"allow_regex,omitempty" url:"-"`
-	RestrictRegex   *RestrictRegex             `json:"restrict_regex,omitempty" url:"-"`
-	Transformations *Transformations           `json:"transformations,omitempty" url:"-"`
+type DeidentifyFileRequestDeidentifyText struct {
+	File *FileDataDeidentifyText `json:"file,omitempty" url:"-"`
+	// ID of a vault that you have Detect Invoker or Vault Owner permissions for.
+	VaultId string `json:"vault_id" url:"-"`
+	// Entities to detect and de-identify.
+	EntityTypes []DeidentifyFileRequestDeidentifyTextEntityTypesItem `json:"entity_types,omitempty" url:"-"`
+	TokenType   *TokenTypeMapping                                    `json:"token_type,omitempty" url:"-"`
+	// Regular expressions to display in plaintext. Entities appear in plaintext if an expression matches either the entirety of a detected entity or a substring of it. Expressions don't match across entity boundaries. If a string or entity matches both `allow_regex` and `restrict_regex`, the entity is displayed in plaintext.
+	AllowRegex []string `json:"allow_regex,omitempty" url:"-"`
+	// Regular expressions to replace with '[RESTRICTED]'. Expressions must match the entirety of a detected entity, not just a substring, for the entity to be restricted. Expressions don't match across entity boundaries. If a string or entity matches both `allow_regex` and `restrict_regex`, the entity is displayed in plaintext. If a string is detected as an entity and a `restrict_regex` pattern matches the entire detected entity, the entity is replaced with '[RESTRICTED]'. If a string is detected as an entity but a `restrict_regex` pattern only matches a substring of it, the `restrict_regex` pattern is ignored, and the entity is processed according to the specified tokenization and transformation settings.
+	RestrictRegex   []string         `json:"restrict_regex,omitempty" url:"-"`
+	Transformations *Transformations `json:"transformations,omitempty" url:"-"`
+	// ID of the Detect configuration to use for de-identification. Can't be specified with fields other than `vault_id`, `text`, and `file`.
+	ConfigurationId *string `json:"configuration_id,omitempty" url:"-"`
 }
 
 type GetRunRequest struct {
-	// ID of the vault.
-	VaultId ResourceId `json:"-" url:"vault_id"`
+	VaultId *string `json:"-" url:"vault_id,omitempty"`
 }
 
-type ReidentifyFileRequest struct {
-	VaultId VaultId `json:"vault_id" url:"-"`
-	// File to re-identify. Files are specified as Base64-encoded data or an EFS path.
-	File *ReidentifyFileRequestFile `json:"file,omitempty" url:"-"`
-	// Mapping of preferred data formatting options to entity types. Returned values are dependent on the configuration of the vault storing the data and the permissions of the user or account making the request.
-	Format *ReidentifyFileRequestFormat `json:"format,omitempty" url:"-"`
+type ReidentifyFileRequestReidentifyFile struct {
+	File *FileDataReidentifyFile `json:"file,omitempty" url:"-"`
+	// ID of the vault where the entities are stored.
+	VaultId string  `json:"vault_id" url:"-"`
+	Format  *Format `json:"format,omitempty" url:"-"`
 }
 
-// Details and contents of the processed file.
-type DeidentifyFileOutput struct {
-	// URL or base64-encoded data of the output.
-	ProcessedFile *string `json:"processed_file,omitempty" url:"processed_file,omitempty"`
+// Details of output files. Files are specified as Base64-encoded data.
+type DeidentifiedFileOutput struct {
+	// File content in Base64 format.
+	ProcessedFile *string `json:"processedFile,omitempty" url:"processedFile,omitempty"`
 	// Type of the processed file.
-	ProcessedFileType *DeidentifyFileOutputProcessedFileType `json:"processed_file_type,omitempty" url:"processed_file_type,omitempty"`
+	ProcessedFileType *DeidentifiedFileOutputProcessedFileType `json:"processedFileType,omitempty" url:"processedFileType,omitempty"`
 	// Extension of the processed file.
-	ProcessedFileExtension *string `json:"processed_file_extension,omitempty" url:"processed_file_extension,omitempty"`
+	ProcessedFileExtension *DeidentifiedFileOutputProcessedFileExtension `json:"processedFileExtension,omitempty" url:"processedFileExtension,omitempty"`
 
 	extraProperties map[string]interface{}
 	rawJSON         json.RawMessage
 }
 
-func (d *DeidentifyFileOutput) GetProcessedFile() *string {
+func (d *DeidentifiedFileOutput) GetProcessedFile() *string {
 	if d == nil {
 		return nil
 	}
 	return d.ProcessedFile
 }
 
-func (d *DeidentifyFileOutput) GetProcessedFileType() *DeidentifyFileOutputProcessedFileType {
+func (d *DeidentifiedFileOutput) GetProcessedFileType() *DeidentifiedFileOutputProcessedFileType {
 	if d == nil {
 		return nil
 	}
 	return d.ProcessedFileType
 }
 
-func (d *DeidentifyFileOutput) GetProcessedFileExtension() *string {
+func (d *DeidentifiedFileOutput) GetProcessedFileExtension() *DeidentifiedFileOutputProcessedFileExtension {
 	if d == nil {
 		return nil
 	}
 	return d.ProcessedFileExtension
 }
 
-func (d *DeidentifyFileOutput) GetExtraProperties() map[string]interface{} {
+func (d *DeidentifiedFileOutput) GetExtraProperties() map[string]interface{} {
 	return d.extraProperties
 }
 
-func (d *DeidentifyFileOutput) UnmarshalJSON(data []byte) error {
-	type unmarshaler DeidentifyFileOutput
+func (d *DeidentifiedFileOutput) UnmarshalJSON(data []byte) error {
+	type unmarshaler DeidentifiedFileOutput
 	var value unmarshaler
 	if err := json.Unmarshal(data, &value); err != nil {
 		return err
 	}
-	*d = DeidentifyFileOutput(value)
+	*d = DeidentifiedFileOutput(value)
 	extraProperties, err := internal.ExtractExtraProperties(data, *d)
 	if err != nil {
 		return err
@@ -205,7 +239,7 @@ func (d *DeidentifyFileOutput) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (d *DeidentifyFileOutput) String() string {
+func (d *DeidentifiedFileOutput) String() string {
 	if len(d.rawJSON) > 0 {
 		if value, err := internal.StringifyJSON(d.rawJSON); err == nil {
 			return value
@@ -217,65 +251,133 @@ func (d *DeidentifyFileOutput) String() string {
 	return fmt.Sprintf("%#v", d)
 }
 
-// Type of the processed file.
-type DeidentifyFileOutputProcessedFileType string
+// Extension of the processed file.
+type DeidentifiedFileOutputProcessedFileExtension string
 
 const (
-	DeidentifyFileOutputProcessedFileTypeEntities                             DeidentifyFileOutputProcessedFileType = "entities"
-	DeidentifyFileOutputProcessedFileTypePlaintextTranscription               DeidentifyFileOutputProcessedFileType = "plaintext_transcription"
-	DeidentifyFileOutputProcessedFileTypeRedactedAudio                        DeidentifyFileOutputProcessedFileType = "redacted_audio"
-	DeidentifyFileOutputProcessedFileTypeRedactedDiarizedTranscription        DeidentifyFileOutputProcessedFileType = "redacted_diarized_transcription"
-	DeidentifyFileOutputProcessedFileTypeRedactedFile                         DeidentifyFileOutputProcessedFileType = "redacted_file"
-	DeidentifyFileOutputProcessedFileTypeRedactedImage                        DeidentifyFileOutputProcessedFileType = "redacted_image"
-	DeidentifyFileOutputProcessedFileTypeRedactedMedicalDiarizedTranscription DeidentifyFileOutputProcessedFileType = "redacted_medical_diarized_transcription"
-	DeidentifyFileOutputProcessedFileTypeRedactedMedicalTranscription         DeidentifyFileOutputProcessedFileType = "redacted_medical_transcription"
-	DeidentifyFileOutputProcessedFileTypeRedactedText                         DeidentifyFileOutputProcessedFileType = "redacted_text"
-	DeidentifyFileOutputProcessedFileTypeRedactedTranscription                DeidentifyFileOutputProcessedFileType = "redacted_transcription"
+	DeidentifiedFileOutputProcessedFileExtensionMp3  DeidentifiedFileOutputProcessedFileExtension = "mp3"
+	DeidentifiedFileOutputProcessedFileExtensionWav  DeidentifiedFileOutputProcessedFileExtension = "wav"
+	DeidentifiedFileOutputProcessedFileExtensionPdf  DeidentifiedFileOutputProcessedFileExtension = "pdf"
+	DeidentifiedFileOutputProcessedFileExtensionTxt  DeidentifiedFileOutputProcessedFileExtension = "txt"
+	DeidentifiedFileOutputProcessedFileExtensionCsv  DeidentifiedFileOutputProcessedFileExtension = "csv"
+	DeidentifiedFileOutputProcessedFileExtensionJson DeidentifiedFileOutputProcessedFileExtension = "json"
+	DeidentifiedFileOutputProcessedFileExtensionJpg  DeidentifiedFileOutputProcessedFileExtension = "jpg"
+	DeidentifiedFileOutputProcessedFileExtensionJpeg DeidentifiedFileOutputProcessedFileExtension = "jpeg"
+	DeidentifiedFileOutputProcessedFileExtensionTif  DeidentifiedFileOutputProcessedFileExtension = "tif"
+	DeidentifiedFileOutputProcessedFileExtensionTiff DeidentifiedFileOutputProcessedFileExtension = "tiff"
+	DeidentifiedFileOutputProcessedFileExtensionPng  DeidentifiedFileOutputProcessedFileExtension = "png"
+	DeidentifiedFileOutputProcessedFileExtensionBmp  DeidentifiedFileOutputProcessedFileExtension = "bmp"
+	DeidentifiedFileOutputProcessedFileExtensionXls  DeidentifiedFileOutputProcessedFileExtension = "xls"
+	DeidentifiedFileOutputProcessedFileExtensionXlsx DeidentifiedFileOutputProcessedFileExtension = "xlsx"
+	DeidentifiedFileOutputProcessedFileExtensionDoc  DeidentifiedFileOutputProcessedFileExtension = "doc"
+	DeidentifiedFileOutputProcessedFileExtensionDocx DeidentifiedFileOutputProcessedFileExtension = "docx"
+	DeidentifiedFileOutputProcessedFileExtensionPpt  DeidentifiedFileOutputProcessedFileExtension = "ppt"
+	DeidentifiedFileOutputProcessedFileExtensionPptx DeidentifiedFileOutputProcessedFileExtension = "pptx"
+	DeidentifiedFileOutputProcessedFileExtensionXml  DeidentifiedFileOutputProcessedFileExtension = "xml"
+	DeidentifiedFileOutputProcessedFileExtensionDcm  DeidentifiedFileOutputProcessedFileExtension = "dcm"
 )
 
-func NewDeidentifyFileOutputProcessedFileTypeFromString(s string) (DeidentifyFileOutputProcessedFileType, error) {
+func NewDeidentifiedFileOutputProcessedFileExtensionFromString(s string) (DeidentifiedFileOutputProcessedFileExtension, error) {
 	switch s {
-	case "entities":
-		return DeidentifyFileOutputProcessedFileTypeEntities, nil
-	case "plaintext_transcription":
-		return DeidentifyFileOutputProcessedFileTypePlaintextTranscription, nil
-	case "redacted_audio":
-		return DeidentifyFileOutputProcessedFileTypeRedactedAudio, nil
-	case "redacted_diarized_transcription":
-		return DeidentifyFileOutputProcessedFileTypeRedactedDiarizedTranscription, nil
-	case "redacted_file":
-		return DeidentifyFileOutputProcessedFileTypeRedactedFile, nil
-	case "redacted_image":
-		return DeidentifyFileOutputProcessedFileTypeRedactedImage, nil
-	case "redacted_medical_diarized_transcription":
-		return DeidentifyFileOutputProcessedFileTypeRedactedMedicalDiarizedTranscription, nil
-	case "redacted_medical_transcription":
-		return DeidentifyFileOutputProcessedFileTypeRedactedMedicalTranscription, nil
-	case "redacted_text":
-		return DeidentifyFileOutputProcessedFileTypeRedactedText, nil
-	case "redacted_transcription":
-		return DeidentifyFileOutputProcessedFileTypeRedactedTranscription, nil
+	case "mp3":
+		return DeidentifiedFileOutputProcessedFileExtensionMp3, nil
+	case "wav":
+		return DeidentifiedFileOutputProcessedFileExtensionWav, nil
+	case "pdf":
+		return DeidentifiedFileOutputProcessedFileExtensionPdf, nil
+	case "txt":
+		return DeidentifiedFileOutputProcessedFileExtensionTxt, nil
+	case "csv":
+		return DeidentifiedFileOutputProcessedFileExtensionCsv, nil
+	case "json":
+		return DeidentifiedFileOutputProcessedFileExtensionJson, nil
+	case "jpg":
+		return DeidentifiedFileOutputProcessedFileExtensionJpg, nil
+	case "jpeg":
+		return DeidentifiedFileOutputProcessedFileExtensionJpeg, nil
+	case "tif":
+		return DeidentifiedFileOutputProcessedFileExtensionTif, nil
+	case "tiff":
+		return DeidentifiedFileOutputProcessedFileExtensionTiff, nil
+	case "png":
+		return DeidentifiedFileOutputProcessedFileExtensionPng, nil
+	case "bmp":
+		return DeidentifiedFileOutputProcessedFileExtensionBmp, nil
+	case "xls":
+		return DeidentifiedFileOutputProcessedFileExtensionXls, nil
+	case "xlsx":
+		return DeidentifiedFileOutputProcessedFileExtensionXlsx, nil
+	case "doc":
+		return DeidentifiedFileOutputProcessedFileExtensionDoc, nil
+	case "docx":
+		return DeidentifiedFileOutputProcessedFileExtensionDocx, nil
+	case "ppt":
+		return DeidentifiedFileOutputProcessedFileExtensionPpt, nil
+	case "pptx":
+		return DeidentifiedFileOutputProcessedFileExtensionPptx, nil
+	case "xml":
+		return DeidentifiedFileOutputProcessedFileExtensionXml, nil
+	case "dcm":
+		return DeidentifiedFileOutputProcessedFileExtensionDcm, nil
 	}
-	var t DeidentifyFileOutputProcessedFileType
+	var t DeidentifiedFileOutputProcessedFileExtension
 	return "", fmt.Errorf("%s is not a valid %T", s, t)
 }
 
-func (d DeidentifyFileOutputProcessedFileType) Ptr() *DeidentifyFileOutputProcessedFileType {
+func (d DeidentifiedFileOutputProcessedFileExtension) Ptr() *DeidentifiedFileOutputProcessedFileExtension {
 	return &d
 }
 
-// Response to de-identify a file.
+// Type of the processed file.
+type DeidentifiedFileOutputProcessedFileType string
+
+const (
+	DeidentifiedFileOutputProcessedFileTypeRedactedAudio                    DeidentifiedFileOutputProcessedFileType = "redacted_audio"
+	DeidentifiedFileOutputProcessedFileTypeRedactedImage                    DeidentifiedFileOutputProcessedFileType = "redacted_image"
+	DeidentifiedFileOutputProcessedFileTypeRedactedTranscription            DeidentifiedFileOutputProcessedFileType = "redacted_transcription"
+	DeidentifiedFileOutputProcessedFileTypeRedactedFile                     DeidentifiedFileOutputProcessedFileType = "redacted_file"
+	DeidentifiedFileOutputProcessedFileTypeRedactedText                     DeidentifiedFileOutputProcessedFileType = "redacted_text"
+	DeidentifiedFileOutputProcessedFileTypeEntities                         DeidentifiedFileOutputProcessedFileType = "entities"
+	DeidentifiedFileOutputProcessedFileTypeRedactedTranscriptionDiarizeJson DeidentifiedFileOutputProcessedFileType = "redacted_transcription_diarize_json"
+)
+
+func NewDeidentifiedFileOutputProcessedFileTypeFromString(s string) (DeidentifiedFileOutputProcessedFileType, error) {
+	switch s {
+	case "redacted_audio":
+		return DeidentifiedFileOutputProcessedFileTypeRedactedAudio, nil
+	case "redacted_image":
+		return DeidentifiedFileOutputProcessedFileTypeRedactedImage, nil
+	case "redacted_transcription":
+		return DeidentifiedFileOutputProcessedFileTypeRedactedTranscription, nil
+	case "redacted_file":
+		return DeidentifiedFileOutputProcessedFileTypeRedactedFile, nil
+	case "redacted_text":
+		return DeidentifiedFileOutputProcessedFileTypeRedactedText, nil
+	case "entities":
+		return DeidentifiedFileOutputProcessedFileTypeEntities, nil
+	case "redacted_transcription_diarize_json":
+		return DeidentifiedFileOutputProcessedFileTypeRedactedTranscriptionDiarizeJson, nil
+	}
+	var t DeidentifiedFileOutputProcessedFileType
+	return "", fmt.Errorf("%s is not a valid %T", s, t)
+}
+
+func (d DeidentifiedFileOutputProcessedFileType) Ptr() *DeidentifiedFileOutputProcessedFileType {
+	return &d
+}
+
+// Response to deidentify a file.
 type DeidentifyFileResponse struct {
-	// Status URL for the detect run.
-	RunId string `json:"run_id" url:"run_id"`
+	// Status URL for the Detect run.
+	RunId *string `json:"run_id,omitempty" url:"run_id,omitempty"`
 
 	extraProperties map[string]interface{}
 	rawJSON         json.RawMessage
 }
 
-func (d *DeidentifyFileResponse) GetRunId() string {
+func (d *DeidentifyFileResponse) GetRunId() *string {
 	if d == nil {
-		return ""
+		return nil
 	}
 	return d.RunId
 }
@@ -312,22 +414,19 @@ func (d *DeidentifyFileResponse) String() string {
 	return fmt.Sprintf("%#v", d)
 }
 
-// Response to get the status of a detect run.
-type DeidentifyStatusResponse struct {
-	// Status of the detect run.
-	Status DeidentifyStatusResponseStatus `json:"status" url:"status"`
-	// How the input file was specified.
-	Output []*DeidentifyFileOutput `json:"output" url:"output"`
-	// How the output file is specified.
-	OutputType DeidentifyStatusResponseOutputType `json:"output_type" url:"output_type"`
-	// Status details about the detect run.
-	Message string `json:"message" url:"message"`
-	// Number of words in the processed text.
-	WordCount *int `json:"word_count,omitempty" url:"word_count,omitempty"`
-	// Number of characters in the processed text.
-	CharacterCount *int `json:"character_count,omitempty" url:"character_count,omitempty"`
-	// Size of the processed text in kilobytes (KB).
-	Size *float64 `json:"size,omitempty" url:"size,omitempty"`
+// Response to get the status of a file deidentification request.
+type DetectRunsResponse struct {
+	// Status of the operation.
+	Status *DetectRunsResponseStatus `json:"status,omitempty" url:"status,omitempty"`
+	// Format of the output file.
+	OutputType *DetectRunsResponseOutputType `json:"outputType,omitempty" url:"outputType,omitempty"`
+	// Details of output files. Files are specified as Base64-encoded data.
+	Output []*DeidentifiedFileOutput `json:"output,omitempty" url:"output,omitempty"`
+	// Status details about the Detect run.
+	Message *string `json:"message,omitempty" url:"message,omitempty"`
+	// Size of the processed file in kilobytes (KB).
+	Size               *float64            `json:"size,omitempty" url:"size,omitempty"`
+	WordCharacterCount *WordCharacterCount `json:"wordCharacterCount,omitempty" url:"wordCharacterCount,omitempty"`
 	// Duration of the processed audio in seconds.
 	Duration *float64 `json:"duration,omitempty" url:"duration,omitempty"`
 	// Number of pages in the processed PDF.
@@ -339,87 +438,80 @@ type DeidentifyStatusResponse struct {
 	rawJSON         json.RawMessage
 }
 
-func (d *DeidentifyStatusResponse) GetStatus() DeidentifyStatusResponseStatus {
+func (d *DetectRunsResponse) GetStatus() *DetectRunsResponseStatus {
 	if d == nil {
-		return ""
+		return nil
 	}
 	return d.Status
 }
 
-func (d *DeidentifyStatusResponse) GetOutput() []*DeidentifyFileOutput {
+func (d *DetectRunsResponse) GetOutputType() *DetectRunsResponseOutputType {
+	if d == nil {
+		return nil
+	}
+	return d.OutputType
+}
+
+func (d *DetectRunsResponse) GetOutput() []*DeidentifiedFileOutput {
 	if d == nil {
 		return nil
 	}
 	return d.Output
 }
 
-func (d *DeidentifyStatusResponse) GetOutputType() DeidentifyStatusResponseOutputType {
+func (d *DetectRunsResponse) GetMessage() *string {
 	if d == nil {
-		return ""
-	}
-	return d.OutputType
-}
-
-func (d *DeidentifyStatusResponse) GetMessage() string {
-	if d == nil {
-		return ""
+		return nil
 	}
 	return d.Message
 }
 
-func (d *DeidentifyStatusResponse) GetWordCount() *int {
-	if d == nil {
-		return nil
-	}
-	return d.WordCount
-}
-
-func (d *DeidentifyStatusResponse) GetCharacterCount() *int {
-	if d == nil {
-		return nil
-	}
-	return d.CharacterCount
-}
-
-func (d *DeidentifyStatusResponse) GetSize() *float64 {
+func (d *DetectRunsResponse) GetSize() *float64 {
 	if d == nil {
 		return nil
 	}
 	return d.Size
 }
 
-func (d *DeidentifyStatusResponse) GetDuration() *float64 {
+func (d *DetectRunsResponse) GetWordCharacterCount() *WordCharacterCount {
+	if d == nil {
+		return nil
+	}
+	return d.WordCharacterCount
+}
+
+func (d *DetectRunsResponse) GetDuration() *float64 {
 	if d == nil {
 		return nil
 	}
 	return d.Duration
 }
 
-func (d *DeidentifyStatusResponse) GetPages() *int {
+func (d *DetectRunsResponse) GetPages() *int {
 	if d == nil {
 		return nil
 	}
 	return d.Pages
 }
 
-func (d *DeidentifyStatusResponse) GetSlides() *int {
+func (d *DetectRunsResponse) GetSlides() *int {
 	if d == nil {
 		return nil
 	}
 	return d.Slides
 }
 
-func (d *DeidentifyStatusResponse) GetExtraProperties() map[string]interface{} {
+func (d *DetectRunsResponse) GetExtraProperties() map[string]interface{} {
 	return d.extraProperties
 }
 
-func (d *DeidentifyStatusResponse) UnmarshalJSON(data []byte) error {
-	type unmarshaler DeidentifyStatusResponse
+func (d *DetectRunsResponse) UnmarshalJSON(data []byte) error {
+	type unmarshaler DetectRunsResponse
 	var value unmarshaler
 	if err := json.Unmarshal(data, &value); err != nil {
 		return err
 	}
-	*d = DeidentifyStatusResponse(value)
+	*d = DetectRunsResponse(value)
 	extraProperties, err := internal.ExtractExtraProperties(data, *d)
 	if err != nil {
 		return err
@@ -429,7 +521,7 @@ func (d *DeidentifyStatusResponse) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (d *DeidentifyStatusResponse) String() string {
+func (d *DetectRunsResponse) String() string {
 	if len(d.rawJSON) > 0 {
 		if value, err := internal.StringifyJSON(d.rawJSON); err == nil {
 			return value
@@ -441,85 +533,1104 @@ func (d *DeidentifyStatusResponse) String() string {
 	return fmt.Sprintf("%#v", d)
 }
 
-// How the output file is specified.
-type DeidentifyStatusResponseOutputType string
+// Format of the output file.
+type DetectRunsResponseOutputType string
 
 const (
-	DeidentifyStatusResponseOutputTypeBase64  DeidentifyStatusResponseOutputType = "BASE64"
-	DeidentifyStatusResponseOutputTypeUnknown DeidentifyStatusResponseOutputType = "UNKNOWN"
+	DetectRunsResponseOutputTypeUnknown DetectRunsResponseOutputType = "UNKNOWN"
+	DetectRunsResponseOutputTypeBase64  DetectRunsResponseOutputType = "BASE64"
 )
 
-func NewDeidentifyStatusResponseOutputTypeFromString(s string) (DeidentifyStatusResponseOutputType, error) {
+func NewDetectRunsResponseOutputTypeFromString(s string) (DetectRunsResponseOutputType, error) {
 	switch s {
+	case "UNKNOWN":
+		return DetectRunsResponseOutputTypeUnknown, nil
 	case "BASE64":
-		return DeidentifyStatusResponseOutputTypeBase64, nil
-	case "UNKNOWN":
-		return DeidentifyStatusResponseOutputTypeUnknown, nil
+		return DetectRunsResponseOutputTypeBase64, nil
 	}
-	var t DeidentifyStatusResponseOutputType
+	var t DetectRunsResponseOutputType
 	return "", fmt.Errorf("%s is not a valid %T", s, t)
 }
 
-func (d DeidentifyStatusResponseOutputType) Ptr() *DeidentifyStatusResponseOutputType {
+func (d DetectRunsResponseOutputType) Ptr() *DetectRunsResponseOutputType {
 	return &d
 }
 
-// Status of the detect run.
-type DeidentifyStatusResponseStatus string
+// Status of the operation.
+type DetectRunsResponseStatus string
 
 const (
-	DeidentifyStatusResponseStatusFailed     DeidentifyStatusResponseStatus = "FAILED"
-	DeidentifyStatusResponseStatusInProgress DeidentifyStatusResponseStatus = "IN_PROGRESS"
-	DeidentifyStatusResponseStatusSuccess    DeidentifyStatusResponseStatus = "SUCCESS"
-	DeidentifyStatusResponseStatusUnknown    DeidentifyStatusResponseStatus = "UNKNOWN"
+	DetectRunsResponseStatusUnknown    DetectRunsResponseStatus = "UNKNOWN"
+	DetectRunsResponseStatusFailed     DetectRunsResponseStatus = "FAILED"
+	DetectRunsResponseStatusSuccess    DetectRunsResponseStatus = "SUCCESS"
+	DetectRunsResponseStatusInProgress DetectRunsResponseStatus = "IN_PROGRESS"
 )
 
-func NewDeidentifyStatusResponseStatusFromString(s string) (DeidentifyStatusResponseStatus, error) {
+func NewDetectRunsResponseStatusFromString(s string) (DetectRunsResponseStatus, error) {
 	switch s {
-	case "FAILED":
-		return DeidentifyStatusResponseStatusFailed, nil
-	case "IN_PROGRESS":
-		return DeidentifyStatusResponseStatusInProgress, nil
-	case "SUCCESS":
-		return DeidentifyStatusResponseStatusSuccess, nil
 	case "UNKNOWN":
-		return DeidentifyStatusResponseStatusUnknown, nil
+		return DetectRunsResponseStatusUnknown, nil
+	case "FAILED":
+		return DetectRunsResponseStatusFailed, nil
+	case "SUCCESS":
+		return DetectRunsResponseStatusSuccess, nil
+	case "IN_PROGRESS":
+		return DetectRunsResponseStatusInProgress, nil
 	}
-	var t DeidentifyStatusResponseStatus
+	var t DetectRunsResponseStatus
 	return "", fmt.Errorf("%s is not a valid %T", s, t)
 }
 
-func (d DeidentifyStatusResponseStatus) Ptr() *DeidentifyStatusResponseStatus {
+func (d DetectRunsResponseStatus) Ptr() *DetectRunsResponseStatus {
 	return &d
 }
 
-// Response to re-identify a file.
-type ReidentifyFileResponse struct {
-	// Status of the re-identify operation.
-	Status ReidentifyFileResponseStatus `json:"status" url:"status"`
-	// Format of the output file.
-	OutputType ReidentifyFileResponseOutputType `json:"output_type" url:"output_type"`
-	Output     *ReidentifyFileResponseOutput    `json:"output" url:"output"`
+// File to process. Files are specified as Base64-encoded data.
+type FileData struct {
+	// Base64-encoded data of the file.
+	Base64 string `json:"base64" url:"base64"`
+	// Format of the file.
+	DataFormat FileDataDataFormat `json:"data_format" url:"data_format"`
 
 	extraProperties map[string]interface{}
 	rawJSON         json.RawMessage
 }
 
-func (r *ReidentifyFileResponse) GetStatus() ReidentifyFileResponseStatus {
-	if r == nil {
+func (f *FileData) GetBase64() string {
+	if f == nil {
 		return ""
+	}
+	return f.Base64
+}
+
+func (f *FileData) GetDataFormat() FileDataDataFormat {
+	if f == nil {
+		return ""
+	}
+	return f.DataFormat
+}
+
+func (f *FileData) GetExtraProperties() map[string]interface{} {
+	return f.extraProperties
+}
+
+func (f *FileData) UnmarshalJSON(data []byte) error {
+	type unmarshaler FileData
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*f = FileData(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *f)
+	if err != nil {
+		return err
+	}
+	f.extraProperties = extraProperties
+	f.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (f *FileData) String() string {
+	if len(f.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(f.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(f); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", f)
+}
+
+// Format of the file.
+type FileDataDataFormat string
+
+const (
+	FileDataDataFormatMp3   FileDataDataFormat = "mp3"
+	FileDataDataFormatWav   FileDataDataFormat = "wav"
+	FileDataDataFormatPdf   FileDataDataFormat = "pdf"
+	FileDataDataFormatTxt   FileDataDataFormat = "txt"
+	FileDataDataFormatCsv   FileDataDataFormat = "csv"
+	FileDataDataFormatJson  FileDataDataFormat = "json"
+	FileDataDataFormatJpg   FileDataDataFormat = "jpg"
+	FileDataDataFormatJpeg  FileDataDataFormat = "jpeg"
+	FileDataDataFormatTif   FileDataDataFormat = "tif"
+	FileDataDataFormatTiff  FileDataDataFormat = "tiff"
+	FileDataDataFormatPng   FileDataDataFormat = "png"
+	FileDataDataFormatBmp   FileDataDataFormat = "bmp"
+	FileDataDataFormatXls   FileDataDataFormat = "xls"
+	FileDataDataFormatXlsx  FileDataDataFormat = "xlsx"
+	FileDataDataFormatDoc   FileDataDataFormat = "doc"
+	FileDataDataFormatDocx  FileDataDataFormat = "docx"
+	FileDataDataFormatPpt   FileDataDataFormat = "ppt"
+	FileDataDataFormatPptx  FileDataDataFormat = "pptx"
+	FileDataDataFormatXml   FileDataDataFormat = "xml"
+	FileDataDataFormatDcm   FileDataDataFormat = "dcm"
+	FileDataDataFormatJsonl FileDataDataFormat = "jsonl"
+)
+
+func NewFileDataDataFormatFromString(s string) (FileDataDataFormat, error) {
+	switch s {
+	case "mp3":
+		return FileDataDataFormatMp3, nil
+	case "wav":
+		return FileDataDataFormatWav, nil
+	case "pdf":
+		return FileDataDataFormatPdf, nil
+	case "txt":
+		return FileDataDataFormatTxt, nil
+	case "csv":
+		return FileDataDataFormatCsv, nil
+	case "json":
+		return FileDataDataFormatJson, nil
+	case "jpg":
+		return FileDataDataFormatJpg, nil
+	case "jpeg":
+		return FileDataDataFormatJpeg, nil
+	case "tif":
+		return FileDataDataFormatTif, nil
+	case "tiff":
+		return FileDataDataFormatTiff, nil
+	case "png":
+		return FileDataDataFormatPng, nil
+	case "bmp":
+		return FileDataDataFormatBmp, nil
+	case "xls":
+		return FileDataDataFormatXls, nil
+	case "xlsx":
+		return FileDataDataFormatXlsx, nil
+	case "doc":
+		return FileDataDataFormatDoc, nil
+	case "docx":
+		return FileDataDataFormatDocx, nil
+	case "ppt":
+		return FileDataDataFormatPpt, nil
+	case "pptx":
+		return FileDataDataFormatPptx, nil
+	case "xml":
+		return FileDataDataFormatXml, nil
+	case "dcm":
+		return FileDataDataFormatDcm, nil
+	case "jsonl":
+		return FileDataDataFormatJsonl, nil
+	}
+	var t FileDataDataFormat
+	return "", fmt.Errorf("%s is not a valid %T", s, t)
+}
+
+func (f FileDataDataFormat) Ptr() *FileDataDataFormat {
+	return &f
+}
+
+// File to process. Files are specified as Base64-encoded data.
+type FileDataDeidentifyAudio struct {
+	// Base64-encoded data of the file.
+	Base64 string `json:"base64" url:"base64"`
+	// Format of the file.
+	DataFormat FileDataDeidentifyAudioDataFormat `json:"data_format" url:"data_format"`
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (f *FileDataDeidentifyAudio) GetBase64() string {
+	if f == nil {
+		return ""
+	}
+	return f.Base64
+}
+
+func (f *FileDataDeidentifyAudio) GetDataFormat() FileDataDeidentifyAudioDataFormat {
+	if f == nil {
+		return ""
+	}
+	return f.DataFormat
+}
+
+func (f *FileDataDeidentifyAudio) GetExtraProperties() map[string]interface{} {
+	return f.extraProperties
+}
+
+func (f *FileDataDeidentifyAudio) UnmarshalJSON(data []byte) error {
+	type unmarshaler FileDataDeidentifyAudio
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*f = FileDataDeidentifyAudio(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *f)
+	if err != nil {
+		return err
+	}
+	f.extraProperties = extraProperties
+	f.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (f *FileDataDeidentifyAudio) String() string {
+	if len(f.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(f.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(f); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", f)
+}
+
+// Format of the file.
+type FileDataDeidentifyAudioDataFormat string
+
+const (
+	FileDataDeidentifyAudioDataFormatMp3 FileDataDeidentifyAudioDataFormat = "mp3"
+	FileDataDeidentifyAudioDataFormatWav FileDataDeidentifyAudioDataFormat = "wav"
+)
+
+func NewFileDataDeidentifyAudioDataFormatFromString(s string) (FileDataDeidentifyAudioDataFormat, error) {
+	switch s {
+	case "mp3":
+		return FileDataDeidentifyAudioDataFormatMp3, nil
+	case "wav":
+		return FileDataDeidentifyAudioDataFormatWav, nil
+	}
+	var t FileDataDeidentifyAudioDataFormat
+	return "", fmt.Errorf("%s is not a valid %T", s, t)
+}
+
+func (f FileDataDeidentifyAudioDataFormat) Ptr() *FileDataDeidentifyAudioDataFormat {
+	return &f
+}
+
+// File to process. Files are specified as Base64-encoded data.
+type FileDataDeidentifyDocument struct {
+	// Base64-encoded data of the file.
+	Base64 string `json:"base64" url:"base64"`
+	// Format of the file.
+	DataFormat FileDataDeidentifyDocumentDataFormat `json:"data_format" url:"data_format"`
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (f *FileDataDeidentifyDocument) GetBase64() string {
+	if f == nil {
+		return ""
+	}
+	return f.Base64
+}
+
+func (f *FileDataDeidentifyDocument) GetDataFormat() FileDataDeidentifyDocumentDataFormat {
+	if f == nil {
+		return ""
+	}
+	return f.DataFormat
+}
+
+func (f *FileDataDeidentifyDocument) GetExtraProperties() map[string]interface{} {
+	return f.extraProperties
+}
+
+func (f *FileDataDeidentifyDocument) UnmarshalJSON(data []byte) error {
+	type unmarshaler FileDataDeidentifyDocument
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*f = FileDataDeidentifyDocument(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *f)
+	if err != nil {
+		return err
+	}
+	f.extraProperties = extraProperties
+	f.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (f *FileDataDeidentifyDocument) String() string {
+	if len(f.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(f.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(f); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", f)
+}
+
+// Format of the file.
+type FileDataDeidentifyDocumentDataFormat string
+
+const (
+	FileDataDeidentifyDocumentDataFormatPdf  FileDataDeidentifyDocumentDataFormat = "pdf"
+	FileDataDeidentifyDocumentDataFormatDoc  FileDataDeidentifyDocumentDataFormat = "doc"
+	FileDataDeidentifyDocumentDataFormatDocx FileDataDeidentifyDocumentDataFormat = "docx"
+)
+
+func NewFileDataDeidentifyDocumentDataFormatFromString(s string) (FileDataDeidentifyDocumentDataFormat, error) {
+	switch s {
+	case "pdf":
+		return FileDataDeidentifyDocumentDataFormatPdf, nil
+	case "doc":
+		return FileDataDeidentifyDocumentDataFormatDoc, nil
+	case "docx":
+		return FileDataDeidentifyDocumentDataFormatDocx, nil
+	}
+	var t FileDataDeidentifyDocumentDataFormat
+	return "", fmt.Errorf("%s is not a valid %T", s, t)
+}
+
+func (f FileDataDeidentifyDocumentDataFormat) Ptr() *FileDataDeidentifyDocumentDataFormat {
+	return &f
+}
+
+// File to process. Files are specified as Base64-encoded data.
+type FileDataDeidentifyImage struct {
+	// Base64-encoded data of the file.
+	Base64 string `json:"base64" url:"base64"`
+	// Format of the file.
+	DataFormat FileDataDeidentifyImageDataFormat `json:"data_format" url:"data_format"`
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (f *FileDataDeidentifyImage) GetBase64() string {
+	if f == nil {
+		return ""
+	}
+	return f.Base64
+}
+
+func (f *FileDataDeidentifyImage) GetDataFormat() FileDataDeidentifyImageDataFormat {
+	if f == nil {
+		return ""
+	}
+	return f.DataFormat
+}
+
+func (f *FileDataDeidentifyImage) GetExtraProperties() map[string]interface{} {
+	return f.extraProperties
+}
+
+func (f *FileDataDeidentifyImage) UnmarshalJSON(data []byte) error {
+	type unmarshaler FileDataDeidentifyImage
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*f = FileDataDeidentifyImage(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *f)
+	if err != nil {
+		return err
+	}
+	f.extraProperties = extraProperties
+	f.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (f *FileDataDeidentifyImage) String() string {
+	if len(f.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(f.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(f); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", f)
+}
+
+// Format of the file.
+type FileDataDeidentifyImageDataFormat string
+
+const (
+	FileDataDeidentifyImageDataFormatJpg  FileDataDeidentifyImageDataFormat = "jpg"
+	FileDataDeidentifyImageDataFormatJpeg FileDataDeidentifyImageDataFormat = "jpeg"
+	FileDataDeidentifyImageDataFormatTif  FileDataDeidentifyImageDataFormat = "tif"
+	FileDataDeidentifyImageDataFormatTiff FileDataDeidentifyImageDataFormat = "tiff"
+	FileDataDeidentifyImageDataFormatPng  FileDataDeidentifyImageDataFormat = "png"
+	FileDataDeidentifyImageDataFormatBmp  FileDataDeidentifyImageDataFormat = "bmp"
+)
+
+func NewFileDataDeidentifyImageDataFormatFromString(s string) (FileDataDeidentifyImageDataFormat, error) {
+	switch s {
+	case "jpg":
+		return FileDataDeidentifyImageDataFormatJpg, nil
+	case "jpeg":
+		return FileDataDeidentifyImageDataFormatJpeg, nil
+	case "tif":
+		return FileDataDeidentifyImageDataFormatTif, nil
+	case "tiff":
+		return FileDataDeidentifyImageDataFormatTiff, nil
+	case "png":
+		return FileDataDeidentifyImageDataFormatPng, nil
+	case "bmp":
+		return FileDataDeidentifyImageDataFormatBmp, nil
+	}
+	var t FileDataDeidentifyImageDataFormat
+	return "", fmt.Errorf("%s is not a valid %T", s, t)
+}
+
+func (f FileDataDeidentifyImageDataFormat) Ptr() *FileDataDeidentifyImageDataFormat {
+	return &f
+}
+
+// File to process. Files are specified as Base64-encoded data.
+type FileDataDeidentifyPdf struct {
+	// Base64-encoded data of the file.
+	Base64 string `json:"base64" url:"base64"`
+	// Format of the file.
+	dataFormat string
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (f *FileDataDeidentifyPdf) GetBase64() string {
+	if f == nil {
+		return ""
+	}
+	return f.Base64
+}
+
+func (f *FileDataDeidentifyPdf) DataFormat() string {
+	return f.dataFormat
+}
+
+func (f *FileDataDeidentifyPdf) GetExtraProperties() map[string]interface{} {
+	return f.extraProperties
+}
+
+func (f *FileDataDeidentifyPdf) UnmarshalJSON(data []byte) error {
+	type embed FileDataDeidentifyPdf
+	var unmarshaler = struct {
+		embed
+		DataFormat string `json:"data_format"`
+	}{
+		embed: embed(*f),
+	}
+	if err := json.Unmarshal(data, &unmarshaler); err != nil {
+		return err
+	}
+	*f = FileDataDeidentifyPdf(unmarshaler.embed)
+	if unmarshaler.DataFormat != "pdf" {
+		return fmt.Errorf("unexpected value for literal on type %T; expected %v got %v", f, "pdf", unmarshaler.DataFormat)
+	}
+	f.dataFormat = unmarshaler.DataFormat
+	extraProperties, err := internal.ExtractExtraProperties(data, *f, "data_format")
+	if err != nil {
+		return err
+	}
+	f.extraProperties = extraProperties
+	f.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (f *FileDataDeidentifyPdf) MarshalJSON() ([]byte, error) {
+	type embed FileDataDeidentifyPdf
+	var marshaler = struct {
+		embed
+		DataFormat string `json:"data_format"`
+	}{
+		embed:      embed(*f),
+		DataFormat: "pdf",
+	}
+	return json.Marshal(marshaler)
+}
+
+func (f *FileDataDeidentifyPdf) String() string {
+	if len(f.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(f.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(f); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", f)
+}
+
+// File to process. Files are specified as Base64-encoded data.
+type FileDataDeidentifyPresentation struct {
+	// Base64-encoded data of the file.
+	Base64 string `json:"base64" url:"base64"`
+	// Format of the file.
+	DataFormat FileDataDeidentifyPresentationDataFormat `json:"data_format" url:"data_format"`
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (f *FileDataDeidentifyPresentation) GetBase64() string {
+	if f == nil {
+		return ""
+	}
+	return f.Base64
+}
+
+func (f *FileDataDeidentifyPresentation) GetDataFormat() FileDataDeidentifyPresentationDataFormat {
+	if f == nil {
+		return ""
+	}
+	return f.DataFormat
+}
+
+func (f *FileDataDeidentifyPresentation) GetExtraProperties() map[string]interface{} {
+	return f.extraProperties
+}
+
+func (f *FileDataDeidentifyPresentation) UnmarshalJSON(data []byte) error {
+	type unmarshaler FileDataDeidentifyPresentation
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*f = FileDataDeidentifyPresentation(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *f)
+	if err != nil {
+		return err
+	}
+	f.extraProperties = extraProperties
+	f.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (f *FileDataDeidentifyPresentation) String() string {
+	if len(f.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(f.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(f); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", f)
+}
+
+// Format of the file.
+type FileDataDeidentifyPresentationDataFormat string
+
+const (
+	FileDataDeidentifyPresentationDataFormatPpt  FileDataDeidentifyPresentationDataFormat = "ppt"
+	FileDataDeidentifyPresentationDataFormatPptx FileDataDeidentifyPresentationDataFormat = "pptx"
+)
+
+func NewFileDataDeidentifyPresentationDataFormatFromString(s string) (FileDataDeidentifyPresentationDataFormat, error) {
+	switch s {
+	case "ppt":
+		return FileDataDeidentifyPresentationDataFormatPpt, nil
+	case "pptx":
+		return FileDataDeidentifyPresentationDataFormatPptx, nil
+	}
+	var t FileDataDeidentifyPresentationDataFormat
+	return "", fmt.Errorf("%s is not a valid %T", s, t)
+}
+
+func (f FileDataDeidentifyPresentationDataFormat) Ptr() *FileDataDeidentifyPresentationDataFormat {
+	return &f
+}
+
+// File to process. Files are specified as Base64-encoded data.
+type FileDataDeidentifySpreadsheet struct {
+	// Base64-encoded data of the file.
+	Base64 string `json:"base64" url:"base64"`
+	// Format of the file.
+	DataFormat FileDataDeidentifySpreadsheetDataFormat `json:"data_format" url:"data_format"`
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (f *FileDataDeidentifySpreadsheet) GetBase64() string {
+	if f == nil {
+		return ""
+	}
+	return f.Base64
+}
+
+func (f *FileDataDeidentifySpreadsheet) GetDataFormat() FileDataDeidentifySpreadsheetDataFormat {
+	if f == nil {
+		return ""
+	}
+	return f.DataFormat
+}
+
+func (f *FileDataDeidentifySpreadsheet) GetExtraProperties() map[string]interface{} {
+	return f.extraProperties
+}
+
+func (f *FileDataDeidentifySpreadsheet) UnmarshalJSON(data []byte) error {
+	type unmarshaler FileDataDeidentifySpreadsheet
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*f = FileDataDeidentifySpreadsheet(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *f)
+	if err != nil {
+		return err
+	}
+	f.extraProperties = extraProperties
+	f.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (f *FileDataDeidentifySpreadsheet) String() string {
+	if len(f.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(f.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(f); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", f)
+}
+
+// Format of the file.
+type FileDataDeidentifySpreadsheetDataFormat string
+
+const (
+	FileDataDeidentifySpreadsheetDataFormatCsv  FileDataDeidentifySpreadsheetDataFormat = "csv"
+	FileDataDeidentifySpreadsheetDataFormatXls  FileDataDeidentifySpreadsheetDataFormat = "xls"
+	FileDataDeidentifySpreadsheetDataFormatXlsx FileDataDeidentifySpreadsheetDataFormat = "xlsx"
+)
+
+func NewFileDataDeidentifySpreadsheetDataFormatFromString(s string) (FileDataDeidentifySpreadsheetDataFormat, error) {
+	switch s {
+	case "csv":
+		return FileDataDeidentifySpreadsheetDataFormatCsv, nil
+	case "xls":
+		return FileDataDeidentifySpreadsheetDataFormatXls, nil
+	case "xlsx":
+		return FileDataDeidentifySpreadsheetDataFormatXlsx, nil
+	}
+	var t FileDataDeidentifySpreadsheetDataFormat
+	return "", fmt.Errorf("%s is not a valid %T", s, t)
+}
+
+func (f FileDataDeidentifySpreadsheetDataFormat) Ptr() *FileDataDeidentifySpreadsheetDataFormat {
+	return &f
+}
+
+// File to process. Files are specified as Base64-encoded data.
+type FileDataDeidentifyStructuredText struct {
+	// Base64-encoded data of the file.
+	Base64 string `json:"base64" url:"base64"`
+	// Format of the file.
+	DataFormat FileDataDeidentifyStructuredTextDataFormat `json:"data_format" url:"data_format"`
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (f *FileDataDeidentifyStructuredText) GetBase64() string {
+	if f == nil {
+		return ""
+	}
+	return f.Base64
+}
+
+func (f *FileDataDeidentifyStructuredText) GetDataFormat() FileDataDeidentifyStructuredTextDataFormat {
+	if f == nil {
+		return ""
+	}
+	return f.DataFormat
+}
+
+func (f *FileDataDeidentifyStructuredText) GetExtraProperties() map[string]interface{} {
+	return f.extraProperties
+}
+
+func (f *FileDataDeidentifyStructuredText) UnmarshalJSON(data []byte) error {
+	type unmarshaler FileDataDeidentifyStructuredText
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*f = FileDataDeidentifyStructuredText(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *f)
+	if err != nil {
+		return err
+	}
+	f.extraProperties = extraProperties
+	f.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (f *FileDataDeidentifyStructuredText) String() string {
+	if len(f.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(f.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(f); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", f)
+}
+
+// Format of the file.
+type FileDataDeidentifyStructuredTextDataFormat string
+
+const (
+	FileDataDeidentifyStructuredTextDataFormatJson FileDataDeidentifyStructuredTextDataFormat = "json"
+	FileDataDeidentifyStructuredTextDataFormatXml  FileDataDeidentifyStructuredTextDataFormat = "xml"
+)
+
+func NewFileDataDeidentifyStructuredTextDataFormatFromString(s string) (FileDataDeidentifyStructuredTextDataFormat, error) {
+	switch s {
+	case "json":
+		return FileDataDeidentifyStructuredTextDataFormatJson, nil
+	case "xml":
+		return FileDataDeidentifyStructuredTextDataFormatXml, nil
+	}
+	var t FileDataDeidentifyStructuredTextDataFormat
+	return "", fmt.Errorf("%s is not a valid %T", s, t)
+}
+
+func (f FileDataDeidentifyStructuredTextDataFormat) Ptr() *FileDataDeidentifyStructuredTextDataFormat {
+	return &f
+}
+
+// File to process. Files are specified as Base64-encoded data.
+type FileDataDeidentifyText struct {
+	// Base64-encoded data of the file.
+	Base64 string `json:"base64" url:"base64"`
+	// Format of the file.
+	dataFormat string
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (f *FileDataDeidentifyText) GetBase64() string {
+	if f == nil {
+		return ""
+	}
+	return f.Base64
+}
+
+func (f *FileDataDeidentifyText) DataFormat() string {
+	return f.dataFormat
+}
+
+func (f *FileDataDeidentifyText) GetExtraProperties() map[string]interface{} {
+	return f.extraProperties
+}
+
+func (f *FileDataDeidentifyText) UnmarshalJSON(data []byte) error {
+	type embed FileDataDeidentifyText
+	var unmarshaler = struct {
+		embed
+		DataFormat string `json:"data_format"`
+	}{
+		embed: embed(*f),
+	}
+	if err := json.Unmarshal(data, &unmarshaler); err != nil {
+		return err
+	}
+	*f = FileDataDeidentifyText(unmarshaler.embed)
+	if unmarshaler.DataFormat != "txt" {
+		return fmt.Errorf("unexpected value for literal on type %T; expected %v got %v", f, "txt", unmarshaler.DataFormat)
+	}
+	f.dataFormat = unmarshaler.DataFormat
+	extraProperties, err := internal.ExtractExtraProperties(data, *f, "data_format")
+	if err != nil {
+		return err
+	}
+	f.extraProperties = extraProperties
+	f.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (f *FileDataDeidentifyText) MarshalJSON() ([]byte, error) {
+	type embed FileDataDeidentifyText
+	var marshaler = struct {
+		embed
+		DataFormat string `json:"data_format"`
+	}{
+		embed:      embed(*f),
+		DataFormat: "txt",
+	}
+	return json.Marshal(marshaler)
+}
+
+func (f *FileDataDeidentifyText) String() string {
+	if len(f.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(f.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(f); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", f)
+}
+
+// File to process. Files are specified as Base64-encoded data.
+type FileDataReidentifyFile struct {
+	// Base64-encoded data of the file.
+	Base64 string `json:"base64" url:"base64"`
+	// Format of the file.
+	DataFormat FileDataReidentifyFileDataFormat `json:"data_format" url:"data_format"`
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (f *FileDataReidentifyFile) GetBase64() string {
+	if f == nil {
+		return ""
+	}
+	return f.Base64
+}
+
+func (f *FileDataReidentifyFile) GetDataFormat() FileDataReidentifyFileDataFormat {
+	if f == nil {
+		return ""
+	}
+	return f.DataFormat
+}
+
+func (f *FileDataReidentifyFile) GetExtraProperties() map[string]interface{} {
+	return f.extraProperties
+}
+
+func (f *FileDataReidentifyFile) UnmarshalJSON(data []byte) error {
+	type unmarshaler FileDataReidentifyFile
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*f = FileDataReidentifyFile(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *f)
+	if err != nil {
+		return err
+	}
+	f.extraProperties = extraProperties
+	f.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (f *FileDataReidentifyFile) String() string {
+	if len(f.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(f.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(f); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", f)
+}
+
+// Format of the file.
+type FileDataReidentifyFileDataFormat string
+
+const (
+	FileDataReidentifyFileDataFormatTxt  FileDataReidentifyFileDataFormat = "txt"
+	FileDataReidentifyFileDataFormatCsv  FileDataReidentifyFileDataFormat = "csv"
+	FileDataReidentifyFileDataFormatJson FileDataReidentifyFileDataFormat = "json"
+	FileDataReidentifyFileDataFormatXls  FileDataReidentifyFileDataFormat = "xls"
+	FileDataReidentifyFileDataFormatXlsx FileDataReidentifyFileDataFormat = "xlsx"
+	FileDataReidentifyFileDataFormatDoc  FileDataReidentifyFileDataFormat = "doc"
+	FileDataReidentifyFileDataFormatDocx FileDataReidentifyFileDataFormat = "docx"
+	FileDataReidentifyFileDataFormatXml  FileDataReidentifyFileDataFormat = "xml"
+)
+
+func NewFileDataReidentifyFileDataFormatFromString(s string) (FileDataReidentifyFileDataFormat, error) {
+	switch s {
+	case "txt":
+		return FileDataReidentifyFileDataFormatTxt, nil
+	case "csv":
+		return FileDataReidentifyFileDataFormatCsv, nil
+	case "json":
+		return FileDataReidentifyFileDataFormatJson, nil
+	case "xls":
+		return FileDataReidentifyFileDataFormatXls, nil
+	case "xlsx":
+		return FileDataReidentifyFileDataFormatXlsx, nil
+	case "doc":
+		return FileDataReidentifyFileDataFormatDoc, nil
+	case "docx":
+		return FileDataReidentifyFileDataFormatDocx, nil
+	case "xml":
+		return FileDataReidentifyFileDataFormatXml, nil
+	}
+	var t FileDataReidentifyFileDataFormat
+	return "", fmt.Errorf("%s is not a valid %T", s, t)
+}
+
+func (f FileDataReidentifyFileDataFormat) Ptr() *FileDataReidentifyFileDataFormat {
+	return &f
+}
+
+// Details of output files. Files are specified as Base64-encoded data.
+type ReidentifiedFileOutput struct {
+	// File content in Base64 format.
+	ProcessedFile *string `json:"processed_file,omitempty" url:"processed_file,omitempty"`
+	// Type of the processed file.
+	ProcessedFileType *string `json:"processed_file_type,omitempty" url:"processed_file_type,omitempty"`
+	// Extension of the processed file.
+	ProcessedFileExtension *ReidentifiedFileOutputProcessedFileExtension `json:"processed_file_extension,omitempty" url:"processed_file_extension,omitempty"`
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (r *ReidentifiedFileOutput) GetProcessedFile() *string {
+	if r == nil {
+		return nil
+	}
+	return r.ProcessedFile
+}
+
+func (r *ReidentifiedFileOutput) GetProcessedFileExtension() *ReidentifiedFileOutputProcessedFileExtension {
+	if r == nil {
+		return nil
+	}
+	return r.ProcessedFileExtension
+}
+
+func (r *ReidentifiedFileOutput) GetExtraProperties() map[string]interface{} {
+	return r.extraProperties
+}
+
+func (r *ReidentifiedFileOutput) UnmarshalJSON(data []byte) error {
+	type unmarshaler ReidentifiedFileOutput
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*r = ReidentifiedFileOutput(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *r)
+	if err != nil {
+		return err
+	}
+	r.extraProperties = extraProperties
+	r.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (r *ReidentifiedFileOutput) String() string {
+	if len(r.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(r.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(r); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", r)
+}
+
+// Extension of the processed file.
+type ReidentifiedFileOutputProcessedFileExtension string
+
+const (
+	ReidentifiedFileOutputProcessedFileExtensionMp3  ReidentifiedFileOutputProcessedFileExtension = "mp3"
+	ReidentifiedFileOutputProcessedFileExtensionWav  ReidentifiedFileOutputProcessedFileExtension = "wav"
+	ReidentifiedFileOutputProcessedFileExtensionPdf  ReidentifiedFileOutputProcessedFileExtension = "pdf"
+	ReidentifiedFileOutputProcessedFileExtensionTxt  ReidentifiedFileOutputProcessedFileExtension = "txt"
+	ReidentifiedFileOutputProcessedFileExtensionCsv  ReidentifiedFileOutputProcessedFileExtension = "csv"
+	ReidentifiedFileOutputProcessedFileExtensionJson ReidentifiedFileOutputProcessedFileExtension = "json"
+	ReidentifiedFileOutputProcessedFileExtensionJpg  ReidentifiedFileOutputProcessedFileExtension = "jpg"
+	ReidentifiedFileOutputProcessedFileExtensionJpeg ReidentifiedFileOutputProcessedFileExtension = "jpeg"
+	ReidentifiedFileOutputProcessedFileExtensionTif  ReidentifiedFileOutputProcessedFileExtension = "tif"
+	ReidentifiedFileOutputProcessedFileExtensionTiff ReidentifiedFileOutputProcessedFileExtension = "tiff"
+	ReidentifiedFileOutputProcessedFileExtensionPng  ReidentifiedFileOutputProcessedFileExtension = "png"
+	ReidentifiedFileOutputProcessedFileExtensionBmp  ReidentifiedFileOutputProcessedFileExtension = "bmp"
+	ReidentifiedFileOutputProcessedFileExtensionXls  ReidentifiedFileOutputProcessedFileExtension = "xls"
+	ReidentifiedFileOutputProcessedFileExtensionXlsx ReidentifiedFileOutputProcessedFileExtension = "xlsx"
+	ReidentifiedFileOutputProcessedFileExtensionDoc  ReidentifiedFileOutputProcessedFileExtension = "doc"
+	ReidentifiedFileOutputProcessedFileExtensionDocx ReidentifiedFileOutputProcessedFileExtension = "docx"
+	ReidentifiedFileOutputProcessedFileExtensionPpt  ReidentifiedFileOutputProcessedFileExtension = "ppt"
+	ReidentifiedFileOutputProcessedFileExtensionPptx ReidentifiedFileOutputProcessedFileExtension = "pptx"
+	ReidentifiedFileOutputProcessedFileExtensionXml  ReidentifiedFileOutputProcessedFileExtension = "xml"
+	ReidentifiedFileOutputProcessedFileExtensionDcm  ReidentifiedFileOutputProcessedFileExtension = "dcm"
+)
+
+func NewReidentifiedFileOutputProcessedFileExtensionFromString(s string) (ReidentifiedFileOutputProcessedFileExtension, error) {
+	switch s {
+	case "mp3":
+		return ReidentifiedFileOutputProcessedFileExtensionMp3, nil
+	case "wav":
+		return ReidentifiedFileOutputProcessedFileExtensionWav, nil
+	case "pdf":
+		return ReidentifiedFileOutputProcessedFileExtensionPdf, nil
+	case "txt":
+		return ReidentifiedFileOutputProcessedFileExtensionTxt, nil
+	case "csv":
+		return ReidentifiedFileOutputProcessedFileExtensionCsv, nil
+	case "json":
+		return ReidentifiedFileOutputProcessedFileExtensionJson, nil
+	case "jpg":
+		return ReidentifiedFileOutputProcessedFileExtensionJpg, nil
+	case "jpeg":
+		return ReidentifiedFileOutputProcessedFileExtensionJpeg, nil
+	case "tif":
+		return ReidentifiedFileOutputProcessedFileExtensionTif, nil
+	case "tiff":
+		return ReidentifiedFileOutputProcessedFileExtensionTiff, nil
+	case "png":
+		return ReidentifiedFileOutputProcessedFileExtensionPng, nil
+	case "bmp":
+		return ReidentifiedFileOutputProcessedFileExtensionBmp, nil
+	case "xls":
+		return ReidentifiedFileOutputProcessedFileExtensionXls, nil
+	case "xlsx":
+		return ReidentifiedFileOutputProcessedFileExtensionXlsx, nil
+	case "doc":
+		return ReidentifiedFileOutputProcessedFileExtensionDoc, nil
+	case "docx":
+		return ReidentifiedFileOutputProcessedFileExtensionDocx, nil
+	case "ppt":
+		return ReidentifiedFileOutputProcessedFileExtensionPpt, nil
+	case "pptx":
+		return ReidentifiedFileOutputProcessedFileExtensionPptx, nil
+	case "xml":
+		return ReidentifiedFileOutputProcessedFileExtensionXml, nil
+	case "dcm":
+		return ReidentifiedFileOutputProcessedFileExtensionDcm, nil
+	}
+	var t ReidentifiedFileOutputProcessedFileExtension
+	return "", fmt.Errorf("%s is not a valid %T", s, t)
+}
+
+func (r ReidentifiedFileOutputProcessedFileExtension) Ptr() *ReidentifiedFileOutputProcessedFileExtension {
+	return &r
+}
+
+// Response to get the status & response of a file re-identification request.
+type ReidentifyFileResponse struct {
+	// Status of the operation.
+	Status *ReidentifyFileResponseStatus `json:"status,omitempty" url:"status,omitempty"`
+	// Format of the output file.
+	OutputType *ReidentifyFileResponseOutputType `json:"output_type,omitempty" url:"output_type,omitempty"`
+	Output     *ReidentifiedFileOutput           `json:"output,omitempty" url:"output,omitempty"`
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (r *ReidentifyFileResponse) GetStatus() *ReidentifyFileResponseStatus {
+	if r == nil {
+		return nil
 	}
 	return r.Status
 }
 
-func (r *ReidentifyFileResponse) GetOutputType() ReidentifyFileResponseOutputType {
+func (r *ReidentifyFileResponse) GetOutputType() *ReidentifyFileResponseOutputType {
 	if r == nil {
-		return ""
+		return nil
 	}
 	return r.OutputType
 }
 
-func (r *ReidentifyFileResponse) GetOutput() *ReidentifyFileResponseOutput {
+func (r *ReidentifyFileResponse) GetOutput() *ReidentifiedFileOutput {
 	if r == nil {
 		return nil
 	}
@@ -558,103 +1669,20 @@ func (r *ReidentifyFileResponse) String() string {
 	return fmt.Sprintf("%#v", r)
 }
 
-type ReidentifyFileResponseOutput struct {
-	// Re-identified file content in base64 format.
-	ProcessedFile string `json:"processed_file" url:"processed_file"`
-	// Type of the processed file.
-	// Extension of the processed file.
-	ProcessedFileExtension string `json:"processed_file_extension" url:"processed_file_extension"`
-	processedFileType      string
-
-	extraProperties map[string]interface{}
-	rawJSON         json.RawMessage
-}
-
-func (r *ReidentifyFileResponseOutput) GetProcessedFile() string {
-	if r == nil {
-		return ""
-	}
-	return r.ProcessedFile
-}
-
-func (r *ReidentifyFileResponseOutput) GetProcessedFileExtension() string {
-	if r == nil {
-		return ""
-	}
-	return r.ProcessedFileExtension
-}
-
-func (r *ReidentifyFileResponseOutput) ProcessedFileType() string {
-	return r.processedFileType
-}
-
-func (r *ReidentifyFileResponseOutput) GetExtraProperties() map[string]interface{} {
-	return r.extraProperties
-}
-
-func (r *ReidentifyFileResponseOutput) UnmarshalJSON(data []byte) error {
-	type embed ReidentifyFileResponseOutput
-	var unmarshaler = struct {
-		embed
-		ProcessedFileType string `json:"processed_file_type"`
-	}{
-		embed: embed(*r),
-	}
-	if err := json.Unmarshal(data, &unmarshaler); err != nil {
-		return err
-	}
-	*r = ReidentifyFileResponseOutput(unmarshaler.embed)
-	if unmarshaler.ProcessedFileType != "reidentified_file" {
-		return fmt.Errorf("unexpected value for literal on type %T; expected %v got %v", r, "reidentified_file", unmarshaler.ProcessedFileType)
-	}
-	r.processedFileType = unmarshaler.ProcessedFileType
-	extraProperties, err := internal.ExtractExtraProperties(data, *r, "processed_file_type")
-	if err != nil {
-		return err
-	}
-	r.extraProperties = extraProperties
-	r.rawJSON = json.RawMessage(data)
-	return nil
-}
-
-func (r *ReidentifyFileResponseOutput) MarshalJSON() ([]byte, error) {
-	type embed ReidentifyFileResponseOutput
-	var marshaler = struct {
-		embed
-		ProcessedFileType string `json:"processed_file_type"`
-	}{
-		embed:             embed(*r),
-		ProcessedFileType: "reidentified_file",
-	}
-	return json.Marshal(marshaler)
-}
-
-func (r *ReidentifyFileResponseOutput) String() string {
-	if len(r.rawJSON) > 0 {
-		if value, err := internal.StringifyJSON(r.rawJSON); err == nil {
-			return value
-		}
-	}
-	if value, err := internal.StringifyJSON(r); err == nil {
-		return value
-	}
-	return fmt.Sprintf("%#v", r)
-}
-
 // Format of the output file.
 type ReidentifyFileResponseOutputType string
 
 const (
-	ReidentifyFileResponseOutputTypeBase64  ReidentifyFileResponseOutputType = "BASE64"
 	ReidentifyFileResponseOutputTypeUnknown ReidentifyFileResponseOutputType = "UNKNOWN"
+	ReidentifyFileResponseOutputTypeBase64  ReidentifyFileResponseOutputType = "BASE64"
 )
 
 func NewReidentifyFileResponseOutputTypeFromString(s string) (ReidentifyFileResponseOutputType, error) {
 	switch s {
-	case "BASE64":
-		return ReidentifyFileResponseOutputTypeBase64, nil
 	case "UNKNOWN":
 		return ReidentifyFileResponseOutputTypeUnknown, nil
+	case "BASE64":
+		return ReidentifyFileResponseOutputTypeBase64, nil
 	}
 	var t ReidentifyFileResponseOutputType
 	return "", fmt.Errorf("%s is not a valid %T", s, t)
@@ -664,26 +1692,26 @@ func (r ReidentifyFileResponseOutputType) Ptr() *ReidentifyFileResponseOutputTyp
 	return &r
 }
 
-// Status of the re-identify operation.
+// Status of the operation.
 type ReidentifyFileResponseStatus string
 
 const (
-	ReidentifyFileResponseStatusFailed     ReidentifyFileResponseStatus = "FAILED"
-	ReidentifyFileResponseStatusInProgress ReidentifyFileResponseStatus = "IN_PROGRESS"
-	ReidentifyFileResponseStatusSuccess    ReidentifyFileResponseStatus = "SUCCESS"
 	ReidentifyFileResponseStatusUnknown    ReidentifyFileResponseStatus = "UNKNOWN"
+	ReidentifyFileResponseStatusFailed     ReidentifyFileResponseStatus = "FAILED"
+	ReidentifyFileResponseStatusSuccess    ReidentifyFileResponseStatus = "SUCCESS"
+	ReidentifyFileResponseStatusInProgress ReidentifyFileResponseStatus = "IN_PROGRESS"
 )
 
 func NewReidentifyFileResponseStatusFromString(s string) (ReidentifyFileResponseStatus, error) {
 	switch s {
-	case "FAILED":
-		return ReidentifyFileResponseStatusFailed, nil
-	case "IN_PROGRESS":
-		return ReidentifyFileResponseStatusInProgress, nil
-	case "SUCCESS":
-		return ReidentifyFileResponseStatusSuccess, nil
 	case "UNKNOWN":
 		return ReidentifyFileResponseStatusUnknown, nil
+	case "FAILED":
+		return ReidentifyFileResponseStatusFailed, nil
+	case "SUCCESS":
+		return ReidentifyFileResponseStatusSuccess, nil
+	case "IN_PROGRESS":
+		return ReidentifyFileResponseStatusInProgress, nil
 	}
 	var t ReidentifyFileResponseStatus
 	return "", fmt.Errorf("%s is not a valid %T", s, t)
@@ -693,1096 +1721,2145 @@ func (r ReidentifyFileResponseStatus) Ptr() *ReidentifyFileResponseStatus {
 	return &r
 }
 
-// ID of a resource.
-type ResourceId = string
-
-// Mapping of tokens to generation for detected entities. Can't be specified together with `token_type`.
-type TokenTypeWithoutVault struct {
-	Default *TokenTypeWithoutVaultDefault `json:"default,omitempty" url:"default,omitempty"`
-	// Entity types to replace with entity tokens with unique counters.
-	EntityUnqCounter []EntityType `json:"entity_unq_counter,omitempty" url:"entity_unq_counter,omitempty"`
-	// Entity types to replace with entity tokens.
-	EntityOnly []EntityType `json:"entity_only,omitempty" url:"entity_only,omitempty"`
+// Word and character count of the processed text.
+type WordCharacterCount struct {
+	// Number of words in the processed text.
+	WordCount *int `json:"wordCount,omitempty" url:"wordCount,omitempty"`
+	// Number of characters in the processed text.
+	CharacterCount *int `json:"characterCount,omitempty" url:"characterCount,omitempty"`
 
 	extraProperties map[string]interface{}
 	rawJSON         json.RawMessage
 }
 
-func (t *TokenTypeWithoutVault) GetDefault() *TokenTypeWithoutVaultDefault {
-	if t == nil {
+func (w *WordCharacterCount) GetWordCount() *int {
+	if w == nil {
 		return nil
 	}
-	return t.Default
+	return w.WordCount
 }
 
-func (t *TokenTypeWithoutVault) GetEntityUnqCounter() []EntityType {
-	if t == nil {
+func (w *WordCharacterCount) GetCharacterCount() *int {
+	if w == nil {
 		return nil
 	}
-	return t.EntityUnqCounter
+	return w.CharacterCount
 }
 
-func (t *TokenTypeWithoutVault) GetEntityOnly() []EntityType {
-	if t == nil {
-		return nil
-	}
-	return t.EntityOnly
+func (w *WordCharacterCount) GetExtraProperties() map[string]interface{} {
+	return w.extraProperties
 }
 
-func (t *TokenTypeWithoutVault) GetExtraProperties() map[string]interface{} {
-	return t.extraProperties
-}
-
-func (t *TokenTypeWithoutVault) UnmarshalJSON(data []byte) error {
-	type unmarshaler TokenTypeWithoutVault
+func (w *WordCharacterCount) UnmarshalJSON(data []byte) error {
+	type unmarshaler WordCharacterCount
 	var value unmarshaler
 	if err := json.Unmarshal(data, &value); err != nil {
 		return err
 	}
-	*t = TokenTypeWithoutVault(value)
-	extraProperties, err := internal.ExtractExtraProperties(data, *t)
+	*w = WordCharacterCount(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *w)
 	if err != nil {
 		return err
 	}
-	t.extraProperties = extraProperties
-	t.rawJSON = json.RawMessage(data)
+	w.extraProperties = extraProperties
+	w.rawJSON = json.RawMessage(data)
 	return nil
 }
 
-func (t *TokenTypeWithoutVault) String() string {
-	if len(t.rawJSON) > 0 {
-		if value, err := internal.StringifyJSON(t.rawJSON); err == nil {
+func (w *WordCharacterCount) String() string {
+	if len(w.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(w.rawJSON); err == nil {
 			return value
 		}
 	}
-	if value, err := internal.StringifyJSON(t); err == nil {
+	if value, err := internal.StringifyJSON(w); err == nil {
 		return value
 	}
-	return fmt.Sprintf("%#v", t)
+	return fmt.Sprintf("%#v", w)
 }
 
-type TokenTypeWithoutVaultDefault string
+type DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem string
 
 const (
-	TokenTypeWithoutVaultDefaultEntityOnly       TokenTypeWithoutVaultDefault = "entity_only"
-	TokenTypeWithoutVaultDefaultEntityUnqCounter TokenTypeWithoutVaultDefault = "entity_unq_counter"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemAge                         DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "age"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemBankAccount                 DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "bank_account"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemCreditCard                  DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "credit_card"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemCreditCardExpiration        DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "credit_card_expiration"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemCvv                         DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "cvv"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemDate                        DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "date"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemDateInterval                DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "date_interval"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemDob                         DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "dob"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemDriverLicense               DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "driver_license"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemEmailAddress                DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "email_address"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemHealthcareNumber            DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "healthcare_number"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemIpAddress                   DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "ip_address"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemLocation                    DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "location"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemName                        DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "name"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemNumericalPii                DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "numerical_pii"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemPhoneNumber                 DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "phone_number"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemSsn                         DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "ssn"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemUrl                         DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "url"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemVehicleId                   DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "vehicle_id"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemMedicalCode                 DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "medical_code"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemNameFamily                  DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "name_family"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemNameGiven                   DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "name_given"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemAccountNumber               DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "account_number"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemEvent                       DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "event"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemFilename                    DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "filename"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemGender                      DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "gender"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemLanguage                    DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "language"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemLocationAddress             DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "location_address"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemLocationCity                DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "location_city"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemLocationCoordinate          DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "location_coordinate"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemLocationCountry             DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "location_country"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemLocationState               DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "location_state"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemLocationZip                 DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "location_zip"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemMaritalStatus               DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "marital_status"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemMoney                       DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "money"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemNameMedicalProfessional     DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "name_medical_professional"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemOccupation                  DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "occupation"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemOrganization                DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "organization"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemOrganizationMedicalFacility DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "organization_medical_facility"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemOrigin                      DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "origin"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemPassportNumber              DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "passport_number"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemPassword                    DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "password"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemPhysicalAttribute           DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "physical_attribute"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemPoliticalAffiliation        DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "political_affiliation"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemReligion                    DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "religion"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemTime                        DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "time"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemUsername                    DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "username"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemZodiacSign                  DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "zodiac_sign"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemBloodType                   DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "blood_type"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemCondition                   DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "condition"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemDose                        DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "dose"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemDrug                        DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "drug"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemInjury                      DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "injury"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemMedicalProcess              DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "medical_process"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemStatistics                  DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "statistics"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemRoutingNumber               DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "routing_number"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemCorporateAction             DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "corporate_action"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemFinancialMetric             DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "financial_metric"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemProduct                     DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "product"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemTrend                       DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "trend"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemDuration                    DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "duration"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemLocationAddressStreet       DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "location_address_street"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemAll                         DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "all"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemSexuality                   DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "sexuality"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemEffect                      DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "effect"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemProject                     DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "project"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemOrganizationId              DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "organization_id"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemDay                         DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "day"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemMonth                       DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "month"
+	DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemYear                        DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem = "year"
 )
 
-func NewTokenTypeWithoutVaultDefaultFromString(s string) (TokenTypeWithoutVaultDefault, error) {
+func NewDeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemFromString(s string) (DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem, error) {
 	switch s {
-	case "entity_only":
-		return TokenTypeWithoutVaultDefaultEntityOnly, nil
-	case "entity_unq_counter":
-		return TokenTypeWithoutVaultDefaultEntityUnqCounter, nil
+	case "age":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemAge, nil
+	case "bank_account":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemBankAccount, nil
+	case "credit_card":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemCreditCard, nil
+	case "credit_card_expiration":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemCreditCardExpiration, nil
+	case "cvv":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemCvv, nil
+	case "date":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemDate, nil
+	case "date_interval":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemDateInterval, nil
+	case "dob":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemDob, nil
+	case "driver_license":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemDriverLicense, nil
+	case "email_address":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemEmailAddress, nil
+	case "healthcare_number":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemHealthcareNumber, nil
+	case "ip_address":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemIpAddress, nil
+	case "location":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemLocation, nil
+	case "name":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemName, nil
+	case "numerical_pii":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemNumericalPii, nil
+	case "phone_number":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemPhoneNumber, nil
+	case "ssn":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemSsn, nil
+	case "url":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemUrl, nil
+	case "vehicle_id":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemVehicleId, nil
+	case "medical_code":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemMedicalCode, nil
+	case "name_family":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemNameFamily, nil
+	case "name_given":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemNameGiven, nil
+	case "account_number":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemAccountNumber, nil
+	case "event":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemEvent, nil
+	case "filename":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemFilename, nil
+	case "gender":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemGender, nil
+	case "language":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemLanguage, nil
+	case "location_address":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemLocationAddress, nil
+	case "location_city":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemLocationCity, nil
+	case "location_coordinate":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemLocationCoordinate, nil
+	case "location_country":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemLocationCountry, nil
+	case "location_state":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemLocationState, nil
+	case "location_zip":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemLocationZip, nil
+	case "marital_status":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemMaritalStatus, nil
+	case "money":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemMoney, nil
+	case "name_medical_professional":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemNameMedicalProfessional, nil
+	case "occupation":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemOccupation, nil
+	case "organization":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemOrganization, nil
+	case "organization_medical_facility":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemOrganizationMedicalFacility, nil
+	case "origin":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemOrigin, nil
+	case "passport_number":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemPassportNumber, nil
+	case "password":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemPassword, nil
+	case "physical_attribute":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemPhysicalAttribute, nil
+	case "political_affiliation":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemPoliticalAffiliation, nil
+	case "religion":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemReligion, nil
+	case "time":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemTime, nil
+	case "username":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemUsername, nil
+	case "zodiac_sign":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemZodiacSign, nil
+	case "blood_type":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemBloodType, nil
+	case "condition":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemCondition, nil
+	case "dose":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemDose, nil
+	case "drug":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemDrug, nil
+	case "injury":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemInjury, nil
+	case "medical_process":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemMedicalProcess, nil
+	case "statistics":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemStatistics, nil
+	case "routing_number":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemRoutingNumber, nil
+	case "corporate_action":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemCorporateAction, nil
+	case "financial_metric":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemFinancialMetric, nil
+	case "product":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemProduct, nil
+	case "trend":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemTrend, nil
+	case "duration":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemDuration, nil
+	case "location_address_street":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemLocationAddressStreet, nil
+	case "all":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemAll, nil
+	case "sexuality":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemSexuality, nil
+	case "effect":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemEffect, nil
+	case "project":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemProject, nil
+	case "organization_id":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemOrganizationId, nil
+	case "day":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemDay, nil
+	case "month":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemMonth, nil
+	case "year":
+		return DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItemYear, nil
 	}
-	var t TokenTypeWithoutVaultDefault
+	var t DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem
 	return "", fmt.Errorf("%s is not a valid %T", s, t)
 }
 
-func (t TokenTypeWithoutVaultDefault) Ptr() *TokenTypeWithoutVaultDefault {
-	return &t
-}
-
-// UUID.
-type Uuid = string
-
-// File to de-identify. Files are specified as Base64-encoded data.
-type DeidentifyAudioRequestFile struct {
-	// Base64-encoded data of the file to de-identify.
-	Base64 string `json:"base64" url:"base64"`
-	// Data format of the file.
-	DataFormat DeidentifyAudioRequestFileDataFormat `json:"data_format" url:"data_format"`
-
-	extraProperties map[string]interface{}
-	rawJSON         json.RawMessage
-}
-
-func (d *DeidentifyAudioRequestFile) GetBase64() string {
-	if d == nil {
-		return ""
-	}
-	return d.Base64
-}
-
-func (d *DeidentifyAudioRequestFile) GetDataFormat() DeidentifyAudioRequestFileDataFormat {
-	if d == nil {
-		return ""
-	}
-	return d.DataFormat
-}
-
-func (d *DeidentifyAudioRequestFile) GetExtraProperties() map[string]interface{} {
-	return d.extraProperties
-}
-
-func (d *DeidentifyAudioRequestFile) UnmarshalJSON(data []byte) error {
-	type unmarshaler DeidentifyAudioRequestFile
-	var value unmarshaler
-	if err := json.Unmarshal(data, &value); err != nil {
-		return err
-	}
-	*d = DeidentifyAudioRequestFile(value)
-	extraProperties, err := internal.ExtractExtraProperties(data, *d)
-	if err != nil {
-		return err
-	}
-	d.extraProperties = extraProperties
-	d.rawJSON = json.RawMessage(data)
-	return nil
-}
-
-func (d *DeidentifyAudioRequestFile) String() string {
-	if len(d.rawJSON) > 0 {
-		if value, err := internal.StringifyJSON(d.rawJSON); err == nil {
-			return value
-		}
-	}
-	if value, err := internal.StringifyJSON(d); err == nil {
-		return value
-	}
-	return fmt.Sprintf("%#v", d)
-}
-
-// Data format of the file.
-type DeidentifyAudioRequestFileDataFormat string
-
-const (
-	DeidentifyAudioRequestFileDataFormatMp3 DeidentifyAudioRequestFileDataFormat = "mp3"
-	DeidentifyAudioRequestFileDataFormatWav DeidentifyAudioRequestFileDataFormat = "wav"
-)
-
-func NewDeidentifyAudioRequestFileDataFormatFromString(s string) (DeidentifyAudioRequestFileDataFormat, error) {
-	switch s {
-	case "mp3":
-		return DeidentifyAudioRequestFileDataFormatMp3, nil
-	case "wav":
-		return DeidentifyAudioRequestFileDataFormatWav, nil
-	}
-	var t DeidentifyAudioRequestFileDataFormat
-	return "", fmt.Errorf("%s is not a valid %T", s, t)
-}
-
-func (d DeidentifyAudioRequestFileDataFormat) Ptr() *DeidentifyAudioRequestFileDataFormat {
+func (d DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem) Ptr() *DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem {
 	return &d
 }
 
 // Type of transcription to output.
-type DeidentifyAudioRequestOutputTranscription string
+type DeidentifyFileAudioRequestDeidentifyAudioOutputTranscription string
 
 const (
-	DeidentifyAudioRequestOutputTranscriptionDiarizedTranscription        DeidentifyAudioRequestOutputTranscription = "diarized_transcription"
-	DeidentifyAudioRequestOutputTranscriptionMedicalDiarizedTranscription DeidentifyAudioRequestOutputTranscription = "medical_diarized_transcription"
-	DeidentifyAudioRequestOutputTranscriptionMedicalTranscription         DeidentifyAudioRequestOutputTranscription = "medical_transcription"
-	DeidentifyAudioRequestOutputTranscriptionPlaintextTranscription       DeidentifyAudioRequestOutputTranscription = "plaintext_transcription"
-	DeidentifyAudioRequestOutputTranscriptionTranscription                DeidentifyAudioRequestOutputTranscription = "transcription"
+	DeidentifyFileAudioRequestDeidentifyAudioOutputTranscriptionTranscription                DeidentifyFileAudioRequestDeidentifyAudioOutputTranscription = "transcription"
+	DeidentifyFileAudioRequestDeidentifyAudioOutputTranscriptionMedicalTranscription         DeidentifyFileAudioRequestDeidentifyAudioOutputTranscription = "medical_transcription"
+	DeidentifyFileAudioRequestDeidentifyAudioOutputTranscriptionDiarizedTranscription        DeidentifyFileAudioRequestDeidentifyAudioOutputTranscription = "diarized_transcription"
+	DeidentifyFileAudioRequestDeidentifyAudioOutputTranscriptionMedicalDiarizedTranscription DeidentifyFileAudioRequestDeidentifyAudioOutputTranscription = "medical_diarized_transcription"
 )
 
-func NewDeidentifyAudioRequestOutputTranscriptionFromString(s string) (DeidentifyAudioRequestOutputTranscription, error) {
+func NewDeidentifyFileAudioRequestDeidentifyAudioOutputTranscriptionFromString(s string) (DeidentifyFileAudioRequestDeidentifyAudioOutputTranscription, error) {
 	switch s {
-	case "diarized_transcription":
-		return DeidentifyAudioRequestOutputTranscriptionDiarizedTranscription, nil
-	case "medical_diarized_transcription":
-		return DeidentifyAudioRequestOutputTranscriptionMedicalDiarizedTranscription, nil
-	case "medical_transcription":
-		return DeidentifyAudioRequestOutputTranscriptionMedicalTranscription, nil
-	case "plaintext_transcription":
-		return DeidentifyAudioRequestOutputTranscriptionPlaintextTranscription, nil
 	case "transcription":
-		return DeidentifyAudioRequestOutputTranscriptionTranscription, nil
+		return DeidentifyFileAudioRequestDeidentifyAudioOutputTranscriptionTranscription, nil
+	case "medical_transcription":
+		return DeidentifyFileAudioRequestDeidentifyAudioOutputTranscriptionMedicalTranscription, nil
+	case "diarized_transcription":
+		return DeidentifyFileAudioRequestDeidentifyAudioOutputTranscriptionDiarizedTranscription, nil
+	case "medical_diarized_transcription":
+		return DeidentifyFileAudioRequestDeidentifyAudioOutputTranscriptionMedicalDiarizedTranscription, nil
 	}
-	var t DeidentifyAudioRequestOutputTranscription
+	var t DeidentifyFileAudioRequestDeidentifyAudioOutputTranscription
 	return "", fmt.Errorf("%s is not a valid %T", s, t)
 }
 
-func (d DeidentifyAudioRequestOutputTranscription) Ptr() *DeidentifyAudioRequestOutputTranscription {
+func (d DeidentifyFileAudioRequestDeidentifyAudioOutputTranscription) Ptr() *DeidentifyFileAudioRequestDeidentifyAudioOutputTranscription {
 	return &d
 }
 
-// File to de-identify. Files are specified as Base64-encoded data.
-type DeidentifyDocumentRequestFile struct {
-	// Base64-encoded data of the file to de-identify.
-	Base64 string `json:"base64" url:"base64"`
-	// Data format of the file.
-	DataFormat DeidentifyDocumentRequestFileDataFormat `json:"data_format" url:"data_format"`
-
-	extraProperties map[string]interface{}
-	rawJSON         json.RawMessage
-}
-
-func (d *DeidentifyDocumentRequestFile) GetBase64() string {
-	if d == nil {
-		return ""
-	}
-	return d.Base64
-}
-
-func (d *DeidentifyDocumentRequestFile) GetDataFormat() DeidentifyDocumentRequestFileDataFormat {
-	if d == nil {
-		return ""
-	}
-	return d.DataFormat
-}
-
-func (d *DeidentifyDocumentRequestFile) GetExtraProperties() map[string]interface{} {
-	return d.extraProperties
-}
-
-func (d *DeidentifyDocumentRequestFile) UnmarshalJSON(data []byte) error {
-	type unmarshaler DeidentifyDocumentRequestFile
-	var value unmarshaler
-	if err := json.Unmarshal(data, &value); err != nil {
-		return err
-	}
-	*d = DeidentifyDocumentRequestFile(value)
-	extraProperties, err := internal.ExtractExtraProperties(data, *d)
-	if err != nil {
-		return err
-	}
-	d.extraProperties = extraProperties
-	d.rawJSON = json.RawMessage(data)
-	return nil
-}
-
-func (d *DeidentifyDocumentRequestFile) String() string {
-	if len(d.rawJSON) > 0 {
-		if value, err := internal.StringifyJSON(d.rawJSON); err == nil {
-			return value
-		}
-	}
-	if value, err := internal.StringifyJSON(d); err == nil {
-		return value
-	}
-	return fmt.Sprintf("%#v", d)
-}
-
-// Data format of the file.
-type DeidentifyDocumentRequestFileDataFormat string
+type DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem string
 
 const (
-	DeidentifyDocumentRequestFileDataFormatDoc  DeidentifyDocumentRequestFileDataFormat = "doc"
-	DeidentifyDocumentRequestFileDataFormatDocx DeidentifyDocumentRequestFileDataFormat = "docx"
-	DeidentifyDocumentRequestFileDataFormatPdf  DeidentifyDocumentRequestFileDataFormat = "pdf"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemAge                         DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "age"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemBankAccount                 DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "bank_account"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemCreditCard                  DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "credit_card"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemCreditCardExpiration        DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "credit_card_expiration"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemCvv                         DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "cvv"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemDate                        DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "date"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemDateInterval                DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "date_interval"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemDob                         DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "dob"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemDriverLicense               DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "driver_license"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemEmailAddress                DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "email_address"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemHealthcareNumber            DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "healthcare_number"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemIpAddress                   DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "ip_address"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemLocation                    DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "location"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemName                        DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "name"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemNumericalPii                DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "numerical_pii"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemPhoneNumber                 DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "phone_number"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemSsn                         DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "ssn"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemUrl                         DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "url"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemVehicleId                   DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "vehicle_id"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemMedicalCode                 DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "medical_code"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemNameFamily                  DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "name_family"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemNameGiven                   DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "name_given"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemAccountNumber               DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "account_number"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemEvent                       DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "event"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemFilename                    DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "filename"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemGender                      DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "gender"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemLanguage                    DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "language"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemLocationAddress             DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "location_address"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemLocationCity                DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "location_city"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemLocationCoordinate          DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "location_coordinate"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemLocationCountry             DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "location_country"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemLocationState               DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "location_state"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemLocationZip                 DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "location_zip"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemMaritalStatus               DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "marital_status"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemMoney                       DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "money"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemNameMedicalProfessional     DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "name_medical_professional"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemOccupation                  DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "occupation"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemOrganization                DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "organization"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemOrganizationMedicalFacility DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "organization_medical_facility"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemOrigin                      DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "origin"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemPassportNumber              DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "passport_number"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemPassword                    DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "password"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemPhysicalAttribute           DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "physical_attribute"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemPoliticalAffiliation        DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "political_affiliation"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemReligion                    DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "religion"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemTime                        DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "time"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemUsername                    DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "username"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemZodiacSign                  DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "zodiac_sign"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemBloodType                   DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "blood_type"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemCondition                   DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "condition"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemDose                        DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "dose"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemDrug                        DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "drug"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemInjury                      DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "injury"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemMedicalProcess              DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "medical_process"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemStatistics                  DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "statistics"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemRoutingNumber               DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "routing_number"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemCorporateAction             DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "corporate_action"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemFinancialMetric             DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "financial_metric"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemProduct                     DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "product"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemTrend                       DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "trend"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemDuration                    DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "duration"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemLocationAddressStreet       DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "location_address_street"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemAll                         DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "all"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemSexuality                   DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "sexuality"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemEffect                      DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "effect"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemProject                     DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "project"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemOrganizationId              DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "organization_id"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemDay                         DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "day"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemMonth                       DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "month"
+	DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemYear                        DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem = "year"
 )
 
-func NewDeidentifyDocumentRequestFileDataFormatFromString(s string) (DeidentifyDocumentRequestFileDataFormat, error) {
+func NewDeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemFromString(s string) (DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem, error) {
 	switch s {
-	case "doc":
-		return DeidentifyDocumentRequestFileDataFormatDoc, nil
-	case "docx":
-		return DeidentifyDocumentRequestFileDataFormatDocx, nil
-	case "pdf":
-		return DeidentifyDocumentRequestFileDataFormatPdf, nil
+	case "age":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemAge, nil
+	case "bank_account":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemBankAccount, nil
+	case "credit_card":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemCreditCard, nil
+	case "credit_card_expiration":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemCreditCardExpiration, nil
+	case "cvv":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemCvv, nil
+	case "date":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemDate, nil
+	case "date_interval":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemDateInterval, nil
+	case "dob":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemDob, nil
+	case "driver_license":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemDriverLicense, nil
+	case "email_address":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemEmailAddress, nil
+	case "healthcare_number":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemHealthcareNumber, nil
+	case "ip_address":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemIpAddress, nil
+	case "location":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemLocation, nil
+	case "name":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemName, nil
+	case "numerical_pii":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemNumericalPii, nil
+	case "phone_number":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemPhoneNumber, nil
+	case "ssn":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemSsn, nil
+	case "url":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemUrl, nil
+	case "vehicle_id":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemVehicleId, nil
+	case "medical_code":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemMedicalCode, nil
+	case "name_family":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemNameFamily, nil
+	case "name_given":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemNameGiven, nil
+	case "account_number":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemAccountNumber, nil
+	case "event":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemEvent, nil
+	case "filename":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemFilename, nil
+	case "gender":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemGender, nil
+	case "language":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemLanguage, nil
+	case "location_address":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemLocationAddress, nil
+	case "location_city":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemLocationCity, nil
+	case "location_coordinate":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemLocationCoordinate, nil
+	case "location_country":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemLocationCountry, nil
+	case "location_state":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemLocationState, nil
+	case "location_zip":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemLocationZip, nil
+	case "marital_status":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemMaritalStatus, nil
+	case "money":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemMoney, nil
+	case "name_medical_professional":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemNameMedicalProfessional, nil
+	case "occupation":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemOccupation, nil
+	case "organization":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemOrganization, nil
+	case "organization_medical_facility":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemOrganizationMedicalFacility, nil
+	case "origin":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemOrigin, nil
+	case "passport_number":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemPassportNumber, nil
+	case "password":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemPassword, nil
+	case "physical_attribute":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemPhysicalAttribute, nil
+	case "political_affiliation":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemPoliticalAffiliation, nil
+	case "religion":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemReligion, nil
+	case "time":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemTime, nil
+	case "username":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemUsername, nil
+	case "zodiac_sign":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemZodiacSign, nil
+	case "blood_type":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemBloodType, nil
+	case "condition":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemCondition, nil
+	case "dose":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemDose, nil
+	case "drug":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemDrug, nil
+	case "injury":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemInjury, nil
+	case "medical_process":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemMedicalProcess, nil
+	case "statistics":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemStatistics, nil
+	case "routing_number":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemRoutingNumber, nil
+	case "corporate_action":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemCorporateAction, nil
+	case "financial_metric":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemFinancialMetric, nil
+	case "product":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemProduct, nil
+	case "trend":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemTrend, nil
+	case "duration":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemDuration, nil
+	case "location_address_street":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemLocationAddressStreet, nil
+	case "all":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemAll, nil
+	case "sexuality":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemSexuality, nil
+	case "effect":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemEffect, nil
+	case "project":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemProject, nil
+	case "organization_id":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemOrganizationId, nil
+	case "day":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemDay, nil
+	case "month":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemMonth, nil
+	case "year":
+		return DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItemYear, nil
 	}
-	var t DeidentifyDocumentRequestFileDataFormat
+	var t DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem
 	return "", fmt.Errorf("%s is not a valid %T", s, t)
 }
 
-func (d DeidentifyDocumentRequestFileDataFormat) Ptr() *DeidentifyDocumentRequestFileDataFormat {
+func (d DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem) Ptr() *DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem {
 	return &d
 }
 
-// File to de-identify. Files are specified as Base64-encoded data.
-type DeidentifyFileRequestFile struct {
-	// Base64-encoded data of the file to de-identify.
-	Base64 string `json:"base64" url:"base64"`
-	// Data format of the file.
-	DataFormat DeidentifyFileRequestFileDataFormat `json:"data_format" url:"data_format"`
-
-	extraProperties map[string]interface{}
-	rawJSON         json.RawMessage
-}
-
-func (d *DeidentifyFileRequestFile) GetBase64() string {
-	if d == nil {
-		return ""
-	}
-	return d.Base64
-}
-
-func (d *DeidentifyFileRequestFile) GetDataFormat() DeidentifyFileRequestFileDataFormat {
-	if d == nil {
-		return ""
-	}
-	return d.DataFormat
-}
-
-func (d *DeidentifyFileRequestFile) GetExtraProperties() map[string]interface{} {
-	return d.extraProperties
-}
-
-func (d *DeidentifyFileRequestFile) UnmarshalJSON(data []byte) error {
-	type unmarshaler DeidentifyFileRequestFile
-	var value unmarshaler
-	if err := json.Unmarshal(data, &value); err != nil {
-		return err
-	}
-	*d = DeidentifyFileRequestFile(value)
-	extraProperties, err := internal.ExtractExtraProperties(data, *d)
-	if err != nil {
-		return err
-	}
-	d.extraProperties = extraProperties
-	d.rawJSON = json.RawMessage(data)
-	return nil
-}
-
-func (d *DeidentifyFileRequestFile) String() string {
-	if len(d.rawJSON) > 0 {
-		if value, err := internal.StringifyJSON(d.rawJSON); err == nil {
-			return value
-		}
-	}
-	if value, err := internal.StringifyJSON(d); err == nil {
-		return value
-	}
-	return fmt.Sprintf("%#v", d)
-}
-
-// Data format of the file.
-type DeidentifyFileRequestFileDataFormat string
+type DeidentifyFileImageRequestDeidentifyImageEntityTypesItem string
 
 const (
-	DeidentifyFileRequestFileDataFormatBmp  DeidentifyFileRequestFileDataFormat = "bmp"
-	DeidentifyFileRequestFileDataFormatCsv  DeidentifyFileRequestFileDataFormat = "csv"
-	DeidentifyFileRequestFileDataFormatDcm  DeidentifyFileRequestFileDataFormat = "dcm"
-	DeidentifyFileRequestFileDataFormatDoc  DeidentifyFileRequestFileDataFormat = "doc"
-	DeidentifyFileRequestFileDataFormatDocx DeidentifyFileRequestFileDataFormat = "docx"
-	DeidentifyFileRequestFileDataFormatJpeg DeidentifyFileRequestFileDataFormat = "jpeg"
-	DeidentifyFileRequestFileDataFormatJpg  DeidentifyFileRequestFileDataFormat = "jpg"
-	DeidentifyFileRequestFileDataFormatJson DeidentifyFileRequestFileDataFormat = "json"
-	DeidentifyFileRequestFileDataFormatMp3  DeidentifyFileRequestFileDataFormat = "mp3"
-	DeidentifyFileRequestFileDataFormatPdf  DeidentifyFileRequestFileDataFormat = "pdf"
-	DeidentifyFileRequestFileDataFormatPng  DeidentifyFileRequestFileDataFormat = "png"
-	DeidentifyFileRequestFileDataFormatPpt  DeidentifyFileRequestFileDataFormat = "ppt"
-	DeidentifyFileRequestFileDataFormatPptx DeidentifyFileRequestFileDataFormat = "pptx"
-	DeidentifyFileRequestFileDataFormatTif  DeidentifyFileRequestFileDataFormat = "tif"
-	DeidentifyFileRequestFileDataFormatTiff DeidentifyFileRequestFileDataFormat = "tiff"
-	DeidentifyFileRequestFileDataFormatTxt  DeidentifyFileRequestFileDataFormat = "txt"
-	DeidentifyFileRequestFileDataFormatWav  DeidentifyFileRequestFileDataFormat = "wav"
-	DeidentifyFileRequestFileDataFormatXls  DeidentifyFileRequestFileDataFormat = "xls"
-	DeidentifyFileRequestFileDataFormatXlsx DeidentifyFileRequestFileDataFormat = "xlsx"
-	DeidentifyFileRequestFileDataFormatXml  DeidentifyFileRequestFileDataFormat = "xml"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemAge                         DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "age"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemBankAccount                 DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "bank_account"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemCreditCard                  DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "credit_card"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemCreditCardExpiration        DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "credit_card_expiration"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemCvv                         DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "cvv"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemDate                        DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "date"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemDateInterval                DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "date_interval"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemDob                         DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "dob"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemDriverLicense               DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "driver_license"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemEmailAddress                DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "email_address"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemHealthcareNumber            DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "healthcare_number"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemIpAddress                   DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "ip_address"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemLocation                    DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "location"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemName                        DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "name"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemNumericalPii                DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "numerical_pii"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemPhoneNumber                 DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "phone_number"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemSsn                         DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "ssn"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemUrl                         DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "url"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemVehicleId                   DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "vehicle_id"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemMedicalCode                 DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "medical_code"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemNameFamily                  DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "name_family"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemNameGiven                   DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "name_given"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemAccountNumber               DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "account_number"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemEvent                       DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "event"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemFilename                    DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "filename"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemGender                      DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "gender"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemLanguage                    DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "language"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemLocationAddress             DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "location_address"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemLocationCity                DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "location_city"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemLocationCoordinate          DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "location_coordinate"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemLocationCountry             DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "location_country"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemLocationState               DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "location_state"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemLocationZip                 DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "location_zip"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemMaritalStatus               DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "marital_status"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemMoney                       DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "money"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemNameMedicalProfessional     DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "name_medical_professional"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemOccupation                  DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "occupation"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemOrganization                DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "organization"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemOrganizationMedicalFacility DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "organization_medical_facility"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemOrigin                      DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "origin"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemPassportNumber              DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "passport_number"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemPassword                    DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "password"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemPhysicalAttribute           DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "physical_attribute"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemPoliticalAffiliation        DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "political_affiliation"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemReligion                    DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "religion"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemTime                        DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "time"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemUsername                    DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "username"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemZodiacSign                  DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "zodiac_sign"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemBloodType                   DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "blood_type"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemCondition                   DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "condition"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemDose                        DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "dose"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemDrug                        DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "drug"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemInjury                      DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "injury"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemMedicalProcess              DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "medical_process"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemStatistics                  DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "statistics"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemRoutingNumber               DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "routing_number"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemCorporateAction             DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "corporate_action"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemFinancialMetric             DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "financial_metric"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemProduct                     DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "product"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemTrend                       DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "trend"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemDuration                    DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "duration"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemLocationAddressStreet       DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "location_address_street"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemAll                         DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "all"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemSexuality                   DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "sexuality"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemEffect                      DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "effect"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemProject                     DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "project"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemOrganizationId              DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "organization_id"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemDay                         DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "day"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemMonth                       DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "month"
+	DeidentifyFileImageRequestDeidentifyImageEntityTypesItemYear                        DeidentifyFileImageRequestDeidentifyImageEntityTypesItem = "year"
 )
 
-func NewDeidentifyFileRequestFileDataFormatFromString(s string) (DeidentifyFileRequestFileDataFormat, error) {
+func NewDeidentifyFileImageRequestDeidentifyImageEntityTypesItemFromString(s string) (DeidentifyFileImageRequestDeidentifyImageEntityTypesItem, error) {
 	switch s {
-	case "bmp":
-		return DeidentifyFileRequestFileDataFormatBmp, nil
-	case "csv":
-		return DeidentifyFileRequestFileDataFormatCsv, nil
-	case "dcm":
-		return DeidentifyFileRequestFileDataFormatDcm, nil
-	case "doc":
-		return DeidentifyFileRequestFileDataFormatDoc, nil
-	case "docx":
-		return DeidentifyFileRequestFileDataFormatDocx, nil
-	case "jpeg":
-		return DeidentifyFileRequestFileDataFormatJpeg, nil
-	case "jpg":
-		return DeidentifyFileRequestFileDataFormatJpg, nil
-	case "json":
-		return DeidentifyFileRequestFileDataFormatJson, nil
-	case "mp3":
-		return DeidentifyFileRequestFileDataFormatMp3, nil
-	case "pdf":
-		return DeidentifyFileRequestFileDataFormatPdf, nil
-	case "png":
-		return DeidentifyFileRequestFileDataFormatPng, nil
-	case "ppt":
-		return DeidentifyFileRequestFileDataFormatPpt, nil
-	case "pptx":
-		return DeidentifyFileRequestFileDataFormatPptx, nil
-	case "tif":
-		return DeidentifyFileRequestFileDataFormatTif, nil
-	case "tiff":
-		return DeidentifyFileRequestFileDataFormatTiff, nil
-	case "txt":
-		return DeidentifyFileRequestFileDataFormatTxt, nil
-	case "wav":
-		return DeidentifyFileRequestFileDataFormatWav, nil
-	case "xls":
-		return DeidentifyFileRequestFileDataFormatXls, nil
-	case "xlsx":
-		return DeidentifyFileRequestFileDataFormatXlsx, nil
-	case "xml":
-		return DeidentifyFileRequestFileDataFormatXml, nil
+	case "age":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemAge, nil
+	case "bank_account":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemBankAccount, nil
+	case "credit_card":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemCreditCard, nil
+	case "credit_card_expiration":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemCreditCardExpiration, nil
+	case "cvv":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemCvv, nil
+	case "date":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemDate, nil
+	case "date_interval":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemDateInterval, nil
+	case "dob":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemDob, nil
+	case "driver_license":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemDriverLicense, nil
+	case "email_address":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemEmailAddress, nil
+	case "healthcare_number":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemHealthcareNumber, nil
+	case "ip_address":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemIpAddress, nil
+	case "location":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemLocation, nil
+	case "name":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemName, nil
+	case "numerical_pii":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemNumericalPii, nil
+	case "phone_number":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemPhoneNumber, nil
+	case "ssn":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemSsn, nil
+	case "url":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemUrl, nil
+	case "vehicle_id":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemVehicleId, nil
+	case "medical_code":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemMedicalCode, nil
+	case "name_family":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemNameFamily, nil
+	case "name_given":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemNameGiven, nil
+	case "account_number":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemAccountNumber, nil
+	case "event":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemEvent, nil
+	case "filename":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemFilename, nil
+	case "gender":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemGender, nil
+	case "language":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemLanguage, nil
+	case "location_address":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemLocationAddress, nil
+	case "location_city":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemLocationCity, nil
+	case "location_coordinate":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemLocationCoordinate, nil
+	case "location_country":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemLocationCountry, nil
+	case "location_state":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemLocationState, nil
+	case "location_zip":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemLocationZip, nil
+	case "marital_status":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemMaritalStatus, nil
+	case "money":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemMoney, nil
+	case "name_medical_professional":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemNameMedicalProfessional, nil
+	case "occupation":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemOccupation, nil
+	case "organization":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemOrganization, nil
+	case "organization_medical_facility":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemOrganizationMedicalFacility, nil
+	case "origin":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemOrigin, nil
+	case "passport_number":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemPassportNumber, nil
+	case "password":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemPassword, nil
+	case "physical_attribute":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemPhysicalAttribute, nil
+	case "political_affiliation":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemPoliticalAffiliation, nil
+	case "religion":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemReligion, nil
+	case "time":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemTime, nil
+	case "username":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemUsername, nil
+	case "zodiac_sign":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemZodiacSign, nil
+	case "blood_type":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemBloodType, nil
+	case "condition":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemCondition, nil
+	case "dose":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemDose, nil
+	case "drug":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemDrug, nil
+	case "injury":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemInjury, nil
+	case "medical_process":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemMedicalProcess, nil
+	case "statistics":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemStatistics, nil
+	case "routing_number":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemRoutingNumber, nil
+	case "corporate_action":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemCorporateAction, nil
+	case "financial_metric":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemFinancialMetric, nil
+	case "product":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemProduct, nil
+	case "trend":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemTrend, nil
+	case "duration":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemDuration, nil
+	case "location_address_street":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemLocationAddressStreet, nil
+	case "all":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemAll, nil
+	case "sexuality":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemSexuality, nil
+	case "effect":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemEffect, nil
+	case "project":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemProject, nil
+	case "organization_id":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemOrganizationId, nil
+	case "day":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemDay, nil
+	case "month":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemMonth, nil
+	case "year":
+		return DeidentifyFileImageRequestDeidentifyImageEntityTypesItemYear, nil
 	}
-	var t DeidentifyFileRequestFileDataFormat
+	var t DeidentifyFileImageRequestDeidentifyImageEntityTypesItem
 	return "", fmt.Errorf("%s is not a valid %T", s, t)
 }
 
-func (d DeidentifyFileRequestFileDataFormat) Ptr() *DeidentifyFileRequestFileDataFormat {
-	return &d
-}
-
-// File to de-identify. Files are specified as Base64-encoded data.
-type DeidentifyImageRequestFile struct {
-	// Base64-encoded data of the file to de-identify.
-	Base64 string `json:"base64" url:"base64"`
-	// Data format of the file.
-	DataFormat DeidentifyImageRequestFileDataFormat `json:"data_format" url:"data_format"`
-
-	extraProperties map[string]interface{}
-	rawJSON         json.RawMessage
-}
-
-func (d *DeidentifyImageRequestFile) GetBase64() string {
-	if d == nil {
-		return ""
-	}
-	return d.Base64
-}
-
-func (d *DeidentifyImageRequestFile) GetDataFormat() DeidentifyImageRequestFileDataFormat {
-	if d == nil {
-		return ""
-	}
-	return d.DataFormat
-}
-
-func (d *DeidentifyImageRequestFile) GetExtraProperties() map[string]interface{} {
-	return d.extraProperties
-}
-
-func (d *DeidentifyImageRequestFile) UnmarshalJSON(data []byte) error {
-	type unmarshaler DeidentifyImageRequestFile
-	var value unmarshaler
-	if err := json.Unmarshal(data, &value); err != nil {
-		return err
-	}
-	*d = DeidentifyImageRequestFile(value)
-	extraProperties, err := internal.ExtractExtraProperties(data, *d)
-	if err != nil {
-		return err
-	}
-	d.extraProperties = extraProperties
-	d.rawJSON = json.RawMessage(data)
-	return nil
-}
-
-func (d *DeidentifyImageRequestFile) String() string {
-	if len(d.rawJSON) > 0 {
-		if value, err := internal.StringifyJSON(d.rawJSON); err == nil {
-			return value
-		}
-	}
-	if value, err := internal.StringifyJSON(d); err == nil {
-		return value
-	}
-	return fmt.Sprintf("%#v", d)
-}
-
-// Data format of the file.
-type DeidentifyImageRequestFileDataFormat string
-
-const (
-	DeidentifyImageRequestFileDataFormatBmp  DeidentifyImageRequestFileDataFormat = "bmp"
-	DeidentifyImageRequestFileDataFormatJpeg DeidentifyImageRequestFileDataFormat = "jpeg"
-	DeidentifyImageRequestFileDataFormatJpg  DeidentifyImageRequestFileDataFormat = "jpg"
-	DeidentifyImageRequestFileDataFormatPng  DeidentifyImageRequestFileDataFormat = "png"
-	DeidentifyImageRequestFileDataFormatTif  DeidentifyImageRequestFileDataFormat = "tif"
-	DeidentifyImageRequestFileDataFormatTiff DeidentifyImageRequestFileDataFormat = "tiff"
-)
-
-func NewDeidentifyImageRequestFileDataFormatFromString(s string) (DeidentifyImageRequestFileDataFormat, error) {
-	switch s {
-	case "bmp":
-		return DeidentifyImageRequestFileDataFormatBmp, nil
-	case "jpeg":
-		return DeidentifyImageRequestFileDataFormatJpeg, nil
-	case "jpg":
-		return DeidentifyImageRequestFileDataFormatJpg, nil
-	case "png":
-		return DeidentifyImageRequestFileDataFormatPng, nil
-	case "tif":
-		return DeidentifyImageRequestFileDataFormatTif, nil
-	case "tiff":
-		return DeidentifyImageRequestFileDataFormatTiff, nil
-	}
-	var t DeidentifyImageRequestFileDataFormat
-	return "", fmt.Errorf("%s is not a valid %T", s, t)
-}
-
-func (d DeidentifyImageRequestFileDataFormat) Ptr() *DeidentifyImageRequestFileDataFormat {
+func (d DeidentifyFileImageRequestDeidentifyImageEntityTypesItem) Ptr() *DeidentifyFileImageRequestDeidentifyImageEntityTypesItem {
 	return &d
 }
 
 // Method to mask the entities in the image.
-type DeidentifyImageRequestMaskingMethod string
+type DeidentifyFileImageRequestDeidentifyImageMaskingMethod string
 
 const (
-	DeidentifyImageRequestMaskingMethodBlackbox DeidentifyImageRequestMaskingMethod = "blackbox"
-	DeidentifyImageRequestMaskingMethodBlur     DeidentifyImageRequestMaskingMethod = "blur"
+	DeidentifyFileImageRequestDeidentifyImageMaskingMethodBlur     DeidentifyFileImageRequestDeidentifyImageMaskingMethod = "blur"
+	DeidentifyFileImageRequestDeidentifyImageMaskingMethodBlackbox DeidentifyFileImageRequestDeidentifyImageMaskingMethod = "blackbox"
 )
 
-func NewDeidentifyImageRequestMaskingMethodFromString(s string) (DeidentifyImageRequestMaskingMethod, error) {
+func NewDeidentifyFileImageRequestDeidentifyImageMaskingMethodFromString(s string) (DeidentifyFileImageRequestDeidentifyImageMaskingMethod, error) {
 	switch s {
-	case "blackbox":
-		return DeidentifyImageRequestMaskingMethodBlackbox, nil
 	case "blur":
-		return DeidentifyImageRequestMaskingMethodBlur, nil
+		return DeidentifyFileImageRequestDeidentifyImageMaskingMethodBlur, nil
+	case "blackbox":
+		return DeidentifyFileImageRequestDeidentifyImageMaskingMethodBlackbox, nil
 	}
-	var t DeidentifyImageRequestMaskingMethod
+	var t DeidentifyFileImageRequestDeidentifyImageMaskingMethod
 	return "", fmt.Errorf("%s is not a valid %T", s, t)
 }
 
-func (d DeidentifyImageRequestMaskingMethod) Ptr() *DeidentifyImageRequestMaskingMethod {
+func (d DeidentifyFileImageRequestDeidentifyImageMaskingMethod) Ptr() *DeidentifyFileImageRequestDeidentifyImageMaskingMethod {
 	return &d
 }
 
-// File to de-identify. Files are specified as Base64-encoded data.
-type DeidentifyPdfRequestFile struct {
-	// Base64-encoded data of the file to de-identify.
-	Base64 string `json:"base64" url:"base64"`
-	// Data format of the file.
-	dataFormat string
-
-	extraProperties map[string]interface{}
-	rawJSON         json.RawMessage
-}
-
-func (d *DeidentifyPdfRequestFile) GetBase64() string {
-	if d == nil {
-		return ""
-	}
-	return d.Base64
-}
-
-func (d *DeidentifyPdfRequestFile) DataFormat() string {
-	return d.dataFormat
-}
-
-func (d *DeidentifyPdfRequestFile) GetExtraProperties() map[string]interface{} {
-	return d.extraProperties
-}
-
-func (d *DeidentifyPdfRequestFile) UnmarshalJSON(data []byte) error {
-	type embed DeidentifyPdfRequestFile
-	var unmarshaler = struct {
-		embed
-		DataFormat string `json:"data_format"`
-	}{
-		embed: embed(*d),
-	}
-	if err := json.Unmarshal(data, &unmarshaler); err != nil {
-		return err
-	}
-	*d = DeidentifyPdfRequestFile(unmarshaler.embed)
-	if unmarshaler.DataFormat != "pdf" {
-		return fmt.Errorf("unexpected value for literal on type %T; expected %v got %v", d, "pdf", unmarshaler.DataFormat)
-	}
-	d.dataFormat = unmarshaler.DataFormat
-	extraProperties, err := internal.ExtractExtraProperties(data, *d, "data_format")
-	if err != nil {
-		return err
-	}
-	d.extraProperties = extraProperties
-	d.rawJSON = json.RawMessage(data)
-	return nil
-}
-
-func (d *DeidentifyPdfRequestFile) MarshalJSON() ([]byte, error) {
-	type embed DeidentifyPdfRequestFile
-	var marshaler = struct {
-		embed
-		DataFormat string `json:"data_format"`
-	}{
-		embed:      embed(*d),
-		DataFormat: "pdf",
-	}
-	return json.Marshal(marshaler)
-}
-
-func (d *DeidentifyPdfRequestFile) String() string {
-	if len(d.rawJSON) > 0 {
-		if value, err := internal.StringifyJSON(d.rawJSON); err == nil {
-			return value
-		}
-	}
-	if value, err := internal.StringifyJSON(d); err == nil {
-		return value
-	}
-	return fmt.Sprintf("%#v", d)
-}
-
-// File to de-identify. Files are specified as Base64-encoded data.
-type DeidentifyPresentationRequestFile struct {
-	// Base64-encoded data of the file to de-identify.
-	Base64 string `json:"base64" url:"base64"`
-	// Data format of the file.
-	DataFormat DeidentifyPresentationRequestFileDataFormat `json:"data_format" url:"data_format"`
-
-	extraProperties map[string]interface{}
-	rawJSON         json.RawMessage
-}
-
-func (d *DeidentifyPresentationRequestFile) GetBase64() string {
-	if d == nil {
-		return ""
-	}
-	return d.Base64
-}
-
-func (d *DeidentifyPresentationRequestFile) GetDataFormat() DeidentifyPresentationRequestFileDataFormat {
-	if d == nil {
-		return ""
-	}
-	return d.DataFormat
-}
-
-func (d *DeidentifyPresentationRequestFile) GetExtraProperties() map[string]interface{} {
-	return d.extraProperties
-}
-
-func (d *DeidentifyPresentationRequestFile) UnmarshalJSON(data []byte) error {
-	type unmarshaler DeidentifyPresentationRequestFile
-	var value unmarshaler
-	if err := json.Unmarshal(data, &value); err != nil {
-		return err
-	}
-	*d = DeidentifyPresentationRequestFile(value)
-	extraProperties, err := internal.ExtractExtraProperties(data, *d)
-	if err != nil {
-		return err
-	}
-	d.extraProperties = extraProperties
-	d.rawJSON = json.RawMessage(data)
-	return nil
-}
-
-func (d *DeidentifyPresentationRequestFile) String() string {
-	if len(d.rawJSON) > 0 {
-		if value, err := internal.StringifyJSON(d.rawJSON); err == nil {
-			return value
-		}
-	}
-	if value, err := internal.StringifyJSON(d); err == nil {
-		return value
-	}
-	return fmt.Sprintf("%#v", d)
-}
-
-// Data format of the file.
-type DeidentifyPresentationRequestFileDataFormat string
+type DeidentifyFileRequestDeidentifyDocumentEntityTypesItem string
 
 const (
-	DeidentifyPresentationRequestFileDataFormatPpt  DeidentifyPresentationRequestFileDataFormat = "ppt"
-	DeidentifyPresentationRequestFileDataFormatPptx DeidentifyPresentationRequestFileDataFormat = "pptx"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemAge                         DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "age"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemBankAccount                 DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "bank_account"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemCreditCard                  DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "credit_card"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemCreditCardExpiration        DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "credit_card_expiration"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemCvv                         DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "cvv"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemDate                        DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "date"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemDateInterval                DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "date_interval"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemDob                         DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "dob"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemDriverLicense               DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "driver_license"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemEmailAddress                DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "email_address"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemHealthcareNumber            DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "healthcare_number"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemIpAddress                   DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "ip_address"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemLocation                    DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "location"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemName                        DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "name"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemNumericalPii                DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "numerical_pii"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemPhoneNumber                 DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "phone_number"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemSsn                         DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "ssn"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemUrl                         DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "url"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemVehicleId                   DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "vehicle_id"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemMedicalCode                 DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "medical_code"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemNameFamily                  DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "name_family"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemNameGiven                   DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "name_given"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemAccountNumber               DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "account_number"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemEvent                       DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "event"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemFilename                    DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "filename"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemGender                      DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "gender"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemLanguage                    DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "language"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemLocationAddress             DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "location_address"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemLocationCity                DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "location_city"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemLocationCoordinate          DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "location_coordinate"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemLocationCountry             DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "location_country"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemLocationState               DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "location_state"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemLocationZip                 DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "location_zip"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemMaritalStatus               DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "marital_status"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemMoney                       DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "money"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemNameMedicalProfessional     DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "name_medical_professional"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemOccupation                  DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "occupation"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemOrganization                DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "organization"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemOrganizationMedicalFacility DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "organization_medical_facility"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemOrigin                      DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "origin"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemPassportNumber              DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "passport_number"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemPassword                    DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "password"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemPhysicalAttribute           DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "physical_attribute"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemPoliticalAffiliation        DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "political_affiliation"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemReligion                    DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "religion"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemTime                        DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "time"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemUsername                    DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "username"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemZodiacSign                  DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "zodiac_sign"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemBloodType                   DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "blood_type"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemCondition                   DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "condition"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemDose                        DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "dose"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemDrug                        DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "drug"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemInjury                      DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "injury"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemMedicalProcess              DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "medical_process"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemStatistics                  DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "statistics"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemRoutingNumber               DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "routing_number"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemCorporateAction             DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "corporate_action"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemFinancialMetric             DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "financial_metric"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemProduct                     DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "product"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemTrend                       DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "trend"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemDuration                    DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "duration"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemLocationAddressStreet       DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "location_address_street"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemAll                         DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "all"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemSexuality                   DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "sexuality"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemEffect                      DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "effect"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemProject                     DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "project"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemOrganizationId              DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "organization_id"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemDay                         DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "day"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemMonth                       DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "month"
+	DeidentifyFileRequestDeidentifyDocumentEntityTypesItemYear                        DeidentifyFileRequestDeidentifyDocumentEntityTypesItem = "year"
 )
 
-func NewDeidentifyPresentationRequestFileDataFormatFromString(s string) (DeidentifyPresentationRequestFileDataFormat, error) {
+func NewDeidentifyFileRequestDeidentifyDocumentEntityTypesItemFromString(s string) (DeidentifyFileRequestDeidentifyDocumentEntityTypesItem, error) {
 	switch s {
-	case "ppt":
-		return DeidentifyPresentationRequestFileDataFormatPpt, nil
-	case "pptx":
-		return DeidentifyPresentationRequestFileDataFormatPptx, nil
+	case "age":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemAge, nil
+	case "bank_account":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemBankAccount, nil
+	case "credit_card":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemCreditCard, nil
+	case "credit_card_expiration":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemCreditCardExpiration, nil
+	case "cvv":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemCvv, nil
+	case "date":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemDate, nil
+	case "date_interval":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemDateInterval, nil
+	case "dob":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemDob, nil
+	case "driver_license":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemDriverLicense, nil
+	case "email_address":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemEmailAddress, nil
+	case "healthcare_number":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemHealthcareNumber, nil
+	case "ip_address":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemIpAddress, nil
+	case "location":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemLocation, nil
+	case "name":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemName, nil
+	case "numerical_pii":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemNumericalPii, nil
+	case "phone_number":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemPhoneNumber, nil
+	case "ssn":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemSsn, nil
+	case "url":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemUrl, nil
+	case "vehicle_id":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemVehicleId, nil
+	case "medical_code":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemMedicalCode, nil
+	case "name_family":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemNameFamily, nil
+	case "name_given":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemNameGiven, nil
+	case "account_number":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemAccountNumber, nil
+	case "event":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemEvent, nil
+	case "filename":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemFilename, nil
+	case "gender":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemGender, nil
+	case "language":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemLanguage, nil
+	case "location_address":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemLocationAddress, nil
+	case "location_city":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemLocationCity, nil
+	case "location_coordinate":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemLocationCoordinate, nil
+	case "location_country":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemLocationCountry, nil
+	case "location_state":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemLocationState, nil
+	case "location_zip":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemLocationZip, nil
+	case "marital_status":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemMaritalStatus, nil
+	case "money":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemMoney, nil
+	case "name_medical_professional":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemNameMedicalProfessional, nil
+	case "occupation":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemOccupation, nil
+	case "organization":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemOrganization, nil
+	case "organization_medical_facility":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemOrganizationMedicalFacility, nil
+	case "origin":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemOrigin, nil
+	case "passport_number":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemPassportNumber, nil
+	case "password":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemPassword, nil
+	case "physical_attribute":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemPhysicalAttribute, nil
+	case "political_affiliation":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemPoliticalAffiliation, nil
+	case "religion":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemReligion, nil
+	case "time":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemTime, nil
+	case "username":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemUsername, nil
+	case "zodiac_sign":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemZodiacSign, nil
+	case "blood_type":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemBloodType, nil
+	case "condition":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemCondition, nil
+	case "dose":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemDose, nil
+	case "drug":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemDrug, nil
+	case "injury":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemInjury, nil
+	case "medical_process":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemMedicalProcess, nil
+	case "statistics":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemStatistics, nil
+	case "routing_number":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemRoutingNumber, nil
+	case "corporate_action":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemCorporateAction, nil
+	case "financial_metric":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemFinancialMetric, nil
+	case "product":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemProduct, nil
+	case "trend":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemTrend, nil
+	case "duration":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemDuration, nil
+	case "location_address_street":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemLocationAddressStreet, nil
+	case "all":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemAll, nil
+	case "sexuality":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemSexuality, nil
+	case "effect":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemEffect, nil
+	case "project":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemProject, nil
+	case "organization_id":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemOrganizationId, nil
+	case "day":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemDay, nil
+	case "month":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemMonth, nil
+	case "year":
+		return DeidentifyFileRequestDeidentifyDocumentEntityTypesItemYear, nil
 	}
-	var t DeidentifyPresentationRequestFileDataFormat
+	var t DeidentifyFileRequestDeidentifyDocumentEntityTypesItem
 	return "", fmt.Errorf("%s is not a valid %T", s, t)
 }
 
-func (d DeidentifyPresentationRequestFileDataFormat) Ptr() *DeidentifyPresentationRequestFileDataFormat {
+func (d DeidentifyFileRequestDeidentifyDocumentEntityTypesItem) Ptr() *DeidentifyFileRequestDeidentifyDocumentEntityTypesItem {
 	return &d
 }
 
-// File to de-identify. Files are specified as Base64-encoded data.
-type DeidentifySpreadsheetRequestFile struct {
-	// Base64-encoded data of the file to de-identify.
-	Base64 string `json:"base64" url:"base64"`
-	// Data format of the file.
-	DataFormat DeidentifySpreadsheetRequestFileDataFormat `json:"data_format" url:"data_format"`
-
-	extraProperties map[string]interface{}
-	rawJSON         json.RawMessage
-}
-
-func (d *DeidentifySpreadsheetRequestFile) GetBase64() string {
-	if d == nil {
-		return ""
-	}
-	return d.Base64
-}
-
-func (d *DeidentifySpreadsheetRequestFile) GetDataFormat() DeidentifySpreadsheetRequestFileDataFormat {
-	if d == nil {
-		return ""
-	}
-	return d.DataFormat
-}
-
-func (d *DeidentifySpreadsheetRequestFile) GetExtraProperties() map[string]interface{} {
-	return d.extraProperties
-}
-
-func (d *DeidentifySpreadsheetRequestFile) UnmarshalJSON(data []byte) error {
-	type unmarshaler DeidentifySpreadsheetRequestFile
-	var value unmarshaler
-	if err := json.Unmarshal(data, &value); err != nil {
-		return err
-	}
-	*d = DeidentifySpreadsheetRequestFile(value)
-	extraProperties, err := internal.ExtractExtraProperties(data, *d)
-	if err != nil {
-		return err
-	}
-	d.extraProperties = extraProperties
-	d.rawJSON = json.RawMessage(data)
-	return nil
-}
-
-func (d *DeidentifySpreadsheetRequestFile) String() string {
-	if len(d.rawJSON) > 0 {
-		if value, err := internal.StringifyJSON(d.rawJSON); err == nil {
-			return value
-		}
-	}
-	if value, err := internal.StringifyJSON(d); err == nil {
-		return value
-	}
-	return fmt.Sprintf("%#v", d)
-}
-
-// Data format of the file.
-type DeidentifySpreadsheetRequestFileDataFormat string
+type DeidentifyFileRequestDeidentifyPresentationEntityTypesItem string
 
 const (
-	DeidentifySpreadsheetRequestFileDataFormatCsv  DeidentifySpreadsheetRequestFileDataFormat = "csv"
-	DeidentifySpreadsheetRequestFileDataFormatXls  DeidentifySpreadsheetRequestFileDataFormat = "xls"
-	DeidentifySpreadsheetRequestFileDataFormatXlsx DeidentifySpreadsheetRequestFileDataFormat = "xlsx"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemAge                         DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "age"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemBankAccount                 DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "bank_account"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemCreditCard                  DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "credit_card"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemCreditCardExpiration        DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "credit_card_expiration"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemCvv                         DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "cvv"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemDate                        DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "date"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemDateInterval                DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "date_interval"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemDob                         DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "dob"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemDriverLicense               DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "driver_license"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemEmailAddress                DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "email_address"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemHealthcareNumber            DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "healthcare_number"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemIpAddress                   DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "ip_address"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemLocation                    DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "location"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemName                        DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "name"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemNumericalPii                DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "numerical_pii"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemPhoneNumber                 DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "phone_number"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemSsn                         DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "ssn"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemUrl                         DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "url"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemVehicleId                   DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "vehicle_id"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemMedicalCode                 DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "medical_code"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemNameFamily                  DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "name_family"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemNameGiven                   DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "name_given"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemAccountNumber               DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "account_number"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemEvent                       DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "event"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemFilename                    DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "filename"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemGender                      DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "gender"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemLanguage                    DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "language"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemLocationAddress             DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "location_address"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemLocationCity                DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "location_city"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemLocationCoordinate          DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "location_coordinate"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemLocationCountry             DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "location_country"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemLocationState               DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "location_state"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemLocationZip                 DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "location_zip"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemMaritalStatus               DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "marital_status"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemMoney                       DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "money"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemNameMedicalProfessional     DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "name_medical_professional"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemOccupation                  DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "occupation"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemOrganization                DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "organization"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemOrganizationMedicalFacility DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "organization_medical_facility"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemOrigin                      DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "origin"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemPassportNumber              DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "passport_number"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemPassword                    DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "password"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemPhysicalAttribute           DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "physical_attribute"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemPoliticalAffiliation        DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "political_affiliation"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemReligion                    DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "religion"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemTime                        DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "time"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemUsername                    DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "username"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemZodiacSign                  DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "zodiac_sign"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemBloodType                   DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "blood_type"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemCondition                   DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "condition"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemDose                        DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "dose"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemDrug                        DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "drug"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemInjury                      DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "injury"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemMedicalProcess              DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "medical_process"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemStatistics                  DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "statistics"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemRoutingNumber               DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "routing_number"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemCorporateAction             DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "corporate_action"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemFinancialMetric             DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "financial_metric"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemProduct                     DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "product"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemTrend                       DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "trend"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemDuration                    DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "duration"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemLocationAddressStreet       DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "location_address_street"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemAll                         DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "all"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemSexuality                   DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "sexuality"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemEffect                      DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "effect"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemProject                     DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "project"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemOrganizationId              DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "organization_id"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemDay                         DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "day"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemMonth                       DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "month"
+	DeidentifyFileRequestDeidentifyPresentationEntityTypesItemYear                        DeidentifyFileRequestDeidentifyPresentationEntityTypesItem = "year"
 )
 
-func NewDeidentifySpreadsheetRequestFileDataFormatFromString(s string) (DeidentifySpreadsheetRequestFileDataFormat, error) {
+func NewDeidentifyFileRequestDeidentifyPresentationEntityTypesItemFromString(s string) (DeidentifyFileRequestDeidentifyPresentationEntityTypesItem, error) {
 	switch s {
-	case "csv":
-		return DeidentifySpreadsheetRequestFileDataFormatCsv, nil
-	case "xls":
-		return DeidentifySpreadsheetRequestFileDataFormatXls, nil
-	case "xlsx":
-		return DeidentifySpreadsheetRequestFileDataFormatXlsx, nil
+	case "age":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemAge, nil
+	case "bank_account":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemBankAccount, nil
+	case "credit_card":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemCreditCard, nil
+	case "credit_card_expiration":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemCreditCardExpiration, nil
+	case "cvv":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemCvv, nil
+	case "date":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemDate, nil
+	case "date_interval":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemDateInterval, nil
+	case "dob":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemDob, nil
+	case "driver_license":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemDriverLicense, nil
+	case "email_address":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemEmailAddress, nil
+	case "healthcare_number":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemHealthcareNumber, nil
+	case "ip_address":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemIpAddress, nil
+	case "location":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemLocation, nil
+	case "name":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemName, nil
+	case "numerical_pii":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemNumericalPii, nil
+	case "phone_number":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemPhoneNumber, nil
+	case "ssn":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemSsn, nil
+	case "url":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemUrl, nil
+	case "vehicle_id":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemVehicleId, nil
+	case "medical_code":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemMedicalCode, nil
+	case "name_family":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemNameFamily, nil
+	case "name_given":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemNameGiven, nil
+	case "account_number":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemAccountNumber, nil
+	case "event":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemEvent, nil
+	case "filename":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemFilename, nil
+	case "gender":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemGender, nil
+	case "language":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemLanguage, nil
+	case "location_address":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemLocationAddress, nil
+	case "location_city":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemLocationCity, nil
+	case "location_coordinate":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemLocationCoordinate, nil
+	case "location_country":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemLocationCountry, nil
+	case "location_state":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemLocationState, nil
+	case "location_zip":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemLocationZip, nil
+	case "marital_status":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemMaritalStatus, nil
+	case "money":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemMoney, nil
+	case "name_medical_professional":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemNameMedicalProfessional, nil
+	case "occupation":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemOccupation, nil
+	case "organization":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemOrganization, nil
+	case "organization_medical_facility":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemOrganizationMedicalFacility, nil
+	case "origin":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemOrigin, nil
+	case "passport_number":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemPassportNumber, nil
+	case "password":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemPassword, nil
+	case "physical_attribute":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemPhysicalAttribute, nil
+	case "political_affiliation":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemPoliticalAffiliation, nil
+	case "religion":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemReligion, nil
+	case "time":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemTime, nil
+	case "username":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemUsername, nil
+	case "zodiac_sign":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemZodiacSign, nil
+	case "blood_type":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemBloodType, nil
+	case "condition":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemCondition, nil
+	case "dose":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemDose, nil
+	case "drug":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemDrug, nil
+	case "injury":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemInjury, nil
+	case "medical_process":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemMedicalProcess, nil
+	case "statistics":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemStatistics, nil
+	case "routing_number":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemRoutingNumber, nil
+	case "corporate_action":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemCorporateAction, nil
+	case "financial_metric":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemFinancialMetric, nil
+	case "product":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemProduct, nil
+	case "trend":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemTrend, nil
+	case "duration":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemDuration, nil
+	case "location_address_street":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemLocationAddressStreet, nil
+	case "all":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemAll, nil
+	case "sexuality":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemSexuality, nil
+	case "effect":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemEffect, nil
+	case "project":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemProject, nil
+	case "organization_id":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemOrganizationId, nil
+	case "day":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemDay, nil
+	case "month":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemMonth, nil
+	case "year":
+		return DeidentifyFileRequestDeidentifyPresentationEntityTypesItemYear, nil
 	}
-	var t DeidentifySpreadsheetRequestFileDataFormat
+	var t DeidentifyFileRequestDeidentifyPresentationEntityTypesItem
 	return "", fmt.Errorf("%s is not a valid %T", s, t)
 }
 
-func (d DeidentifySpreadsheetRequestFileDataFormat) Ptr() *DeidentifySpreadsheetRequestFileDataFormat {
+func (d DeidentifyFileRequestDeidentifyPresentationEntityTypesItem) Ptr() *DeidentifyFileRequestDeidentifyPresentationEntityTypesItem {
 	return &d
 }
 
-// File to de-identify. Files are specified as Base64-encoded data.
-type DeidentifyStructuredTextRequestFile struct {
-	// Base64-encoded data of the file to de-identify.
-	Base64 string `json:"base64" url:"base64"`
-	// Data format of the file.
-	DataFormat DeidentifyStructuredTextRequestFileDataFormat `json:"data_format" url:"data_format"`
-
-	extraProperties map[string]interface{}
-	rawJSON         json.RawMessage
-}
-
-func (d *DeidentifyStructuredTextRequestFile) GetBase64() string {
-	if d == nil {
-		return ""
-	}
-	return d.Base64
-}
-
-func (d *DeidentifyStructuredTextRequestFile) GetDataFormat() DeidentifyStructuredTextRequestFileDataFormat {
-	if d == nil {
-		return ""
-	}
-	return d.DataFormat
-}
-
-func (d *DeidentifyStructuredTextRequestFile) GetExtraProperties() map[string]interface{} {
-	return d.extraProperties
-}
-
-func (d *DeidentifyStructuredTextRequestFile) UnmarshalJSON(data []byte) error {
-	type unmarshaler DeidentifyStructuredTextRequestFile
-	var value unmarshaler
-	if err := json.Unmarshal(data, &value); err != nil {
-		return err
-	}
-	*d = DeidentifyStructuredTextRequestFile(value)
-	extraProperties, err := internal.ExtractExtraProperties(data, *d)
-	if err != nil {
-		return err
-	}
-	d.extraProperties = extraProperties
-	d.rawJSON = json.RawMessage(data)
-	return nil
-}
-
-func (d *DeidentifyStructuredTextRequestFile) String() string {
-	if len(d.rawJSON) > 0 {
-		if value, err := internal.StringifyJSON(d.rawJSON); err == nil {
-			return value
-		}
-	}
-	if value, err := internal.StringifyJSON(d); err == nil {
-		return value
-	}
-	return fmt.Sprintf("%#v", d)
-}
-
-// Data format of the file.
-type DeidentifyStructuredTextRequestFileDataFormat string
+type DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem string
 
 const (
-	DeidentifyStructuredTextRequestFileDataFormatJson DeidentifyStructuredTextRequestFileDataFormat = "json"
-	DeidentifyStructuredTextRequestFileDataFormatXml  DeidentifyStructuredTextRequestFileDataFormat = "xml"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemAge                         DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "age"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemBankAccount                 DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "bank_account"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemCreditCard                  DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "credit_card"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemCreditCardExpiration        DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "credit_card_expiration"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemCvv                         DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "cvv"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemDate                        DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "date"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemDateInterval                DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "date_interval"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemDob                         DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "dob"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemDriverLicense               DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "driver_license"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemEmailAddress                DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "email_address"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemHealthcareNumber            DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "healthcare_number"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemIpAddress                   DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "ip_address"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemLocation                    DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "location"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemName                        DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "name"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemNumericalPii                DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "numerical_pii"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemPhoneNumber                 DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "phone_number"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemSsn                         DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "ssn"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemUrl                         DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "url"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemVehicleId                   DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "vehicle_id"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemMedicalCode                 DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "medical_code"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemNameFamily                  DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "name_family"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemNameGiven                   DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "name_given"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemAccountNumber               DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "account_number"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemEvent                       DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "event"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemFilename                    DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "filename"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemGender                      DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "gender"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemLanguage                    DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "language"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemLocationAddress             DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "location_address"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemLocationCity                DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "location_city"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemLocationCoordinate          DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "location_coordinate"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemLocationCountry             DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "location_country"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemLocationState               DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "location_state"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemLocationZip                 DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "location_zip"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemMaritalStatus               DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "marital_status"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemMoney                       DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "money"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemNameMedicalProfessional     DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "name_medical_professional"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemOccupation                  DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "occupation"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemOrganization                DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "organization"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemOrganizationMedicalFacility DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "organization_medical_facility"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemOrigin                      DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "origin"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemPassportNumber              DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "passport_number"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemPassword                    DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "password"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemPhysicalAttribute           DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "physical_attribute"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemPoliticalAffiliation        DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "political_affiliation"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemReligion                    DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "religion"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemTime                        DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "time"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemUsername                    DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "username"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemZodiacSign                  DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "zodiac_sign"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemBloodType                   DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "blood_type"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemCondition                   DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "condition"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemDose                        DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "dose"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemDrug                        DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "drug"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemInjury                      DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "injury"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemMedicalProcess              DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "medical_process"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemStatistics                  DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "statistics"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemRoutingNumber               DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "routing_number"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemCorporateAction             DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "corporate_action"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemFinancialMetric             DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "financial_metric"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemProduct                     DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "product"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemTrend                       DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "trend"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemDuration                    DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "duration"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemLocationAddressStreet       DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "location_address_street"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemAll                         DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "all"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemSexuality                   DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "sexuality"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemEffect                      DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "effect"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemProject                     DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "project"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemOrganizationId              DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "organization_id"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemDay                         DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "day"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemMonth                       DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "month"
+	DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemYear                        DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem = "year"
 )
 
-func NewDeidentifyStructuredTextRequestFileDataFormatFromString(s string) (DeidentifyStructuredTextRequestFileDataFormat, error) {
+func NewDeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemFromString(s string) (DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem, error) {
 	switch s {
-	case "json":
-		return DeidentifyStructuredTextRequestFileDataFormatJson, nil
-	case "xml":
-		return DeidentifyStructuredTextRequestFileDataFormatXml, nil
+	case "age":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemAge, nil
+	case "bank_account":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemBankAccount, nil
+	case "credit_card":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemCreditCard, nil
+	case "credit_card_expiration":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemCreditCardExpiration, nil
+	case "cvv":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemCvv, nil
+	case "date":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemDate, nil
+	case "date_interval":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemDateInterval, nil
+	case "dob":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemDob, nil
+	case "driver_license":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemDriverLicense, nil
+	case "email_address":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemEmailAddress, nil
+	case "healthcare_number":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemHealthcareNumber, nil
+	case "ip_address":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemIpAddress, nil
+	case "location":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemLocation, nil
+	case "name":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemName, nil
+	case "numerical_pii":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemNumericalPii, nil
+	case "phone_number":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemPhoneNumber, nil
+	case "ssn":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemSsn, nil
+	case "url":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemUrl, nil
+	case "vehicle_id":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemVehicleId, nil
+	case "medical_code":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemMedicalCode, nil
+	case "name_family":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemNameFamily, nil
+	case "name_given":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemNameGiven, nil
+	case "account_number":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemAccountNumber, nil
+	case "event":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemEvent, nil
+	case "filename":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemFilename, nil
+	case "gender":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemGender, nil
+	case "language":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemLanguage, nil
+	case "location_address":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemLocationAddress, nil
+	case "location_city":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemLocationCity, nil
+	case "location_coordinate":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemLocationCoordinate, nil
+	case "location_country":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemLocationCountry, nil
+	case "location_state":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemLocationState, nil
+	case "location_zip":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemLocationZip, nil
+	case "marital_status":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemMaritalStatus, nil
+	case "money":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemMoney, nil
+	case "name_medical_professional":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemNameMedicalProfessional, nil
+	case "occupation":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemOccupation, nil
+	case "organization":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemOrganization, nil
+	case "organization_medical_facility":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemOrganizationMedicalFacility, nil
+	case "origin":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemOrigin, nil
+	case "passport_number":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemPassportNumber, nil
+	case "password":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemPassword, nil
+	case "physical_attribute":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemPhysicalAttribute, nil
+	case "political_affiliation":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemPoliticalAffiliation, nil
+	case "religion":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemReligion, nil
+	case "time":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemTime, nil
+	case "username":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemUsername, nil
+	case "zodiac_sign":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemZodiacSign, nil
+	case "blood_type":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemBloodType, nil
+	case "condition":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemCondition, nil
+	case "dose":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemDose, nil
+	case "drug":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemDrug, nil
+	case "injury":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemInjury, nil
+	case "medical_process":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemMedicalProcess, nil
+	case "statistics":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemStatistics, nil
+	case "routing_number":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemRoutingNumber, nil
+	case "corporate_action":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemCorporateAction, nil
+	case "financial_metric":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemFinancialMetric, nil
+	case "product":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemProduct, nil
+	case "trend":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemTrend, nil
+	case "duration":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemDuration, nil
+	case "location_address_street":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemLocationAddressStreet, nil
+	case "all":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemAll, nil
+	case "sexuality":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemSexuality, nil
+	case "effect":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemEffect, nil
+	case "project":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemProject, nil
+	case "organization_id":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemOrganizationId, nil
+	case "day":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemDay, nil
+	case "month":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemMonth, nil
+	case "year":
+		return DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItemYear, nil
 	}
-	var t DeidentifyStructuredTextRequestFileDataFormat
+	var t DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem
 	return "", fmt.Errorf("%s is not a valid %T", s, t)
 }
 
-func (d DeidentifyStructuredTextRequestFileDataFormat) Ptr() *DeidentifyStructuredTextRequestFileDataFormat {
+func (d DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem) Ptr() *DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem {
 	return &d
 }
 
-// File to de-identify. Files are specified as Base64-encoded data.
-type DeidentifyTextRequestFile struct {
-	// Base64-encoded data of the file to de-identify.
-	Base64 string `json:"base64" url:"base64"`
-	// Data format of the file.
-	dataFormat string
-
-	extraProperties map[string]interface{}
-	rawJSON         json.RawMessage
-}
-
-func (d *DeidentifyTextRequestFile) GetBase64() string {
-	if d == nil {
-		return ""
-	}
-	return d.Base64
-}
-
-func (d *DeidentifyTextRequestFile) DataFormat() string {
-	return d.dataFormat
-}
-
-func (d *DeidentifyTextRequestFile) GetExtraProperties() map[string]interface{} {
-	return d.extraProperties
-}
-
-func (d *DeidentifyTextRequestFile) UnmarshalJSON(data []byte) error {
-	type embed DeidentifyTextRequestFile
-	var unmarshaler = struct {
-		embed
-		DataFormat string `json:"data_format"`
-	}{
-		embed: embed(*d),
-	}
-	if err := json.Unmarshal(data, &unmarshaler); err != nil {
-		return err
-	}
-	*d = DeidentifyTextRequestFile(unmarshaler.embed)
-	if unmarshaler.DataFormat != "txt" {
-		return fmt.Errorf("unexpected value for literal on type %T; expected %v got %v", d, "txt", unmarshaler.DataFormat)
-	}
-	d.dataFormat = unmarshaler.DataFormat
-	extraProperties, err := internal.ExtractExtraProperties(data, *d, "data_format")
-	if err != nil {
-		return err
-	}
-	d.extraProperties = extraProperties
-	d.rawJSON = json.RawMessage(data)
-	return nil
-}
-
-func (d *DeidentifyTextRequestFile) MarshalJSON() ([]byte, error) {
-	type embed DeidentifyTextRequestFile
-	var marshaler = struct {
-		embed
-		DataFormat string `json:"data_format"`
-	}{
-		embed:      embed(*d),
-		DataFormat: "txt",
-	}
-	return json.Marshal(marshaler)
-}
-
-func (d *DeidentifyTextRequestFile) String() string {
-	if len(d.rawJSON) > 0 {
-		if value, err := internal.StringifyJSON(d.rawJSON); err == nil {
-			return value
-		}
-	}
-	if value, err := internal.StringifyJSON(d); err == nil {
-		return value
-	}
-	return fmt.Sprintf("%#v", d)
-}
-
-// File to re-identify. Files are specified as Base64-encoded data or an EFS path.
-type ReidentifyFileRequestFile struct {
-	// Base64-encoded data of the file to re-identify.
-	Base64 string `json:"base64" url:"base64"`
-	// Data format of the file.
-	DataFormat ReidentifyFileRequestFileDataFormat `json:"data_format" url:"data_format"`
-
-	extraProperties map[string]interface{}
-	rawJSON         json.RawMessage
-}
-
-func (r *ReidentifyFileRequestFile) GetBase64() string {
-	if r == nil {
-		return ""
-	}
-	return r.Base64
-}
-
-func (r *ReidentifyFileRequestFile) GetDataFormat() ReidentifyFileRequestFileDataFormat {
-	if r == nil {
-		return ""
-	}
-	return r.DataFormat
-}
-
-func (r *ReidentifyFileRequestFile) GetExtraProperties() map[string]interface{} {
-	return r.extraProperties
-}
-
-func (r *ReidentifyFileRequestFile) UnmarshalJSON(data []byte) error {
-	type unmarshaler ReidentifyFileRequestFile
-	var value unmarshaler
-	if err := json.Unmarshal(data, &value); err != nil {
-		return err
-	}
-	*r = ReidentifyFileRequestFile(value)
-	extraProperties, err := internal.ExtractExtraProperties(data, *r)
-	if err != nil {
-		return err
-	}
-	r.extraProperties = extraProperties
-	r.rawJSON = json.RawMessage(data)
-	return nil
-}
-
-func (r *ReidentifyFileRequestFile) String() string {
-	if len(r.rawJSON) > 0 {
-		if value, err := internal.StringifyJSON(r.rawJSON); err == nil {
-			return value
-		}
-	}
-	if value, err := internal.StringifyJSON(r); err == nil {
-		return value
-	}
-	return fmt.Sprintf("%#v", r)
-}
-
-// Data format of the file.
-type ReidentifyFileRequestFileDataFormat string
+type DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem string
 
 const (
-	ReidentifyFileRequestFileDataFormatCsv  ReidentifyFileRequestFileDataFormat = "csv"
-	ReidentifyFileRequestFileDataFormatDoc  ReidentifyFileRequestFileDataFormat = "doc"
-	ReidentifyFileRequestFileDataFormatDocx ReidentifyFileRequestFileDataFormat = "docx"
-	ReidentifyFileRequestFileDataFormatJson ReidentifyFileRequestFileDataFormat = "json"
-	ReidentifyFileRequestFileDataFormatTxt  ReidentifyFileRequestFileDataFormat = "txt"
-	ReidentifyFileRequestFileDataFormatXls  ReidentifyFileRequestFileDataFormat = "xls"
-	ReidentifyFileRequestFileDataFormatXlsx ReidentifyFileRequestFileDataFormat = "xlsx"
-	ReidentifyFileRequestFileDataFormatXml  ReidentifyFileRequestFileDataFormat = "xml"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemAge                         DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "age"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemBankAccount                 DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "bank_account"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemCreditCard                  DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "credit_card"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemCreditCardExpiration        DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "credit_card_expiration"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemCvv                         DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "cvv"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemDate                        DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "date"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemDateInterval                DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "date_interval"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemDob                         DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "dob"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemDriverLicense               DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "driver_license"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemEmailAddress                DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "email_address"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemHealthcareNumber            DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "healthcare_number"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemIpAddress                   DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "ip_address"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemLocation                    DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "location"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemName                        DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "name"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemNumericalPii                DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "numerical_pii"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemPhoneNumber                 DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "phone_number"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemSsn                         DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "ssn"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemUrl                         DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "url"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemVehicleId                   DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "vehicle_id"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemMedicalCode                 DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "medical_code"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemNameFamily                  DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "name_family"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemNameGiven                   DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "name_given"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemAccountNumber               DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "account_number"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemEvent                       DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "event"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemFilename                    DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "filename"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemGender                      DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "gender"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemLanguage                    DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "language"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemLocationAddress             DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "location_address"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemLocationCity                DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "location_city"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemLocationCoordinate          DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "location_coordinate"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemLocationCountry             DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "location_country"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemLocationState               DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "location_state"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemLocationZip                 DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "location_zip"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemMaritalStatus               DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "marital_status"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemMoney                       DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "money"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemNameMedicalProfessional     DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "name_medical_professional"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemOccupation                  DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "occupation"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemOrganization                DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "organization"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemOrganizationMedicalFacility DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "organization_medical_facility"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemOrigin                      DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "origin"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemPassportNumber              DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "passport_number"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemPassword                    DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "password"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemPhysicalAttribute           DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "physical_attribute"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemPoliticalAffiliation        DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "political_affiliation"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemReligion                    DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "religion"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemTime                        DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "time"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemUsername                    DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "username"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemZodiacSign                  DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "zodiac_sign"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemBloodType                   DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "blood_type"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemCondition                   DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "condition"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemDose                        DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "dose"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemDrug                        DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "drug"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemInjury                      DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "injury"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemMedicalProcess              DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "medical_process"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemStatistics                  DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "statistics"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemRoutingNumber               DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "routing_number"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemCorporateAction             DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "corporate_action"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemFinancialMetric             DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "financial_metric"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemProduct                     DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "product"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemTrend                       DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "trend"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemDuration                    DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "duration"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemLocationAddressStreet       DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "location_address_street"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemAll                         DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "all"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemSexuality                   DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "sexuality"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemEffect                      DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "effect"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemProject                     DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "project"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemOrganizationId              DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "organization_id"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemDay                         DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "day"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemMonth                       DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "month"
+	DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemYear                        DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem = "year"
 )
 
-func NewReidentifyFileRequestFileDataFormatFromString(s string) (ReidentifyFileRequestFileDataFormat, error) {
+func NewDeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemFromString(s string) (DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem, error) {
 	switch s {
-	case "csv":
-		return ReidentifyFileRequestFileDataFormatCsv, nil
-	case "doc":
-		return ReidentifyFileRequestFileDataFormatDoc, nil
-	case "docx":
-		return ReidentifyFileRequestFileDataFormatDocx, nil
-	case "json":
-		return ReidentifyFileRequestFileDataFormatJson, nil
-	case "txt":
-		return ReidentifyFileRequestFileDataFormatTxt, nil
-	case "xls":
-		return ReidentifyFileRequestFileDataFormatXls, nil
-	case "xlsx":
-		return ReidentifyFileRequestFileDataFormatXlsx, nil
-	case "xml":
-		return ReidentifyFileRequestFileDataFormatXml, nil
+	case "age":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemAge, nil
+	case "bank_account":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemBankAccount, nil
+	case "credit_card":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemCreditCard, nil
+	case "credit_card_expiration":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemCreditCardExpiration, nil
+	case "cvv":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemCvv, nil
+	case "date":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemDate, nil
+	case "date_interval":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemDateInterval, nil
+	case "dob":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemDob, nil
+	case "driver_license":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemDriverLicense, nil
+	case "email_address":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemEmailAddress, nil
+	case "healthcare_number":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemHealthcareNumber, nil
+	case "ip_address":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemIpAddress, nil
+	case "location":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemLocation, nil
+	case "name":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemName, nil
+	case "numerical_pii":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemNumericalPii, nil
+	case "phone_number":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemPhoneNumber, nil
+	case "ssn":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemSsn, nil
+	case "url":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemUrl, nil
+	case "vehicle_id":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemVehicleId, nil
+	case "medical_code":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemMedicalCode, nil
+	case "name_family":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemNameFamily, nil
+	case "name_given":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemNameGiven, nil
+	case "account_number":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemAccountNumber, nil
+	case "event":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemEvent, nil
+	case "filename":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemFilename, nil
+	case "gender":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemGender, nil
+	case "language":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemLanguage, nil
+	case "location_address":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemLocationAddress, nil
+	case "location_city":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemLocationCity, nil
+	case "location_coordinate":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemLocationCoordinate, nil
+	case "location_country":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemLocationCountry, nil
+	case "location_state":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemLocationState, nil
+	case "location_zip":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemLocationZip, nil
+	case "marital_status":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemMaritalStatus, nil
+	case "money":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemMoney, nil
+	case "name_medical_professional":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemNameMedicalProfessional, nil
+	case "occupation":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemOccupation, nil
+	case "organization":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemOrganization, nil
+	case "organization_medical_facility":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemOrganizationMedicalFacility, nil
+	case "origin":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemOrigin, nil
+	case "passport_number":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemPassportNumber, nil
+	case "password":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemPassword, nil
+	case "physical_attribute":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemPhysicalAttribute, nil
+	case "political_affiliation":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemPoliticalAffiliation, nil
+	case "religion":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemReligion, nil
+	case "time":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemTime, nil
+	case "username":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemUsername, nil
+	case "zodiac_sign":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemZodiacSign, nil
+	case "blood_type":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemBloodType, nil
+	case "condition":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemCondition, nil
+	case "dose":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemDose, nil
+	case "drug":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemDrug, nil
+	case "injury":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemInjury, nil
+	case "medical_process":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemMedicalProcess, nil
+	case "statistics":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemStatistics, nil
+	case "routing_number":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemRoutingNumber, nil
+	case "corporate_action":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemCorporateAction, nil
+	case "financial_metric":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemFinancialMetric, nil
+	case "product":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemProduct, nil
+	case "trend":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemTrend, nil
+	case "duration":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemDuration, nil
+	case "location_address_street":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemLocationAddressStreet, nil
+	case "all":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemAll, nil
+	case "sexuality":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemSexuality, nil
+	case "effect":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemEffect, nil
+	case "project":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemProject, nil
+	case "organization_id":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemOrganizationId, nil
+	case "day":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemDay, nil
+	case "month":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemMonth, nil
+	case "year":
+		return DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItemYear, nil
 	}
-	var t ReidentifyFileRequestFileDataFormat
+	var t DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem
 	return "", fmt.Errorf("%s is not a valid %T", s, t)
 }
 
-func (r ReidentifyFileRequestFileDataFormat) Ptr() *ReidentifyFileRequestFileDataFormat {
-	return &r
+func (d DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem) Ptr() *DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem {
+	return &d
 }
 
-// Mapping of preferred data formatting options to entity types. Returned values are dependent on the configuration of the vault storing the data and the permissions of the user or account making the request.
-type ReidentifyFileRequestFormat struct {
-	// Entity types to fully redact.
-	Redacted []EntityType `json:"redacted,omitempty" url:"redacted,omitempty"`
-	// Entity types to mask.
-	Masked []EntityType `json:"masked,omitempty" url:"masked,omitempty"`
-	// Entity types to return in plaintext.
-	Plaintext []EntityType `json:"plaintext,omitempty" url:"plaintext,omitempty"`
+type DeidentifyFileRequestDeidentifyTextEntityTypesItem string
 
-	extraProperties map[string]interface{}
-	rawJSON         json.RawMessage
+const (
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemAge                         DeidentifyFileRequestDeidentifyTextEntityTypesItem = "age"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemBankAccount                 DeidentifyFileRequestDeidentifyTextEntityTypesItem = "bank_account"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemCreditCard                  DeidentifyFileRequestDeidentifyTextEntityTypesItem = "credit_card"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemCreditCardExpiration        DeidentifyFileRequestDeidentifyTextEntityTypesItem = "credit_card_expiration"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemCvv                         DeidentifyFileRequestDeidentifyTextEntityTypesItem = "cvv"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemDate                        DeidentifyFileRequestDeidentifyTextEntityTypesItem = "date"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemDateInterval                DeidentifyFileRequestDeidentifyTextEntityTypesItem = "date_interval"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemDob                         DeidentifyFileRequestDeidentifyTextEntityTypesItem = "dob"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemDriverLicense               DeidentifyFileRequestDeidentifyTextEntityTypesItem = "driver_license"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemEmailAddress                DeidentifyFileRequestDeidentifyTextEntityTypesItem = "email_address"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemHealthcareNumber            DeidentifyFileRequestDeidentifyTextEntityTypesItem = "healthcare_number"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemIpAddress                   DeidentifyFileRequestDeidentifyTextEntityTypesItem = "ip_address"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemLocation                    DeidentifyFileRequestDeidentifyTextEntityTypesItem = "location"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemName                        DeidentifyFileRequestDeidentifyTextEntityTypesItem = "name"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemNumericalPii                DeidentifyFileRequestDeidentifyTextEntityTypesItem = "numerical_pii"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemPhoneNumber                 DeidentifyFileRequestDeidentifyTextEntityTypesItem = "phone_number"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemSsn                         DeidentifyFileRequestDeidentifyTextEntityTypesItem = "ssn"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemUrl                         DeidentifyFileRequestDeidentifyTextEntityTypesItem = "url"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemVehicleId                   DeidentifyFileRequestDeidentifyTextEntityTypesItem = "vehicle_id"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemMedicalCode                 DeidentifyFileRequestDeidentifyTextEntityTypesItem = "medical_code"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemNameFamily                  DeidentifyFileRequestDeidentifyTextEntityTypesItem = "name_family"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemNameGiven                   DeidentifyFileRequestDeidentifyTextEntityTypesItem = "name_given"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemAccountNumber               DeidentifyFileRequestDeidentifyTextEntityTypesItem = "account_number"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemEvent                       DeidentifyFileRequestDeidentifyTextEntityTypesItem = "event"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemFilename                    DeidentifyFileRequestDeidentifyTextEntityTypesItem = "filename"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemGender                      DeidentifyFileRequestDeidentifyTextEntityTypesItem = "gender"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemLanguage                    DeidentifyFileRequestDeidentifyTextEntityTypesItem = "language"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemLocationAddress             DeidentifyFileRequestDeidentifyTextEntityTypesItem = "location_address"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemLocationCity                DeidentifyFileRequestDeidentifyTextEntityTypesItem = "location_city"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemLocationCoordinate          DeidentifyFileRequestDeidentifyTextEntityTypesItem = "location_coordinate"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemLocationCountry             DeidentifyFileRequestDeidentifyTextEntityTypesItem = "location_country"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemLocationState               DeidentifyFileRequestDeidentifyTextEntityTypesItem = "location_state"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemLocationZip                 DeidentifyFileRequestDeidentifyTextEntityTypesItem = "location_zip"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemMaritalStatus               DeidentifyFileRequestDeidentifyTextEntityTypesItem = "marital_status"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemMoney                       DeidentifyFileRequestDeidentifyTextEntityTypesItem = "money"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemNameMedicalProfessional     DeidentifyFileRequestDeidentifyTextEntityTypesItem = "name_medical_professional"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemOccupation                  DeidentifyFileRequestDeidentifyTextEntityTypesItem = "occupation"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemOrganization                DeidentifyFileRequestDeidentifyTextEntityTypesItem = "organization"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemOrganizationMedicalFacility DeidentifyFileRequestDeidentifyTextEntityTypesItem = "organization_medical_facility"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemOrigin                      DeidentifyFileRequestDeidentifyTextEntityTypesItem = "origin"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemPassportNumber              DeidentifyFileRequestDeidentifyTextEntityTypesItem = "passport_number"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemPassword                    DeidentifyFileRequestDeidentifyTextEntityTypesItem = "password"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemPhysicalAttribute           DeidentifyFileRequestDeidentifyTextEntityTypesItem = "physical_attribute"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemPoliticalAffiliation        DeidentifyFileRequestDeidentifyTextEntityTypesItem = "political_affiliation"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemReligion                    DeidentifyFileRequestDeidentifyTextEntityTypesItem = "religion"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemTime                        DeidentifyFileRequestDeidentifyTextEntityTypesItem = "time"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemUsername                    DeidentifyFileRequestDeidentifyTextEntityTypesItem = "username"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemZodiacSign                  DeidentifyFileRequestDeidentifyTextEntityTypesItem = "zodiac_sign"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemBloodType                   DeidentifyFileRequestDeidentifyTextEntityTypesItem = "blood_type"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemCondition                   DeidentifyFileRequestDeidentifyTextEntityTypesItem = "condition"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemDose                        DeidentifyFileRequestDeidentifyTextEntityTypesItem = "dose"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemDrug                        DeidentifyFileRequestDeidentifyTextEntityTypesItem = "drug"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemInjury                      DeidentifyFileRequestDeidentifyTextEntityTypesItem = "injury"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemMedicalProcess              DeidentifyFileRequestDeidentifyTextEntityTypesItem = "medical_process"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemStatistics                  DeidentifyFileRequestDeidentifyTextEntityTypesItem = "statistics"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemRoutingNumber               DeidentifyFileRequestDeidentifyTextEntityTypesItem = "routing_number"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemCorporateAction             DeidentifyFileRequestDeidentifyTextEntityTypesItem = "corporate_action"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemFinancialMetric             DeidentifyFileRequestDeidentifyTextEntityTypesItem = "financial_metric"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemProduct                     DeidentifyFileRequestDeidentifyTextEntityTypesItem = "product"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemTrend                       DeidentifyFileRequestDeidentifyTextEntityTypesItem = "trend"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemDuration                    DeidentifyFileRequestDeidentifyTextEntityTypesItem = "duration"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemLocationAddressStreet       DeidentifyFileRequestDeidentifyTextEntityTypesItem = "location_address_street"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemAll                         DeidentifyFileRequestDeidentifyTextEntityTypesItem = "all"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemSexuality                   DeidentifyFileRequestDeidentifyTextEntityTypesItem = "sexuality"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemEffect                      DeidentifyFileRequestDeidentifyTextEntityTypesItem = "effect"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemProject                     DeidentifyFileRequestDeidentifyTextEntityTypesItem = "project"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemOrganizationId              DeidentifyFileRequestDeidentifyTextEntityTypesItem = "organization_id"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemDay                         DeidentifyFileRequestDeidentifyTextEntityTypesItem = "day"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemMonth                       DeidentifyFileRequestDeidentifyTextEntityTypesItem = "month"
+	DeidentifyFileRequestDeidentifyTextEntityTypesItemYear                        DeidentifyFileRequestDeidentifyTextEntityTypesItem = "year"
+)
+
+func NewDeidentifyFileRequestDeidentifyTextEntityTypesItemFromString(s string) (DeidentifyFileRequestDeidentifyTextEntityTypesItem, error) {
+	switch s {
+	case "age":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemAge, nil
+	case "bank_account":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemBankAccount, nil
+	case "credit_card":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemCreditCard, nil
+	case "credit_card_expiration":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemCreditCardExpiration, nil
+	case "cvv":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemCvv, nil
+	case "date":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemDate, nil
+	case "date_interval":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemDateInterval, nil
+	case "dob":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemDob, nil
+	case "driver_license":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemDriverLicense, nil
+	case "email_address":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemEmailAddress, nil
+	case "healthcare_number":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemHealthcareNumber, nil
+	case "ip_address":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemIpAddress, nil
+	case "location":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemLocation, nil
+	case "name":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemName, nil
+	case "numerical_pii":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemNumericalPii, nil
+	case "phone_number":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemPhoneNumber, nil
+	case "ssn":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemSsn, nil
+	case "url":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemUrl, nil
+	case "vehicle_id":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemVehicleId, nil
+	case "medical_code":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemMedicalCode, nil
+	case "name_family":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemNameFamily, nil
+	case "name_given":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemNameGiven, nil
+	case "account_number":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemAccountNumber, nil
+	case "event":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemEvent, nil
+	case "filename":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemFilename, nil
+	case "gender":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemGender, nil
+	case "language":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemLanguage, nil
+	case "location_address":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemLocationAddress, nil
+	case "location_city":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemLocationCity, nil
+	case "location_coordinate":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemLocationCoordinate, nil
+	case "location_country":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemLocationCountry, nil
+	case "location_state":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemLocationState, nil
+	case "location_zip":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemLocationZip, nil
+	case "marital_status":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemMaritalStatus, nil
+	case "money":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemMoney, nil
+	case "name_medical_professional":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemNameMedicalProfessional, nil
+	case "occupation":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemOccupation, nil
+	case "organization":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemOrganization, nil
+	case "organization_medical_facility":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemOrganizationMedicalFacility, nil
+	case "origin":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemOrigin, nil
+	case "passport_number":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemPassportNumber, nil
+	case "password":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemPassword, nil
+	case "physical_attribute":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemPhysicalAttribute, nil
+	case "political_affiliation":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemPoliticalAffiliation, nil
+	case "religion":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemReligion, nil
+	case "time":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemTime, nil
+	case "username":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemUsername, nil
+	case "zodiac_sign":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemZodiacSign, nil
+	case "blood_type":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemBloodType, nil
+	case "condition":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemCondition, nil
+	case "dose":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemDose, nil
+	case "drug":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemDrug, nil
+	case "injury":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemInjury, nil
+	case "medical_process":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemMedicalProcess, nil
+	case "statistics":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemStatistics, nil
+	case "routing_number":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemRoutingNumber, nil
+	case "corporate_action":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemCorporateAction, nil
+	case "financial_metric":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemFinancialMetric, nil
+	case "product":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemProduct, nil
+	case "trend":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemTrend, nil
+	case "duration":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemDuration, nil
+	case "location_address_street":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemLocationAddressStreet, nil
+	case "all":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemAll, nil
+	case "sexuality":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemSexuality, nil
+	case "effect":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemEffect, nil
+	case "project":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemProject, nil
+	case "organization_id":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemOrganizationId, nil
+	case "day":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemDay, nil
+	case "month":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemMonth, nil
+	case "year":
+		return DeidentifyFileRequestDeidentifyTextEntityTypesItemYear, nil
+	}
+	var t DeidentifyFileRequestDeidentifyTextEntityTypesItem
+	return "", fmt.Errorf("%s is not a valid %T", s, t)
 }
 
-func (r *ReidentifyFileRequestFormat) GetRedacted() []EntityType {
-	if r == nil {
-		return nil
-	}
-	return r.Redacted
+func (d DeidentifyFileRequestDeidentifyTextEntityTypesItem) Ptr() *DeidentifyFileRequestDeidentifyTextEntityTypesItem {
+	return &d
 }
 
-func (r *ReidentifyFileRequestFormat) GetMasked() []EntityType {
-	if r == nil {
-		return nil
+type DeidentifyFileRequestEntityTypesItem string
+
+const (
+	DeidentifyFileRequestEntityTypesItemAge                         DeidentifyFileRequestEntityTypesItem = "age"
+	DeidentifyFileRequestEntityTypesItemBankAccount                 DeidentifyFileRequestEntityTypesItem = "bank_account"
+	DeidentifyFileRequestEntityTypesItemCreditCard                  DeidentifyFileRequestEntityTypesItem = "credit_card"
+	DeidentifyFileRequestEntityTypesItemCreditCardExpiration        DeidentifyFileRequestEntityTypesItem = "credit_card_expiration"
+	DeidentifyFileRequestEntityTypesItemCvv                         DeidentifyFileRequestEntityTypesItem = "cvv"
+	DeidentifyFileRequestEntityTypesItemDate                        DeidentifyFileRequestEntityTypesItem = "date"
+	DeidentifyFileRequestEntityTypesItemDateInterval                DeidentifyFileRequestEntityTypesItem = "date_interval"
+	DeidentifyFileRequestEntityTypesItemDob                         DeidentifyFileRequestEntityTypesItem = "dob"
+	DeidentifyFileRequestEntityTypesItemDriverLicense               DeidentifyFileRequestEntityTypesItem = "driver_license"
+	DeidentifyFileRequestEntityTypesItemEmailAddress                DeidentifyFileRequestEntityTypesItem = "email_address"
+	DeidentifyFileRequestEntityTypesItemHealthcareNumber            DeidentifyFileRequestEntityTypesItem = "healthcare_number"
+	DeidentifyFileRequestEntityTypesItemIpAddress                   DeidentifyFileRequestEntityTypesItem = "ip_address"
+	DeidentifyFileRequestEntityTypesItemLocation                    DeidentifyFileRequestEntityTypesItem = "location"
+	DeidentifyFileRequestEntityTypesItemName                        DeidentifyFileRequestEntityTypesItem = "name"
+	DeidentifyFileRequestEntityTypesItemNumericalPii                DeidentifyFileRequestEntityTypesItem = "numerical_pii"
+	DeidentifyFileRequestEntityTypesItemPhoneNumber                 DeidentifyFileRequestEntityTypesItem = "phone_number"
+	DeidentifyFileRequestEntityTypesItemSsn                         DeidentifyFileRequestEntityTypesItem = "ssn"
+	DeidentifyFileRequestEntityTypesItemUrl                         DeidentifyFileRequestEntityTypesItem = "url"
+	DeidentifyFileRequestEntityTypesItemVehicleId                   DeidentifyFileRequestEntityTypesItem = "vehicle_id"
+	DeidentifyFileRequestEntityTypesItemMedicalCode                 DeidentifyFileRequestEntityTypesItem = "medical_code"
+	DeidentifyFileRequestEntityTypesItemNameFamily                  DeidentifyFileRequestEntityTypesItem = "name_family"
+	DeidentifyFileRequestEntityTypesItemNameGiven                   DeidentifyFileRequestEntityTypesItem = "name_given"
+	DeidentifyFileRequestEntityTypesItemAccountNumber               DeidentifyFileRequestEntityTypesItem = "account_number"
+	DeidentifyFileRequestEntityTypesItemEvent                       DeidentifyFileRequestEntityTypesItem = "event"
+	DeidentifyFileRequestEntityTypesItemFilename                    DeidentifyFileRequestEntityTypesItem = "filename"
+	DeidentifyFileRequestEntityTypesItemGender                      DeidentifyFileRequestEntityTypesItem = "gender"
+	DeidentifyFileRequestEntityTypesItemLanguage                    DeidentifyFileRequestEntityTypesItem = "language"
+	DeidentifyFileRequestEntityTypesItemLocationAddress             DeidentifyFileRequestEntityTypesItem = "location_address"
+	DeidentifyFileRequestEntityTypesItemLocationCity                DeidentifyFileRequestEntityTypesItem = "location_city"
+	DeidentifyFileRequestEntityTypesItemLocationCoordinate          DeidentifyFileRequestEntityTypesItem = "location_coordinate"
+	DeidentifyFileRequestEntityTypesItemLocationCountry             DeidentifyFileRequestEntityTypesItem = "location_country"
+	DeidentifyFileRequestEntityTypesItemLocationState               DeidentifyFileRequestEntityTypesItem = "location_state"
+	DeidentifyFileRequestEntityTypesItemLocationZip                 DeidentifyFileRequestEntityTypesItem = "location_zip"
+	DeidentifyFileRequestEntityTypesItemMaritalStatus               DeidentifyFileRequestEntityTypesItem = "marital_status"
+	DeidentifyFileRequestEntityTypesItemMoney                       DeidentifyFileRequestEntityTypesItem = "money"
+	DeidentifyFileRequestEntityTypesItemNameMedicalProfessional     DeidentifyFileRequestEntityTypesItem = "name_medical_professional"
+	DeidentifyFileRequestEntityTypesItemOccupation                  DeidentifyFileRequestEntityTypesItem = "occupation"
+	DeidentifyFileRequestEntityTypesItemOrganization                DeidentifyFileRequestEntityTypesItem = "organization"
+	DeidentifyFileRequestEntityTypesItemOrganizationMedicalFacility DeidentifyFileRequestEntityTypesItem = "organization_medical_facility"
+	DeidentifyFileRequestEntityTypesItemOrigin                      DeidentifyFileRequestEntityTypesItem = "origin"
+	DeidentifyFileRequestEntityTypesItemPassportNumber              DeidentifyFileRequestEntityTypesItem = "passport_number"
+	DeidentifyFileRequestEntityTypesItemPassword                    DeidentifyFileRequestEntityTypesItem = "password"
+	DeidentifyFileRequestEntityTypesItemPhysicalAttribute           DeidentifyFileRequestEntityTypesItem = "physical_attribute"
+	DeidentifyFileRequestEntityTypesItemPoliticalAffiliation        DeidentifyFileRequestEntityTypesItem = "political_affiliation"
+	DeidentifyFileRequestEntityTypesItemReligion                    DeidentifyFileRequestEntityTypesItem = "religion"
+	DeidentifyFileRequestEntityTypesItemTime                        DeidentifyFileRequestEntityTypesItem = "time"
+	DeidentifyFileRequestEntityTypesItemUsername                    DeidentifyFileRequestEntityTypesItem = "username"
+	DeidentifyFileRequestEntityTypesItemZodiacSign                  DeidentifyFileRequestEntityTypesItem = "zodiac_sign"
+	DeidentifyFileRequestEntityTypesItemBloodType                   DeidentifyFileRequestEntityTypesItem = "blood_type"
+	DeidentifyFileRequestEntityTypesItemCondition                   DeidentifyFileRequestEntityTypesItem = "condition"
+	DeidentifyFileRequestEntityTypesItemDose                        DeidentifyFileRequestEntityTypesItem = "dose"
+	DeidentifyFileRequestEntityTypesItemDrug                        DeidentifyFileRequestEntityTypesItem = "drug"
+	DeidentifyFileRequestEntityTypesItemInjury                      DeidentifyFileRequestEntityTypesItem = "injury"
+	DeidentifyFileRequestEntityTypesItemMedicalProcess              DeidentifyFileRequestEntityTypesItem = "medical_process"
+	DeidentifyFileRequestEntityTypesItemStatistics                  DeidentifyFileRequestEntityTypesItem = "statistics"
+	DeidentifyFileRequestEntityTypesItemRoutingNumber               DeidentifyFileRequestEntityTypesItem = "routing_number"
+	DeidentifyFileRequestEntityTypesItemCorporateAction             DeidentifyFileRequestEntityTypesItem = "corporate_action"
+	DeidentifyFileRequestEntityTypesItemFinancialMetric             DeidentifyFileRequestEntityTypesItem = "financial_metric"
+	DeidentifyFileRequestEntityTypesItemProduct                     DeidentifyFileRequestEntityTypesItem = "product"
+	DeidentifyFileRequestEntityTypesItemTrend                       DeidentifyFileRequestEntityTypesItem = "trend"
+	DeidentifyFileRequestEntityTypesItemDuration                    DeidentifyFileRequestEntityTypesItem = "duration"
+	DeidentifyFileRequestEntityTypesItemLocationAddressStreet       DeidentifyFileRequestEntityTypesItem = "location_address_street"
+	DeidentifyFileRequestEntityTypesItemAll                         DeidentifyFileRequestEntityTypesItem = "all"
+	DeidentifyFileRequestEntityTypesItemSexuality                   DeidentifyFileRequestEntityTypesItem = "sexuality"
+	DeidentifyFileRequestEntityTypesItemEffect                      DeidentifyFileRequestEntityTypesItem = "effect"
+	DeidentifyFileRequestEntityTypesItemProject                     DeidentifyFileRequestEntityTypesItem = "project"
+	DeidentifyFileRequestEntityTypesItemOrganizationId              DeidentifyFileRequestEntityTypesItem = "organization_id"
+	DeidentifyFileRequestEntityTypesItemDay                         DeidentifyFileRequestEntityTypesItem = "day"
+	DeidentifyFileRequestEntityTypesItemMonth                       DeidentifyFileRequestEntityTypesItem = "month"
+	DeidentifyFileRequestEntityTypesItemYear                        DeidentifyFileRequestEntityTypesItem = "year"
+)
+
+func NewDeidentifyFileRequestEntityTypesItemFromString(s string) (DeidentifyFileRequestEntityTypesItem, error) {
+	switch s {
+	case "age":
+		return DeidentifyFileRequestEntityTypesItemAge, nil
+	case "bank_account":
+		return DeidentifyFileRequestEntityTypesItemBankAccount, nil
+	case "credit_card":
+		return DeidentifyFileRequestEntityTypesItemCreditCard, nil
+	case "credit_card_expiration":
+		return DeidentifyFileRequestEntityTypesItemCreditCardExpiration, nil
+	case "cvv":
+		return DeidentifyFileRequestEntityTypesItemCvv, nil
+	case "date":
+		return DeidentifyFileRequestEntityTypesItemDate, nil
+	case "date_interval":
+		return DeidentifyFileRequestEntityTypesItemDateInterval, nil
+	case "dob":
+		return DeidentifyFileRequestEntityTypesItemDob, nil
+	case "driver_license":
+		return DeidentifyFileRequestEntityTypesItemDriverLicense, nil
+	case "email_address":
+		return DeidentifyFileRequestEntityTypesItemEmailAddress, nil
+	case "healthcare_number":
+		return DeidentifyFileRequestEntityTypesItemHealthcareNumber, nil
+	case "ip_address":
+		return DeidentifyFileRequestEntityTypesItemIpAddress, nil
+	case "location":
+		return DeidentifyFileRequestEntityTypesItemLocation, nil
+	case "name":
+		return DeidentifyFileRequestEntityTypesItemName, nil
+	case "numerical_pii":
+		return DeidentifyFileRequestEntityTypesItemNumericalPii, nil
+	case "phone_number":
+		return DeidentifyFileRequestEntityTypesItemPhoneNumber, nil
+	case "ssn":
+		return DeidentifyFileRequestEntityTypesItemSsn, nil
+	case "url":
+		return DeidentifyFileRequestEntityTypesItemUrl, nil
+	case "vehicle_id":
+		return DeidentifyFileRequestEntityTypesItemVehicleId, nil
+	case "medical_code":
+		return DeidentifyFileRequestEntityTypesItemMedicalCode, nil
+	case "name_family":
+		return DeidentifyFileRequestEntityTypesItemNameFamily, nil
+	case "name_given":
+		return DeidentifyFileRequestEntityTypesItemNameGiven, nil
+	case "account_number":
+		return DeidentifyFileRequestEntityTypesItemAccountNumber, nil
+	case "event":
+		return DeidentifyFileRequestEntityTypesItemEvent, nil
+	case "filename":
+		return DeidentifyFileRequestEntityTypesItemFilename, nil
+	case "gender":
+		return DeidentifyFileRequestEntityTypesItemGender, nil
+	case "language":
+		return DeidentifyFileRequestEntityTypesItemLanguage, nil
+	case "location_address":
+		return DeidentifyFileRequestEntityTypesItemLocationAddress, nil
+	case "location_city":
+		return DeidentifyFileRequestEntityTypesItemLocationCity, nil
+	case "location_coordinate":
+		return DeidentifyFileRequestEntityTypesItemLocationCoordinate, nil
+	case "location_country":
+		return DeidentifyFileRequestEntityTypesItemLocationCountry, nil
+	case "location_state":
+		return DeidentifyFileRequestEntityTypesItemLocationState, nil
+	case "location_zip":
+		return DeidentifyFileRequestEntityTypesItemLocationZip, nil
+	case "marital_status":
+		return DeidentifyFileRequestEntityTypesItemMaritalStatus, nil
+	case "money":
+		return DeidentifyFileRequestEntityTypesItemMoney, nil
+	case "name_medical_professional":
+		return DeidentifyFileRequestEntityTypesItemNameMedicalProfessional, nil
+	case "occupation":
+		return DeidentifyFileRequestEntityTypesItemOccupation, nil
+	case "organization":
+		return DeidentifyFileRequestEntityTypesItemOrganization, nil
+	case "organization_medical_facility":
+		return DeidentifyFileRequestEntityTypesItemOrganizationMedicalFacility, nil
+	case "origin":
+		return DeidentifyFileRequestEntityTypesItemOrigin, nil
+	case "passport_number":
+		return DeidentifyFileRequestEntityTypesItemPassportNumber, nil
+	case "password":
+		return DeidentifyFileRequestEntityTypesItemPassword, nil
+	case "physical_attribute":
+		return DeidentifyFileRequestEntityTypesItemPhysicalAttribute, nil
+	case "political_affiliation":
+		return DeidentifyFileRequestEntityTypesItemPoliticalAffiliation, nil
+	case "religion":
+		return DeidentifyFileRequestEntityTypesItemReligion, nil
+	case "time":
+		return DeidentifyFileRequestEntityTypesItemTime, nil
+	case "username":
+		return DeidentifyFileRequestEntityTypesItemUsername, nil
+	case "zodiac_sign":
+		return DeidentifyFileRequestEntityTypesItemZodiacSign, nil
+	case "blood_type":
+		return DeidentifyFileRequestEntityTypesItemBloodType, nil
+	case "condition":
+		return DeidentifyFileRequestEntityTypesItemCondition, nil
+	case "dose":
+		return DeidentifyFileRequestEntityTypesItemDose, nil
+	case "drug":
+		return DeidentifyFileRequestEntityTypesItemDrug, nil
+	case "injury":
+		return DeidentifyFileRequestEntityTypesItemInjury, nil
+	case "medical_process":
+		return DeidentifyFileRequestEntityTypesItemMedicalProcess, nil
+	case "statistics":
+		return DeidentifyFileRequestEntityTypesItemStatistics, nil
+	case "routing_number":
+		return DeidentifyFileRequestEntityTypesItemRoutingNumber, nil
+	case "corporate_action":
+		return DeidentifyFileRequestEntityTypesItemCorporateAction, nil
+	case "financial_metric":
+		return DeidentifyFileRequestEntityTypesItemFinancialMetric, nil
+	case "product":
+		return DeidentifyFileRequestEntityTypesItemProduct, nil
+	case "trend":
+		return DeidentifyFileRequestEntityTypesItemTrend, nil
+	case "duration":
+		return DeidentifyFileRequestEntityTypesItemDuration, nil
+	case "location_address_street":
+		return DeidentifyFileRequestEntityTypesItemLocationAddressStreet, nil
+	case "all":
+		return DeidentifyFileRequestEntityTypesItemAll, nil
+	case "sexuality":
+		return DeidentifyFileRequestEntityTypesItemSexuality, nil
+	case "effect":
+		return DeidentifyFileRequestEntityTypesItemEffect, nil
+	case "project":
+		return DeidentifyFileRequestEntityTypesItemProject, nil
+	case "organization_id":
+		return DeidentifyFileRequestEntityTypesItemOrganizationId, nil
+	case "day":
+		return DeidentifyFileRequestEntityTypesItemDay, nil
+	case "month":
+		return DeidentifyFileRequestEntityTypesItemMonth, nil
+	case "year":
+		return DeidentifyFileRequestEntityTypesItemYear, nil
 	}
-	return r.Masked
+	var t DeidentifyFileRequestEntityTypesItem
+	return "", fmt.Errorf("%s is not a valid %T", s, t)
 }
 
-func (r *ReidentifyFileRequestFormat) GetPlaintext() []EntityType {
-	if r == nil {
-		return nil
-	}
-	return r.Plaintext
-}
-
-func (r *ReidentifyFileRequestFormat) GetExtraProperties() map[string]interface{} {
-	return r.extraProperties
-}
-
-func (r *ReidentifyFileRequestFormat) UnmarshalJSON(data []byte) error {
-	type unmarshaler ReidentifyFileRequestFormat
-	var value unmarshaler
-	if err := json.Unmarshal(data, &value); err != nil {
-		return err
-	}
-	*r = ReidentifyFileRequestFormat(value)
-	extraProperties, err := internal.ExtractExtraProperties(data, *r)
-	if err != nil {
-		return err
-	}
-	r.extraProperties = extraProperties
-	r.rawJSON = json.RawMessage(data)
-	return nil
-}
-
-func (r *ReidentifyFileRequestFormat) String() string {
-	if len(r.rawJSON) > 0 {
-		if value, err := internal.StringifyJSON(r.rawJSON); err == nil {
-			return value
-		}
-	}
-	if value, err := internal.StringifyJSON(r); err == nil {
-		return value
-	}
-	return fmt.Sprintf("%#v", r)
+func (d DeidentifyFileRequestEntityTypesItem) Ptr() *DeidentifyFileRequestEntityTypesItem {
+	return &d
 }

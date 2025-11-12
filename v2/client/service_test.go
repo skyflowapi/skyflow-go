@@ -38,30 +38,30 @@ var (
 	mockNoEntitiesFoundJSON   = `{"processed_text": "No entities found in this text", "word_count": 6, "character_count": 30, "entities": []}`
 	mockReidentifyTextJSON    = `{"text": "My SSN is 123-45-6789 and my card is *REDACTED*."}`
 	mockDetectErrorJSON       = `{"error":{"grpc_code":3,"http_code":400,"message":"Invalid request","http_status":"Bad Request","details":[]}}`
-	mockInvalidRunIdJSON      = `{ "status": "UNKNOWN", "output_type": "UNKNOWN", "output": [], "message": "", "size": 0}`
+	mockInvalidRunIdJSON      = `{ "status": "UNKNOWN", "outputType": "UNKNOWN", "output": [], "message": "", "size": 0}`
 	mockDetectRunResponse     = map[string]interface{}{
 		"status": "SUCCESS",
 		"output": []map[string]interface{}{
 			{
-				"processed_file":           "dGVzdCBjb250ZW50",
-				"processed_file_extension": "txt",
-				"processed_file_type":      "TEXT",
+				"processedFile":           "dGVzdCBjb250ZW50",
+				"processedFileExtension": "txt",
+				"processedFileType":      "TEXT",
 			},
 			{
-				"processed_file":           "eyJlbnRpdGllcyI6W119",
-				"processed_file_type":      "ENTITIES",
-				"processed_file_extension": "json",
+				"processedFile":           "eyJlbnRpdGllcyI6W119",
+				"processedFileType":      "ENTITIES",
+				"processedFileExtension": "json",
 			},
 		},
-		"output_type": "FILE",
+		"outputType": "FILE",
 		"message":     "Processing completed successfully",
 		"size":        1024.5,
 		"duration":    1.2,
 		"pages":       0,
 		"slides":      0,
-		"word_character_count": map[string]interface{}{
-			"word_count":      150,
-			"character_count": 750,
+		"wordCharacterCount": map[string]interface{}{
+			"wordCount":      150,
+			"characterCount": 750,
 		},
 	}
 )
@@ -520,7 +520,7 @@ var _ = Describe("Vault controller Test cases", func() {
 			res, err := service.UploadFile(ctx, request)
 			Expect(res).To(BeNil())
 			Expect(err).ToNot(BeNil())
-		})	
+		})
 	})
 
 	Describe("Test Query functions", func() {
@@ -609,8 +609,8 @@ var _ = Describe("Vault controller Test cases", func() {
 		})
 		Context("Test the success and error case", func() {
 			request := UpdateRequest{
-				Table: "demo",
-				Data:  map[string]interface{}{"skyflow_id": "123", "name": "john"},
+				Table:  "demo",
+				Data:   map[string]interface{}{"skyflow_id": "123", "name": "john"},
 				Tokens: nil,
 			}
 			It("should return success response when valid ids passed in Update", func() {
@@ -1036,30 +1036,30 @@ var _ = Describe("Detect controller Test cases", func() {
 							"status": "SUCCESS",
 							"output": []map[string]interface{}{
 								{
-									"processed_file":           "dGVzdCBjb250ZW50",
-									"processed_file_extension": tc.fileExt,
-									"processed_file_type":      tc.fileType,
+									"processedFile":          "dGVzdCBjb250ZW50",
+									"processedFileExtension": tc.fileExt,
+									"processedFileType":      tc.fileType,
 								},
 								{
-									"processed_file":           "eyJlbnRpdGllcyI6W119",
-									"processed_file_type":      "entities",
-									"processed_file_extension": "json",
+									"processedFile":          "eyJlbnRpdGllcyI6W119",
+									"processedFileType":      "entities",
+									"processedFileExtension": "json",
 								},
 							},
-							"output_type": "FILE",
-							"message":     "Processing completed successfully",
-							"size":        1024.5,
-							"duration":    60.5,
-							"pages":       5,
+							"outputType": "FILE",
+							"message":    "Processing completed successfully",
+							"size":       1024.5,
+							"duration":   60.5,
+							"pages":      5,
 							"slides": func() int {
 								if tc.fileType == "PPTX" {
 									return 10
 								}
 								return 0
 							}(),
-							"word_character_count": map[string]interface{}{
-								"word_count":      150,
-								"character_count": 750,
+							"wordCharacterCount": map[string]interface{}{
+								"wordCount":      150,
+								"characterCount": 750,
 							},
 						}
 

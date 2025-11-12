@@ -2,12 +2,12 @@ package records
 
 import (
 	context "context"
-	http "net/http"
-	"fmt"
+	fmt "fmt"
 	generated "github.com/skyflowapi/skyflow-go/v2/internal/generated"
 	core "github.com/skyflowapi/skyflow-go/v2/internal/generated/core"
-	option "github.com/skyflowapi/skyflow-go/v2/internal/generated/option"
 	internal "github.com/skyflowapi/skyflow-go/v2/internal/generated/internal"
+	option "github.com/skyflowapi/skyflow-go/v2/internal/generated/option"
+	http "net/http"
 )
 
 type RawClient struct {

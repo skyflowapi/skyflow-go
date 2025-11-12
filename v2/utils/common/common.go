@@ -269,8 +269,8 @@ type DeidentifyFileRequest struct {
 	OutputProcessedImage bool
 	OutputOcrText        bool
 	MaskingMethod        MaskingMethod
-	PixelDensity         float64
-	MaxResolution        float64
+	PixelDensity         int
+	MaxResolution        int
 	OutputProcessedAudio bool
 	OutputTranscription  DetectOutputTranscriptions
 	Bleep                AudioBleep
@@ -285,8 +285,8 @@ type FileInput struct {
 }
 
 type AudioBleep struct {
-	Gain         float64
-	Frequency    float64
+	Gain         int
+	Frequency    int
 	StartPadding float64
 	StopPadding  float64
 }

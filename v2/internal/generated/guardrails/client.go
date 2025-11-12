@@ -4,12 +4,11 @@ package guardrails
 
 import (
 	context "context"
-	http "net/http"
-
 	generated "github.com/skyflowapi/skyflow-go/v2/internal/generated"
 	core "github.com/skyflowapi/skyflow-go/v2/internal/generated/core"
-	option "github.com/skyflowapi/skyflow-go/v2/internal/generated/option"
 	internal "github.com/skyflowapi/skyflow-go/v2/internal/generated/internal"
+	option "github.com/skyflowapi/skyflow-go/v2/internal/generated/option"
+	http "net/http"
 )
 
 type Client struct {
@@ -38,9 +37,9 @@ func NewClient(opts ...option.RequestOption) *Client {
 // Preserve safety and compliance with usage policies.
 func (c *Client) CheckGuardrails(
 	ctx context.Context,
-	request *generated.CheckGuardrailsRequest,
+	request *generated.DetectGuardrailsRequest,
 	opts ...option.RequestOption,
-) (*generated.CheckGuardrailsResponse, error) {
+) (*generated.DetectGuardrailsResponse, error) {
 	options := core.NewRequestOptions(opts...)
 	baseURL := internal.ResolveBaseURL(
 		options.BaseURL,
@@ -71,7 +70,7 @@ func (c *Client) CheckGuardrails(
 		},
 	}
 
-	var response *generated.CheckGuardrailsResponse
+	var response *generated.DetectGuardrailsResponse
 	if _, err := c.caller.Call(
 		ctx,
 		&internal.CallParams{

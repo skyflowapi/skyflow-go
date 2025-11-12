@@ -2,12 +2,11 @@ package strings
 
 import (
 	context "context"
-	http "net/http"
-
 	generated "github.com/skyflowapi/skyflow-go/v2/internal/generated"
 	core "github.com/skyflowapi/skyflow-go/v2/internal/generated/core"
-	option "github.com/skyflowapi/skyflow-go/v2/internal/generated/option"
 	internal "github.com/skyflowapi/skyflow-go/v2/internal/generated/internal"
+	option "github.com/skyflowapi/skyflow-go/v2/internal/generated/option"
+	http "net/http"
 )
 
 type RawClient struct {
@@ -93,7 +92,7 @@ func (r *RawClient) ReidentifyString(
 	ctx context.Context,
 	request *generated.ReidentifyStringRequest,
 	opts ...option.RequestOption,
-) (*core.Response[*generated.ReidentifyStringResponse], error) {
+) (*core.Response[*generated.IdentifyResponse], error) {
 	options := core.NewRequestOptions(opts...)
 	baseURL := internal.ResolveBaseURL(
 		options.BaseURL,
@@ -123,7 +122,7 @@ func (r *RawClient) ReidentifyString(
 			}
 		},
 	}
-	var response *generated.ReidentifyStringResponse
+	var response *generated.IdentifyResponse
 	raw, err := r.caller.Call(
 		ctx,
 		&internal.CallParams{
@@ -142,7 +141,7 @@ func (r *RawClient) ReidentifyString(
 	if err != nil {
 		return nil, err
 	}
-	return &core.Response[*generated.ReidentifyStringResponse]{
+	return &core.Response[*generated.IdentifyResponse]{
 		StatusCode: raw.StatusCode,
 		Header:     raw.Header,
 		Body:       response,

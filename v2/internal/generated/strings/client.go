@@ -4,12 +4,11 @@ package strings
 
 import (
 	context "context"
-	http "net/http"
-
 	generated "github.com/skyflowapi/skyflow-go/v2/internal/generated"
 	core "github.com/skyflowapi/skyflow-go/v2/internal/generated/core"
-	option "github.com/skyflowapi/skyflow-go/v2/internal/generated/option"
 	internal "github.com/skyflowapi/skyflow-go/v2/internal/generated/internal"
+	option "github.com/skyflowapi/skyflow-go/v2/internal/generated/option"
+	http "net/http"
 )
 
 type Client struct {
@@ -97,7 +96,7 @@ func (c *Client) ReidentifyString(
 	ctx context.Context,
 	request *generated.ReidentifyStringRequest,
 	opts ...option.RequestOption,
-) (*generated.ReidentifyStringResponse, error) {
+) (*generated.IdentifyResponse, error) {
 	options := core.NewRequestOptions(opts...)
 	baseURL := internal.ResolveBaseURL(
 		options.BaseURL,
@@ -128,7 +127,7 @@ func (c *Client) ReidentifyString(
 		},
 	}
 
-	var response *generated.ReidentifyStringResponse
+	var response *generated.IdentifyResponse
 	if _, err := c.caller.Call(
 		ctx,
 		&internal.CallParams{

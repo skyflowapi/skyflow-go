@@ -109,61 +109,66 @@ func CreateDeidentifyTextRequest(request common.DeidentifyTextRequest, config co
 		Text:    request.Text,
 	}
 
-	allowRegex := vaultapis.AllowRegex(request.AllowRegexList)
-	payload.AllowRegex = &allowRegex
+	if len(request.AllowRegexList) > 0 {
+		payload.AllowRegex = request.AllowRegexList
+	}
+
+	// RestrictRegex
+	if len(request.RestrictRegexList) > 0 {
+		payload.RestrictRegex = request.RestrictRegexList
+	}
 
 	// Entities
-	entities := make(vaultapis.EntityTypes, len(request.Entities))
-	for i, entity := range request.Entities {
-		entities[i] = vaultapis.EntityType(entity)
+	if len(request.Entities) > 0 {
+		entityTypes := make([]vaultapis.DeidentifyStringRequestEntityTypesItem, len(request.Entities))
+		for i, entity := range request.Entities {
+			entityTypes[i] = vaultapis.DeidentifyStringRequestEntityTypesItem(entity)
+		}
+		payload.EntityTypes = entityTypes
 	}
-	payload.EntityTypes = &entities
 
 	// TokenFormat
 	if request.TokenFormat.DefaultType != "" || len(request.TokenFormat.EntityOnly) > 0 || len(request.TokenFormat.VaultToken) > 0 {
-		payload.TokenType = &vaultapis.TokenType{}
+		payload.TokenType = &vaultapis.TokenTypeMapping{}
 
 		if request.TokenFormat.DefaultType != "" {
-			tokenFormat := vaultapis.TokenTypeDefault(request.TokenFormat.DefaultType)
+			tokenFormat := vaultapis.TokenTypeMappingDefault(request.TokenFormat.DefaultType)
 			payload.TokenType.Default = &tokenFormat
 		}
 
 		if len(request.TokenFormat.EntityOnly) > 0 {
-			entityOnly := make([]vaultapis.EntityType, len(request.TokenFormat.EntityOnly))
+			entityOnly := make([]vaultapis.TokenTypeMappingEntityOnlyItem, len(request.TokenFormat.EntityOnly))
 			for i, entity := range request.TokenFormat.EntityOnly {
-				entityOnly[i] = vaultapis.EntityType(entity)
+				entityOnly[i] = vaultapis.TokenTypeMappingEntityOnlyItem(entity)
 			}
 			payload.TokenType.EntityOnly = entityOnly
 		}
 
 		if len(request.TokenFormat.VaultToken) > 0 {
-			vaultToken := make([]vaultapis.EntityType, len(request.TokenFormat.VaultToken))
+			vaultToken := make([]vaultapis.TokenTypeMappingVaultTokenItem, len(request.TokenFormat.VaultToken))
 			for i, entity := range request.TokenFormat.VaultToken {
-				vaultToken[i] = vaultapis.EntityType(entity)
+				vaultToken[i] = vaultapis.TokenTypeMappingVaultTokenItem(entity)
 			}
 			payload.TokenType.VaultToken = vaultToken
 		}
 	}
 
-	// RestrictRegexList
-	if len(request.RestrictRegexList) > 0 {
-		restrictRegex := vaultapis.RestrictRegex(request.RestrictRegexList)
-		payload.RestrictRegex = &restrictRegex
-	}
-
 	// Transformations
-	if len(request.Transformations.ShiftDates.Entities) > 0 || request.Transformations.ShiftDates.MaxDays != 0 || request.Transformations.ShiftDates.MinDays != 0 {
-		shiftDates := &vaultapis.TransformationsShiftDates{
-			MaxDays: &request.Transformations.ShiftDates.MaxDays,
+	if len(request.Transformations.ShiftDates.Entities) > 0 ||
+		request.Transformations.ShiftDates.MinDays != 0 ||
+		request.Transformations.ShiftDates.MaxDays != 0 {
+
+		shiftDates := &vaultapis.ShiftDates{
 			MinDays: &request.Transformations.ShiftDates.MinDays,
+			MaxDays: &request.Transformations.ShiftDates.MaxDays,
 		}
 
 		if len(request.Transformations.ShiftDates.Entities) > 0 {
-			entities := make([]vaultapis.TransformationsShiftDatesEntityTypesItem, len(request.Transformations.ShiftDates.Entities))
+			entityTypes := make([]vaultapis.ShiftDatesEntityTypesItem, len(request.Transformations.ShiftDates.Entities))
 			for i, entity := range request.Transformations.ShiftDates.Entities {
-				entities[i] = vaultapis.TransformationsShiftDatesEntityTypesItem(entity)
+				entityTypes[i] = vaultapis.ShiftDatesEntityTypesItem(entity)
 			}
-			shiftDates.EntityTypes = entities
+			shiftDates.EntityTypes = entityTypes
 		}
 
 		payload.Transformations = &vaultapis.Transformations{
@@ -176,18 +181,18 @@ func CreateDeidentifyTextRequest(request common.DeidentifyTextRequest, config co
 
 func CreateReidentifyTextRequest(request common.ReidentifyTextRequest, config common.VaultConfig) (*vaultapis.ReidentifyStringRequest, *skyflowError.SkyflowError) {
 	payload := vaultapis.ReidentifyStringRequest{
-		VaultId: config.VaultId,
-		Format:  &vaultapis.ReidentifyStringRequestFormat{},
+		VaultId: &config.VaultId,
+		Format:  &vaultapis.Format{},
 	}
 
 	// text
 	if request.Text != "" {
-		payload.Text = request.Text
+		payload.Text = &request.Text
 	}
 
 	// RedactedEntities
 	if len(request.RedactedEntities) > 0 {
-		redactedEntities := CreateEntityTypes(request.RedactedEntities)
+		redactedEntities := CreateEntityTypes(request.RedactedEntities, "redacted").([]vaultapis.FormatRedactedItem)
 		if len(redactedEntities) > 0 {
 			payload.Format.Redacted = redactedEntities
 		}
@@ -195,7 +200,7 @@ func CreateReidentifyTextRequest(request common.ReidentifyTextRequest, config co
 
 	// MaskedEntities
 	if len(request.MaskedEntities) > 0 {
-		maskedEntities := CreateEntityTypes(request.MaskedEntities)
+		maskedEntities := CreateEntityTypes(request.MaskedEntities, "masked").([]vaultapis.FormatMaskedItem)
 		if len(maskedEntities) > 0 {
 			payload.Format.Masked = maskedEntities
 		}
@@ -203,7 +208,7 @@ func CreateReidentifyTextRequest(request common.ReidentifyTextRequest, config co
 
 	// PlainTextEntities
 	if len(request.PlainTextEntities) > 0 {
-		plainTextEntities := CreateEntityTypes(request.PlainTextEntities)
+		plainTextEntities := CreateEntityTypes(request.PlainTextEntities, "plaintext").([]vaultapis.FormatPlaintextItem)
 		if len(plainTextEntities) > 0 {
 			payload.Format.Plaintext = plainTextEntities
 		}
@@ -212,13 +217,17 @@ func CreateReidentifyTextRequest(request common.ReidentifyTextRequest, config co
 	return &payload, nil
 }
 
-func CreateTextFileRequest(request *common.DeidentifyFileRequest, base64Content, vaultID string) *vaultapis.DeidentifyTextRequest {
-	return &vaultapis.DeidentifyTextRequest{
+func CreateTextFileRequest(request *common.DeidentifyFileRequest, base64Content, vaultID string) *vaultapis.DeidentifyFileRequestDeidentifyText {
+	var entityTypes []vaultapis.DeidentifyFileRequestDeidentifyTextEntityTypesItem
+	if result := CreateEntityTypesRef(request.Entities, "text"); result != nil {
+		entityTypes = result.([]vaultapis.DeidentifyFileRequestDeidentifyTextEntityTypesItem)
+	}
+	return &vaultapis.DeidentifyFileRequestDeidentifyText{
 		VaultId: vaultID,
-		File: &vaultapis.DeidentifyTextRequestFile{
+		File: &vaultapis.FileDataDeidentifyText{
 			Base64: base64Content,
 		},
-		EntityTypes:     CreateEntityTypesRef(request.Entities),
+		EntityTypes:     entityTypes,
 		TokenType:       CreateTokenType(request.TokenFormat),
 		AllowRegex:      CreateAllowRegex(request.AllowRegexList),
 		RestrictRegex:   CreateRestrictRegex(request.RestrictRegexList),
@@ -226,88 +235,112 @@ func CreateTextFileRequest(request *common.DeidentifyFileRequest, base64Content,
 	}
 }
 
-func CreateImageRequest(request *common.DeidentifyFileRequest, base64Content, vaultId, fileExt string) *vaultapis.DeidentifyImageRequest {
-	return &vaultapis.DeidentifyImageRequest{
+func CreateImageRequest(request *common.DeidentifyFileRequest, base64Content, vaultId, fileExt string) *vaultapis.DeidentifyFileImageRequestDeidentifyImage {
+	var entityTypes []vaultapis.DeidentifyFileImageRequestDeidentifyImageEntityTypesItem
+	if result := CreateEntityTypesRef(request.Entities, "image"); result != nil {
+		entityTypes = result.([]vaultapis.DeidentifyFileImageRequestDeidentifyImageEntityTypesItem)
+	}
+	return &vaultapis.DeidentifyFileImageRequestDeidentifyImage{
 		VaultId: vaultId,
-		File: &vaultapis.DeidentifyImageRequestFile{
+		File: &vaultapis.FileDataDeidentifyImage{
 			Base64:     base64Content,
-			DataFormat: vaultapis.DeidentifyImageRequestFileDataFormat(fileExt),
+			DataFormat: vaultapis.FileDataDeidentifyImageDataFormat(fileExt),
 		},
 		OutputProcessedImage: &request.OutputProcessedImage,
 		OutputOcrText:        &request.OutputOcrText,
 		MaskingMethod:        CreateMaskingMethod(request.MaskingMethod),
-		EntityTypes:          CreateEntityTypesRef(request.Entities),
+		EntityTypes:          entityTypes,
 		TokenType:            CreateTokenType(request.TokenFormat),
 		AllowRegex:           CreateAllowRegex(request.AllowRegexList),
 		RestrictRegex:        CreateRestrictRegex(request.RestrictRegexList),
 	}
 }
 
-func CreatePdfRequest(request *common.DeidentifyFileRequest, base64Content, vaultID string) *vaultapis.DeidentifyPdfRequest {
-	return &vaultapis.DeidentifyPdfRequest{
+func CreatePdfRequest(request *common.DeidentifyFileRequest, base64Content, vaultID string) *vaultapis.DeidentifyFileDocumentPdfRequestDeidentifyPdf {
+	var entityTypes []vaultapis.DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem
+	if result := CreateEntityTypesRef(request.Entities, "pdf"); result != nil {
+		entityTypes = result.([]vaultapis.DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem)
+	}
+	return &vaultapis.DeidentifyFileDocumentPdfRequestDeidentifyPdf{
 		VaultId: vaultID,
-		File: &vaultapis.DeidentifyPdfRequestFile{
+		File: &vaultapis.FileDataDeidentifyPdf{
 			Base64: base64Content,
 		},
-		Density:       helpers.Float64Ptr(request.PixelDensity),
-		MaxResolution: helpers.Float64Ptr(request.MaxResolution),
-		EntityTypes:   CreateEntityTypesRef(request.Entities),
+		Density:       &request.PixelDensity,
+		MaxResolution: &request.MaxResolution,
+		EntityTypes:   entityTypes,
 		TokenType:     CreateTokenType(request.TokenFormat),
 		AllowRegex:    CreateAllowRegex(request.AllowRegexList),
 		RestrictRegex: CreateRestrictRegex(request.RestrictRegexList),
 	}
 }
 
-func CreatePresentationRequest(request *common.DeidentifyFileRequest, base64Content, vaultID, fileExt string) *vaultapis.DeidentifyPresentationRequest {
-	return &vaultapis.DeidentifyPresentationRequest{
+func CreatePresentationRequest(request *common.DeidentifyFileRequest, base64Content, vaultID, fileExt string) *vaultapis.DeidentifyFileRequestDeidentifyPresentation {
+	var entityTypes []vaultapis.DeidentifyFileRequestDeidentifyPresentationEntityTypesItem
+	if result := CreateEntityTypesRef(request.Entities, "ppt"); result != nil {
+		entityTypes = result.([]vaultapis.DeidentifyFileRequestDeidentifyPresentationEntityTypesItem)
+	}
+	return &vaultapis.DeidentifyFileRequestDeidentifyPresentation{
 		VaultId: vaultID,
-		File: &vaultapis.DeidentifyPresentationRequestFile{
+		File: &vaultapis.FileDataDeidentifyPresentation{
 			Base64:     base64Content,
-			DataFormat: vaultapis.DeidentifyPresentationRequestFileDataFormat(fileExt),
+			DataFormat: vaultapis.FileDataDeidentifyPresentationDataFormat(fileExt),
 		},
-		EntityTypes:   CreateEntityTypesRef(request.Entities),
+		EntityTypes:   entityTypes,
 		TokenType:     CreateTokenType(request.TokenFormat),
 		AllowRegex:    CreateAllowRegex(request.AllowRegexList),
 		RestrictRegex: CreateRestrictRegex(request.RestrictRegexList),
 	}
 }
 
-func CreateSpreadsheetRequest(request *common.DeidentifyFileRequest, base64Content, vaultID, fileExt string) *vaultapis.DeidentifySpreadsheetRequest {
-	return &vaultapis.DeidentifySpreadsheetRequest{
+func CreateSpreadsheetRequest(request *common.DeidentifyFileRequest, base64Content, vaultID, fileExt string) *vaultapis.DeidentifyFileRequestDeidentifySpreadsheet {
+	var entityTypes []vaultapis.DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem
+	if result := CreateEntityTypesRef(request.Entities, "spread").([]vaultapis.DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem); result != nil {
+		entityTypes = result
+	}
+	return &vaultapis.DeidentifyFileRequestDeidentifySpreadsheet{
 		VaultId: vaultID,
-		File: &vaultapis.DeidentifySpreadsheetRequestFile{
+		File: &vaultapis.FileDataDeidentifySpreadsheet{
 			Base64:     base64Content,
-			DataFormat: vaultapis.DeidentifySpreadsheetRequestFileDataFormat(fileExt),
+			DataFormat: vaultapis.FileDataDeidentifySpreadsheetDataFormat(fileExt),
 		},
-		EntityTypes:   CreateEntityTypesRef(request.Entities),
+		EntityTypes:   entityTypes,
 		TokenType:     CreateTokenType(request.TokenFormat),
 		AllowRegex:    CreateAllowRegex(request.AllowRegexList),
 		RestrictRegex: CreateRestrictRegex(request.RestrictRegexList),
 	}
 }
 
-func CreateDocumentRequest(request *common.DeidentifyFileRequest, base64Content, vaultID, fileExt string) *vaultapis.DeidentifyDocumentRequest {
-	return &vaultapis.DeidentifyDocumentRequest{
+func CreateDocumentRequest(request *common.DeidentifyFileRequest, base64Content, vaultID, fileExt string) *vaultapis.DeidentifyFileRequestDeidentifyDocument {
+	var entityTypes []vaultapis.DeidentifyFileRequestDeidentifyDocumentEntityTypesItem
+	if result := CreateEntityTypesRef(request.Entities, "document").([]vaultapis.DeidentifyFileRequestDeidentifyDocumentEntityTypesItem); result != nil {
+		entityTypes = result
+	}
+	return &vaultapis.DeidentifyFileRequestDeidentifyDocument{
 		VaultId: vaultID,
-		File: &vaultapis.DeidentifyDocumentRequestFile{
+		File: &vaultapis.FileDataDeidentifyDocument{
 			Base64:     base64Content,
-			DataFormat: vaultapis.DeidentifyDocumentRequestFileDataFormat(fileExt),
+			DataFormat: vaultapis.FileDataDeidentifyDocumentDataFormat(fileExt),
 		},
-		EntityTypes:   CreateEntityTypesRef(request.Entities),
+		EntityTypes:   entityTypes,
 		TokenType:     CreateTokenType(request.TokenFormat),
 		AllowRegex:    CreateAllowRegex(request.AllowRegexList),
 		RestrictRegex: CreateRestrictRegex(request.RestrictRegexList),
 	}
 }
 
-func CreateStructuredTextRequest(request *common.DeidentifyFileRequest, base64Content, vaultID, fileExt string) *vaultapis.DeidentifyStructuredTextRequest {
-	return &vaultapis.DeidentifyStructuredTextRequest{
+func CreateStructuredTextRequest(request *common.DeidentifyFileRequest, base64Content, vaultID, fileExt string) *vaultapis.DeidentifyFileRequestDeidentifyStructuredText {
+	var entityTypes []vaultapis.DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem
+	if result := CreateEntityTypesRef(request.Entities, "structured").([]vaultapis.DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem); result != nil {
+		entityTypes = result
+	}
+	return &vaultapis.DeidentifyFileRequestDeidentifyStructuredText{
 		VaultId: vaultID,
-		File: &vaultapis.DeidentifyStructuredTextRequestFile{
+		File: &vaultapis.FileDataDeidentifyStructuredText{
 			Base64:     base64Content,
-			DataFormat: vaultapis.DeidentifyStructuredTextRequestFileDataFormat(fileExt),
+			DataFormat: vaultapis.FileDataDeidentifyStructuredTextDataFormat(fileExt),
 		},
-		EntityTypes:     CreateEntityTypesRef(request.Entities),
+		EntityTypes:     entityTypes,
 		TokenType:       CreateTokenType(request.TokenFormat),
 		AllowRegex:      CreateAllowRegex(request.AllowRegexList),
 		RestrictRegex:   CreateRestrictRegex(request.RestrictRegexList),
@@ -315,14 +348,18 @@ func CreateStructuredTextRequest(request *common.DeidentifyFileRequest, base64Co
 	}
 }
 
-func CreateAudioRequest(request *common.DeidentifyFileRequest, base64Content, vaultID, fileExt string) *vaultapis.DeidentifyAudioRequest {
-	req := &vaultapis.DeidentifyAudioRequest{
+func CreateAudioRequest(request *common.DeidentifyFileRequest, base64Content, vaultID, fileExt string) *vaultapis.DeidentifyFileAudioRequestDeidentifyAudio {
+	var entityTypes []vaultapis.DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem
+	if result := CreateEntityTypesRef(request.Entities, "audio").([]vaultapis.DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem); result != nil {
+		entityTypes = result
+	}
+	req := &vaultapis.DeidentifyFileAudioRequestDeidentifyAudio{
 		VaultId: vaultID,
-		File: &vaultapis.DeidentifyAudioRequestFile{
+		File: &vaultapis.FileDataDeidentifyAudio{
 			Base64:     base64Content,
-			DataFormat: vaultapis.DeidentifyAudioRequestFileDataFormat(fileExt),
+			DataFormat: vaultapis.FileDataDeidentifyAudioDataFormat(fileExt),
 		},
-		EntityTypes:          CreateEntityTypesRef(request.Entities),
+		EntityTypes:          entityTypes,
 		TokenType:            CreateTokenType(request.TokenFormat),
 		AllowRegex:           CreateAllowRegex(request.AllowRegexList),
 		RestrictRegex:        CreateRestrictRegex(request.RestrictRegexList),
@@ -335,7 +372,7 @@ func CreateAudioRequest(request *common.DeidentifyFileRequest, base64Content, va
 	}
 
 	if request.OutputTranscription != "" {
-		trans := vaultapis.DeidentifyAudioRequestOutputTranscription(request.OutputTranscription)
+		trans := vaultapis.DeidentifyFileAudioRequestDeidentifyAudioOutputTranscription(request.OutputTranscription)
 		req.OutputTranscription = &trans
 	}
 
@@ -343,13 +380,17 @@ func CreateAudioRequest(request *common.DeidentifyFileRequest, base64Content, va
 }
 
 func CreateGenericFileRequest(request *common.DeidentifyFileRequest, base64Content, vaultID, fileExtension string) *vaultapis.DeidentifyFileRequest {
+	var entityTypes []vaultapis.DeidentifyFileRequestEntityTypesItem
+	if result := CreateEntityTypesRef(request.Entities, "generic").([]vaultapis.DeidentifyFileRequestEntityTypesItem); result != nil {
+		entityTypes = result
+	}
 	return &vaultapis.DeidentifyFileRequest{
 		VaultId: vaultID,
-		File: &vaultapis.DeidentifyFileRequestFile{
+		File: &vaultapis.FileData{
 			Base64:     base64Content,
-			DataFormat: vaultapis.DeidentifyFileRequestFileDataFormat(strings.ToUpper(fileExtension)),
+			DataFormat: vaultapis.FileDataDataFormat(strings.ToUpper(fileExtension)),
 		},
-		EntityTypes:     CreateEntityTypesRef(request.Entities),
+		EntityTypes:     entityTypes,
 		TokenType:       CreateTokenType(request.TokenFormat),
 		AllowRegex:      CreateAllowRegex(request.AllowRegexList),
 		RestrictRegex:   CreateRestrictRegex(request.RestrictRegexList),
@@ -357,74 +398,175 @@ func CreateGenericFileRequest(request *common.DeidentifyFileRequest, base64Conte
 	}
 }
 
-func CreateEntityTypesRef(entities []common.DetectEntities) *vaultapis.EntityTypes {
+func CreateEntityTypesRef(entities []common.DetectEntities, dataType string) any {
 	if len(entities) == 0 {
 		return nil
 	}
 
-	entityTypes := make(vaultapis.EntityTypes, len(entities))
-	for i, entity := range entities {
-		entityType := vaultapis.EntityType(entity)
-		entityTypes[i] = entityType
+	switch strings.ToLower(dataType) {
+
+	case "text":
+		entityTypes := make([]vaultapis.DeidentifyFileRequestDeidentifyTextEntityTypesItem, len(entities))
+		for i, e := range entities {
+			entityTypes[i] = vaultapis.DeidentifyFileRequestDeidentifyTextEntityTypesItem(e)
+		}
+		return entityTypes
+
+	case "image":
+		entityTypes := make([]vaultapis.DeidentifyFileImageRequestDeidentifyImageEntityTypesItem, len(entities))
+		for i, e := range entities {
+			entityTypes[i] = vaultapis.DeidentifyFileImageRequestDeidentifyImageEntityTypesItem(e)
+		}
+		return entityTypes
+
+	case "pdf":
+		entityTypes := make([]vaultapis.DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem, len(entities))
+		for i, e := range entities {
+			entityTypes[i] = vaultapis.DeidentifyFileDocumentPdfRequestDeidentifyPdfEntityTypesItem(e)
+		}
+		return entityTypes
+
+	case "ppt":
+		entityTypes := make([]vaultapis.DeidentifyFileRequestDeidentifyPresentationEntityTypesItem, len(entities))
+		for i, e := range entities {
+			entityTypes[i] = vaultapis.DeidentifyFileRequestDeidentifyPresentationEntityTypesItem(e)
+		}
+		return entityTypes
+
+	case "spread":
+		entityTypes := make([]vaultapis.DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem, len(entities))
+		for i, e := range entities {
+			entityTypes[i] = vaultapis.DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem(e)
+		}
+		return entityTypes
+
+	case "document":
+		entityTypes := make([]vaultapis.DeidentifyFileRequestDeidentifyDocumentEntityTypesItem, len(entities))
+		for i, e := range entities {
+			entityTypes[i] = vaultapis.DeidentifyFileRequestDeidentifyDocumentEntityTypesItem(e)
+		}
+		return entityTypes
+
+	case "structured":
+		entityTypes := make([]vaultapis.DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem, len(entities))
+		for i, e := range entities {
+			entityTypes[i] = vaultapis.DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem(e)
+		}
+		return entityTypes
+
+	case "audio":
+		entityTypes := make([]vaultapis.DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem, len(entities))
+		for i, e := range entities {
+			entityTypes[i] = vaultapis.DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem(e)
+		}
+		return entityTypes
+
+	case "generic":
+		entityTypes := make([]vaultapis.DeidentifyFileRequestEntityTypesItem, len(entities))
+		for i, e := range entities {
+			entityTypes[i] = vaultapis.DeidentifyFileRequestEntityTypesItem(e)
+		}
+		return entityTypes
+
+	default:
+		return nil
 	}
-	return &entityTypes
 }
 
-func CreateEntityTypes(entities []common.DetectEntities) []vaultapis.EntityType {
-	entityTypes := []vaultapis.EntityType{}
-	for _, entity := range entities {
-		entityTypes = append(entityTypes, vaultapis.EntityType(entity))
-	}
-	return entityTypes
-}
-
-func CreateTokenType(format common.TokenFormat) *vaultapis.TokenTypeWithoutVault {
-	if len(format.EntityOnly) == 0 && len(format.EntityUniqueCounter) == 0 {
+func CreateEntityTypes(entities []common.DetectEntities, entityType string) any {
+	if len(entities) == 0 {
 		return nil
 	}
 
-	tokenType := &vaultapis.TokenTypeWithoutVault{}
+	switch strings.ToLower(entityType) {
+	case "redacted":
+		entityTypes := make([]vaultapis.FormatRedactedItem, len(entities))
+		for i, e := range entities {
+			entityTypes[i] = vaultapis.FormatRedactedItem(e)
+		}
+		return entityTypes
+
+	case "masked":
+		entityTypes := make([]vaultapis.FormatMaskedItem, len(entities))
+		for i, e := range entities {
+			entityTypes[i] = vaultapis.FormatMaskedItem(e)
+		}
+		return entityTypes
+
+	case "plaintext":
+		entityTypes := make([]vaultapis.FormatPlaintextItem, len(entities))
+		for i, e := range entities {
+			entityTypes[i] = vaultapis.FormatPlaintextItem(e)
+		}
+		return entityTypes
+
+	default:
+		return nil
+	}
+}
+
+func CreateTokenType(format common.TokenFormat) *vaultapis.TokenTypeMapping {
+	// If nothing is set, return nil
+	if len(format.VaultToken) == 0 &&
+		len(format.EntityOnly) == 0 &&
+		len(format.EntityUniqueCounter) == 0 &&
+		format.DefaultType == "" {
+		return nil
+	}
+
+	tokenType := &vaultapis.TokenTypeMapping{}
+
+	if len(format.VaultToken) > 0 {
+		vaultTokens := make([]vaultapis.TokenTypeMappingVaultTokenItem, len(format.VaultToken))
+		for i, e := range format.VaultToken {
+			vaultTokens[i] = vaultapis.TokenTypeMappingVaultTokenItem(e)
+		}
+		tokenType.VaultToken = vaultTokens
+	}
 
 	if len(format.EntityOnly) > 0 {
-		entityOnly := make([]vaultapis.EntityType, len(format.EntityOnly))
+		entityOnly := make([]vaultapis.TokenTypeMappingEntityOnlyItem, len(format.EntityOnly))
 		for i, e := range format.EntityOnly {
-			entityOnly[i] = vaultapis.EntityType(e)
+			entityOnly[i] = vaultapis.TokenTypeMappingEntityOnlyItem(e)
 		}
 		tokenType.EntityOnly = entityOnly
 	}
 
 	if len(format.EntityUniqueCounter) > 0 {
-		entityUnqCounter := make([]vaultapis.EntityType, len(format.EntityUniqueCounter))
+		entityUnqCounter := make([]vaultapis.TokenTypeMappingEntityUnqCounterItem, len(format.EntityUniqueCounter))
 		for i, e := range format.EntityUniqueCounter {
-			entityUnqCounter[i] = vaultapis.EntityType(e)
+			entityUnqCounter[i] = vaultapis.TokenTypeMappingEntityUnqCounterItem(e)
 		}
 		tokenType.EntityUnqCounter = entityUnqCounter
+	}
+
+	if format.DefaultType != "" {
+		defaultType := vaultapis.TokenTypeMappingDefault(format.DefaultType)
+		tokenType.Default = &defaultType
 	}
 
 	return tokenType
 }
 
-func CreateAllowRegex(regex []string) *vaultapis.AllowRegex {
+func CreateAllowRegex(regex []string) []string {
 	if len(regex) == 0 {
 		return nil
 	}
-	allowRegex := vaultapis.AllowRegex(regex)
-	return &allowRegex
+	return regex
 }
 
-func CreateRestrictRegex(regex []string) *vaultapis.RestrictRegex {
+func CreateRestrictRegex(regex []string) []string {
 	if len(regex) == 0 {
 		return nil
 	}
-	restrictRegex := vaultapis.RestrictRegex(regex)
-	return &restrictRegex
+	return regex
 }
 
-func CreateMaskingMethod(method common.MaskingMethod) *vaultapis.DeidentifyImageRequestMaskingMethod {
+func CreateMaskingMethod(method common.MaskingMethod) *vaultapis.DeidentifyFileImageRequestDeidentifyImageMaskingMethod {
 	if method == "" {
 		return nil
 	}
-	maskMethod := vaultapis.DeidentifyImageRequestMaskingMethod(method)
+	maskMethod := vaultapis.DeidentifyFileImageRequestDeidentifyImageMaskingMethod(method)
 	return &maskMethod
 }
 
@@ -437,17 +579,17 @@ func CreateTransformations(transformations common.Transformations) *vaultapis.Tr
 		return nil
 	}
 
-	shiftDates := &vaultapis.TransformationsShiftDates{
-		MaxDays: &transformations.ShiftDates.MaxDays,
+	shiftDates := &vaultapis.ShiftDates{
 		MinDays: &transformations.ShiftDates.MinDays,
+		MaxDays: &transformations.ShiftDates.MaxDays,
 	}
 
-	if n := len(transformations.ShiftDates.Entities); n > 0 {
-		shiftDatesEntityTypesItem := make([]vaultapis.TransformationsShiftDatesEntityTypesItem, 0, n)
-		for _, e := range transformations.ShiftDates.Entities {
-			shiftDatesEntityTypesItem = append(shiftDatesEntityTypesItem, vaultapis.TransformationsShiftDatesEntityTypesItem(e))
+	if len(transformations.ShiftDates.Entities) > 0 {
+		entityTypes := make([]vaultapis.ShiftDatesEntityTypesItem, len(transformations.ShiftDates.Entities))
+		for i, e := range transformations.ShiftDates.Entities {
+			entityTypes[i] = vaultapis.ShiftDatesEntityTypesItem(e)
 		}
-		shiftDates.EntityTypes = shiftDatesEntityTypesItem
+		shiftDates.EntityTypes = entityTypes
 	}
 
 	return &vaultapis.Transformations{
@@ -498,28 +640,47 @@ func (d *DetectController) DeidentifyText(ctx context.Context, request common.De
 	if response == nil || response.Body == nil {
 		return &deidentifiedTextResponse, nil
 	}
-
 	// Map the API response to the common.DeidentifyTextResponse struct
-	deidentifiedTextResponse.ProcessedText = response.Body.ProcessedText
-	deidentifiedTextResponse.WordCount = response.Body.WordCount
-	deidentifiedTextResponse.CharCount = response.Body.CharacterCount
-
+	if response.Body.ProcessedText != nil {
+		deidentifiedTextResponse.ProcessedText = *response.Body.ProcessedText
+	}
+	if response.Body.WordCount != nil {
+		deidentifiedTextResponse.WordCount = *response.Body.WordCount
+	}
+	if response.Body.CharacterCount != nil {
+		deidentifiedTextResponse.CharCount = *response.Body.CharacterCount
+	}
 	// Map entities if present
 	if response.Body.Entities != nil {
 		for _, entity := range response.Body.Entities {
-			entityInfo := common.EntityInfo{
-				Token:  *entity.Token,
-				Value:  *entity.Value,
-				Entity: *entity.EntityType,
-				Scores: entity.EntityScores,
-				TextIndex: common.TextIndex{
-					Start: *entity.Location.StartIndex,
-					End:   *entity.Location.EndIndex,
-				},
-				ProcessedIndex: common.TextIndex{
-					Start: *entity.Location.StartIndexProcessed,
-					End:   *entity.Location.EndIndexProcessed,
-				},
+			entityInfo := common.EntityInfo{}
+			if entity != nil {
+				if entity.EntityType != nil {
+					entityInfo.Entity = *entity.EntityType
+				}
+				if entity.Value != nil {
+					entityInfo.Value = *entity.Value
+				}
+				if entity.Token != nil {
+					entityInfo.Token = *entity.Token
+				}
+				if entity.Location != nil {
+					if entity.Location.StartIndex != nil && entity.Location.EndIndex != nil {
+						entityInfo.TextIndex = common.TextIndex{
+							Start: *entity.Location.StartIndex,
+							End:   *entity.Location.EndIndex,
+						}
+					}
+					if entity.Location.StartIndexProcessed != nil && entity.Location.EndIndexProcessed != nil {
+						entityInfo.ProcessedIndex = common.TextIndex{
+							Start: *entity.Location.StartIndexProcessed,
+							End:   *entity.Location.EndIndexProcessed,
+						}
+					}
+				}
+				if entity.EntityScores != nil {
+					entityInfo.Scores = entity.EntityScores
+				}
 			}
 			deidentifiedTextResponse.Entities = append(deidentifiedTextResponse.Entities, entityInfo)
 		}
@@ -568,8 +729,8 @@ func (d *DetectController) ReidentifyText(ctx context.Context, request common.Re
 	// Map the API response to the common.ReidentifyTextResponse struct
 	reidentifiedTextResponse := common.ReidentifyTextResponse{}
 
-	if body := response.Body; body != nil && body.Text != nil {
-		reidentifiedTextResponse.ProcessedText = *body.Text
+	if body := response.Body; body != nil && body.Text != "" {
+		reidentifiedTextResponse.ProcessedText = body.Text
 	}
 
 	logger.Info(logs.REIDENTIFY_TEXT_SUCCESS)
@@ -626,7 +787,7 @@ func (d *DetectController) DeidentifyFile(ctx context.Context, request common.De
 	}
 
 	// Poll for results
-	pollResponse, pollErr := d.pollForResults(ctx, apiResponse.RunId, request.WaitTime)
+	pollResponse, pollErr := d.pollForResults(ctx, *apiResponse.RunId, request.WaitTime)
 
 	if pollErr != nil {
 		logger.Error(logs.POLLING_FOR_RESULTS_FAILED)
@@ -637,11 +798,11 @@ func (d *DetectController) DeidentifyFile(ctx context.Context, request common.De
 	response := &common.DeidentifyFileResponse{}
 
 	// Handle successful response
-	if strings.EqualFold(string(pollResponse.Status), string(common.SUCCESS)) {
+	if pollResponse.Status != nil && strings.EqualFold(string(*pollResponse.Status), string(common.SUCCESS)) {
 		processDeidentifyFileResponse(pollResponse, request.OutputDirectory, fileName, strings.TrimSuffix(fileName, filepath.Ext(fileName)))
 	}
 
-	response, _ = parseDeidentifyFileResponse(pollResponse, apiResponse.RunId)
+	response, _ = parseDeidentifyFileResponse(pollResponse, *apiResponse.RunId)
 
 	logger.Info(logs.DEIDENTIFY_FILE_SUCCESS)
 	return response, nil
@@ -679,14 +840,14 @@ func (d *DetectController) processFileByType(ctx context.Context, fileExtension,
 	return apiResponse, nil
 }
 
-func (d *DetectController) pollForResults(ctx context.Context, runID string, maxWaitTime int) (*vaultapis.DeidentifyStatusResponse, error) {
+func (d *DetectController) pollForResults(ctx context.Context, runID string, maxWaitTime int) (*vaultapis.DetectRunsResponse, error) {
 	currentWaitTime := 1
 	if maxWaitTime == 0 {
 		maxWaitTime = 64
 	}
 
 	getRunRequest := vaultapis.GetRunRequest{
-		VaultId: d.Config.VaultId,
+		VaultId: &d.Config.VaultId,
 	}
 
 	for {
@@ -702,10 +863,11 @@ func (d *DetectController) pollForResults(ctx context.Context, runID string, max
 			return nil, skyflowError.NewSkyflowError(skyflowError.SERVER, logs.EMPTY_DEIDENTIFY_FILE_RESPONSE)
 		}
 
-		if strings.EqualFold(string(response.Body.Status), string(common.IN_PROGRESS)) {
+		if response.Body.Status != nil && strings.EqualFold(string(*response.Body.Status), string(common.IN_PROGRESS)) {
 			if currentWaitTime >= maxWaitTime {
-				deidentifyStatusRes := &vaultapis.DeidentifyStatusResponse{
-					Status: vaultapis.DeidentifyStatusResponseStatus(common.IN_PROGRESS),
+				status := vaultapis.DetectRunsResponseStatus(common.IN_PROGRESS)
+				deidentifyStatusRes := &vaultapis.DetectRunsResponse{
+					Status: &status,
 				}
 				return deidentifyStatusRes, nil
 			}
@@ -728,7 +890,7 @@ func (d *DetectController) pollForResults(ctx context.Context, runID string, max
 	}
 }
 
-func processDeidentifyFileResponse(data *vaultapis.DeidentifyStatusResponse, outputDir, fileName, fileBaseName string) *skyflowError.SkyflowError {
+func processDeidentifyFileResponse(data *vaultapis.DetectRunsResponse, outputDir, fileName, fileBaseName string) *skyflowError.SkyflowError {
 	if data == nil || len(data.Output) == 0 {
 		return skyflowError.NewSkyflowError(skyflowError.SERVER, logs.EMPTY_DEIDENTIFY_FILE_RESPONSE)
 	}
@@ -737,53 +899,54 @@ func processDeidentifyFileResponse(data *vaultapis.DeidentifyStatusResponse, out
 	}
 
 	deidentifyFilePrefix := "processed-"
-
 	processedFile := data.Output[0].ProcessedFile
-	decodedBytes, err := base64.StdEncoding.DecodeString(string(*processedFile))
-	if err != nil {
-		return skyflowError.NewSkyflowError(skyflowError.SERVER, logs.FAILED_TO_DECODE_PROCESSED_FILE)
+	if processedFile != nil {
+		decodedBytes, err := base64.StdEncoding.DecodeString(string(*processedFile))
+		if err != nil {
+			return skyflowError.NewSkyflowError(skyflowError.SERVER, logs.FAILED_TO_DECODE_PROCESSED_FILE)
+		}
+
+		outputFileName := filepath.Join(outputDir, deidentifyFilePrefix+fileName)
+
+		if err := os.WriteFile(outputFileName, decodedBytes, 0644); err != nil {
+			return skyflowError.NewSkyflowError(skyflowError.SERVER, skyflowError.FAILED_TO_SAVED_PROCESSED_FILE)
+		}
 	}
-
-	outputFileName := filepath.Join(outputDir, deidentifyFilePrefix+fileName)
-
-	if err := os.WriteFile(outputFileName, decodedBytes, 0644); err != nil {
-		return skyflowError.NewSkyflowError(skyflowError.SERVER, skyflowError.FAILED_TO_SAVED_PROCESSED_FILE)
-	}
-
 	if len(data.Output) > 1 {
 		for _, output := range data.Output[1:] {
-			if *output.ProcessedFile == "" || *output.ProcessedFileExtension == "" {
-				continue
-			}
-			outputFileName := fmt.Sprintf("%s%s.%s", deidentifyFilePrefix, fileBaseName, *output.ProcessedFileExtension)
-			outputPath := filepath.Join(outputDir, outputFileName)
+			if output != nil && output.ProcessedFile != nil {
+				outputFileName := fmt.Sprintf("%s%s.%s", deidentifyFilePrefix, fileBaseName, *output.ProcessedFileExtension)
+				outputPath := filepath.Join(outputDir, outputFileName)
 
-			decodedData, err := base64.StdEncoding.DecodeString(string(*output.ProcessedFile))
-			if err != nil {
-				return skyflowError.NewSkyflowError(skyflowError.SERVER, logs.FAILED_TO_DECODE_PROCESSED_FILE)
-			}
+				decodedData, err := base64.StdEncoding.DecodeString(string(*output.ProcessedFile))
+				if err != nil {
+					return skyflowError.NewSkyflowError(skyflowError.SERVER, logs.FAILED_TO_DECODE_PROCESSED_FILE)
+				}
 
-			if err := os.WriteFile(outputPath, decodedData, 0644); err != nil {
-				return skyflowError.NewSkyflowError(skyflowError.SERVER, skyflowError.FAILED_TO_SAVED_PROCESSED_FILE)
+				if err := os.WriteFile(outputPath, decodedData, 0644); err != nil {
+					return skyflowError.NewSkyflowError(skyflowError.SERVER, skyflowError.FAILED_TO_SAVED_PROCESSED_FILE)
+				}
 			}
 		}
 	}
 	return nil
 }
 
-func parseDeidentifyFileResponse(response *vaultapis.DeidentifyStatusResponse, runID string) (*common.DeidentifyFileResponse, error) {
+func parseDeidentifyFileResponse(response *vaultapis.DetectRunsResponse, runID string) (*common.DeidentifyFileResponse, error) {
 	if response == nil {
 		return nil, errors.New(string(skyflowError.SERVER) + logs.EMPTY_DEIDENTIFY_FILE_RESPONSE)
 	}
 
 	fileResponse := &common.DeidentifyFileResponse{
 		RunId:  runID,
-		Status: string(response.Status),
+		Status: string(*response.Status),
 	}
 
 	// In case of expired/invalid run id
 	if len(response.Output) == 0 {
-		fileResponse.Type = string(response.OutputType)
+		if response.OutputType != nil {
+			fileResponse.Type = string(*response.OutputType)
+		}
 		return fileResponse, nil
 	}
 
@@ -797,7 +960,7 @@ func parseDeidentifyFileResponse(response *vaultapis.DeidentifyStatusResponse, r
 					return nil, errors.New(string(skyflowError.SERVER) + logs.FAILED_TO_DECODE_PROCESSED_FILE)
 				}
 				fileResponse.File = common.FileInfo{
-					Name:         "deidentified." + *firstOutput.ProcessedFileExtension,
+					Name:         "deidentified." + string(*firstOutput.ProcessedFileExtension),
 					Size:         int64(len(decodedBytes)),
 					Type:         "redacted_file",
 					LastModified: time.Now().UnixMilli(),
@@ -813,21 +976,16 @@ func parseDeidentifyFileResponse(response *vaultapis.DeidentifyStatusResponse, r
 			}
 
 			if firstOutput.ProcessedFileExtension != nil {
-				fileResponse.Extension = *firstOutput.ProcessedFileExtension
+				fileResponse.Extension = string(*firstOutput.ProcessedFileExtension)
 			}
 		}
 	}
-
-	if extra := response.GetExtraProperties(); extra != nil {
-		if wcRaw, ok := extra["word_character_count"]; ok && wcRaw != nil {
-			if wcMap, ok := wcRaw.(map[string]interface{}); ok {
-				if charCount, ok := wcMap["character_count"].(float64); ok {
-					fileResponse.CharCount = int(charCount)
-				}
-				if wordCount, ok := wcMap["word_count"].(float64); ok {
-					fileResponse.WordCount = int(wordCount)
-				}
-			}
+	if response.WordCharacterCount != nil {
+		if response.WordCharacterCount.CharacterCount != nil {
+			fileResponse.CharCount = *response.WordCharacterCount.CharacterCount
+		}
+		if response.WordCharacterCount.WordCount != nil {
+			fileResponse.WordCount = *response.WordCharacterCount.WordCount
 		}
 	}
 
@@ -851,17 +1009,15 @@ func parseDeidentifyFileResponse(response *vaultapis.DeidentifyStatusResponse, r
 			continue
 		}
 
-		if *output.ProcessedFileType != vaultapis.DeidentifyFileOutputProcessedFileTypeEntities {
-			continue
-		}
-
 		entityInfo := common.FileEntityInfo{}
 		if output.ProcessedFile != nil {
 			entityInfo.File = *output.ProcessedFile
 		}
-		entityInfo.Type = string(*output.ProcessedFileType)
+		if output.ProcessedFileType != nil {
+			entityInfo.Type = string(*output.ProcessedFileType)
+		}
 		if output.ProcessedFileExtension != nil {
-			entityInfo.Extension = *output.ProcessedFileExtension
+			entityInfo.Extension = string(*output.ProcessedFileExtension)
 		}
 		fileResponse.Entities = append(fileResponse.Entities, entityInfo)
 	}
@@ -891,7 +1047,7 @@ func (d *DetectController) GetDetectRun(ctx context.Context, request common.GetD
 	}
 
 	response, err := d.FilesApiClient.WithRawResponse.GetRun(ctx, request.RunId, &vaultapis.GetRunRequest{
-		VaultId: d.Config.VaultId,
+		VaultId: &d.Config.VaultId,
 	})
 
 	if err != nil {
@@ -906,7 +1062,7 @@ func (d *DetectController) GetDetectRun(ctx context.Context, request common.GetD
 		return &deidentifyFileRes, nil
 	}
 
-	if strings.EqualFold(string(response.Body.Status), string(common.IN_PROGRESS)) {
+	if response.Body.Status != nil && strings.EqualFold(string(*response.Body.Status), string(common.IN_PROGRESS)) {
 		return &common.DeidentifyFileResponse{
 			RunId:  request.RunId,
 			Status: string(common.IN_PROGRESS),

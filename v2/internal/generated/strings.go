@@ -9,65 +9,69 @@ import (
 )
 
 type DeidentifyStringRequest struct {
-	VaultId VaultId `json:"vault_id" url:"-"`
-	// String to de-identify.
-	Text            string           `json:"text" url:"-"`
-	ConfigurationId *ConfigurationId `json:"configuration_id,omitempty" url:"-"`
-	EntityTypes     *EntityTypes     `json:"entity_types,omitempty" url:"-"`
-	TokenType       *TokenType       `json:"token_type,omitempty" url:"-"`
-	AllowRegex      *AllowRegex      `json:"allow_regex,omitempty" url:"-"`
-	RestrictRegex   *RestrictRegex   `json:"restrict_regex,omitempty" url:"-"`
+	// Text to de-identify.
+	Text string `json:"text" url:"-"`
+	// ID of a vault that you have Detect Invoker or Vault Owner permissions for.
+	VaultId string `json:"vault_id" url:"-"`
+	// Entities to detect and de-identify.
+	EntityTypes []DeidentifyStringRequestEntityTypesItem `json:"entity_types,omitempty" url:"-"`
+	TokenType   *TokenTypeMapping                        `json:"token_type,omitempty" url:"-"`
+	// Regular expressions to display in plaintext. Entities appear in plaintext if an expression matches either the entirety of a detected entity or a substring of it. Expressions don't match across entity boundaries. If a string or entity matches both `allow_regex` and `restrict_regex`, the entity is displayed in plaintext.
+	AllowRegex []string `json:"allow_regex,omitempty" url:"-"`
+	// Regular expressions to replace with '[RESTRICTED]'. Expressions must match the entirety of a detected entity, not just a substring, for the entity to be restricted. Expressions don't match across entity boundaries. If a string or entity matches both `allow_regex` and `restrict_regex`, the entity is displayed in plaintext. If a string is detected as an entity and a `restrict_regex` pattern matches the entire detected entity, the entity is replaced with '[RESTRICTED]'. If a string is detected as an entity but a `restrict_regex` pattern only matches a substring of it, the `restrict_regex` pattern is ignored, and the entity is processed according to the specified tokenization and transformation settings.
+	RestrictRegex   []string         `json:"restrict_regex,omitempty" url:"-"`
 	Transformations *Transformations `json:"transformations,omitempty" url:"-"`
+	// ID of the Detect configuration to use for de-identification. Can't be specified with fields other than `vault_id`, `text`, and `file`.
+	ConfigurationId *string `json:"configuration_id,omitempty" url:"-"`
 }
 
 type ReidentifyStringRequest struct {
-	// String to re-identify.
-	Text string `json:"text" url:"-"`
+	// Text to reidentify.
+	Text *string `json:"text,omitempty" url:"-"`
 	// ID of the vault where the entities are stored.
-	VaultId string `json:"vault_id" url:"-"`
-	// Mapping of perferred data formatting options to entity types. Returned values are dependent on the configuration of the vault storing the data and the permissions of the user or account making the request.
-	Format *ReidentifyStringRequestFormat `json:"format,omitempty" url:"-"`
+	VaultId *string `json:"vault_id,omitempty" url:"-"`
+	Format  *Format `json:"format,omitempty" url:"-"`
 }
 
 // Response to deidentify a string.
 type DeidentifyStringResponse struct {
 	// De-identified text.
-	ProcessedText string `json:"processed_text" url:"processed_text"`
+	ProcessedText *string `json:"processed_text,omitempty" url:"processed_text,omitempty"`
 	// Detected entities.
-	Entities []*DetectedEntity `json:"entities" url:"entities"`
+	Entities []*StringResponseEntities `json:"entities,omitempty" url:"entities,omitempty"`
 	// Number of words from the input text.
-	WordCount int `json:"word_count" url:"word_count"`
+	WordCount *int `json:"word_count,omitempty" url:"word_count,omitempty"`
 	// Number of characters from the input text.
-	CharacterCount int `json:"character_count" url:"character_count"`
+	CharacterCount *int `json:"character_count,omitempty" url:"character_count,omitempty"`
 
 	extraProperties map[string]interface{}
 	rawJSON         json.RawMessage
 }
 
-func (d *DeidentifyStringResponse) GetProcessedText() string {
+func (d *DeidentifyStringResponse) GetProcessedText() *string {
 	if d == nil {
-		return ""
+		return nil
 	}
 	return d.ProcessedText
 }
 
-func (d *DeidentifyStringResponse) GetEntities() []*DetectedEntity {
+func (d *DeidentifyStringResponse) GetEntities() []*StringResponseEntities {
 	if d == nil {
 		return nil
 	}
 	return d.Entities
 }
 
-func (d *DeidentifyStringResponse) GetWordCount() int {
+func (d *DeidentifyStringResponse) GetWordCount() *int {
 	if d == nil {
-		return 0
+		return nil
 	}
 	return d.WordCount
 }
 
-func (d *DeidentifyStringResponse) GetCharacterCount() int {
+func (d *DeidentifyStringResponse) GetCharacterCount() *int {
 	if d == nil {
-		return 0
+		return nil
 	}
 	return d.CharacterCount
 }
@@ -104,91 +108,56 @@ func (d *DeidentifyStringResponse) String() string {
 	return fmt.Sprintf("%#v", d)
 }
 
-// Detected entities.
-type DetectedEntity struct {
-	// Processed text of the entity.
-	Token *string `json:"token,omitempty" url:"token,omitempty"`
-	// Original text of the entity.
-	Value    *string         `json:"value,omitempty" url:"value,omitempty"`
-	Location *EntityLocation `json:"location,omitempty" url:"location,omitempty"`
-	// Highest-rated label.
-	EntityType *string `json:"entity_type,omitempty" url:"entity_type,omitempty"`
-	// entity_scores and their scores.
-	EntityScores map[string]float64 `json:"entity_scores,omitempty" url:"entity_scores,omitempty"`
+// Response after identifying text.
+type IdentifyResponse struct {
+	// Re-identified text.
+	Text string `json:"text" url:"text"`
 
 	extraProperties map[string]interface{}
 	rawJSON         json.RawMessage
 }
 
-func (d *DetectedEntity) GetToken() *string {
-	if d == nil {
-		return nil
+func (i *IdentifyResponse) GetText() string {
+	if i == nil {
+		return ""
 	}
-	return d.Token
+	return i.Text
 }
 
-func (d *DetectedEntity) GetValue() *string {
-	if d == nil {
-		return nil
-	}
-	return d.Value
+func (i *IdentifyResponse) GetExtraProperties() map[string]interface{} {
+	return i.extraProperties
 }
 
-func (d *DetectedEntity) GetLocation() *EntityLocation {
-	if d == nil {
-		return nil
-	}
-	return d.Location
-}
-
-func (d *DetectedEntity) GetEntityType() *string {
-	if d == nil {
-		return nil
-	}
-	return d.EntityType
-}
-
-func (d *DetectedEntity) GetEntityScores() map[string]float64 {
-	if d == nil {
-		return nil
-	}
-	return d.EntityScores
-}
-
-func (d *DetectedEntity) GetExtraProperties() map[string]interface{} {
-	return d.extraProperties
-}
-
-func (d *DetectedEntity) UnmarshalJSON(data []byte) error {
-	type unmarshaler DetectedEntity
+func (i *IdentifyResponse) UnmarshalJSON(data []byte) error {
+	type unmarshaler IdentifyResponse
 	var value unmarshaler
 	if err := json.Unmarshal(data, &value); err != nil {
 		return err
 	}
-	*d = DetectedEntity(value)
-	extraProperties, err := internal.ExtractExtraProperties(data, *d)
+	*i = IdentifyResponse(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *i)
 	if err != nil {
 		return err
 	}
-	d.extraProperties = extraProperties
-	d.rawJSON = json.RawMessage(data)
+	i.extraProperties = extraProperties
+	i.rawJSON = json.RawMessage(data)
 	return nil
 }
 
-func (d *DetectedEntity) String() string {
-	if len(d.rawJSON) > 0 {
-		if value, err := internal.StringifyJSON(d.rawJSON); err == nil {
+func (i *IdentifyResponse) String() string {
+	if len(i.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(i.rawJSON); err == nil {
 			return value
 		}
 	}
-	if value, err := internal.StringifyJSON(d); err == nil {
+	if value, err := internal.StringifyJSON(i); err == nil {
 		return value
 	}
-	return fmt.Sprintf("%#v", d)
+	return fmt.Sprintf("%#v", i)
 }
 
 // Locations of an entity in the text.
-type EntityLocation struct {
+type Locations struct {
 	// Index of the first character of the string in the original text.
 	StartIndex *int `json:"start_index,omitempty" url:"start_index,omitempty"`
 	// Index of the last character of the string in the original text.
@@ -202,275 +171,371 @@ type EntityLocation struct {
 	rawJSON         json.RawMessage
 }
 
-func (e *EntityLocation) GetStartIndex() *int {
-	if e == nil {
+func (l *Locations) GetStartIndex() *int {
+	if l == nil {
 		return nil
 	}
-	return e.StartIndex
+	return l.StartIndex
 }
 
-func (e *EntityLocation) GetEndIndex() *int {
-	if e == nil {
+func (l *Locations) GetEndIndex() *int {
+	if l == nil {
 		return nil
 	}
-	return e.EndIndex
+	return l.EndIndex
 }
 
-func (e *EntityLocation) GetStartIndexProcessed() *int {
-	if e == nil {
+func (l *Locations) GetStartIndexProcessed() *int {
+	if l == nil {
 		return nil
 	}
-	return e.StartIndexProcessed
+	return l.StartIndexProcessed
 }
 
-func (e *EntityLocation) GetEndIndexProcessed() *int {
-	if e == nil {
+func (l *Locations) GetEndIndexProcessed() *int {
+	if l == nil {
 		return nil
 	}
-	return e.EndIndexProcessed
+	return l.EndIndexProcessed
 }
 
-func (e *EntityLocation) GetExtraProperties() map[string]interface{} {
-	return e.extraProperties
+func (l *Locations) GetExtraProperties() map[string]interface{} {
+	return l.extraProperties
 }
 
-func (e *EntityLocation) UnmarshalJSON(data []byte) error {
-	type unmarshaler EntityLocation
+func (l *Locations) UnmarshalJSON(data []byte) error {
+	type unmarshaler Locations
 	var value unmarshaler
 	if err := json.Unmarshal(data, &value); err != nil {
 		return err
 	}
-	*e = EntityLocation(value)
-	extraProperties, err := internal.ExtractExtraProperties(data, *e)
+	*l = Locations(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *l)
 	if err != nil {
 		return err
 	}
-	e.extraProperties = extraProperties
-	e.rawJSON = json.RawMessage(data)
+	l.extraProperties = extraProperties
+	l.rawJSON = json.RawMessage(data)
 	return nil
 }
 
-func (e *EntityLocation) String() string {
-	if len(e.rawJSON) > 0 {
-		if value, err := internal.StringifyJSON(e.rawJSON); err == nil {
+func (l *Locations) String() string {
+	if len(l.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(l.rawJSON); err == nil {
 			return value
 		}
 	}
-	if value, err := internal.StringifyJSON(e); err == nil {
+	if value, err := internal.StringifyJSON(l); err == nil {
 		return value
 	}
-	return fmt.Sprintf("%#v", e)
+	return fmt.Sprintf("%#v", l)
 }
 
-// Re-identify string response.
-type ReidentifyStringResponse struct {
-	// Re-identified text.
-	Text *string `json:"text,omitempty" url:"text,omitempty"`
+// Detected entities for String
+type StringResponseEntities struct {
+	// Processed text of the entity.
+	Token *string `json:"token,omitempty" url:"token,omitempty"`
+	// Original text of the entity.
+	Value    *string    `json:"value,omitempty" url:"value,omitempty"`
+	Location *Locations `json:"location,omitempty" url:"location,omitempty"`
+	// Highest-rated label.
+	EntityType *string `json:"entity_type,omitempty" url:"entity_type,omitempty"`
+	// Labels and their scores.
+	EntityScores map[string]float64 `json:"entity_scores,omitempty" url:"entity_scores,omitempty"`
 
 	extraProperties map[string]interface{}
 	rawJSON         json.RawMessage
 }
 
-func (r *ReidentifyStringResponse) GetText() *string {
-	if r == nil {
+func (s *StringResponseEntities) GetToken() *string {
+	if s == nil {
 		return nil
 	}
-	return r.Text
+	return s.Token
 }
 
-func (r *ReidentifyStringResponse) GetExtraProperties() map[string]interface{} {
-	return r.extraProperties
+func (s *StringResponseEntities) GetValue() *string {
+	if s == nil {
+		return nil
+	}
+	return s.Value
 }
 
-func (r *ReidentifyStringResponse) UnmarshalJSON(data []byte) error {
-	type unmarshaler ReidentifyStringResponse
+func (s *StringResponseEntities) GetLocation() *Locations {
+	if s == nil {
+		return nil
+	}
+	return s.Location
+}
+
+func (s *StringResponseEntities) GetEntityType() *string {
+	if s == nil {
+		return nil
+	}
+	return s.EntityType
+}
+
+func (s *StringResponseEntities) GetEntityScores() map[string]float64 {
+	if s == nil {
+		return nil
+	}
+	return s.EntityScores
+}
+
+func (s *StringResponseEntities) GetExtraProperties() map[string]interface{} {
+	return s.extraProperties
+}
+
+func (s *StringResponseEntities) UnmarshalJSON(data []byte) error {
+	type unmarshaler StringResponseEntities
 	var value unmarshaler
 	if err := json.Unmarshal(data, &value); err != nil {
 		return err
 	}
-	*r = ReidentifyStringResponse(value)
-	extraProperties, err := internal.ExtractExtraProperties(data, *r)
+	*s = StringResponseEntities(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *s)
 	if err != nil {
 		return err
 	}
-	r.extraProperties = extraProperties
-	r.rawJSON = json.RawMessage(data)
+	s.extraProperties = extraProperties
+	s.rawJSON = json.RawMessage(data)
 	return nil
 }
 
-func (r *ReidentifyStringResponse) String() string {
-	if len(r.rawJSON) > 0 {
-		if value, err := internal.StringifyJSON(r.rawJSON); err == nil {
+func (s *StringResponseEntities) String() string {
+	if len(s.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(s.rawJSON); err == nil {
 			return value
 		}
 	}
-	if value, err := internal.StringifyJSON(r); err == nil {
+	if value, err := internal.StringifyJSON(s); err == nil {
 		return value
 	}
-	return fmt.Sprintf("%#v", r)
+	return fmt.Sprintf("%#v", s)
 }
 
-// Mapping of tokens to generation for detected entities. Can't be specified together with `token_type`.
-type TokenType struct {
-	Default *TokenTypeDefault `json:"default,omitempty" url:"default,omitempty"`
-	// Entity types to replace with vault tokens.
-	VaultToken []EntityType `json:"vault_token,omitempty" url:"vault_token,omitempty"`
-	// Entity types to replace with entity tokens with unique counters.
-	EntityUnqCounter []EntityType `json:"entity_unq_counter,omitempty" url:"entity_unq_counter,omitempty"`
-	// Entity types to replace with entity tokens.
-	EntityOnly []EntityType `json:"entity_only,omitempty" url:"entity_only,omitempty"`
-
-	extraProperties map[string]interface{}
-	rawJSON         json.RawMessage
-}
-
-func (t *TokenType) GetDefault() *TokenTypeDefault {
-	if t == nil {
-		return nil
-	}
-	return t.Default
-}
-
-func (t *TokenType) GetVaultToken() []EntityType {
-	if t == nil {
-		return nil
-	}
-	return t.VaultToken
-}
-
-func (t *TokenType) GetEntityUnqCounter() []EntityType {
-	if t == nil {
-		return nil
-	}
-	return t.EntityUnqCounter
-}
-
-func (t *TokenType) GetEntityOnly() []EntityType {
-	if t == nil {
-		return nil
-	}
-	return t.EntityOnly
-}
-
-func (t *TokenType) GetExtraProperties() map[string]interface{} {
-	return t.extraProperties
-}
-
-func (t *TokenType) UnmarshalJSON(data []byte) error {
-	type unmarshaler TokenType
-	var value unmarshaler
-	if err := json.Unmarshal(data, &value); err != nil {
-		return err
-	}
-	*t = TokenType(value)
-	extraProperties, err := internal.ExtractExtraProperties(data, *t)
-	if err != nil {
-		return err
-	}
-	t.extraProperties = extraProperties
-	t.rawJSON = json.RawMessage(data)
-	return nil
-}
-
-func (t *TokenType) String() string {
-	if len(t.rawJSON) > 0 {
-		if value, err := internal.StringifyJSON(t.rawJSON); err == nil {
-			return value
-		}
-	}
-	if value, err := internal.StringifyJSON(t); err == nil {
-		return value
-	}
-	return fmt.Sprintf("%#v", t)
-}
-
-type TokenTypeDefault string
+type DeidentifyStringRequestEntityTypesItem string
 
 const (
-	TokenTypeDefaultEntityOnly       TokenTypeDefault = "entity_only"
-	TokenTypeDefaultEntityUnqCounter TokenTypeDefault = "entity_unq_counter"
-	TokenTypeDefaultVaultToken       TokenTypeDefault = "vault_token"
+	DeidentifyStringRequestEntityTypesItemAge                         DeidentifyStringRequestEntityTypesItem = "age"
+	DeidentifyStringRequestEntityTypesItemBankAccount                 DeidentifyStringRequestEntityTypesItem = "bank_account"
+	DeidentifyStringRequestEntityTypesItemCreditCard                  DeidentifyStringRequestEntityTypesItem = "credit_card"
+	DeidentifyStringRequestEntityTypesItemCreditCardExpiration        DeidentifyStringRequestEntityTypesItem = "credit_card_expiration"
+	DeidentifyStringRequestEntityTypesItemCvv                         DeidentifyStringRequestEntityTypesItem = "cvv"
+	DeidentifyStringRequestEntityTypesItemDate                        DeidentifyStringRequestEntityTypesItem = "date"
+	DeidentifyStringRequestEntityTypesItemDateInterval                DeidentifyStringRequestEntityTypesItem = "date_interval"
+	DeidentifyStringRequestEntityTypesItemDob                         DeidentifyStringRequestEntityTypesItem = "dob"
+	DeidentifyStringRequestEntityTypesItemDriverLicense               DeidentifyStringRequestEntityTypesItem = "driver_license"
+	DeidentifyStringRequestEntityTypesItemEmailAddress                DeidentifyStringRequestEntityTypesItem = "email_address"
+	DeidentifyStringRequestEntityTypesItemHealthcareNumber            DeidentifyStringRequestEntityTypesItem = "healthcare_number"
+	DeidentifyStringRequestEntityTypesItemIpAddress                   DeidentifyStringRequestEntityTypesItem = "ip_address"
+	DeidentifyStringRequestEntityTypesItemLocation                    DeidentifyStringRequestEntityTypesItem = "location"
+	DeidentifyStringRequestEntityTypesItemName                        DeidentifyStringRequestEntityTypesItem = "name"
+	DeidentifyStringRequestEntityTypesItemNumericalPii                DeidentifyStringRequestEntityTypesItem = "numerical_pii"
+	DeidentifyStringRequestEntityTypesItemPhoneNumber                 DeidentifyStringRequestEntityTypesItem = "phone_number"
+	DeidentifyStringRequestEntityTypesItemSsn                         DeidentifyStringRequestEntityTypesItem = "ssn"
+	DeidentifyStringRequestEntityTypesItemUrl                         DeidentifyStringRequestEntityTypesItem = "url"
+	DeidentifyStringRequestEntityTypesItemVehicleId                   DeidentifyStringRequestEntityTypesItem = "vehicle_id"
+	DeidentifyStringRequestEntityTypesItemMedicalCode                 DeidentifyStringRequestEntityTypesItem = "medical_code"
+	DeidentifyStringRequestEntityTypesItemNameFamily                  DeidentifyStringRequestEntityTypesItem = "name_family"
+	DeidentifyStringRequestEntityTypesItemNameGiven                   DeidentifyStringRequestEntityTypesItem = "name_given"
+	DeidentifyStringRequestEntityTypesItemAccountNumber               DeidentifyStringRequestEntityTypesItem = "account_number"
+	DeidentifyStringRequestEntityTypesItemEvent                       DeidentifyStringRequestEntityTypesItem = "event"
+	DeidentifyStringRequestEntityTypesItemFilename                    DeidentifyStringRequestEntityTypesItem = "filename"
+	DeidentifyStringRequestEntityTypesItemGender                      DeidentifyStringRequestEntityTypesItem = "gender"
+	DeidentifyStringRequestEntityTypesItemLanguage                    DeidentifyStringRequestEntityTypesItem = "language"
+	DeidentifyStringRequestEntityTypesItemLocationAddress             DeidentifyStringRequestEntityTypesItem = "location_address"
+	DeidentifyStringRequestEntityTypesItemLocationCity                DeidentifyStringRequestEntityTypesItem = "location_city"
+	DeidentifyStringRequestEntityTypesItemLocationCoordinate          DeidentifyStringRequestEntityTypesItem = "location_coordinate"
+	DeidentifyStringRequestEntityTypesItemLocationCountry             DeidentifyStringRequestEntityTypesItem = "location_country"
+	DeidentifyStringRequestEntityTypesItemLocationState               DeidentifyStringRequestEntityTypesItem = "location_state"
+	DeidentifyStringRequestEntityTypesItemLocationZip                 DeidentifyStringRequestEntityTypesItem = "location_zip"
+	DeidentifyStringRequestEntityTypesItemMaritalStatus               DeidentifyStringRequestEntityTypesItem = "marital_status"
+	DeidentifyStringRequestEntityTypesItemMoney                       DeidentifyStringRequestEntityTypesItem = "money"
+	DeidentifyStringRequestEntityTypesItemNameMedicalProfessional     DeidentifyStringRequestEntityTypesItem = "name_medical_professional"
+	DeidentifyStringRequestEntityTypesItemOccupation                  DeidentifyStringRequestEntityTypesItem = "occupation"
+	DeidentifyStringRequestEntityTypesItemOrganization                DeidentifyStringRequestEntityTypesItem = "organization"
+	DeidentifyStringRequestEntityTypesItemOrganizationMedicalFacility DeidentifyStringRequestEntityTypesItem = "organization_medical_facility"
+	DeidentifyStringRequestEntityTypesItemOrigin                      DeidentifyStringRequestEntityTypesItem = "origin"
+	DeidentifyStringRequestEntityTypesItemPassportNumber              DeidentifyStringRequestEntityTypesItem = "passport_number"
+	DeidentifyStringRequestEntityTypesItemPassword                    DeidentifyStringRequestEntityTypesItem = "password"
+	DeidentifyStringRequestEntityTypesItemPhysicalAttribute           DeidentifyStringRequestEntityTypesItem = "physical_attribute"
+	DeidentifyStringRequestEntityTypesItemPoliticalAffiliation        DeidentifyStringRequestEntityTypesItem = "political_affiliation"
+	DeidentifyStringRequestEntityTypesItemReligion                    DeidentifyStringRequestEntityTypesItem = "religion"
+	DeidentifyStringRequestEntityTypesItemTime                        DeidentifyStringRequestEntityTypesItem = "time"
+	DeidentifyStringRequestEntityTypesItemUsername                    DeidentifyStringRequestEntityTypesItem = "username"
+	DeidentifyStringRequestEntityTypesItemZodiacSign                  DeidentifyStringRequestEntityTypesItem = "zodiac_sign"
+	DeidentifyStringRequestEntityTypesItemBloodType                   DeidentifyStringRequestEntityTypesItem = "blood_type"
+	DeidentifyStringRequestEntityTypesItemCondition                   DeidentifyStringRequestEntityTypesItem = "condition"
+	DeidentifyStringRequestEntityTypesItemDose                        DeidentifyStringRequestEntityTypesItem = "dose"
+	DeidentifyStringRequestEntityTypesItemDrug                        DeidentifyStringRequestEntityTypesItem = "drug"
+	DeidentifyStringRequestEntityTypesItemInjury                      DeidentifyStringRequestEntityTypesItem = "injury"
+	DeidentifyStringRequestEntityTypesItemMedicalProcess              DeidentifyStringRequestEntityTypesItem = "medical_process"
+	DeidentifyStringRequestEntityTypesItemStatistics                  DeidentifyStringRequestEntityTypesItem = "statistics"
+	DeidentifyStringRequestEntityTypesItemRoutingNumber               DeidentifyStringRequestEntityTypesItem = "routing_number"
+	DeidentifyStringRequestEntityTypesItemCorporateAction             DeidentifyStringRequestEntityTypesItem = "corporate_action"
+	DeidentifyStringRequestEntityTypesItemFinancialMetric             DeidentifyStringRequestEntityTypesItem = "financial_metric"
+	DeidentifyStringRequestEntityTypesItemProduct                     DeidentifyStringRequestEntityTypesItem = "product"
+	DeidentifyStringRequestEntityTypesItemTrend                       DeidentifyStringRequestEntityTypesItem = "trend"
+	DeidentifyStringRequestEntityTypesItemDuration                    DeidentifyStringRequestEntityTypesItem = "duration"
+	DeidentifyStringRequestEntityTypesItemLocationAddressStreet       DeidentifyStringRequestEntityTypesItem = "location_address_street"
+	DeidentifyStringRequestEntityTypesItemAll                         DeidentifyStringRequestEntityTypesItem = "all"
+	DeidentifyStringRequestEntityTypesItemSexuality                   DeidentifyStringRequestEntityTypesItem = "sexuality"
+	DeidentifyStringRequestEntityTypesItemEffect                      DeidentifyStringRequestEntityTypesItem = "effect"
+	DeidentifyStringRequestEntityTypesItemProject                     DeidentifyStringRequestEntityTypesItem = "project"
+	DeidentifyStringRequestEntityTypesItemOrganizationId              DeidentifyStringRequestEntityTypesItem = "organization_id"
+	DeidentifyStringRequestEntityTypesItemDay                         DeidentifyStringRequestEntityTypesItem = "day"
+	DeidentifyStringRequestEntityTypesItemMonth                       DeidentifyStringRequestEntityTypesItem = "month"
+	DeidentifyStringRequestEntityTypesItemYear                        DeidentifyStringRequestEntityTypesItem = "year"
 )
 
-func NewTokenTypeDefaultFromString(s string) (TokenTypeDefault, error) {
+func NewDeidentifyStringRequestEntityTypesItemFromString(s string) (DeidentifyStringRequestEntityTypesItem, error) {
 	switch s {
-	case "entity_only":
-		return TokenTypeDefaultEntityOnly, nil
-	case "entity_unq_counter":
-		return TokenTypeDefaultEntityUnqCounter, nil
-	case "vault_token":
-		return TokenTypeDefaultVaultToken, nil
+	case "age":
+		return DeidentifyStringRequestEntityTypesItemAge, nil
+	case "bank_account":
+		return DeidentifyStringRequestEntityTypesItemBankAccount, nil
+	case "credit_card":
+		return DeidentifyStringRequestEntityTypesItemCreditCard, nil
+	case "credit_card_expiration":
+		return DeidentifyStringRequestEntityTypesItemCreditCardExpiration, nil
+	case "cvv":
+		return DeidentifyStringRequestEntityTypesItemCvv, nil
+	case "date":
+		return DeidentifyStringRequestEntityTypesItemDate, nil
+	case "date_interval":
+		return DeidentifyStringRequestEntityTypesItemDateInterval, nil
+	case "dob":
+		return DeidentifyStringRequestEntityTypesItemDob, nil
+	case "driver_license":
+		return DeidentifyStringRequestEntityTypesItemDriverLicense, nil
+	case "email_address":
+		return DeidentifyStringRequestEntityTypesItemEmailAddress, nil
+	case "healthcare_number":
+		return DeidentifyStringRequestEntityTypesItemHealthcareNumber, nil
+	case "ip_address":
+		return DeidentifyStringRequestEntityTypesItemIpAddress, nil
+	case "location":
+		return DeidentifyStringRequestEntityTypesItemLocation, nil
+	case "name":
+		return DeidentifyStringRequestEntityTypesItemName, nil
+	case "numerical_pii":
+		return DeidentifyStringRequestEntityTypesItemNumericalPii, nil
+	case "phone_number":
+		return DeidentifyStringRequestEntityTypesItemPhoneNumber, nil
+	case "ssn":
+		return DeidentifyStringRequestEntityTypesItemSsn, nil
+	case "url":
+		return DeidentifyStringRequestEntityTypesItemUrl, nil
+	case "vehicle_id":
+		return DeidentifyStringRequestEntityTypesItemVehicleId, nil
+	case "medical_code":
+		return DeidentifyStringRequestEntityTypesItemMedicalCode, nil
+	case "name_family":
+		return DeidentifyStringRequestEntityTypesItemNameFamily, nil
+	case "name_given":
+		return DeidentifyStringRequestEntityTypesItemNameGiven, nil
+	case "account_number":
+		return DeidentifyStringRequestEntityTypesItemAccountNumber, nil
+	case "event":
+		return DeidentifyStringRequestEntityTypesItemEvent, nil
+	case "filename":
+		return DeidentifyStringRequestEntityTypesItemFilename, nil
+	case "gender":
+		return DeidentifyStringRequestEntityTypesItemGender, nil
+	case "language":
+		return DeidentifyStringRequestEntityTypesItemLanguage, nil
+	case "location_address":
+		return DeidentifyStringRequestEntityTypesItemLocationAddress, nil
+	case "location_city":
+		return DeidentifyStringRequestEntityTypesItemLocationCity, nil
+	case "location_coordinate":
+		return DeidentifyStringRequestEntityTypesItemLocationCoordinate, nil
+	case "location_country":
+		return DeidentifyStringRequestEntityTypesItemLocationCountry, nil
+	case "location_state":
+		return DeidentifyStringRequestEntityTypesItemLocationState, nil
+	case "location_zip":
+		return DeidentifyStringRequestEntityTypesItemLocationZip, nil
+	case "marital_status":
+		return DeidentifyStringRequestEntityTypesItemMaritalStatus, nil
+	case "money":
+		return DeidentifyStringRequestEntityTypesItemMoney, nil
+	case "name_medical_professional":
+		return DeidentifyStringRequestEntityTypesItemNameMedicalProfessional, nil
+	case "occupation":
+		return DeidentifyStringRequestEntityTypesItemOccupation, nil
+	case "organization":
+		return DeidentifyStringRequestEntityTypesItemOrganization, nil
+	case "organization_medical_facility":
+		return DeidentifyStringRequestEntityTypesItemOrganizationMedicalFacility, nil
+	case "origin":
+		return DeidentifyStringRequestEntityTypesItemOrigin, nil
+	case "passport_number":
+		return DeidentifyStringRequestEntityTypesItemPassportNumber, nil
+	case "password":
+		return DeidentifyStringRequestEntityTypesItemPassword, nil
+	case "physical_attribute":
+		return DeidentifyStringRequestEntityTypesItemPhysicalAttribute, nil
+	case "political_affiliation":
+		return DeidentifyStringRequestEntityTypesItemPoliticalAffiliation, nil
+	case "religion":
+		return DeidentifyStringRequestEntityTypesItemReligion, nil
+	case "time":
+		return DeidentifyStringRequestEntityTypesItemTime, nil
+	case "username":
+		return DeidentifyStringRequestEntityTypesItemUsername, nil
+	case "zodiac_sign":
+		return DeidentifyStringRequestEntityTypesItemZodiacSign, nil
+	case "blood_type":
+		return DeidentifyStringRequestEntityTypesItemBloodType, nil
+	case "condition":
+		return DeidentifyStringRequestEntityTypesItemCondition, nil
+	case "dose":
+		return DeidentifyStringRequestEntityTypesItemDose, nil
+	case "drug":
+		return DeidentifyStringRequestEntityTypesItemDrug, nil
+	case "injury":
+		return DeidentifyStringRequestEntityTypesItemInjury, nil
+	case "medical_process":
+		return DeidentifyStringRequestEntityTypesItemMedicalProcess, nil
+	case "statistics":
+		return DeidentifyStringRequestEntityTypesItemStatistics, nil
+	case "routing_number":
+		return DeidentifyStringRequestEntityTypesItemRoutingNumber, nil
+	case "corporate_action":
+		return DeidentifyStringRequestEntityTypesItemCorporateAction, nil
+	case "financial_metric":
+		return DeidentifyStringRequestEntityTypesItemFinancialMetric, nil
+	case "product":
+		return DeidentifyStringRequestEntityTypesItemProduct, nil
+	case "trend":
+		return DeidentifyStringRequestEntityTypesItemTrend, nil
+	case "duration":
+		return DeidentifyStringRequestEntityTypesItemDuration, nil
+	case "location_address_street":
+		return DeidentifyStringRequestEntityTypesItemLocationAddressStreet, nil
+	case "all":
+		return DeidentifyStringRequestEntityTypesItemAll, nil
+	case "sexuality":
+		return DeidentifyStringRequestEntityTypesItemSexuality, nil
+	case "effect":
+		return DeidentifyStringRequestEntityTypesItemEffect, nil
+	case "project":
+		return DeidentifyStringRequestEntityTypesItemProject, nil
+	case "organization_id":
+		return DeidentifyStringRequestEntityTypesItemOrganizationId, nil
+	case "day":
+		return DeidentifyStringRequestEntityTypesItemDay, nil
+	case "month":
+		return DeidentifyStringRequestEntityTypesItemMonth, nil
+	case "year":
+		return DeidentifyStringRequestEntityTypesItemYear, nil
 	}
-	var t TokenTypeDefault
+	var t DeidentifyStringRequestEntityTypesItem
 	return "", fmt.Errorf("%s is not a valid %T", s, t)
 }
 
-func (t TokenTypeDefault) Ptr() *TokenTypeDefault {
-	return &t
-}
-
-// Mapping of perferred data formatting options to entity types. Returned values are dependent on the configuration of the vault storing the data and the permissions of the user or account making the request.
-type ReidentifyStringRequestFormat struct {
-	// Entity types to fully redact.
-	Redacted []EntityType `json:"redacted,omitempty" url:"redacted,omitempty"`
-	// Entity types to mask.
-	Masked []EntityType `json:"masked,omitempty" url:"masked,omitempty"`
-	// Entity types to return in plaintext.
-	Plaintext []EntityType `json:"plaintext,omitempty" url:"plaintext,omitempty"`
-
-	extraProperties map[string]interface{}
-	rawJSON         json.RawMessage
-}
-
-func (r *ReidentifyStringRequestFormat) GetRedacted() []EntityType {
-	if r == nil {
-		return nil
-	}
-	return r.Redacted
-}
-
-func (r *ReidentifyStringRequestFormat) GetMasked() []EntityType {
-	if r == nil {
-		return nil
-	}
-	return r.Masked
-}
-
-func (r *ReidentifyStringRequestFormat) GetPlaintext() []EntityType {
-	if r == nil {
-		return nil
-	}
-	return r.Plaintext
-}
-
-func (r *ReidentifyStringRequestFormat) GetExtraProperties() map[string]interface{} {
-	return r.extraProperties
-}
-
-func (r *ReidentifyStringRequestFormat) UnmarshalJSON(data []byte) error {
-	type unmarshaler ReidentifyStringRequestFormat
-	var value unmarshaler
-	if err := json.Unmarshal(data, &value); err != nil {
-		return err
-	}
-	*r = ReidentifyStringRequestFormat(value)
-	extraProperties, err := internal.ExtractExtraProperties(data, *r)
-	if err != nil {
-		return err
-	}
-	r.extraProperties = extraProperties
-	r.rawJSON = json.RawMessage(data)
-	return nil
-}
-
-func (r *ReidentifyStringRequestFormat) String() string {
-	if len(r.rawJSON) > 0 {
-		if value, err := internal.StringifyJSON(r.rawJSON); err == nil {
-			return value
-		}
-	}
-	if value, err := internal.StringifyJSON(r); err == nil {
-		return value
-	}
-	return fmt.Sprintf("%#v", r)
+func (d DeidentifyStringRequestEntityTypesItem) Ptr() *DeidentifyStringRequestEntityTypesItem {
+	return &d
 }
