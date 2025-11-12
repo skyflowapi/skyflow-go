@@ -1,4 +1,4 @@
-module github.com/skyflowapi/skyflow-go/samples
+module github.com/skyflowapi/skyflow-go/samples/v2
 
 go 1.22.0
 
