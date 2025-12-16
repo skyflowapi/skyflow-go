@@ -90,6 +90,20 @@ var _ = Describe("Skyflow Client", func() {
 			Expect(err).To(HaveOccurred())
 			Expect(err.GetMessage()).To(ContainSubstring(error.INVALID_VAULT_ID))
 		})
+		It("should return error when initialize with custom invalid url", func() {
+			var config []common.VaultConfig
+			config = append(config, common.VaultConfig{
+				VaultId:   "id",
+				ClusterId: "cluster1",
+				Env:       0,
+				BaseVaultURL: "invalid-url",
+			})
+			client, err := NewSkyflow(
+				WithVaults(config...))
+			Expect(client).To(BeNil())
+			Expect(err).To(HaveOccurred())
+			Expect(err.GetMessage()).To(ContainSubstring(error.INVALID_VAULT_URL))
+		})
 		It("should initialize THE CLIENT with configuration with vault config", func() {
 			var config []common.VaultConfig
 			config = append(config, common.VaultConfig{
@@ -99,6 +113,22 @@ var _ = Describe("Skyflow Client", func() {
 			})
 			client, err := NewSkyflow(
 				WithVaults(config...))
+			Expect(client).ToNot(BeNil())
+			Expect(err).ToNot(HaveOccurred())
+		})
+		It("should initialize THE CLIENT with configuration with vault config and custom headers", func() {
+			var config []common.VaultConfig
+			config = append(config, common.VaultConfig{
+				VaultId:   "id",
+				ClusterId: "cluster1",
+				Env:       0,
+			})
+			customHeader := make(map[string]string)
+			customHeader["x-custom-header"] = "custom-header-value"
+			client, err := NewSkyflow(
+				WithVaults(config...), 
+				WithCustomHeaders(customHeader),
+			)
 			Expect(client).ToNot(BeNil())
 			Expect(err).ToNot(HaveOccurred())
 		})

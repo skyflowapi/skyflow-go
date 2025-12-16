@@ -374,7 +374,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 				Expect(err).ToNot(BeNil())
 				Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_VAULT_ID))
 			})
-			It("should return error for empty VaultId", func() {
+			It("should return error for VALID VaultId", func() {
 				config := common.VaultConfig{
 					VaultId:      "id",
 					ClusterId:    "cid",
@@ -385,8 +385,112 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 				err := ValidateVaultConfig(config)
 				Expect(err).To(BeNil())
 			})
+		   	It("should return error for invalid url", func() {
+				config := common.VaultConfig{
+					VaultId:      "id",
+					ClusterId:    "cid",
+					Env:          common.PROD,
+					Credentials:  validCredentials,
+					BaseVaultURL: "htt://demo.com",
+				}
+				err := ValidateVaultConfig(config)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_VAULT_URL))
+			})
+			It("should return error for invalid url", func() {
+				config := common.VaultConfig{
+					VaultId:      "id",
+					ClusterId:    "cid",
+					Env:          common.PROD,
+					Credentials:  validCredentials,
+					BaseVaultURL: "====",
+				}
+				err := ValidateVaultConfig(config)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_VAULT_URL))
+			})
 
 		})
+		Describe("isValidHTTPURL", func() {
+	It("should return false for invalid URL (err != nil)", func() {
+		// This string is not a valid URL and will cause url.Parse to return an error
+		invalidURL := "://bad url"
+		config := common.VaultConfig{
+					VaultId:      "id",
+					ClusterId:    "cid",
+					Env:          common.PROD,
+					Credentials:  validCredentials,
+					BaseVaultURL: invalidURL,
+				}
+		err := ValidateVaultConfig(config)
+		Expect(err).ToNot(BeNil())
+		Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_VAULT_URL))
+	})
+	It("should return false for missing scheme", func() {
+		invalidURL := "www.example.com"
+		config := common.VaultConfig{
+					VaultId:      "id",
+					ClusterId:    "cid",
+					Env:          common.PROD,
+					Credentials:  validCredentials,
+					BaseVaultURL: invalidURL,
+				}
+		err := ValidateVaultConfig(config)
+		Expect(err).ToNot(BeNil())
+		Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_VAULT_URL))
+	})
+	It("should return false for unsupported scheme", func() {
+		invalidURL := "ftp://example.com"
+		config := common.VaultConfig{
+					VaultId:      "id",
+					ClusterId:    "cid",
+					Env:          common.PROD,
+					Credentials:  validCredentials,
+					BaseVaultURL: invalidURL,
+				}
+		err := ValidateVaultConfig(config)
+		Expect(err).ToNot(BeNil())
+		Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_VAULT_URL))
+	})
+	It("should return false for empty host", func() {
+		invalidURL := "http://"
+		config := common.VaultConfig{
+					VaultId:      "id",
+					ClusterId:    "cid",
+					Env:          common.PROD,
+					Credentials:  validCredentials,
+					BaseVaultURL: invalidURL,
+				}
+		err := ValidateVaultConfig(config)
+		Expect(err).ToNot(BeNil())
+		Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_VAULT_URL))
+
+	})
+	It("should return true for valid http URL", func() {
+		validURL := "http://example.com"
+		config := common.VaultConfig{
+					VaultId:      "id",
+					ClusterId:    "cid",
+					Env:          common.PROD,
+					Credentials:  validCredentials,
+					BaseVaultURL: validURL,
+				}
+		err := ValidateVaultConfig(config)
+		Expect(err).To(BeNil())
+	})
+	It("should return true for valid https URL", func() {
+		validURL := "https://example.com"
+		config := common.VaultConfig{
+					VaultId:      "id",
+					ClusterId:    "cid",
+					Env:          common.PROD,
+					Credentials:  validCredentials,
+					BaseVaultURL: validURL,
+				}
+		err := ValidateVaultConfig(config)
+		Expect(err).To(BeNil())
+	})
+	})
 
 		Context("Valid VaultConfig", func() {
 			It("should return nil for valid VaultConfig", func() {
