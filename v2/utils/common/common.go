@@ -183,6 +183,7 @@ type SignedDataTokensResponse struct {
 type VaultConfig struct {
 	VaultId     string
 	ClusterId   string
+	BaseVaultURL string
 	Env         Env
 	Credentials Credentials
 }

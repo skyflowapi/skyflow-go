@@ -17,6 +17,7 @@ type Skyflow struct {
 	detectServices     map[string]*detectService
 	credentials        *vaultutils.Credentials
 	logLevel           logger.LogLevel
+	customHeaders      map[string]string
 }
 
 type Option func(*Skyflow) *error.SkyflowError
@@ -130,6 +131,13 @@ func WithLogLevel(logLevel logger.LogLevel) Option {
 	}
 }
 
+func WithCustomHeaders(headers map[string]string) Option {
+	return func(s *Skyflow) *error.SkyflowError {
+		s.customHeaders = headers
+		return nil
+	}
+}
+
 // Vault retrieves a vault service by ID.
 func (s *Skyflow) Vault(vaultID ...string) (*vaultService, *error.SkyflowError) {
 	// get vaultapi config if available in vaultapi configs, skyflow or env
@@ -157,6 +165,7 @@ func (s *Skyflow) Vault(vaultID ...string) (*vaultService, *error.SkyflowError) 
 	vaultService.controller = &controller.VaultController{
 		Config:   *config,
 		Loglevel: &s.logLevel,
+		CustomHeaders: s.customHeaders,
 	}
 	vaultService.config = config
 	return vaultService, nil
@@ -216,6 +225,7 @@ func (s *Skyflow) Detect(vaultID ...string) (*detectService, *error.SkyflowError
 	detectService.controller = &controller.DetectController{
 		Config:   *config,
 		Loglevel: &s.logLevel,
+		CustomHeaders: s.customHeaders,
 	}
 	detectService.config = config
 	return detectService, nil

@@ -355,6 +355,37 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 				Expect(err).ToNot(BeNil())
 				Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_CLUSTER_ID))
 			})
+			It("should return error for empty VaultId", func() {
+				config := common.VaultConfig{
+					VaultId: "id",
+					Env:          common.PROD,
+					Credentials:  validCredentials,
+					BaseVaultURL: "http://demo.com",
+				}
+				err := ValidateVaultConfig(config)
+				Expect(err).To(BeNil())
+			})
+			It("should return error for empty VaultId", func() {
+				config := common.VaultConfig{
+					Env:         common.PROD,
+					Credentials: validCredentials,
+				}
+				err := ValidateVaultConfig(config)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_VAULT_ID))
+			})
+			It("should return error for empty VaultId", func() {
+				config := common.VaultConfig{
+					VaultId:      "id",
+					ClusterId:    "cid",
+					Env:          common.PROD,
+					Credentials:  validCredentials,
+					BaseVaultURL: "http://demo.com",
+				}
+				err := ValidateVaultConfig(config)
+				Expect(err).To(BeNil())
+			})
+
 		})
 
 		Context("Valid VaultConfig", func() {

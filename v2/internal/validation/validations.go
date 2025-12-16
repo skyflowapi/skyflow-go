@@ -481,9 +481,19 @@ func ValidateVaultConfig(vaultConfig common.VaultConfig) *skyflowError.SkyflowEr
 	if vaultConfig.VaultId == "" {
 		logger.Error(logs.VAULT_ID_IS_REQUIRED)
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_VAULT_ID)
-	} else if vaultConfig.ClusterId == "" {
-		logger.Error(logs.CLUSTER_ID_IS_REQUIRED)
-		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_CLUSTER_ID)
+	}
+	if vaultConfig.BaseVaultURL == "" {
+		if vaultConfig.ClusterId == "" {
+			logger.Error(logs.CLUSTER_ID_IS_REQUIRED)
+			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_CLUSTER_ID)
+		}
+	} else {
+		// Parse the URL
+		isValidHTTPURL := isValidHTTPURL(vaultConfig.BaseVaultURL)
+		if !isValidHTTPURL {
+			logger.Error(logs.VAULT_URL_IS_INVALID)
+			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_VAULT_URL)
+		}
 	}
 	return nil
 }
@@ -882,4 +892,16 @@ func ValidateFileUploadRequest(req common.FileUploadRequest) *skyflowError.Skyfl
 	}
 
 	return nil
+}
+func isValidHTTPURL(raw string) bool {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return false
+	}
+
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return false
+	}
+
+	return u.Host != ""
 }
