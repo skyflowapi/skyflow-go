@@ -154,9 +154,10 @@ In V2, the log level is tied to each individual client instance.
 
 During client initialization, you can pass the following parameters:
 
-- `VaultID` and `VaultURL`: These values are derived from the vault ID & vault URL.
+- `VaultID` and `ClusterId`: These values are derived from the vault ID & vault URL.
 - `Env`: Specify the environment (e.g., SANDBOX or PROD).
 - `Credentials`: The necessary authentication credentials.
+- `BaseVaultURL`: URL of the vault that the client should connect to.
 
 #### V1 (Old):
 ```go
@@ -440,15 +441,40 @@ func main() {
     Env: common.SANDBOX, // Set the environment for this vault.
     Credentials: tertiaryCredentials, // Attach the secondary credentials to this configuration.
   }
-  // Step 9: Build and initialize the Skyflow client.
-  // Skyflow client is configured with multiple vaults and credentials.
+  
+  // Step 9: Another vault config with Base Vault URL
+  credentials := common.Credentials {
+    ApiKey: "<API_KEY>",
+  } // Replace with your API Key for authentication.
 
+  // A vault configuration can be used for operations involving multiple vaults.
+  ConfigWithVaultURL := common.VaultConfig {
+    VaultId: "<SECONDARY_VAULT_ID>", // Replace with your secondary vault's ID.
+    BaseVaultURL: "<VAULT_URL>", // URL of the vault that the client should connect to.
+    Env: common.SANDBOX, // Set the environment for this vault.
+    Credentials: credentials, // Attach the secondary credentials to this configuration.
+  }
+
+  // Step 10: Build and initialize the Skyflow client.
   var arr[] common.VaultConfig
-  arr = append(arr, primaryConfig, secondaryConfig, tertiaryConfig)
+  arr = append(arr, primaryConfig, secondaryConfig, tertiaryConfig, ConfigWithVaultURL)
+
+  // Skyflow client is configured with multiple vaults and credentials.
   skyflowClient, err: = client.NewSkyflow(
     client.WithVaults(arr...),
     client.WithCredentials(skyflowCredentials), // Add JSON-formatted credentials if applicable.
     client.WithLogLevel(logger.DEBUG), // Set log level for debugging or monitoring purposes.
+  )
+
+  // OR Build and initialize the Skyflow client with custom headers.
+  var customHeaders = make(map[string]string) // Create a map for custom headers
+	customHeaders["x-custom-header"] = "custom-header-value"
+
+  skyflowClient, err: = client.NewSkyflow(
+    client.WithVaults(arr...),
+    client.WithCredentials(skyflowCredentials), // Add JSON-formatted credentials if applicable.
+    client.WithLogLevel(logger.DEBUG), // Set log level for debugging or monitoring purposes.
+    client.WithCustomHeaders(customHeaders), // Added custom headers
   )
   // The Skyflow client is now fully initialized.
   // Use the `skyflowClient` object to perform secure operations such as:
@@ -463,6 +489,7 @@ func main() {
 - If both Skyflow common credentials and individual credentials at the configuration level are specified, the individual credentials at the configuration level will take precedence.
 - If neither Skyflow common credentials nor individual configuration-level credentials are provided, the SDK attempts to retrieve credentials from the `SKYFLOW_CREDENTIALS` environment variable.
 - All Vault operations require a client instance.
+- If `BaseVaultURL` is specified in the vault configuration, it will be used for all API calls for that vault.
 
 ### Insert data into the vault
 To insert data into your vault, use the `Insert` method.  The `InsertRequest` struct creates an insert request, which includes the values to be inserted as a list of records. Below is a simple example to get started. For advanced options, check out [Insert data into the vault]() section.
