@@ -12,6 +12,7 @@ const (
 	EMPTY_VAULT_CONFIG                                string = internal.SDK_PREFIX + " Validation error. No vault configurations available"
 	INVALID_VAULT_ID                                  string = internal.SDK_PREFIX + " Initialization failed. Invalid vault ID. Specify a valid vault ID."
 	INVALID_CLUSTER_ID                                string = internal.SDK_PREFIX + " Initialization failed. Invalid cluster ID. Specify cluster ID."
+    INVALID_VAULT_URL								string = internal.SDK_PREFIX + " Initialization failed. Invalid vault URL. Specify a valid vault URL."
 	EMPTY_CONNECTION_CONFIG                           string = internal.SDK_PREFIX + " Validation error. No connection configurations available"
 	EMPTY_CONNECTION_ID                               string = internal.SDK_PREFIX + " Initialization failed. Invalid connection ID. Connection ID must not be empty."
 	INVALID_CONNECTION_URL                            string = internal.SDK_PREFIX + " Initialization failed. Invalid connection URL. Specify a valid connection URL."

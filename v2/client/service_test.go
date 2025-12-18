@@ -43,22 +43,22 @@ var (
 		"status": "SUCCESS",
 		"output": []map[string]interface{}{
 			{
-				"processedFile":           "dGVzdCBjb250ZW50",
+				"processedFile":          "dGVzdCBjb250ZW50",
 				"processedFileExtension": "txt",
 				"processedFileType":      "TEXT",
 			},
 			{
-				"processedFile":           "eyJlbnRpdGllcyI6W119",
+				"processedFile":          "eyJlbnRpdGllcyI6W119",
 				"processedFileType":      "ENTITIES",
 				"processedFileExtension": "json",
 			},
 		},
 		"outputType": "FILE",
-		"message":     "Processing completed successfully",
-		"size":        1024.5,
-		"duration":    1.2,
-		"pages":       0,
-		"slides":      0,
+		"message":    "Processing completed successfully",
+		"size":       1024.5,
+		"duration":   1.2,
+		"pages":      0,
+		"slides":     0,
 		"wordCharacterCount": map[string]interface{}{
 			"wordCount":      150,
 			"characterCount": 750,
@@ -75,6 +75,8 @@ var _ = Describe("Vault controller Test cases", func() {
 			err      *skyflowError.SkyflowError
 		)
 		BeforeEach(func() {
+			customHeader := make(map[string]string)
+			customHeader["x-custom-header"] = "custom-header-value"
 			client, err = NewSkyflow(WithVaults(VaultConfig{
 				VaultId:   "id",
 				ClusterId: "cid",
@@ -82,7 +84,8 @@ var _ = Describe("Vault controller Test cases", func() {
 				Credentials: Credentials{
 					ApiKey: "test-api-key",
 				},
-			}))
+			}),
+				WithCustomHeaders(customHeader))
 			response = make(map[string]interface{})
 			ts = nil
 		})
