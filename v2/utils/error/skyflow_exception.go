@@ -24,7 +24,10 @@ type SkyflowError struct {
 }
 
 func (se *SkyflowError) Error() string {
-	return fmt.Sprintf("Message: %s, Original Error (if any): %s", se.message, se.originalError.Error())
+	if se.originalError != nil {
+		return fmt.Sprintf("Message: %s, Original Error (if any): %s", se.message, se.originalError.Error())
+	}
+	return fmt.Sprintf("Message: %s", se.message)
 }
 func (se *SkyflowError) GetMessage() string {
 	return fmt.Sprintf("Message: %s", se.message)
