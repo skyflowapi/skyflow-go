@@ -14,8 +14,12 @@ github.com/sirupsen/logrus v1.8.3 h1:DBBfY8eMYazKEJHb3JKpSPfpgd2mBCoNFlQx6C5fftU
 github.com/sirupsen/logrus v1.8.3/go.mod h1:naHLuLoDiP4jHNo9R0sCBMtWGeIprob74mVsIT4qYEQ=
 github.com/skyflowapi/skyflow-go/commonutils v0.0.0-20231031082702-92eed6eb74b5 h1:E7ydAFkSeRyBggnzK/fPXvhKqVbLn2sEPKgA0uOzQeg=
 github.com/skyflowapi/skyflow-go/commonutils v0.0.0-20231031082702-92eed6eb74b5/go.mod h1:C9IH9lBmu32OoVAFtwEUw9aN3bXG8lSVNy8K1fw69UY=
+github.com/skyflowapi/skyflow-go/commonutils v0.0.0-20260106102501-e4411ad29dfd h1:3MIejEaa7V2KeiQ3IzU7qrlp1vQDG9wFlTciijaT12Y=
+github.com/skyflowapi/skyflow-go/commonutils v0.0.0-20260106102501-e4411ad29dfd/go.mod h1:M1Dmira+H7Tmefk7irvX21Je/XhoT9xtp+zKj2dfx3U=
 github.com/skyflowapi/skyflow-go/skyflow v0.0.0-20250717121725-49a302340452 h1:kBJEUU6vqLz6698WLZxDDGCS6cue/P4mqQ8/gEMr7dI=
 github.com/skyflowapi/skyflow-go/skyflow v0.0.0-20250717121725-49a302340452/go.mod h1:FNodd70EJXTesQbPEuUqnJygnghIH+oC2lsTRpGQU9A=
+github.com/skyflowapi/skyflow-go/skyflow v0.0.0-20260106102501-e4411ad29dfd h1:VO6UqUB9IlD8K8dfQVhrVeh2fCUjfR+Lr2/K0Upt3wI=
+github.com/skyflowapi/skyflow-go/skyflow v0.0.0-20260106102501-e4411ad29dfd/go.mod h1:1ERDPEGbFP5kUW6WVi/rcROjlPwBaCrwLE8uPGiUVwY=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 github.com/stretchr/testify v1.7.0 h1:nwc3DEeHmmLAfoZucVR881uASk0Mfjw8xYJ99tb5CcY=
