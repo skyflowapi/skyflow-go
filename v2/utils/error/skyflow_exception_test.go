@@ -25,7 +25,6 @@ var _ = Describe("Skyflow Error", func() {
 				message:       "Simple error",
 				originalError: nil,
 			}
-			// This would previously panic
 			Expect(skyflowError.Error()).To(Equal("Message: Simple error"))
 		})
 
