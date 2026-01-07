@@ -1,4 +1,4 @@
-package errors_test
+package errors
 
 import (
 	"errors"
@@ -10,7 +10,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/skyflowapi/skyflow-go/v2/utils/error"
 )
 
 func TestServiceAccount(t *testing.T) {
@@ -19,6 +18,26 @@ func TestServiceAccount(t *testing.T) {
 }
 
 var _ = Describe("Skyflow Error", func() {
+
+	Context("Error() Method Safe Checks", func() {
+		It("should return message without panic when originalError is nil", func() {
+			skyflowError := &SkyflowError{
+				message:       "Simple error",
+				originalError: nil,
+			}
+			Expect(skyflowError.Error()).To(Equal("Message: Simple error"))
+		})
+
+		It("should return combined message when originalError is present", func() {
+			originalErr := errors.New("database connection failed")
+			skyflowError := &SkyflowError{
+				message:       "Operation failed",
+				originalError: originalErr,
+			}
+			expectedMsg := "Message: Operation failed, Original Error (if any): database connection failed"
+			Expect(skyflowError.Error()).To(Equal(expectedMsg))
+		})
+	})
 
 	Context("Getters", func() {
 		var skyflowError *SkyflowError
