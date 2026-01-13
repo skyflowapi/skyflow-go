@@ -1506,6 +1506,37 @@ var _ = Describe("VaultController", func() {
 			err := SetBearerTokenForVaultController(vaultController)
 			Expect(err).ToNot(BeNil())
 		})
+	   It("should generate token if apikey string is provided", func() {
+			vaultController.Token = ""
+			vaultController.Config.Credentials.Path = ""
+			vaultController.Config.Credentials.ApiKey = os.Getenv("API_KEY")
+			vaultController.Config.Credentials.CredentialsString = ""
+
+			err := SetBearerTokenForVaultController(vaultController)
+			Expect(err).To(BeNil())
+		})
+		It("should generate token if apikey string is provided", func() {
+			vaultController.Token = ""
+			vaultController.Config.Credentials.Path = ""
+			vaultController.Config.Credentials.ApiKey = ""
+			vaultController.Config.Credentials.CredentialsString = ""
+
+			err := SetBearerTokenForVaultController(vaultController)
+			Expect(err).ToNot(BeNil())
+		})
+		It("should generate token if apikey string is provided", func() {
+			vaultController.Token = ""
+			vaultController.Config.Credentials.Path = ""
+			vaultController.Config.Credentials.ApiKey = ""
+			vaultController.Config.Credentials.CredentialsString = ""
+			vaultController.CommonCreds = &Credentials{
+				ApiKey: os.Getenv("API_KEY"),
+			}
+
+			err := SetBearerTokenForVaultController(vaultController)
+			Expect(err).To(BeNil())
+		})
+
 	})
 
 	Context("CreateRequestClient", func() {
