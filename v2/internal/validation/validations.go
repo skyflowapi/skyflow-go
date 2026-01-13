@@ -503,10 +503,6 @@ func ValidateUpdateVaultConfig(vaultConfig common.VaultConfig) *skyflowError.Sky
 		logger.Error(logs.VAULT_ID_IS_REQUIRED)
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_VAULT_ID)
 	}
-	// err := ValidateCredentials(vaultConfig.Credentials)
-	// if err != nil {
-	// 	return err
-	// }
 	return nil
 }
 
@@ -544,10 +540,6 @@ func ValidateUpdateConnectionConfig(config common.ConnectionConfig) *skyflowErro
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_CONNECTION_URL)
 		}
 	}
-	// err := ValidateCredentials(config.Credentials)
-	// if err != nil {
-	// 	return err
-	// }
 	return nil
 }
 

@@ -145,15 +145,6 @@ func (s *Skyflow) Vault(vaultID ...string) (*vaultService, *error.SkyflowError) 
 	if err != nil {
 		return nil, err
 	}
-
-	// err = setVaultCredentials(config, s.credentials)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// err1 := validation.ValidateVaultConfig(*config)
-	// if err1 != nil {
-	// 	return nil, err1
-	// }
 	vaultService := &vaultService{}
 	// Get the VaultController from the builder's vaultServices map
 	vaultService, exists := s.vaultServices[config.VaultId]
@@ -177,14 +168,6 @@ func (s *Skyflow) Connection(connectionId ...string) (*connectionService, *error
 	if err != nil {
 		return nil, err
 	}
-	// err = setConnectionCredentials(config, s.credentials)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// err1 := validation.ValidateConnectionConfig(*config)
-	// if err1 != nil {
-	// 	return nil, err1
-	// }
 	connectionService := &connectionService{}
 	connectionService, exists := s.connectionServices[config.ConnectionId]
 	if !exists {
@@ -208,14 +191,6 @@ func (s *Skyflow) Detect(vaultID ...string) (*detectService, *error.SkyflowError
 		return nil, err
 	}
 
-	// err = setDetectCredentials(config, s.credentials)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// err1 := validation.ValidateVaultConfig(*config)
-	// if err1 != nil {
-	// 	return nil, err1
-	// }
 	detectService := &detectService{}
 	// Get the VaultController from the builder's vaultServices map
 	detectService, exists := s.detectServices[config.VaultId]
