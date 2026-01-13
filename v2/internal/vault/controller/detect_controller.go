@@ -34,6 +34,7 @@ type DetectController struct {
 	ApiKey         string
 	TextApiClient  text.Client
 	FilesApiClient files.Client
+	CustomHeaders  map[string]string
 }
 
 var CreateDetectRequestClientFunc = CreateDetectRequestClient
@@ -69,7 +70,21 @@ func CreateDetectRequestClient(v *DetectController) *skyflowError.SkyflowError {
 	header := http.Header{}
 	header.Set(constants.SDK_METRICS_HEADER_KEY, helpers.CreateJsonMetadata())
 
-	client := text.NewClient(option.WithBaseURL(helpers.GetURLWithEnv(v.Config.Env, v.Config.ClusterId)),
+	// Add custom headers if provided
+	if v.CustomHeaders != nil {
+		for key, value := range v.CustomHeaders {
+			header.Set(key, value)
+		}
+	}
+
+	var baseURL string
+	if v.Config.BaseVaultURL != "" {
+		baseURL = v.Config.BaseVaultURL
+	} else {
+		baseURL = helpers.GetURLWithEnv(v.Config.Env, v.Config.ClusterId)
+	}
+
+	client := text.NewClient(option.WithBaseURL(baseURL),
 		option.WithToken(token),
 		option.WithHTTPHeader(header),
 		option.WithMaxAttempts(1),

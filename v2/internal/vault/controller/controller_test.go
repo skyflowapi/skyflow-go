@@ -65,6 +65,8 @@ var _ = Describe("Vault controller Test cases", func() {
 		)
 
 		BeforeEach(func() {
+			customHeader := make(map[string]string)
+			customHeader["x-custom-header"] = "custom-header-value"
 			response = make(map[string]interface{})
 			ts = nil
 			contrl = VaultController{
@@ -76,6 +78,7 @@ var _ = Describe("Vault controller Test cases", func() {
 						ApiKey: "sky-token",
 					},
 				},
+			CustomHeaders: customHeader,
 			}
 		})
 
@@ -94,6 +97,11 @@ var _ = Describe("Vault controller Test cases", func() {
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
 				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+					if (v.CustomHeaders != nil ) {
+						for key, value := range v.CustomHeaders {
+							header.Set(key, value)
+						}
+					}
 					client := client.NewClient(
 						option.WithBaseURL(ts.URL+"/vaults"),
 						option.WithToken("token"),
@@ -450,6 +458,7 @@ var _ = Describe("Vault controller Test cases", func() {
 					},
 					Env:       PROD,
 					ClusterId: "clusterID",
+					BaseVaultURL: "http://127.0.0.1",
 				},
 			}
 
@@ -473,7 +482,6 @@ var _ = Describe("Vault controller Test cases", func() {
 				_ = json.Unmarshal([]byte(mockDetokenizeSuccessJSON), &response)
 				// Set the mock server URL in the controller's client
 				ts := setupMockServer(response, "ok", "/vaults/v1/vaults/")
-
 				ctx = context.Background()
 				// Set the mock server URL in the controller's client
 				header := http.Header{}
@@ -2894,8 +2902,8 @@ var _ = Describe("DetectController", func() {
 				// Status check endpoint returns failed status
 				mux.HandleFunc("/v1/detect/runs/", func(w http.ResponseWriter, r *http.Request) {
 					json.NewEncoder(w).Encode(map[string]interface{}{
-						"status":      "FAILED",
-						"message":     "Processing failed",
+						"status":     "FAILED",
+						"message":    "Processing failed",
 						"outputType": "UNKNOWN",
 					})
 				})
@@ -3224,7 +3232,6 @@ var _ = Describe("DetectController", func() {
 func setupMockServer(mockResponse map[string]interface{}, status string, path string) *httptest.Server {
 	// Create a mock server
 	mockServer := http.NewServeMux()
-
 	// Define the handler for "/vaults/v1/vaults/"
 	mockServer.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
