@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -16,7 +17,7 @@ import (
 	"github.com/skyflowapi/skyflow-go/v2/internal/validation"
 	"github.com/skyflowapi/skyflow-go/v2/serviceaccount"
 	"github.com/skyflowapi/skyflow-go/v2/utils/common"
-	"github.com/skyflowapi/skyflow-go/v2/utils/error"
+	errors "github.com/skyflowapi/skyflow-go/v2/utils/error"
 	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
 	logs "github.com/skyflowapi/skyflow-go/v2/utils/messages"
 
@@ -24,10 +25,11 @@ import (
 )
 
 type ConnectionController struct {
-	Config   common.ConnectionConfig
-	Loglevel *logger.LogLevel
-	Token    string
-	ApiKey   string
+	Config      *common.ConnectionConfig
+	CommonCreds *common.Credentials
+	Loglevel    *logger.LogLevel
+	Token       string
+	ApiKey      string
 }
 
 var SetBearerTokenForConnectionControllerFunc = setBearerTokenForConnectionController
@@ -36,31 +38,38 @@ var SetBearerTokenForConnectionControllerFunc = setBearerTokenForConnectionContr
 func setBearerTokenForConnectionController(v *ConnectionController) *errors.SkyflowError {
 	// Validate token or generate a new one if expired or not set.
 	// check if apikey or token already initalised
-	if v.ApiKey != "" {
-		logger.Info(logs.REUSE_API_KEY)
-		return nil
-	} else if v.Token != "" && serviceaccount.IsExpired(v.Token) {
-		logger.Info(logs.REUSE_BEARER_TOKEN)
+	credToUse, err := setConnectionCredentials(v.Config, v.CommonCreds)
+	if err != nil {
+		return err
 	}
-	if v.Config.Credentials.ApiKey != "" {
-		v.ApiKey = v.Config.Credentials.ApiKey
-	} else if v.Config.Credentials.Token != "" {
-		if serviceaccount.IsExpired(v.Config.Credentials.Token) {
-			logger.Error(logs.BEARER_TOKEN_EXPIRED)
-			return errors.NewSkyflowError(errors.INVALID_INPUT_CODE, errors.TOKEN_EXPIRED)
-		}
-		v.Token = v.Config.Credentials.Token
-		return nil
-	} else if v.Token == "" || serviceaccount.IsExpired(v.Token) {
+	if v.Token == "" || serviceaccount.IsExpired(v.Token) {
 		logger.Info(logs.GENERATE_BEARER_TOKEN_TRIGGERED)
-		token, err := GenerateToken(v.Config.Credentials)
+		token, err := GenerateToken(*credToUse)
 		if err != nil {
-			logger.Error(logs.BEARER_TOKEN_REJECTED)
 			return err
 		}
 		v.Token = *token
+	} else {
+		logger.Info(logs.REUSE_BEARER_TOKEN)
 	}
 	return nil
+}
+func setConnectionCredentials(config *common.ConnectionConfig, builderCreds *common.Credentials) (*common.Credentials, *errors.SkyflowError) {
+	// here if credentials are empty in the vaultapi config
+	creds := common.Credentials{}
+	if config == nil || isCredentialsEmpty(config.Credentials) {
+		// here if builder credentials are available
+		if builderCreds != nil && !isCredentialsEmpty(*builderCreds) {
+			creds = *builderCreds
+		} else if envCreds := os.Getenv("SKYFLOW_CREDENTIALS"); envCreds != "" {
+			creds.CredentialsString = os.Getenv("SKYFLOW_CREDENTIALS")
+		} else {
+			return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.INVALID_INPUT_CODE), errors.EMPTY_CREDENTIALS)
+		}
+	} else {
+		creds = config.Credentials
+	}
+	return &creds, nil
 }
 
 func (v *ConnectionController) Invoke(ctx context.Context, request common.InvokeConnectionRequest) (*common.InvokeConnectionResponse, *errors.SkyflowError) {

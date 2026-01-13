@@ -1,11 +1,12 @@
-package client_test
+package client
 
 import (
-	"testing"
 	"fmt"
+	"os"
+	"testing"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/skyflowapi/skyflow-go/v2/client"
 	"github.com/skyflowapi/skyflow-go/v2/utils/common"
 	error "github.com/skyflowapi/skyflow-go/v2/utils/error"
 	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
@@ -93,9 +94,9 @@ var _ = Describe("Skyflow Client", func() {
 		It("should return error when initialize with custom invalid url", func() {
 			var config []common.VaultConfig
 			config = append(config, common.VaultConfig{
-				VaultId:   "id",
-				ClusterId: "cluster1",
-				Env:       0,
+				VaultId:      "id",
+				ClusterId:    "cluster1",
+				Env:          0,
 				BaseVaultURL: "invalid-url",
 			})
 			client, err := NewSkyflow(
@@ -126,7 +127,7 @@ var _ = Describe("Skyflow Client", func() {
 			customHeader := make(map[string]string)
 			customHeader["x-custom-header"] = "custom-header-value"
 			client, err := NewSkyflow(
-				WithVaults(config...), 
+				WithVaults(config...),
 				WithCustomHeaders(customHeader),
 			)
 			Expect(client).ToNot(BeNil())
@@ -506,5 +507,382 @@ var _ = Describe("Detect and getDetectConfig scenarios", func() {
 		service, err := client.Detect("v6")
 		Expect(err).To(BeNil())
 		Expect(service).NotTo(BeNil())
+	})
+})
+var _ = Describe("Skyflow Management Methods", func() {
+	var client *Skyflow
+	var vaultConfig common.VaultConfig
+	var connConfig common.ConnectionConfig
+	var creds common.Credentials
+
+	BeforeEach(func() {
+		vaultConfig = common.VaultConfig{
+			VaultId:   "vault1",
+			ClusterId: "cluster1",
+			Env:       common.PROD,
+			Credentials: common.Credentials{
+				ApiKey: os.Getenv("API_KEY"),
+			},
+		}
+		connConfig = common.ConnectionConfig{
+			ConnectionId:  "conn1",
+			ConnectionUrl: "https://example.com",
+			Credentials: common.Credentials{
+				ApiKey: os.Getenv("API_KEY"),
+			},
+		}
+		creds = common.Credentials{ApiKey: os.Getenv("API_KEY")}
+		client, _ = NewSkyflow()
+	})
+
+	Context("AddVault", func() {
+		It("should add a vault successfully", func() {
+			err := client.AddVault(vaultConfig)
+			Expect(err).To(BeNil())
+			Expect(client.vaultServices).To(HaveKey("vault1"))
+		})
+		It("should not add duplicate vault", func() {
+			client.AddVault(vaultConfig)
+			err := client.AddVault(vaultConfig)
+			Expect(err).ToNot(BeNil())
+		})
+	})
+
+	Context("AddConnection", func() {
+		It("should add a connection successfully", func() {
+			err := client.AddConnection(connConfig)
+			Expect(err).To(BeNil())
+			Expect(client.connectionServices).To(HaveKey("conn1"))
+		})
+		It("should not add duplicate connection", func() {
+			client.AddConnection(connConfig)
+			err := client.AddConnection(connConfig)
+			Expect(err).ToNot(BeNil())
+		})
+	})
+
+	Context("AddSkyflowCredentials", func() {
+		It("should add credentials successfully", func() {
+			err := client.AddSkyflowCredentials(creds)
+			Expect(err).To(BeNil())
+			Expect(client.credentials).To(Equal(&creds))
+		})
+		It("should fail with invalid credentials", func() {
+			invalidCreds := common.Credentials{}
+			err := client.AddSkyflowCredentials(invalidCreds)
+			Expect(err).ToNot(BeNil())
+		})
+	})
+
+	Context("GetVault", func() {
+		It("should get vault config", func() {
+			client.AddVault(vaultConfig)
+			cfg, err := client.GetVault("vault1")
+			Expect(err).To(BeNil())
+			Expect(cfg.VaultId).To(Equal("vault1"))
+		})
+		It("should fail for missing vault", func() {
+			cfg, err := client.GetVault("missing")
+			Expect(err).ToNot(BeNil())
+			Expect(cfg).To(BeNil())
+		})
+	})
+
+	Context("GetConnection", func() {
+		It("should get connection config", func() {
+			client.AddConnection(connConfig)
+			cfg, err := client.GetConnection("conn1")
+			Expect(err).To(BeNil())
+			Expect(cfg.ConnectionId).To(Equal("conn1"))
+		})
+		It("should fail for missing connection", func() {
+			cfg, err := client.GetConnection("missing")
+			Expect(err).ToNot(BeNil())
+			Expect(cfg).To(BeNil())
+		})
+	})
+
+	Context("UpdateLogLevel", func() {
+		It("should update log level", func() {
+			client.UpdateLogLevel(logger.DEBUG)
+			Expect(*client.GetLoglevel()).To(Equal(logger.DEBUG))
+		})
+	})
+
+	Context("UpdateSkyflowCredentials", func() {
+		It("should update credentials and propagate to controllers", func() {
+			client.AddVault(vaultConfig)
+			client.AddConnection(connConfig)
+			err := client.UpdateSkyflowCredentials(creds)
+			Expect(err).To(BeNil())
+			Expect(client.credentials).To(Equal(&creds))
+			// Check controllers updated
+			for _, v := range client.vaultServices {
+				if v.controller != nil {
+					Expect(v.controller.Config.Credentials).To(Equal(creds))
+				}
+			}
+		})
+		It("should fail with invalid credentials", func() {
+			invalidCreds := common.Credentials{}
+			err := client.UpdateSkyflowCredentials(invalidCreds)
+			Expect(err).ToNot(BeNil())
+		})
+	})
+
+	Context("UpdateVault", func() {
+		It("should update vault config and propagate to controller", func() {
+			client.AddVault(vaultConfig)
+			updated := vaultConfig
+			updated.ClusterId = "new-cluster"
+			err := client.UpdateVault(updated)
+			Expect(err).To(BeNil())
+			Expect(client.vaultServices["vault1"].config.ClusterId).To(Equal("new-cluster"))
+			if client.vaultServices["vault1"].controller != nil {
+				Expect(client.vaultServices["vault1"].controller.Config.ClusterId).To(Equal("new-cluster"))
+			}
+		})
+		It("should fail for missing vault", func() {
+			updated := vaultConfig
+			updated.VaultId = "missing"
+			err := client.UpdateVault(updated)
+			Expect(err).ToNot(BeNil())
+		})
+	})
+
+	Context("UpdateConnection", func() {
+		It("should update connection config", func() {
+			client.AddConnection(connConfig)
+			updated := connConfig
+			updated.ConnectionUrl = "https://new-url.com"
+			err := client.UpdateConnection(updated)
+			Expect(err).To(BeNil())
+			Expect(client.connectionServices["conn1"].config.ConnectionUrl).To(Equal("https://new-url.com"))
+		})
+		It("should fail for missing connection", func() {
+			updated := connConfig
+			updated.ConnectionId = "missing"
+			err := client.UpdateConnection(updated)
+			Expect(err).ToNot(BeNil())
+		})
+	})
+
+	Context("GetLoglevel", func() {
+		It("should get current log level", func() {
+			client.UpdateLogLevel(logger.INFO)
+			Expect(*client.GetLoglevel()).To(Equal(logger.INFO))
+		})
+	})
+
+	Context("RemoveVault", func() {
+		It("should remove vault", func() {
+			client.AddVault(vaultConfig)
+			err := client.RemoveVault("vault1")
+			Expect(err).To(BeNil())
+			Expect(client.vaultServices).ToNot(HaveKey("vault1"))
+		})
+		It("should fail for missing vault", func() {
+			err := client.RemoveVault("missing")
+			Expect(err).ToNot(BeNil())
+		})
+	})
+
+	Context("RemoveConnection", func() {
+		It("should remove connection", func() {
+			client.AddConnection(connConfig)
+			err := client.RemoveConnection("conn1")
+			Expect(err).To(BeNil())
+			Expect(client.connectionServices).ToNot(HaveKey("conn1"))
+		})
+		It("should fail for missing connection", func() {
+			err := client.RemoveConnection("missing")
+			Expect(err).ToNot(BeNil())
+		})
+	})
+	Context("cross scenario: Vault(vaultid) and update/add/remove", func() {
+		var vaultConfig common.VaultConfig
+		var creds common.Credentials
+		BeforeEach(func() {
+			vaultConfig = common.VaultConfig{
+				VaultId:   "vaultX",
+				ClusterId: "clusterX",
+				Env:       common.PROD,
+				Credentials: common.Credentials{
+					ApiKey: os.Getenv("API_KEY"),
+				},
+			}
+			creds = common.Credentials{ApiKey: os.Getenv("API_KEY")}
+			var err *error.SkyflowError
+			client, err = NewSkyflow(WithVaults(vaultConfig), WithCredentials(creds))
+			Expect(err).To(BeNil())
+		})
+		It("should get vault by id, update, add, and remove", func() {
+			vaultSvc, err := client.Vault("vaultX")
+			Expect(err).To(BeNil())
+			Expect(vaultSvc).ToNot(BeNil())
+			Expect(vaultSvc.config.VaultId).To(Equal("vaultX"))
+
+			updated := vaultConfig
+			updated.ClusterId = "new-clusterX"
+			err2 := client.UpdateVault(updated)
+			Expect(err2).To(BeNil())
+			vault, err3 := client.GetVault("vaultX")
+			Expect(err3).To(BeNil())
+			Expect(vault.ClusterId).To(Equal("new-clusterX"))
+
+			vaultConfig2 := common.VaultConfig{
+				VaultId:   "vaultY",
+				ClusterId: "clusterY",
+				Env:       common.PROD,
+				Credentials: common.Credentials{
+					ApiKey: os.Getenv("API_KEY"),
+				},
+			}
+			err4 := client.AddVault(vaultConfig2)
+			Expect(err4).To(BeNil())
+			vault2, err5 := client.GetVault("vaultY")
+			Expect(err5).To(BeNil())
+			Expect(vault2.VaultId).To(Equal("vaultY"))
+
+			err6 := client.RemoveVault("vaultX")
+			Expect(err6).To(BeNil())
+			_, err7 := client.GetVault("vaultX")
+			Expect(err7).ToNot(BeNil())
+		})
+		It("should fail to get, update, or remove missing vault", func() {
+			vaultSvc, err := client.Vault("missing")
+			Expect(err).ToNot(BeNil())
+			Expect(vaultSvc).To(BeNil())
+			missing := vaultConfig
+			missing.VaultId = "missing"
+			err2 := client.UpdateVault(missing)
+			Expect(err2).ToNot(BeNil())
+			err3 := client.RemoveVault("missing")
+			Expect(err3).ToNot(BeNil())
+		})
+	})
+
+	Context("cross scenario: Detect(vaultid) and update/add/remove", func() {
+		var vaultConfig common.VaultConfig
+		var creds common.Credentials
+		BeforeEach(func() {
+			vaultConfig = common.VaultConfig{
+				VaultId:   "vaultDX",
+				ClusterId: "clusterDX",
+				Env:       common.PROD,
+				Credentials: common.Credentials{
+					ApiKey: os.Getenv("API_KEY"),
+				},
+			}
+			creds = common.Credentials{ApiKey: os.Getenv("API_KEY")}
+			var err *error.SkyflowError
+			client, err = NewSkyflow(WithVaults(vaultConfig), WithCredentials(creds))
+			Expect(err).To(BeNil())
+		})
+		It("should get detect by id, update vault, add, and remove", func() {
+			detectSvc, err := client.Detect("vaultDX")
+			Expect(err).To(BeNil())
+			Expect(detectSvc).ToNot(BeNil())
+			Expect(detectSvc.config.VaultId).To(Equal("vaultDX"))
+
+			updated := vaultConfig
+			updated.ClusterId = "new-clusterDX"
+			err2 := client.UpdateVault(updated)
+			Expect(err2).To(BeNil())
+			detect, err3 := client.Detect("vaultDX")
+			Expect(err3).To(BeNil())
+			Expect(detect.config.ClusterId).To(Equal("new-clusterDX"))
+
+			vaultConfig2 := common.VaultConfig{
+				VaultId:   "vaultDY",
+				ClusterId: "clusterDY",
+				Env:       common.PROD,
+				Credentials: common.Credentials{
+					ApiKey: os.Getenv("API_KEY"),
+				},
+			}
+			err4 := client.AddVault(vaultConfig2)
+			Expect(err4).To(BeNil())
+			detect2, err5 := client.Detect("vaultDY")
+			Expect(err5).To(BeNil())
+			Expect(detect2.config.VaultId).To(Equal("vaultDY"))
+
+			err6 := client.RemoveVault("vaultDX")
+			Expect(err6).To(BeNil())
+			_, err7 := client.Detect("vaultDX")
+			Expect(err7).ToNot(BeNil())
+		})
+		It("should fail to get, update, or remove missing detect", func() {
+			detectSvc, err := client.Detect("missing")
+			Expect(err).ToNot(BeNil())
+			Expect(detectSvc).To(BeNil())
+			missing := vaultConfig
+			missing.VaultId = "missing"
+			err2 := client.UpdateVault(missing)
+			Expect(err2).ToNot(BeNil())
+			err3 := client.RemoveVault("missing")
+			Expect(err3).ToNot(BeNil())
+		})
+	})
+
+	Context("cross scenario: Connection(connectionId) and update/add/remove", func() {
+		var connConfig common.ConnectionConfig
+		var creds common.Credentials
+		BeforeEach(func() {
+			connConfig = common.ConnectionConfig{
+				ConnectionId:  "connX",
+				ConnectionUrl: "https://connX.com",
+				Credentials: common.Credentials{
+					ApiKey: os.Getenv("API_KEY"),
+				},
+			}
+			creds = common.Credentials{ApiKey: os.Getenv("API_KEY")}
+			var err *error.SkyflowError
+			client, err = NewSkyflow(WithConnections(connConfig), WithCredentials(creds))
+			Expect(err).To(BeNil())
+		})
+		It("should get connection by id, update, add, and remove", func() {
+			connSvc, err := client.Connection("connX")
+			Expect(err).To(BeNil())
+			Expect(connSvc).ToNot(BeNil())
+			Expect(connSvc.config.ConnectionId).To(Equal("connX"))
+
+			updated := connConfig
+			updated.ConnectionUrl = "https://new-connX.com"
+			err2 := client.UpdateConnection(updated)
+			Expect(err2).To(BeNil())
+			conn, err3 := client.GetConnection("connX")
+			Expect(err3).To(BeNil())
+			Expect(conn.ConnectionUrl).To(Equal("https://new-connX.com"))
+
+			connConfig2 := common.ConnectionConfig{
+				ConnectionId:  "connY",
+				ConnectionUrl: "https://connY.com",
+				Credentials: common.Credentials{
+					ApiKey: os.Getenv("API_KEY"),
+				},
+			}
+			err4 := client.AddConnection(connConfig2)
+			Expect(err4).To(BeNil())
+			conn2, err5 := client.GetConnection("connY")
+			Expect(err5).To(BeNil())
+			Expect(conn2.ConnectionId).To(Equal("connY"))
+
+			err6 := client.RemoveConnection("connX")
+			Expect(err6).To(BeNil())
+			_, err7 := client.GetConnection("connX")
+			Expect(err7).ToNot(BeNil())
+		})
+		It("should fail to get, update, or remove missing connection", func() {
+			connSvc, err := client.Connection("missing")
+			Expect(err).ToNot(BeNil())
+			Expect(connSvc).To(BeNil())
+			missing := connConfig
+			missing.ConnectionId = "missing"
+			err2 := client.UpdateConnection(missing)
+			Expect(err2).ToNot(BeNil())
+			err3 := client.RemoveConnection("missing")
+			Expect(err3).ToNot(BeNil())
+		})
 	})
 })

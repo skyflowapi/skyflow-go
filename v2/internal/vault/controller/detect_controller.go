@@ -27,7 +27,8 @@ import (
 )
 
 type DetectController struct {
-	Config         common.VaultConfig
+	Config         *common.VaultConfig
+	CommonCreds *common.Credentials
 	Loglevel       *logger.LogLevel
 	Token          string
 	ApiKey         string
@@ -104,10 +105,13 @@ func CreateDetectRequestClient(v *DetectController) *skyflowError.SkyflowError {
 
 // SetBearerTokenForDetectController checks and updates the token if necessary.
 func SetBearerTokenForDetectController(v *DetectController) *skyflowError.SkyflowError {
-	// Validate token or generate a new one if expired or not set.
+	credToUse, err := setVaultCredentials(v.Config, v.CommonCreds)
+	if err != nil {
+		return err
+	}
 	if v.Token == "" || serviceaccount.IsExpired(v.Token) {
 		logger.Info(logs.GENERATE_BEARER_TOKEN_TRIGGERED)
-		token, err := GenerateToken(v.Config.Credentials)
+		token, err := GenerateToken(*credToUse)
 		if err != nil {
 			return err
 		}
@@ -622,21 +626,21 @@ func (d *DetectController) DeidentifyText(ctx context.Context, request common.De
 	if err := validation.ValidateDeidentifyTextRequest(request); err != nil {
 		return nil, err
 	}
+		// Ensure the bearer token is valid
+	if err := SetBearerTokenForDetectControllerFunc(d); err != nil {
+		logger.Error(logs.BEARER_TOKEN_REJECTED)
+		return nil, err
+	}
 
 	// Create the API client if needed
 	if err := CreateDetectRequestClientFunc(d); err != nil {
-		logger.Error(logs.BEARER_TOKEN_REJECTED, err)
+		logger.Error(logs.BEARER_TOKEN_REJECTED)
 		return nil, err
 	}
 
-	// Ensure the bearer token is valid
-	if err := SetBearerTokenForDetectControllerFunc(d); err != nil {
-		logger.Error(logs.BEARER_TOKEN_REJECTED, err)
-		return nil, err
-	}
 
 	// Prepare the API request payload
-	apiRequest, err := CreateDeidentifyTextRequest(request, d.Config)
+	apiRequest, err := CreateDeidentifyTextRequest(request, *d.Config)
 	if err != nil {
 		return nil, err
 	}
@@ -716,19 +720,20 @@ func (d *DetectController) ReidentifyText(ctx context.Context, request common.Re
 		return nil, err
 	}
 
+	// Ensure the bearer token is valid
+	if err := SetBearerTokenForDetectControllerFunc(d); err != nil {
+		logger.Error(logs.BEARER_TOKEN_REJECTED)
+		return nil, err
+	}
+
+
 	// Create the API client if needed
 	if err := CreateDetectRequestClientFunc(d); err != nil {
 		return nil, err
 	}
 
-	// Ensure the bearer token is valid
-	if err := SetBearerTokenForDetectControllerFunc(d); err != nil {
-		logger.Error(logs.BEARER_TOKEN_REJECTED, err)
-		return nil, err
-	}
-
 	// Prepare the API request payload
-	apiRequest, err := CreateReidentifyTextRequest(request, d.Config)
+	apiRequest, err := CreateReidentifyTextRequest(request, *d.Config)
 	if err != nil {
 		return nil, err
 	}
@@ -763,14 +768,14 @@ func (d *DetectController) DeidentifyFile(ctx context.Context, request common.De
 		return nil, err
 	}
 
-	// Create the API client if needed
-	if err := CreateDetectRequestClientFunc(d); err != nil {
+	// Ensure the bearer token is valid
+	if err := SetBearerTokenForDetectControllerFunc(d); err != nil {
+		logger.Error(logs.BEARER_TOKEN_REJECTED)
 		return nil, err
 	}
 
-	// Ensure the bearer token is valid
-	if err := SetBearerTokenForDetectControllerFunc(d); err != nil {
-		logger.Error(logs.BEARER_TOKEN_REJECTED, err)
+	// Create the API client if needed
+	if err := CreateDetectRequestClientFunc(d); err != nil {
 		return nil, err
 	}
 
@@ -1057,7 +1062,7 @@ func (d *DetectController) GetDetectRun(ctx context.Context, request common.GetD
 
 	// Ensure the bearer token is valid
 	if err := SetBearerTokenForDetectControllerFunc(d); err != nil {
-		logger.Error(logs.BEARER_TOKEN_REJECTED, err)
+		logger.Error(logs.BEARER_TOKEN_REJECTED)
 		return nil, err
 	}
 

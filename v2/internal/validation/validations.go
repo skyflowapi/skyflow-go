@@ -497,6 +497,14 @@ func ValidateVaultConfig(vaultConfig common.VaultConfig) *skyflowError.SkyflowEr
 	}
 	return nil
 }
+func ValidateUpdateVaultConfig(vaultConfig common.VaultConfig) *skyflowError.SkyflowError {
+	// Validate VaultId
+	if vaultConfig.VaultId == "" {
+		logger.Error(logs.VAULT_ID_IS_REQUIRED)
+		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_VAULT_ID)
+	}
+	return nil
+}
 
 // ValidateConnectionConfig validates the ConnectionConfig struct
 func ValidateConnectionConfig(config common.ConnectionConfig) *skyflowError.SkyflowError {
@@ -517,6 +525,21 @@ func ValidateConnectionConfig(config common.ConnectionConfig) *skyflowError.Skyf
 	//if parsedURL.Scheme != "https" {
 	//	return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_CONNECTION_URL)
 	//}
+	return nil
+}
+func ValidateUpdateConnectionConfig(config common.ConnectionConfig) *skyflowError.SkyflowError {
+	if config.ConnectionId == "" {
+		logger.Error(logs.CONNECTION_ID_IS_REQUIRED)
+		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_CONNECTION_ID)
+	} 
+	
+	if config.ConnectionUrl != "" {
+		_, err := url.Parse(config.ConnectionUrl)
+		if err != nil {
+			logger.Error(logs.INVALID_CONNECTION_URL)
+			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_CONNECTION_URL)
+		}
+	}
 	return nil
 }
 

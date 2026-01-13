@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
 
 	constants "github.com/skyflowapi/skyflow-go/v2/internal/constants"
 	vaultapis "github.com/skyflowapi/skyflow-go/v2/internal/generated"
@@ -20,7 +21,8 @@ import (
 )
 
 type VaultController struct {
-	Config    common.VaultConfig
+	Config      *common.VaultConfig
+	CommonCreds *common.Credentials
 	Loglevel  *logger.LogLevel
 	Token     string
 	ApiKey    string
@@ -41,13 +43,16 @@ func GenerateToken(credentials common.Credentials) (*string, *skyflowError.Skyfl
 		options.Ctx = credentials.Context
 	}
 	switch {
+	case credentials.Token != "":
+		bearerToken = credentials.Token
+	case credentials.ApiKey != "":
+		bearerToken = credentials.ApiKey
 	case credentials.Path != "":
 		token, err := serviceaccount.GenerateBearerToken(credentials.Path, options)
 		if err != nil {
 			return nil, err
 		}
 		bearerToken = token.AccessToken
-
 	case credentials.CredentialsString != "":
 		token, err := serviceaccount.GenerateBearerTokenFromCreds(credentials.CredentialsString, options)
 		if err != nil {
@@ -64,9 +69,13 @@ func GenerateToken(credentials common.Credentials) (*string, *skyflowError.Skyfl
 // SetBearerTokenForVaultController checks and updates the token if necessary.
 func SetBearerTokenForVaultController(v *VaultController) *skyflowError.SkyflowError {
 	// Validate token or generate a new one if expired or not set.
+	credToUse, err := setVaultCredentials(v.Config, v.CommonCreds)
+	if err != nil {
+		return err
+	}
 	if v.Token == "" || serviceaccount.IsExpired(v.Token) {
 		logger.Info(logs.GENERATE_BEARER_TOKEN_TRIGGERED)
-		token, err := GenerateToken(v.Config.Credentials)
+		token, err := GenerateToken(*credToUse)
 		if err != nil {
 			return err
 		}
@@ -127,6 +136,29 @@ func CreateRequestClient(v *VaultController) *skyflowError.SkyflowError {
 	v.ApiClient = *client
 	return nil
 }
+func setVaultCredentials(config *common.VaultConfig, builderCreds *common.Credentials) (*common.Credentials, *skyflowError.SkyflowError) {
+	// here if credentials are empty in the vaultapi config
+	creds := common.Credentials{}
+	if config == nil || isCredentialsEmpty(config.Credentials) {
+		// here if builder credentials are available
+		if builderCreds != nil && !isCredentialsEmpty(*builderCreds) {
+			creds = *builderCreds
+		} else if envCreds := os.Getenv("SKYFLOW_CREDENTIALS"); envCreds != "" {
+			creds.CredentialsString = os.Getenv("SKYFLOW_CREDENTIALS")
+		} else {
+			return nil, skyflowError.NewSkyflowError(skyflowError.ErrorCodesEnum(skyflowError.INVALID_INPUT_CODE), skyflowError.EMPTY_CREDENTIALS)
+		}
+	} else {
+		creds = config.Credentials
+	}
+	return &creds, nil
+}
+
+func isCredentialsEmpty(creds common.Credentials) bool {
+	return creds.Path == "" &&
+		creds.CredentialsString == "" &&
+		creds.Token == "" && creds.ApiKey == ""
+}
 
 func (v *VaultController) callBulkInsertAPI(ctx context.Context, body vaultapis.RecordServiceInsertRecordBody, table string) (*vaultapis.V1InsertRecordResponse, error) {
 	bulkResp, err := v.ApiClient.Records.WithRawResponse.RecordServiceInsertRecord(ctx, v.Config.VaultId, table, &body)
@@ -159,7 +191,6 @@ func (v *VaultController) Insert(ctx context.Context, request common.InsertReque
 	// Initialize the response structure
 	var resp common.InsertResponse
 	var insertedFields, errors []map[string]interface{}
-
 	// Create the API client
 	if err := CreateRequestClientFunc(v); err != nil {
 		return nil, err
@@ -372,7 +403,7 @@ func (v *VaultController) Delete(ctx context.Context, request common.DeleteReque
 	if errs != nil {
 		return nil, errs
 	}
-
+	
 	if err := CreateRequestClientFunc(v); err != nil {
 		return nil, err
 	}
@@ -403,8 +434,7 @@ func (v *VaultController) Query(ctx context.Context, queryRequest common.QueryRe
 		return nil, errs
 	}
 	var fields []map[string]interface{}
-	var tokenizedData []map[string]interface{}
-
+	
 	if err := CreateRequestClientFunc(v); err != nil {
 		return nil, err
 	}
@@ -420,10 +450,8 @@ func (v *VaultController) Query(ctx context.Context, queryRequest common.QueryRe
 	if queryApiRes.Body != nil && queryApiRes.Body.GetRecords() != nil {
 		for _, record := range queryApiRes.Body.GetRecords() {
 			fields = append(fields, helpers.GetFormattedQueryRecord(*record))
-			tokenizedData = append(tokenizedData, record.Tokens)
 		}
 		queryRes.Fields = fields
-		queryRes.TokenizedData = tokenizedData
 	}
 	logger.Info(logs.QUERY_REQUEST_RESOLVED)
 	logger.Info(logs.QUERY_SUCCESS)
@@ -438,7 +466,7 @@ func (v *VaultController) Update(ctx context.Context, request common.UpdateReque
 	if errs != nil {
 		return nil, errs
 	}
-
+	
 	if err := CreateRequestClientFunc(v); err != nil {
 		return nil, err
 	}
@@ -478,8 +506,8 @@ func (v *VaultController) Update(ctx context.Context, request common.UpdateReque
 	updatedField = res
 	updatedField["skyflowId"] = *id
 	return &common.UpdateResponse{
-		UpdatedField:    updatedField,
-		Errors:    nil,
+		UpdatedField: updatedField,
+		Errors:       nil,
 	}, nil
 }
 
@@ -518,7 +546,7 @@ func (v *VaultController) UploadFile(ctx context.Context, request common.FileUpl
 	if errs != nil {
 		return nil, errs
 	}
-
+	
 	if err := CreateRequestClientFunc(v); err != nil {
 		return nil, err
 	}

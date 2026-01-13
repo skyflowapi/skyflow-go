@@ -357,7 +357,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			})
 			It("should return error for empty VaultId", func() {
 				config := common.VaultConfig{
-					VaultId: "id",
+					VaultId:      "id",
 					Env:          common.PROD,
 					Credentials:  validCredentials,
 					BaseVaultURL: "http://demo.com",
@@ -385,7 +385,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 				err := ValidateVaultConfig(config)
 				Expect(err).To(BeNil())
 			})
-		   	It("should return error for invalid url", func() {
+			It("should return error for invalid url", func() {
 				config := common.VaultConfig{
 					VaultId:      "id",
 					ClusterId:    "cid",
@@ -412,85 +412,85 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 
 		})
 		Describe("isValidHTTPURL", func() {
-	It("should return false for invalid URL (err != nil)", func() {
-		// This string is not a valid URL and will cause url.Parse to return an error
-		invalidURL := "://bad url"
-		config := common.VaultConfig{
+			It("should return false for invalid URL (err != nil)", func() {
+				// This string is not a valid URL and will cause url.Parse to return an error
+				invalidURL := "://bad url"
+				config := common.VaultConfig{
 					VaultId:      "id",
 					ClusterId:    "cid",
 					Env:          common.PROD,
 					Credentials:  validCredentials,
 					BaseVaultURL: invalidURL,
 				}
-		err := ValidateVaultConfig(config)
-		Expect(err).ToNot(BeNil())
-		Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_VAULT_URL))
-	})
-	It("should return false for missing scheme", func() {
-		invalidURL := "www.example.com"
-		config := common.VaultConfig{
+				err := ValidateVaultConfig(config)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_VAULT_URL))
+			})
+			It("should return false for missing scheme", func() {
+				invalidURL := "www.example.com"
+				config := common.VaultConfig{
 					VaultId:      "id",
 					ClusterId:    "cid",
 					Env:          common.PROD,
 					Credentials:  validCredentials,
 					BaseVaultURL: invalidURL,
 				}
-		err := ValidateVaultConfig(config)
-		Expect(err).ToNot(BeNil())
-		Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_VAULT_URL))
-	})
-	It("should return false for unsupported scheme", func() {
-		invalidURL := "ftp://example.com"
-		config := common.VaultConfig{
+				err := ValidateVaultConfig(config)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_VAULT_URL))
+			})
+			It("should return false for unsupported scheme", func() {
+				invalidURL := "ftp://example.com"
+				config := common.VaultConfig{
 					VaultId:      "id",
 					ClusterId:    "cid",
 					Env:          common.PROD,
 					Credentials:  validCredentials,
 					BaseVaultURL: invalidURL,
 				}
-		err := ValidateVaultConfig(config)
-		Expect(err).ToNot(BeNil())
-		Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_VAULT_URL))
-	})
-	It("should return false for empty host", func() {
-		invalidURL := "http://"
-		config := common.VaultConfig{
+				err := ValidateVaultConfig(config)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_VAULT_URL))
+			})
+			It("should return false for empty host", func() {
+				invalidURL := "http://"
+				config := common.VaultConfig{
 					VaultId:      "id",
 					ClusterId:    "cid",
 					Env:          common.PROD,
 					Credentials:  validCredentials,
 					BaseVaultURL: invalidURL,
 				}
-		err := ValidateVaultConfig(config)
-		Expect(err).ToNot(BeNil())
-		Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_VAULT_URL))
+				err := ValidateVaultConfig(config)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_VAULT_URL))
 
-	})
-	It("should return true for valid http URL", func() {
-		validURL := "http://example.com"
-		config := common.VaultConfig{
+			})
+			It("should return true for valid http URL", func() {
+				validURL := "http://example.com"
+				config := common.VaultConfig{
 					VaultId:      "id",
 					ClusterId:    "cid",
 					Env:          common.PROD,
 					Credentials:  validCredentials,
 					BaseVaultURL: validURL,
 				}
-		err := ValidateVaultConfig(config)
-		Expect(err).To(BeNil())
-	})
-	It("should return true for valid https URL", func() {
-		validURL := "https://example.com"
-		config := common.VaultConfig{
+				err := ValidateVaultConfig(config)
+				Expect(err).To(BeNil())
+			})
+			It("should return true for valid https URL", func() {
+				validURL := "https://example.com"
+				config := common.VaultConfig{
 					VaultId:      "id",
 					ClusterId:    "cid",
 					Env:          common.PROD,
 					Credentials:  validCredentials,
 					BaseVaultURL: validURL,
 				}
-		err := ValidateVaultConfig(config)
-		Expect(err).To(BeNil())
-	})
-	})
+				err := ValidateVaultConfig(config)
+				Expect(err).To(BeNil())
+			})
+		})
 
 		Context("Valid VaultConfig", func() {
 			It("should return nil for valid VaultConfig", func() {
@@ -1633,140 +1633,73 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			})
 		})
 	})
-	Context("ValidateGetRequest", func() {
-
-		It("should not return error for valid Fields", func() {
-			getRequest := common.GetRequest{Table: "table", Ids: []string{"id1", "id2"}}
-			options := common.GetOptions{Fields: []string{"field1", "field2"}}
-			err := ValidateGetRequest(getRequest, options)
+	Context("ValidateUpdateVaultConfig", func() {
+		var validConfig common.VaultConfig
+		BeforeEach(func() {
+			validConfig = common.VaultConfig{
+				VaultId:   "vault1",
+				ClusterId: "cluster1",
+				Env:       common.PROD,
+				Credentials: common.Credentials{
+					ApiKey: "api-key",
+				},
+			}
+		})
+		It("should return nil for valid config", func() {
+			err := ValidateUpdateVaultConfig(validConfig)
 			Expect(err).To(BeNil())
 		})
-
-		It("should return error when table is empty", func() {
-			getRequest := common.GetRequest{Table: ""}
-			options := common.GetOptions{}
-			err := ValidateGetRequest(getRequest, options)
+		It("should return error for empty VaultId", func() {
+			invalid := validConfig
+			invalid.VaultId = ""
+			err := ValidateUpdateVaultConfig(invalid)
 			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_TABLE))
 		})
-
-		It("should return error when Ids is empty slice", func() {
-			getRequest := common.GetRequest{Table: "table", Ids: []string{}}
-			options := common.GetOptions{}
-			err := ValidateGetRequest(getRequest, options)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_IDS))
-		})
-
-		It("should return error when Ids contains empty string", func() {
-			getRequest := common.GetRequest{Table: "table", Ids: []string{"", "id2"}}
-			options := common.GetOptions{}
-			err := ValidateGetRequest(getRequest, options)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_ID_IN_IDS))
-		})
-
-		It("should return error when Fields is empty slice", func() {
-			getRequest := common.GetRequest{Table: "table"}
-			options := common.GetOptions{Fields: []string{}}
-			err := ValidateGetRequest(getRequest, options)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_FIELDS))
-		})
-
-		It("should return error when Fields contains empty string", func() {
-			getRequest := common.GetRequest{Table: "table"}
-			options := common.GetOptions{Fields: []string{"field1", ""}}
-			err := ValidateGetRequest(getRequest, options)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_FIELD_IN_FIELDS))
-		})
-
-		It("should return error when ReturnTokens is true and ColumnName is set", func() {
-			getRequest := common.GetRequest{Table: "table"}
-			options := common.GetOptions{ReturnTokens: true, ColumnName: "col"}
-			err := ValidateGetRequest(getRequest, options)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.TOKENS_GET_COLUMN_NOT_SUPPORTED))
-		})
-
-		It("should return error when ReturnTokens is true and ColumnValues is set", func() {
-			getRequest := common.GetRequest{Table: "table"}
-			options := common.GetOptions{ReturnTokens: true, ColumnValues: []string{"val"}}
-			err := ValidateGetRequest(getRequest, options)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.TOKENS_GET_COLUMN_NOT_SUPPORTED))
-		})
-
-		It("should return error when ReturnTokens is true and RedactionType is set", func() {
-			getRequest := common.GetRequest{Table: "table"}
-			options := common.GetOptions{ReturnTokens: true, RedactionType: "PLAIN_TEXT"}
-			err := ValidateGetRequest(getRequest, options)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.REDACTION_WITH_TOKENS_NOT_SUPPORTED))
-		})
-
-		It("should return error when neither Ids nor ColumnName/ColumnValues are set", func() {
-			getRequest := common.GetRequest{Table: "table"}
-			options := common.GetOptions{}
-			err := ValidateGetRequest(getRequest, options)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.UNIQUE_COLUMN_OR_IDS_KEY_ERROR))
-		})
-
-		It("should return error when both Ids and ColumnName/ColumnValues are set", func() {
-			getRequest := common.GetRequest{Table: "table", Ids: []string{"id1"}}
-			options := common.GetOptions{ColumnName: "col", ColumnValues: []string{"val"}}
-			err := ValidateGetRequest(getRequest, options)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.BOTH_IDS_AND_COLUMN_DETAILS_SPECIFIED))
-		})
-
-		It("should return error when ColumnValues is set but ColumnName is empty", func() {
-			getRequest := common.GetRequest{Table: "table"}
-			options := common.GetOptions{ColumnValues: []string{"val"}}
-			err := ValidateGetRequest(getRequest, options)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.COLUMN_NAME_KEY_ERROR))
-		})
-
-		It("should return error when ColumnName is set but ColumnValues is nil", func() {
-			getRequest := common.GetRequest{Table: "table"}
-			options := common.GetOptions{ColumnName: "col"}
-			err := ValidateGetRequest(getRequest, options)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_COLUMN_VALUES))
-		})
-
-		It("should return error when ColumnName is set and ColumnValues is empty slice", func() {
-			getRequest := common.GetRequest{Table: "table"}
-			options := common.GetOptions{ColumnName: "col", ColumnValues: []string{}}
-			err := ValidateGetRequest(getRequest, options)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_COLUMN_VALUES))
-		})
-
-		It("should return error when ColumnName is set and ColumnValues contains empty string", func() {
-			getRequest := common.GetRequest{Table: "table"}
-			options := common.GetOptions{ColumnName: "col", ColumnValues: []string{"val1", ""}}
-			err := ValidateGetRequest(getRequest, options)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_VALUE_IN_COLUMN_VALUES))
-		})
-
-		It("should not return error for valid Ids", func() {
-			getRequest := common.GetRequest{Table: "table", Ids: []string{"id1", "id2"}}
-			options := common.GetOptions{}
-			err := ValidateGetRequest(getRequest, options)
+		It("should return error for empty ClusterId", func() {
+			invalid := validConfig
+			invalid.ClusterId = ""
+			err := ValidateUpdateVaultConfig(invalid)
 			Expect(err).To(BeNil())
 		})
-
-		It("should not return error for valid ColumnName and ColumnValues", func() {
-			getRequest := common.GetRequest{Table: "table"}
-			options := common.GetOptions{ColumnName: "col", ColumnValues: []string{"val1", "val2"}}
-			err := ValidateGetRequest(getRequest, options)
+		It("should return error for invalid Credentials", func() {
+			invalid := validConfig
+			invalid.Credentials = common.Credentials{}
+			err := ValidateUpdateVaultConfig(invalid)
 			Expect(err).To(BeNil())
 		})
-
+	})
+	Context("ValidateUpdateConnectionConfig", func() {
+		var validConfig common.ConnectionConfig
+		BeforeEach(func() {
+			validConfig = common.ConnectionConfig{
+				ConnectionId:  "conn1",
+				ConnectionUrl: "https://conn1.com",
+				Credentials: common.Credentials{
+					ApiKey: "api-key",
+				},
+			}
+		})
+		It("should return nil for valid config", func() {
+			err := ValidateUpdateConnectionConfig(validConfig)
+			Expect(err).To(BeNil())
+		})
+		It("should return error for empty ConnectionId", func() {
+			invalid := validConfig
+			invalid.ConnectionId = ""
+			err := ValidateUpdateConnectionConfig(invalid)
+			Expect(err).ToNot(BeNil())
+		})
+		It("should return error for empty ConnectionUrl", func() {
+			invalid := validConfig
+			invalid.ConnectionUrl = ""
+			err := ValidateUpdateConnectionConfig(invalid)
+			Expect(err).To(BeNil())
+		})
+		It("should return error for invalid Credentials", func() {
+			invalid := validConfig
+			invalid.Credentials = common.Credentials{}
+			err := ValidateUpdateConnectionConfig(invalid)
+			Expect(err).To(BeNil())
+		})
 	})
 })

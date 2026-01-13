@@ -10,9 +10,9 @@ import (
 )
 
 type vaultService struct {
-	config     *common.VaultConfig
-	logLevel   *logger.LogLevel
-	controller *controller.VaultController
+	config      *common.VaultConfig
+	logLevel    *logger.LogLevel
+	controller  *controller.VaultController
 }
 
 func (v *vaultService) Insert(ctx context.Context, request common.InsertRequest, options common.InsertOptions) (*common.InsertResponse, *skyflowError.SkyflowError) {
