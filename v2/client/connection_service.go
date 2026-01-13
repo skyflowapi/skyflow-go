@@ -9,7 +9,7 @@ import (
 )
 
 type connectionService struct {
-	config     common.ConnectionConfig
+	config     *common.ConnectionConfig
 	logLevel   *logger.LogLevel
 	controller *controller.ConnectionController
 }

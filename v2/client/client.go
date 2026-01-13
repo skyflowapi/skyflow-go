@@ -102,7 +102,7 @@ func WithConnections(config ...vaultutils.ConnectionConfig) Option {
 
 			// create the connection service
 			s.connectionServices[connectionConfig.ConnectionId] = &connectionService{
-				config:   connectionConfig,
+				config:   &connectionConfig,
 				logLevel: &s.logLevel,
 			}
 		}
@@ -188,7 +188,7 @@ func (s *Skyflow) Connection(connectionId ...string) (*connectionService, *error
 	connectionService := &connectionService{}
 	connectionService, exists := s.connectionServices[config.ConnectionId]
 	if !exists {
-		connectionService.config = *config
+		connectionService.config = config
 		connectionService.logLevel = &s.logLevel
 		s.connectionServices[config.ConnectionId] = connectionService
 	}
@@ -197,7 +197,7 @@ func (s *Skyflow) Connection(connectionId ...string) (*connectionService, *error
 		Loglevel: &s.logLevel,
 		CommonCreds: s.credentials,
 	}
-	connectionService.config = *config
+	connectionService.config = config
 	return connectionService, nil
 }
 
@@ -247,7 +247,7 @@ func (s *Skyflow) GetConnection(connId string) (*vaultutils.ConnectionConfig, *e
 	if !exist {
 		return nil, error.NewSkyflowError(error.INVALID_INPUT_CODE, error.CONNECTION_ID_NOT_IN_CONFIG_LIST)
 	}
-	return &config.config, nil
+	return config.config, nil
 }
 
 func (s *Skyflow) GetSkyflowCredentials() *vaultutils.Credentials {
@@ -352,7 +352,7 @@ func (s *Skyflow) UpdateVault(updatedConfig vaultutils.VaultConfig) *error.Skyfl
 
 func (s *Skyflow) UpdateConnection(updatedConfig vaultutils.ConnectionConfig) *error.SkyflowError {
 	logger.Info(logs.VALIDATING_CONNECTION_CONFIG)
-	err := validation.ValidateConnectionConfig(updatedConfig)
+	err := validation.ValidateUpdateConnectionConfig(updatedConfig)
 	if err != nil {
 		return err
 	}
@@ -360,8 +360,19 @@ func (s *Skyflow) UpdateConnection(updatedConfig vaultutils.ConnectionConfig) *e
 		logger.Error(fmt.Sprintf(logs.CONNECTION_CONFIG_DOES_NOT_EXIST, updatedConfig.ConnectionId))
 		return error.NewSkyflowError(error.ErrorCodesEnum(error.INVALID_INPUT_CODE), error.CONNECTION_ID_NOT_IN_CONFIG_LIST)
 	}
+	if s.connectionServices[updatedConfig.ConnectionId].controller != nil {
+		// Update the credentials in the connection controller if provided
+		if !isCredentialsEmpty(updatedConfig.Credentials) {
+			s.connectionServices[updatedConfig.ConnectionId].controller.Config.Credentials = updatedConfig.Credentials
+			s.connectionServices[updatedConfig.ConnectionId].controller.Token = ""
+			s.connectionServices[updatedConfig.ConnectionId].controller.ApiKey = ""
+		}
+		if updatedConfig.ConnectionUrl != "" {
+			s.connectionServices[updatedConfig.ConnectionId].controller.Config.ConnectionUrl = updatedConfig.ConnectionUrl
+		}
+	}
 
-	s.connectionServices[updatedConfig.ConnectionId].config = updatedConfig
+	s.connectionServices[updatedConfig.ConnectionId].config = &updatedConfig
 	return nil
 }
 
@@ -451,7 +462,7 @@ func (s *Skyflow) AddConnection(config vaultutils.ConnectionConfig) *error.Skyfl
 		return error.NewSkyflowError(error.ErrorCodesEnum(error.INVALID_INPUT_CODE), error.CONNECTION_ID_EXISTS_IN_CONFIG_LIST)
 	}
 	s.connectionServices[config.ConnectionId] = &connectionService{
-		config:   config,
+		config:   &config,
 		logLevel: &s.logLevel,
 	}
 	logger.Info(fmt.Sprintf(logs.CONNECTION_CONTROLLER_INITIALIZED, config.ConnectionId))
@@ -544,12 +555,12 @@ func getConnectionConfig(builder map[string]*connectionService, connectionId ...
 		if !exists {
 			return nil, error.NewSkyflowError(error.ErrorCodesEnum(error.INVALID_INPUT_CODE), error.CONNECTION_ID_NOT_IN_CONFIG_LIST)
 		}
-		return &config.config, nil
+		return config.config, nil
 	}
 
 	// No conenction ID passed, return the first config available
 	for _, cfg := range builder {
-		return &cfg.config, nil
+		return cfg.config, nil
 	}
 
 	return nil, nil
