@@ -174,6 +174,13 @@ func GetFormattedQueryRecord(record vaultapis.V1FieldRecords) map[string]interfa
 		for key, value := range record.Fields {
 			queryRecord[key] = value
 		}
+		if record.Tokens != nil && len(record.Tokens) > 0 {
+			tokens := make(map[string]interface{})
+			for key, value := range record.Tokens {
+				tokens[key] = value
+			}
+			queryRecord["tokenized_data"] = tokens
+		}
 	}
 	return queryRecord
 }

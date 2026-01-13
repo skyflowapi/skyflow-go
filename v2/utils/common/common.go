@@ -496,6 +496,5 @@ type TokenizeResponse struct {
 }
 type QueryResponse struct {
 	Fields        []map[string]interface{}
-	TokenizedData []map[string]interface{}
 	Errors        []map[string]interface{}
 }

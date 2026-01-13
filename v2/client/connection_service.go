@@ -11,7 +11,7 @@ import (
 type connectionService struct {
 	config     common.ConnectionConfig
 	logLevel   *logger.LogLevel
-	controller controller.ConnectionController
+	controller *controller.ConnectionController
 }
 
 func (c *connectionService) Invoke(ctx context.Context, request common.InvokeConnectionRequest) (*common.InvokeConnectionResponse, *skyflowError.SkyflowError) {
