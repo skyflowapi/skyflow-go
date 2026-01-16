@@ -452,6 +452,7 @@ type UpdateResponse struct {
 
 type GetRequest struct {
 	Table string
+	//revive:disable-next-line:var-naming
 	Ids   []string
 }
 type GetOptions struct {
