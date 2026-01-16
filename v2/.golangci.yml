@@ -1,0 +1,37 @@
+version: "2"
+
+run:
+  timeout: 5m
+  tests: false
+  relative-path-mode: gomod
+
+linters:
+  default: none
+  enable:
+    - revive
+  exclusions:
+    paths:
+      - internal/generated
+      - test
+
+  settings:
+    revive:
+      enable-all-rules: false
+      enable-default-rules: false
+      rules:
+        - name: var-naming
+          arguments:
+            - ["ID", "URL", "API", "HTTP", "JSON", "UUID"]
+            - []
+            - - upper-case-const: true
+                skip-package-name-checks: true
+        - name: receiver-naming
+
+        - name: exported
+          disabled: true
+        - name: package-comments
+          disabled: true
+        - name: dot-imports
+          disabled: true
+        - name: indent-error-flow
+          disabled: true
