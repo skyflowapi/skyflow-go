@@ -99,6 +99,7 @@ const (
 	Gender                      DetectEntities = "gender"
 	HealthcareNumber            DetectEntities = "healthcare_number"
 	Injury                      DetectEntities = "injury"
+	//revive:disable-next-line:var-naming
 	IpAddress                   DetectEntities = "ip_address"
 	Language                    DetectEntities = "language"
 	Location                    DetectEntities = "location"
@@ -423,11 +424,13 @@ type DetokenizeResponse struct {
 
 type DeleteRequest struct {
 	Table string
+	//revive:disable-next-line:var-naming
 	Ids   []string
 }
 
 type DeleteResponse struct {
 	// Response fields
+	//revive:disable-next-line:var-naming
 	DeletedIds []string
 	Errors     []map[string]interface{}
 }
@@ -449,6 +452,7 @@ type UpdateResponse struct {
 
 type GetRequest struct {
 	Table string
+	//revive:disable-next-line:var-naming
 	Ids   []string
 }
 type GetOptions struct {
