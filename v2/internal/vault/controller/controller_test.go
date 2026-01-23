@@ -1453,7 +1453,7 @@ var _ = Describe("VaultController", func() {
 			It("should handle tokenUri when provided with Token (no network call)", func() {
 				credentials := Credentials{
 					Token:    "valid-token",
-					TokenUri: "https://custom-token-uri.com",
+					TokenURI: "https://custom-token-uri.com",
 				}
 				token, err := GenerateToken(credentials)
 				Expect(err).To(BeNil())
@@ -1464,7 +1464,7 @@ var _ = Describe("VaultController", func() {
 			It("should handle tokenUri when provided with ApiKey (no network call)", func() {
 				credentials := Credentials{
 					ApiKey:   "sky-api-key-1234567890123456789012",
-					TokenUri: "https://custom-token-uri.com",
+					TokenURI: "https://custom-token-uri.com",
 				}
 				token, err := GenerateToken(credentials)
 				Expect(err).To(BeNil())
@@ -1475,7 +1475,7 @@ var _ = Describe("VaultController", func() {
 			It("should pass empty tokenUri to BearerTokenOptions when not provided with Path", func() {
 				credentials := Credentials{
 					Path:     "../../" + os.Getenv("CRED_FILE_PATH"),
-					TokenUri: "",
+					TokenURI: "",
 				}
 				token, err := GenerateToken(credentials)
 				Expect(err).To(BeNil())
@@ -1485,7 +1485,7 @@ var _ = Describe("VaultController", func() {
 			It("should pass empty tokenUri to BearerTokenOptions when not provided with CredentialsString", func() {
 				credentials := Credentials{
 					CredentialsString: os.Getenv("VALID_CREDS_PVT_KEY"),
-					TokenUri:          "",
+					TokenURI:          "",
 				}
 				token, err := GenerateToken(credentials)
 				Expect(err).To(BeNil())
@@ -1497,7 +1497,7 @@ var _ = Describe("VaultController", func() {
 					Token:    "valid-token",
 					Roles:    []string{"admin", "user"},
 					Context:  "test-context",
-					TokenUri: "https://custom-token-uri.com",
+					TokenURI: "https://custom-token-uri.com",
 				}
 				token, err := GenerateToken(credentials)
 				Expect(err).To(BeNil())

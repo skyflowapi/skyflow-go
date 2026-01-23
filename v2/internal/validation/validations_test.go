@@ -605,7 +605,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 				It("should return an error if tokenUri uses http scheme instead of https", func() {
 					credentials := common.Credentials{
 						Token:    "token",
-						TokenUri: "http://invalid-uri.com",
+						TokenURI: "http://invalid-uri.com",
 					}
 					err := ValidateCredentials(credentials)
 					Expect(err).To(HaveOccurred())
@@ -616,7 +616,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 				It("should return an error if tokenUri is malformed", func() {
 					credentials := common.Credentials{
 						Token:    "token",
-						TokenUri: "not-a-valid-url",
+						TokenURI: "not-a-valid-url",
 					}
 					err := ValidateCredentials(credentials)
 					Expect(err).To(HaveOccurred())
@@ -627,7 +627,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 				It("should return an error if tokenUri has https scheme but no host", func() {
 					credentials := common.Credentials{
 						Token:    "token",
-						TokenUri: "https://",
+						TokenURI: "https://",
 					}
 					err := ValidateCredentials(credentials)
 					Expect(err).To(HaveOccurred())
@@ -681,7 +681,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 				It("should return nil for valid tokenUri with https scheme", func() {
 					credentials := common.Credentials{
 						Token:    "token",
-						TokenUri: "https://valid-token-uri.com",
+						TokenURI: "https://valid-token-uri.com",
 					}
 					err := ValidateCredentials(credentials)
 					Expect(err).To(BeNil())
@@ -690,7 +690,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 				It("should return nil for valid tokenUri with path and query parameters", func() {
 					credentials := common.Credentials{
 						Token:    "token",
-						TokenUri: "https://valid-token-uri.com/path?param=value",
+						TokenURI: "https://valid-token-uri.com/path?param=value",
 					}
 					err := ValidateCredentials(credentials)
 					Expect(err).To(BeNil())
@@ -699,7 +699,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 				It("should return nil for credentials with Path and valid tokenUri", func() {
 					credentials := common.Credentials{
 						Path:     "some/path",
-						TokenUri: "https://valid-token-uri.com",
+						TokenURI: "https://valid-token-uri.com",
 					}
 					err := ValidateCredentials(credentials)
 					Expect(err).To(BeNil())
@@ -709,7 +709,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 					credentials := common.Credentials{
 						Token:    "token",
 						Roles:    []string{"admin", "user"},
-						TokenUri: "https://valid-token-uri.com",
+						TokenURI: "https://valid-token-uri.com",
 					}
 					err := ValidateCredentials(credentials)
 					Expect(err).To(BeNil())
@@ -718,7 +718,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 				It("should return nil for empty tokenUri (optional field)", func() {
 					credentials := common.Credentials{
 						Token:    "token",
-						TokenUri: "",
+						TokenURI: "",
 					}
 					err := ValidateCredentials(credentials)
 					Expect(err).To(BeNil())

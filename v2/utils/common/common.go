@@ -167,7 +167,7 @@ type BearerTokenOptions struct {
 	Ctx      string
 	RoleIDs  []string
 	LogLevel logger.LogLevel
-	TokenUri string
+	TokenURI string
 }
 
 type SignedDataTokensOptions struct {
@@ -175,7 +175,7 @@ type SignedDataTokensOptions struct {
 	TimeToLive int
 	Ctx        string
 	LogLevel   logger.LogLevel
-	TokenUri   string
+	TokenURI   string
 }
 
 type SignedDataTokensResponse struct {
@@ -198,7 +198,7 @@ type Credentials struct {
 	CredentialsString string
 	Token             string
 	ApiKey            string
-	TokenUri          string
+	TokenURI          string
 }
 type ConnectionConfig struct {
 	ConnectionId  string

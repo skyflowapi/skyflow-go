@@ -358,12 +358,12 @@ func GetCredentialParams(credKeys map[string]interface{}) (string, string, strin
 
 // Generate signed tokens
 func GenerateSignedDataTokensHelper(clientID, keyID string, pvtKey *rsa.PrivateKey, options common.SignedDataTokensOptions, tokenURI string) ([]common.SignedDataTokensResponse, *skyflowError.SkyflowError) {
-	if options.TokenUri != "" {
-		if !isValidURL(options.TokenUri) {
+	if options.TokenURI != "" {
+		if !isValidURL(options.TokenURI) {
 			logger.Error(logs.INVALID_TOKEN_URI)
 			return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_TOKEN_URI)
 		}
-		tokenURI = options.TokenUri
+		tokenURI = options.TokenURI
 	}
 
 	var responseArray []common.SignedDataTokensResponse
@@ -460,7 +460,7 @@ func GenerateBearerTokenHelper(credKeys map[string]interface{}, options common.B
 		logger.Error(fmt.Sprintf(logs.CLIENT_ID_NOT_FOUND))
 		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.MISSING_CLIENT_ID)
 	}
-	tokenURI := options.TokenUri
+	tokenURI := options.TokenURI
 	if tokenURI != "" {
 		if !isValidURL(tokenURI) {
 			logger.Error(logs.INVALID_TOKEN_URI)

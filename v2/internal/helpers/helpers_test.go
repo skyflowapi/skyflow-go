@@ -356,7 +356,7 @@ MIIBAAIBADANINVALIDKEY==
 			Context("When tokenUri is provided in options", func() {
 				It("should use the tokenUri from options if valid", func() {
 					credKeys = getValidCreds()
-					options.TokenUri = "https://valid-token-uri.com"
+					options.TokenURI = "https://valid-token-uri.com"
 					response, err = GenerateSignedDataTokensHelper(
 						credKeys["clientID"].(string),
 						credKeys["keyID"].(string),
@@ -369,7 +369,7 @@ MIIBAAIBADANINVALIDKEY==
 				})
 
 				It("should return error if tokenUri in options is invalid", func() {
-					options.TokenUri = "http://invalid-uri.com"
+					options.TokenURI = "http://invalid-uri.com"
 					response, err = GenerateSignedDataTokensHelper("client123", "key456", nil, options, "https://default-uri.com")
 					Expect(err).ShouldNot(BeNil())
 					Expect(err.GetCode()).Should(Equal("Code: 400"))
@@ -378,7 +378,7 @@ MIIBAAIBADANINVALIDKEY==
 				})
 
 				It("should return error if tokenUri in options is malformed", func() {
-					options.TokenUri = "not-a-valid-url"
+					options.TokenURI = "not-a-valid-url"
 					response, err = GenerateSignedDataTokensHelper("client123", "key456", nil, options, "https://default-uri.com")
 					Expect(err).ShouldNot(BeNil())
 					Expect(err.GetCode()).Should(Equal("Code: 400"))
@@ -386,9 +386,9 @@ MIIBAAIBADANINVALIDKEY==
 					Expect(response).Should(BeNil())
 				})
 
-				It("should use default tokenUri if options.TokenUri is empty", func() {
+				It("should use default tokenUri if options.TokenURI is empty", func() {
 					credKeys = getValidCreds()
-					options.TokenUri = "" // Empty tokenUri
+					options.TokenURI = "" // Empty tokenUri
 					response, err = GenerateSignedDataTokensHelper(
 						credKeys["clientID"].(string),
 						credKeys["keyID"].(string),
@@ -404,7 +404,7 @@ MIIBAAIBADANINVALIDKEY==
 			Context("When tokenUri is provided and valid", func() {
 				It("should return signed data tokens successfully with valid tokenUri", func() {
 					credKeys = getValidCreds()
-					options.TokenUri = "https://valid-token-uri.com"
+					options.TokenURI = "https://valid-token-uri.com"
 					response, err = GenerateSignedDataTokensHelper(
 						credKeys["clientID"].(string),
 						credKeys["keyID"].(string),
@@ -620,7 +620,7 @@ MIIBAAIBADANINVALIDKEY==
 			})
 
 			It("should use the tokenUri from options if valid", func() {
-				options.TokenUri = "https://valid-token-uri.com"
+				options.TokenURI = "https://valid-token-uri.com"
 				originalGetBaseURLHelper := GetBaseURLHelper
 
 				defer func() { GetBaseURLHelper = originalGetBaseURLHelper }()
@@ -634,7 +634,7 @@ MIIBAAIBADANINVALIDKEY==
 			})
 
 			It("should return error if tokenUri in options is invalid (http instead of https)", func() {
-				options.TokenUri = "http://invalid-uri.com"
+				options.TokenURI = "http://invalid-uri.com"
 				response, err := GenerateBearerTokenHelper(credKeys, options)
 
 				Expect(err).ShouldNot(BeNil())
@@ -644,7 +644,7 @@ MIIBAAIBADANINVALIDKEY==
 			})
 
 			It("should return error if tokenUri in options is malformed", func() {
-				options.TokenUri = "not-a-valid-url"
+				options.TokenURI = "not-a-valid-url"
 				response, err := GenerateBearerTokenHelper(credKeys, options)
 
 				Expect(err).ShouldNot(BeNil())
@@ -653,8 +653,8 @@ MIIBAAIBADANINVALIDKEY==
 				Expect(err.GetMessage()).Should(ContainSubstring(INVALID_TOKEN_URI))
 			})
 
-			It("should use credKeys tokenUri when options.TokenUri is empty", func() {
-				options.TokenUri = ""
+			It("should use credKeys tokenUri when options.TokenURI is empty", func() {
+				options.TokenURI = ""
 				originalGetBaseURLHelper := GetBaseURLHelper
 
 				defer func() { GetBaseURLHelper = originalGetBaseURLHelper }()

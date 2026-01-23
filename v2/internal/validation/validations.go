@@ -580,8 +580,8 @@ func ValidateCredentials(credentials common.Credentials) *skyflowError.SkyflowEr
 		}
 	}
 
-	if credentials.TokenUri != "" {
-		if !isValidHTTPSURL(credentials.TokenUri) {
+	if credentials.TokenURI != "" {
+		if !isValidHTTPSURL(credentials.TokenURI) {
 			logger.Error(logs.INVALID_TOKEN_URI)
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_TOKEN_URI)
 		}
