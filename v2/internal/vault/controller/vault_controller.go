@@ -42,6 +42,9 @@ func GenerateToken(credentials common.Credentials) (*string, *skyflowError.Skyfl
 	if credentials.Context != "" {
 		options.Ctx = credentials.Context
 	}
+	if credentials.TokenUri != "" {
+		options.TokenUri = credentials.TokenUri
+	}
 	switch {
 	case credentials.Token != "":
 		bearerToken = credentials.Token
