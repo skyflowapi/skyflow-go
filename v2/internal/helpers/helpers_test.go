@@ -336,6 +336,89 @@ MIIBAAIBADANINVALIDKEY==
 			})
 
 		})
+		Context("GenerateSignedDataTokensHelper", func() {
+			var (
+				credKeys map[string]interface{}
+				options  common.SignedDataTokensOptions
+				response []common.SignedDataTokensResponse
+				err      *SkyflowError
+			)
+
+			BeforeEach(func() {
+				credKeys = getValidCreds()
+				options = common.SignedDataTokensOptions{
+					DataTokens: []string{"testToken1", "testToken2"},
+					TimeToLive: 3600,
+					Ctx:        "testContext",
+				}
+			})
+
+			Context("When tokenUri is provided in options", func() {
+				It("should use the tokenUri from options if valid", func() {
+					credKeys = getValidCreds()
+					options.TokenURI = "https://valid-token-uri.com"
+					response, err = GenerateSignedDataTokensHelper(
+						credKeys["clientID"].(string),
+						credKeys["keyID"].(string),
+						getValidPrivateKey(),
+						options,
+						"https://default-uri.com",
+					)
+					Expect(err).Should(BeNil())
+					Expect(response).Should(HaveLen(2))
+				})
+
+				It("should return error if tokenUri in options is invalid", func() {
+					options.TokenURI = "http://invalid-uri.com"
+					response, err = GenerateSignedDataTokensHelper("client123", "key456", nil, options, "https://default-uri.com")
+					Expect(err).ShouldNot(BeNil())
+					Expect(err.GetCode()).Should(Equal("Code: 400"))
+					Expect(err.GetMessage()).Should(ContainSubstring(INVALID_TOKEN_URI))
+					Expect(response).Should(BeNil())
+				})
+
+				It("should return error if tokenUri in options is malformed", func() {
+					options.TokenURI = "not-a-valid-url"
+					response, err = GenerateSignedDataTokensHelper("client123", "key456", nil, options, "https://default-uri.com")
+					Expect(err).ShouldNot(BeNil())
+					Expect(err.GetCode()).Should(Equal("Code: 400"))
+					Expect(err.GetMessage()).Should(ContainSubstring(INVALID_TOKEN_URI))
+					Expect(response).Should(BeNil())
+				})
+
+				It("should use default tokenUri if options.TokenURI is empty", func() {
+					credKeys = getValidCreds()
+					options.TokenURI = "" // Empty tokenUri
+					response, err = GenerateSignedDataTokensHelper(
+						credKeys["clientID"].(string),
+						credKeys["keyID"].(string),
+						getValidPrivateKey(),
+						options,
+						"https://default-uri.com",
+					)
+					Expect(err).Should(BeNil())
+					Expect(response).Should(HaveLen(2))
+				})
+			})
+
+			Context("When tokenUri is provided and valid", func() {
+				It("should return signed data tokens successfully with valid tokenUri", func() {
+					credKeys = getValidCreds()
+					options.TokenURI = "https://valid-token-uri.com"
+					response, err = GenerateSignedDataTokensHelper(
+						credKeys["clientID"].(string),
+						credKeys["keyID"].(string),
+						getValidPrivateKey(),
+						options,
+						"https://ignored-default-uri.com",
+					)
+					Expect(err).Should(BeNil())
+					Expect(response).Should(HaveLen(2))
+					Expect(response[0].Token).Should(Equal("testToken1"))
+					Expect(response[0].SignedToken).Should(ContainSubstring("signed_token_"))
+				})
+			})
+		})
 		Context("GetScopeUsingRoles", func() {
 			// Test case 1: roles is nil
 			It("should return an empty string when roles is nil", func() {
@@ -519,6 +602,70 @@ MIIBAAIBADANINVALIDKEY==
 					Expect(err.GetMessage()).Should(ContainSubstring(INVALID_TOKEN_URI))
 				})
 
+			})
+
+		})
+		Context("GenerateBearerTokenHelper with tokenUri in options", func() {
+			var (
+				credKeys map[string]interface{}
+				options  common.BearerTokenOptions
+			)
+
+			BeforeEach(func() {
+				credKeys = getValidCreds()
+				options = common.BearerTokenOptions{
+					Ctx:     "testContext",
+					RoleIDs: []string{"roleid1"},
+				}
+			})
+
+			It("should use the tokenUri from options if valid", func() {
+				options.TokenURI = "https://valid-token-uri.com"
+				originalGetBaseURLHelper := GetBaseURLHelper
+
+				defer func() { GetBaseURLHelper = originalGetBaseURLHelper }()
+
+				GetBaseURLHelper = func(urlStr string) (string, *SkyflowError) {
+					return "https://valid-token-uri.com", nil
+				}
+
+				_, err := GenerateBearerTokenHelper(credKeys, options)
+				Expect(err).ShouldNot(BeNil())
+			})
+
+			It("should return error if tokenUri in options is invalid (http instead of https)", func() {
+				options.TokenURI = "http://invalid-uri.com"
+				response, err := GenerateBearerTokenHelper(credKeys, options)
+
+				Expect(err).ShouldNot(BeNil())
+				Expect(response).Should(BeNil())
+				Expect(err.GetCode()).Should(Equal("Code: 400"))
+				Expect(err.GetMessage()).Should(ContainSubstring(INVALID_TOKEN_URI))
+			})
+
+			It("should return error if tokenUri in options is malformed", func() {
+				options.TokenURI = "not-a-valid-url"
+				response, err := GenerateBearerTokenHelper(credKeys, options)
+
+				Expect(err).ShouldNot(BeNil())
+				Expect(response).Should(BeNil())
+				Expect(err.GetCode()).Should(Equal("Code: 400"))
+				Expect(err.GetMessage()).Should(ContainSubstring(INVALID_TOKEN_URI))
+			})
+
+			It("should use credKeys tokenUri when options.TokenURI is empty", func() {
+				options.TokenURI = ""
+				originalGetBaseURLHelper := GetBaseURLHelper
+
+				defer func() { GetBaseURLHelper = originalGetBaseURLHelper }()
+
+				GetBaseURLHelper = func(urlStr string) (string, *SkyflowError) {
+					Expect(urlStr).Should(ContainSubstring(credKeys["tokenURI"].(string)))
+					return "https://valid-uri.com", nil
+				}
+
+				_, err := GenerateBearerTokenHelper(credKeys, options)
+				Expect(err).ShouldNot(BeNil())
 			})
 		})
 		Context("GetHeader", func() {
@@ -883,4 +1030,10 @@ func getValidCreds() map[string]interface{} {
 	credMap := map[string]interface{}{}
 	_ = json.Unmarshal([]byte(pvtKey), &credMap)
 	return credMap
+}
+
+func getValidPrivateKey() *rsa.PrivateKey {
+	credKeys := getValidCreds()
+	pvtKey, _ := GetPrivateKey(credKeys)
+	return pvtKey
 }

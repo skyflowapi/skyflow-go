@@ -35,7 +35,7 @@ const (
 	MISSING_CLIENT_ID                                 string = internal.SDK_PREFIX + " Initialization failed. Unable to read client ID in credentials. Verify your client ID."
 	MISSING_KEY_ID                                    string = internal.SDK_PREFIX + " Initialization failed. Unable to read key ID in credentials. Verify your key ID."
 	MISSING_TOKEN_URI                                 string = internal.SDK_PREFIX + " Initialization failed. Unable to read token URI in credentials. Verify your token URI."
-	INVALID_TOKEN_URI                                 string = internal.SDK_PREFIX + " Initialization failed. Token URI in not a valid URL in credentials. Verify your token URI."
+	INVALID_TOKEN_URI                                 string = internal.SDK_PREFIX + " Initialization failed. Invalid Skyflow credentials. The token URI must be a string and a valid URL."
 	JWT_INVALID_FORMAT                                string = internal.SDK_PREFIX + " Initialization failed. Invalid private key format. Verify your credentials."
 	INVALID_ALGORITHM                                 string = internal.SDK_PREFIX + " Initialization failed. Invalid algorithm to parse private key. Specify valid algorithm."
 	INVALID_KEY_SPEC                                  string = internal.SDK_PREFIX + " Initialization failed. Unable to parse RSA private key. Verify your credentials."

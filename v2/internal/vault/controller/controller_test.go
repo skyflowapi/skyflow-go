@@ -97,7 +97,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
 				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
-					if (v.CustomHeaders != nil ) {
+					if v.CustomHeaders != nil {
 						for key, value := range v.CustomHeaders {
 							header.Set(key, value)
 						}
@@ -1446,6 +1446,65 @@ var _ = Describe("VaultController", func() {
 				},
 			},
 		}
+	})
+
+	Describe("GenerateToken", func() {
+		Context("tokenUri parameter handling", func() {
+			It("should handle tokenUri when provided with Token (no network call)", func() {
+				credentials := Credentials{
+					Token:    "valid-token",
+					TokenURI: "https://custom-token-uri.com",
+				}
+				token, err := GenerateToken(credentials)
+				Expect(err).To(BeNil())
+				Expect(token).ToNot(BeNil())
+				Expect(*token).To(Equal("valid-token"))
+			})
+
+			It("should handle tokenUri when provided with ApiKey (no network call)", func() {
+				credentials := Credentials{
+					ApiKey:   "sky-api-key-1234567890123456789012",
+					TokenURI: "https://custom-token-uri.com",
+				}
+				token, err := GenerateToken(credentials)
+				Expect(err).To(BeNil())
+				Expect(token).ToNot(BeNil())
+				Expect(*token).To(Equal("sky-api-key-1234567890123456789012"))
+			})
+
+			It("should pass empty tokenUri to BearerTokenOptions when not provided with Path", func() {
+				credentials := Credentials{
+					Path:     "../../" + os.Getenv("CRED_FILE_PATH"),
+					TokenURI: "",
+				}
+				token, err := GenerateToken(credentials)
+				Expect(err).To(BeNil())
+				Expect(token).ToNot(BeNil())
+			})
+
+			It("should pass empty tokenUri to BearerTokenOptions when not provided with CredentialsString", func() {
+				credentials := Credentials{
+					CredentialsString: os.Getenv("VALID_CREDS_PVT_KEY"),
+					TokenURI:          "",
+				}
+				token, err := GenerateToken(credentials)
+				Expect(err).To(BeNil())
+				Expect(token).ToNot(BeNil())
+			})
+
+			It("should pass roles and context to BearerTokenOptions along with Token and tokenUri", func() {
+				credentials := Credentials{
+					Token:    "valid-token",
+					Roles:    []string{"admin", "user"},
+					Context:  "test-context",
+					TokenURI: "https://custom-token-uri.com",
+				}
+				token, err := GenerateToken(credentials)
+				Expect(err).To(BeNil())
+				Expect(token).ToNot(BeNil())
+				Expect(*token).To(Equal("valid-token"))
+			})
+		})
 	})
 
 	Context("SetBearerTokenForVaultController", func() {

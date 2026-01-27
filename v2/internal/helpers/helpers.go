@@ -358,6 +358,14 @@ func GetCredentialParams(credKeys map[string]interface{}) (string, string, strin
 
 // Generate signed tokens
 func GenerateSignedDataTokensHelper(clientID, keyID string, pvtKey *rsa.PrivateKey, options common.SignedDataTokensOptions, tokenURI string) ([]common.SignedDataTokensResponse, *skyflowError.SkyflowError) {
+	if options.TokenURI != "" {
+		if !isValidURL(options.TokenURI) {
+			logger.Error(logs.INVALID_TOKEN_URI)
+			return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_TOKEN_URI)
+		}
+		tokenURI = options.TokenURI
+	}
+
 	var responseArray []common.SignedDataTokensResponse
 	for _, token := range options.DataTokens {
 		claims := jwt.MapClaims{
@@ -428,6 +436,14 @@ func ParsePrivateKey(pemKey string) (*rsa.PrivateKey, *skyflowError.SkyflowError
 
 var GetBaseURLHelper = GetBaseURL
 
+func isValidURL(urlStr string) bool {
+	parsedUrl, err := url.Parse(urlStr)
+	if err != nil {
+		return false
+	}
+	return parsedUrl.Scheme == "https" && parsedUrl.Host != ""
+}
+
 // GenerateBearerTokenHelper  helper functions
 func GenerateBearerTokenHelper(credKeys map[string]interface{}, options common.BearerTokenOptions) (*internal.V1GetAuthTokenResponse, *skyflowError.SkyflowError) {
 	privateKey := credKeys["privateKey"]
@@ -444,10 +460,19 @@ func GenerateBearerTokenHelper(credKeys map[string]interface{}, options common.B
 		logger.Error(fmt.Sprintf(logs.CLIENT_ID_NOT_FOUND))
 		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.MISSING_CLIENT_ID)
 	}
-	tokenURI, ok1 := credKeys["tokenURI"].(string)
-	if !ok1 {
-		logger.Error(fmt.Sprintf(logs.TOKEN_URI_NOT_FOUND))
-		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.MISSING_TOKEN_URI)
+	tokenURI := options.TokenURI
+	if tokenURI != "" {
+		if !isValidURL(tokenURI) {
+			logger.Error(logs.INVALID_TOKEN_URI)
+			return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_TOKEN_URI)
+		}
+	} else {
+		var ok1 bool
+		tokenURI, ok1 = credKeys["tokenURI"].(string)
+		if !ok1 {
+			logger.Error(fmt.Sprintf(logs.TOKEN_URI_NOT_FOUND))
+			return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.MISSING_TOKEN_URI)
+		}
 	}
 	keyID, ok2 := credKeys["keyID"].(string)
 	if !ok2 {

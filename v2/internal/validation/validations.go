@@ -580,6 +580,13 @@ func ValidateCredentials(credentials common.Credentials) *skyflowError.SkyflowEr
 		}
 	}
 
+	if credentials.TokenURI != "" {
+		if !isValidHTTPSURL(credentials.TokenURI) {
+			logger.Error(logs.INVALID_TOKEN_URI)
+			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_TOKEN_URI)
+		}
+	}
+
 	// Roles validation
 	if credentials.Roles != nil {
 		if len(credentials.Roles) == 0 {
@@ -927,4 +934,13 @@ func isValidHTTPURL(raw string) bool {
 	}
 
 	return u.Host != ""
+}
+
+func isValidHTTPSURL(raw string) bool {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return false
+	}
+
+	return u.Scheme == "https" && u.Host != ""
 }
