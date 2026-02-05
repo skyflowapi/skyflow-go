@@ -646,9 +646,12 @@ func ValidateInvokeConnectionRequest(request common.InvokeConnectionRequest) *sk
 	}
 	// Validate body
 	if request.Body != nil {
-		if len(request.Body) == 0 {
-			logger.Error(fmt.Sprintf(logs.EMPTY_REQUEST_BODY, "InvokeConnectionRequest"))
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_REQUEST_BODY)
+		// Check if body is a map and if it's empty
+		if bodyMap, ok := request.Body.(map[string]interface{}); ok {
+			if len(bodyMap) == 0 {
+				logger.Error(fmt.Sprintf(logs.EMPTY_REQUEST_BODY, "InvokeConnectionRequest"))
+				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_REQUEST_BODY)
+			}
 		}
 	}
 	if request.Method != "" {

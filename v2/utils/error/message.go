@@ -5,6 +5,7 @@ import  "github.com/skyflowapi/skyflow-go/v2/internal/constants"
 // TO DO
 const (
 	// config
+	INVALID_XML_FORMAT                                string = internal.SDK_PREFIX + " Validation error. Invalid XML format. Specify a valid XML format as string."
 	VAULT_ID_ALREADY_IN_CONFIG_LIST                   string = internal.SDK_PREFIX + " Validation error. VaultId is present in an existing config. Specify a new vaultId in config."
 	VAULT_ID_NOT_IN_CONFIG_LIST                       string = internal.SDK_PREFIX + " Validation error. VaultId is missing from the config. Specify the vaultIds from configs."
 	CONNECTION_ID_NOT_IN_CONFIG_LIST                  string = internal.SDK_PREFIX + " Validation error. ConnectionId is missing from the config. Specify the connectionIds from configs."

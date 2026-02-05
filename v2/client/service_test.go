@@ -1361,12 +1361,12 @@ var _ = Describe("ConnectionController", func() {
 		mockServer *httptest.Server
 		//mockToken    string
 		mockRequest  InvokeConnectionRequest
-		mockResponse map[string]interface{}
+		//mockResponse map[string]interface{}
 	)
 
 	BeforeEach(func() {
 		//mockToken = "mock-valid-token"
-		mockResponse = map[string]interface{}{"key": "value"}
+		//mockResponse = map[string]interface{}{"key": "value"}
 		mockRequest = InvokeConnectionRequest{
 			Headers: map[string]string{
 				"Content-Type": "application/json",
@@ -1405,7 +1405,8 @@ var _ = Describe("ConnectionController", func() {
 				service, err := client.Connection("failed")
 				response, err := service.Invoke(ctx, mockRequest)
 				Expect(err).To(BeNil())
-				Expect(response.Data).To(Equal(mockResponse))
+				fmt.Printf("Response: %+v\n", response.Data)
+				Expect(response.Data).To(Equal(`{"key": "value"}`))
 			})
 		})
 		Context("Handling query parameters", func() {
