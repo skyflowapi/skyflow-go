@@ -382,7 +382,7 @@ func prepareRequest(request common.InvokeConnectionRequest, url string) (*http.R
 	return request1, nil
 }
 func writeFormData(writer *multipart.Writer, requestBody interface{}) error {
-	formData := rUrlencode(make([]interface{}, 0), make(map[string]string), requestBody)
+	formData := RUrlencode(make([]interface{}, 0), make(map[string]string), requestBody)
 	for key, value := range formData {
 		if err := writer.WriteField(key, value); err != nil {
 			return err
@@ -420,7 +420,7 @@ func buildURLEncodedParams(data map[string]interface{}) *url.Values {
 	return &params
 }
 
-func rUrlencode(parents []interface{}, pairs map[string]string, data interface{}) map[string]string {
+func RUrlencode(parents []interface{}, pairs map[string]string, data interface{}) map[string]string {
 
 	switch reflect.TypeOf(data).Kind() {
 	case reflect.Int:
@@ -435,7 +435,7 @@ func rUrlencode(parents []interface{}, pairs map[string]string, data interface{}
 		var mapOfdata = (data).(map[string]interface{})
 		for index, value := range mapOfdata {
 			parents = append(parents, index)
-			rUrlencode(parents, pairs, value)
+			RUrlencode(parents, pairs, value)
 			parents = parents[:len(parents)-1]
 		}
 	default:
@@ -514,17 +514,6 @@ func sendRequest(request *http.Request) (*http.Response, string, error) {
 		return nil, requestId, err
 	}
 	return response, requestId, nil
-}
-func parseResponse(response *http.Response) (map[string]interface{}, *errors.SkyflowError) {
-	data, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return nil, errors.NewSkyflowError(errors.INVALID_INPUT_CODE, errors.INVALID_RESPONSE)
-	}
-	var result map[string]interface{}
-	if err1 := json.Unmarshal(data, &result); err1 != nil {
-		return nil, errors.NewSkyflowError(errors.INVALID_INPUT_CODE, errors.INVALID_RESPONSE)
-	}
-	return result, nil
 }
 
 // mapToXML converts a map[string]interface{} to XML format
