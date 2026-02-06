@@ -24,6 +24,10 @@ import (
 
 )
 
+const (
+	formatValue = "%v"
+)
+
 type ConnectionController struct {
 	Config      *common.ConnectionConfig
 	CommonCreds *common.Credentials
@@ -224,7 +228,7 @@ func prepareRequest(request common.InvokeConnectionRequest, url string) (*http.R
 			if strBody, ok := request.Body.(string); ok {
 				body = strings.NewReader(strBody)
 			} else {
-				body = strings.NewReader(fmt.Sprintf("%v", request.Body))
+				body = strings.NewReader(fmt.Sprintf(formatValue, request.Body))
 			}
 		}	
 
@@ -287,7 +291,7 @@ func prepareRequest(request common.InvokeConnectionRequest, url string) (*http.R
 					}
 				} else {
 					// Handle primitive values - convert to string
-					if err := writer.WriteField(key, fmt.Sprintf("%v", value)); err != nil {
+					if err := writer.WriteField(key, fmt.Sprintf(formatValue, value)); err != nil {
 						return nil, err
 					}
 				}
@@ -300,7 +304,7 @@ func prepareRequest(request common.InvokeConnectionRequest, url string) (*http.R
 			shouldSetContentType = false // Keep user's content-type
 		} else if request.Body != nil {
 			// For other types, convert to string
-			bodyContent = fmt.Sprintf("%v", request.Body)
+			bodyContent = fmt.Sprintf(formatValue, request.Body)
 			body = strings.NewReader(bodyContent)
 			writer = nil
 			shouldSetContentType = false
@@ -335,7 +339,7 @@ func prepareRequest(request common.InvokeConnectionRequest, url string) (*http.R
 			bodyContent = strBody
 			body = strings.NewReader(strBody)
 		} else if request.Body != nil {
-			body = strings.NewReader(fmt.Sprintf("%v", request.Body))
+			body = strings.NewReader(fmt.Sprintf(formatValue, request.Body))
 		} 
 	case string(common.TEXTHTML):
 		if strBody, ok := request.Body.(string); ok {
@@ -350,7 +354,7 @@ func prepareRequest(request common.InvokeConnectionRequest, url string) (*http.R
 			bodyContent = string(data)
 			body = strings.NewReader(string(data))
 		} else if request.Body != nil {
-			bodyContent = fmt.Sprintf("%v", request.Body)
+			bodyContent = fmt.Sprintf(formatValue, request.Body)
 			body = strings.NewReader(bodyContent)
 		} 
 	
@@ -367,7 +371,7 @@ func prepareRequest(request common.InvokeConnectionRequest, url string) (*http.R
 				bodyContent = string(data)
 				body = strings.NewReader(string(data))
 			} else {
-				body = strings.NewReader(fmt.Sprintf("%v", request.Body))
+				body = strings.NewReader(fmt.Sprintf(formatValue, request.Body))
 			}
 		}
 	}
@@ -409,16 +413,16 @@ func buildURLEncodedParams(data map[string]interface{}) *url.Values {
 		if nestedMap, ok := value.(map[string]interface{}); ok {
 			for nestedKey, nestedValue := range nestedMap {
 				paramKey := fmt.Sprintf("%s[%s]", key, nestedKey)
-				params.Add(paramKey, fmt.Sprintf("%v", nestedValue))
+				params.Add(paramKey, fmt.Sprintf(formatValue, nestedValue))
 			}
 		} else if arr, ok := value.([]interface{}); ok {
 			// Handle arrays
 			for _, item := range arr {
-				params.Add(key, fmt.Sprintf("%v", item))
+				params.Add(key, fmt.Sprintf(formatValue, item))
 			}
 		} else {
 			// Handle primitive values
-			params.Add(key, fmt.Sprintf("%v", value))
+			params.Add(key, fmt.Sprintf(formatValue, value))
 		}
 	}
 	
@@ -454,7 +458,7 @@ func renderKey(parents []interface{}) string {
 	for index := range parents {
 		var typeOfindex = reflect.TypeOf(parents[index]).Kind()
 		if depth > 0 || typeOfindex == reflect.Int {
-			outputString = outputString + fmt.Sprintf("[%v]", parents[index])
+			outputString = outputString + fmt.Sprintf("["+formatValue+"]", parents[index])
 		} else {
 			outputString = outputString + (parents[index]).(string)
 		}
@@ -555,7 +559,7 @@ func writeXMLElement(buf *bytes.Buffer, key string, value interface{}) {
 		}
 	default:
 		// Escape special XML characters
-		escapedValue := escapeXML(fmt.Sprintf("%v", v))
+		escapedValue := escapeXML(fmt.Sprintf(formatValue, v))
 		buf.WriteString(fmt.Sprintf("<%s>%s</%s>", key, escapedValue, key))
 	}
 }
