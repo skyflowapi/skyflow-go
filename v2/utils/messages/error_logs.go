@@ -3,6 +3,7 @@ package logs
 import . "github.com/skyflowapi/skyflow-go/v2/internal/constants"
 
 const (
+	    INVALID_XML_FORMAT =  SDK_LOG_PREFIX + " Validation error. Invalid XML format. Specify a valid XML format as string."
 	CLIENT_ID_NOT_FOUND   = SDK_LOG_PREFIX + "Invalid credentials. Client ID cannot be empty."
 	TOKEN_URI_NOT_FOUND   = SDK_LOG_PREFIX + "Invalid credentials. Token URI cannot be empty."
 	KEY_ID_NOT_FOUND      = SDK_LOG_PREFIX + "Invalid credentials. Key ID cannot be empty."

@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
 	"reflect"
 	"strconv"
@@ -22,7 +22,10 @@ import (
 	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
 	logs "github.com/skyflowapi/skyflow-go/v2/utils/messages"
 
-	"github.com/hetiansu5/urlquery"
+)
+
+const (
+	formatValue = "%v"
 )
 
 type ConnectionController struct {
@@ -119,6 +122,11 @@ func (v *ConnectionController) Invoke(ctx context.Context, request common.Invoke
 		logger.Error(logs.INVOKE_CONNECTION_REQUEST_REJECTED)
 		return nil, errors.NewSkyflowError(errors.INVALID_INPUT_CODE, fmt.Sprintf(errors.UNKNOWN_ERROR, invokeErr.Error()))
 	}
+	// Ensure response body is closed to prevent resource leaks
+	if res.Body != nil {
+		defer res.Body.Close()
+	}
+	
 	metaData := map[string]interface{}{
 		constants.REQUEST_ID_KEY: requestId,
 	}
@@ -126,11 +134,58 @@ func (v *ConnectionController) Invoke(ctx context.Context, request common.Invoke
 	logger.Info(logs.INVOKE_CONNECTION_REQUEST_RESOLVED)
 	// Step 7: Parse Response
 	if res.StatusCode >= http.StatusOK && res.StatusCode < http.StatusMultipleChoices {
-		parseRes, parseErr := parseResponse(res)
-		if parseErr != nil {
-			return nil, parseErr
+		response := common.InvokeConnectionResponse{Metadata: metaData}
+		if res.Body != nil {
+			contentType := res.Header.Get("Content-Type")
+			data, err := io.ReadAll(res.Body)
+			if err != nil {
+					return nil, errors.NewSkyflowError(errors.INVALID_INPUT_CODE, errors.INVALID_RESPONSE)
+			}
+			if strings.Contains(contentType, string(common.APPLICATIONXML)) || strings.Contains(contentType, string(common.TEXTORXML)) {
+				response.Data = string(data)
+				return &response, nil
+			} else if strings.Contains(contentType, string(common.APPLICATIONORJSON)) || contentType == "" {
+				var jsonData interface{}
+				err = json.Unmarshal(data, &jsonData)
+				if err != nil {
+					response.Data = data
+					return &response, nil
+				} else {
+					response.Data = jsonData
+					return &response, nil
+				}
+
+			} else if strings.Contains(contentType, string(common.TEXTORPLAIN)) {
+				response.Data = string(data)
+				return &response, nil
+			} else if strings.Contains(contentType, string(common.FORMURLENCODED)) {
+				// Parse URL-encoded form data
+				values, err := url.ParseQuery(string(data))
+				if err != nil {
+					return nil, errors.NewSkyflowError(errors.INVALID_INPUT_CODE, errors.INVALID_RESPONSE)
+				}
+				// Convert url.Values to map[string]interface{}
+				result := make(map[string]interface{})
+				for key, val := range values {
+					if len(val) == 1 {
+						result[key] = val[0]
+					} else {
+						result[key] = val
+					}
+				}
+				response.Data = result
+				return &response, nil
+			} else if strings.Contains(contentType, string(common.FORMDATA)) {
+				response.Data = string(data)
+			} else if strings.Contains(contentType, string(common.TEXTHTML)) {
+				response.Data = string(data)
+				return &response, nil
+			} else {
+				response.Data = string(data)
+				return &response, nil
+			}
 		}
-		return &common.InvokeConnectionResponse{Data: parseRes, Metadata: metaData}, nil
+		return &response, nil
 	}
 	return nil, errors.SkyflowApiError(*res)
 }
@@ -145,44 +200,185 @@ func buildRequestURL(baseURL string, pathParams map[string]string) string {
 func prepareRequest(request common.InvokeConnectionRequest, url string) (*http.Request, error) {
 	var body io.Reader
 	var writer *multipart.Writer
-	contentType := detectContentType(request.Headers)
+	var contentType string
+	shouldSetContentType := true
+	
+	contentType = detectContentType(request.Headers)
 
-	switch contentType {
-	case string(common.FORMURLENCODED):
-		data, err := urlquery.Marshal(request.Body)
-		if err != nil {
-			return nil, err
+	// If no content-type and body is an object, default to JSON
+	if contentType == string(common.APPLICATIONORJSON) && request.Body != nil {
+		if _, ok := request.Body.(map[string]interface{}); ok {
+			contentType = string(common.APPLICATIONORJSON)
 		}
-		body = strings.NewReader(string(data))
+	}
+
+	switch contentType {	
+	case string(common.APPLICATIONORJSON):
+		if strBody, ok := request.Body.(string); ok {
+			body = strings.NewReader(strBody)
+		} else if bodyMap, ok := request.Body.(map[string]interface{}); ok {
+			data, err := json.Marshal(bodyMap)
+			if err != nil {
+				return nil, err
+			}
+			body = strings.NewReader(string(data))
+		} else if request.Body != nil {
+			if strBody, ok := request.Body.(string); ok {
+				body = strings.NewReader(strBody)
+			} else {
+				body = strings.NewReader(fmt.Sprintf(formatValue, request.Body))
+			}
+		}	
+
+	case string(common.FORMURLENCODED):
+		if bodyMap, ok := request.Body.(map[string]interface{}); ok {
+			urlParams := buildURLEncodedParams(bodyMap)
+			body = strings.NewReader(urlParams.Encode())
+		} else { //need to check here
+			body = strings.NewReader("")	
+		}
 
 	case string(common.FORMDATA):
 		buffer := new(bytes.Buffer)
 		writer = multipart.NewWriter(buffer)
-		if err := writeFormData(writer, request.Body); err != nil {
-			return nil, err
+		
+		if bodyMap, ok := request.Body.(map[string]interface{}); ok {
+			for key, value := range bodyMap {
+				if value == nil {
+					continue
+				}
+				
+				// Check if value is *os.File or io.Reader for file uploads
+				if file, ok := value.(*os.File); ok {
+					// Handle *os.File - create form file
+					part, err := writer.CreateFormFile(key, file.Name())
+					if err != nil {
+						return nil, err
+					}
+					if _, err := io.Copy(part, file); err != nil {
+						return nil, err
+					}
+				} else if reader, ok := value.(io.Reader); ok {
+					// Handle io.Reader - create form file with generic name
+					part, err := writer.CreateFormFile(key, key)
+					if err != nil {
+						return nil, err
+					}
+					if _, err := io.Copy(part, reader); err != nil {
+						return nil, err
+					}
+				} else if nestedMap, ok := value.(map[string]interface{}); ok {
+					// Check if value is a map/object - stringify it as JSON
+					jsonData, err := json.Marshal(nestedMap)
+					if err != nil {
+						return nil, err
+					}
+					if err := writer.WriteField(key, string(jsonData)); err != nil {
+						return nil, err
+					}
+				} else if arr, ok := value.([]interface{}); ok {
+					// Handle arrays - stringify as JSON
+					jsonData, err := json.Marshal(arr)
+					if err != nil {
+						return nil, err
+					}
+					if err := writer.WriteField(key, string(jsonData)); err != nil {
+						return nil, err
+					}
+				} else {
+					// Handle primitive values - convert to string
+					if err := writer.WriteField(key, fmt.Sprintf(formatValue, value)); err != nil {
+						return nil, err
+					}
+				}
+			}
+		} else if strBody, ok := request.Body.(string); ok {
+			// If body is already a string, use it as-is (though this is unusual for multipart)
+			body = strings.NewReader(strBody)
+			writer = nil // Don't use multipart writer for string body
+			shouldSetContentType = false // Keep user's content-type
+		} else if request.Body != nil {
+			// For other types, convert to string
+			body = strings.NewReader(fmt.Sprintf(formatValue, request.Body))
+			writer = nil
+			shouldSetContentType = false
 		}
-		writer.Close()
-		body = buffer
+		
+		if writer != nil {
+			writer.Close()
+			body = buffer
+			contentType = writer.FormDataContentType() // set with boundary
+			shouldSetContentType = true // Force set with boundary
+		}
 
-	default:
-		data, err := json.Marshal(request.Body)
-		if err != nil {
-			return nil, err
+	case string(common.APPLICATIONXML), string(common.TEXTORXML):
+		if strBody, ok := request.Body.(string); ok {
+			// Body is already a string (raw XML)
+			body = strings.NewReader(strBody)
+		} else if bodyMap, ok := request.Body.(map[string]interface{}); ok {
+			// Convert map to XML
+			data, err := mapToXML(bodyMap)
+			if err != nil {
+				return nil, err
+			}
+			body = bytes.NewReader(data)
+		} else {
+			// throw error for unsupported body type
+		    return nil, errors.NewSkyflowError(errors.INVALID_INPUT_CODE, errors.INVALID_XML_FORMAT)
 		}
-		body = strings.NewReader(string(data))
+
+	case string(common.TEXTORPLAIN):
+		if strBody, ok := request.Body.(string); ok {
+			body = strings.NewReader(strBody)
+		} else if request.Body != nil {
+			body = strings.NewReader(fmt.Sprintf(formatValue, request.Body))
+		} 
+	case string(common.TEXTHTML):
+		if strBody, ok := request.Body.(string); ok {
+			body = strings.NewReader(strBody)
+		} else if bodyMap, ok := request.Body.(map[string]interface{}); ok {
+			// send map as json in body
+			data, err := json.Marshal(bodyMap)
+			if err != nil {
+				return nil, err
+			}
+			body = strings.NewReader(string(data))
+		} else if request.Body != nil {
+			body = strings.NewReader(fmt.Sprintf(formatValue, request.Body))
+		} 
+	
+	default:
+		if strBody, ok := request.Body.(string); ok {
+			body = strings.NewReader(strBody)
+		} else if request.Body != nil {
+			if bodyMap, ok := request.Body.(map[string]interface{}); ok {
+				data, err := json.Marshal(bodyMap)
+				if err != nil {
+					return nil, err
+				}
+				body = strings.NewReader(string(data))
+			} else {
+				body = strings.NewReader(fmt.Sprintf(formatValue, request.Body))
+			}
+		}
 	}
 	if request.Method == "" {
 		request.Method = common.POST
 	}
 
 	request1, err := http.NewRequest(string(request.Method), url, body)
-	if err == nil && writer != nil {
-		request1.Header.Set(constants.HEADER_CONTENT_TYPE, writer.FormDataContentType())
+	if err != nil {
+		return nil, err
 	}
-	return request1, err
+	
+	// Set content-type header
+	if shouldSetContentType && contentType != "" {
+		request1.Header.Set("content-type", contentType)
+	}
+	return request1, nil
 }
 func writeFormData(writer *multipart.Writer, requestBody interface{}) error {
-	formData := rUrlencode(make([]interface{}, 0), make(map[string]string), requestBody)
+	formData := RUrlencode(make([]interface{}, 0), make(map[string]string), requestBody)
 	for key, value := range formData {
 		if err := writer.WriteField(key, value); err != nil {
 			return err
@@ -190,7 +386,37 @@ func writeFormData(writer *multipart.Writer, requestBody interface{}) error {
 	}
 	return nil
 }
-func rUrlencode(parents []interface{}, pairs map[string]string, data interface{}) map[string]string {
+
+// buildURLEncodedParams converts a map to URL encoded params matching Node.js URLSearchParams behavior
+func buildURLEncodedParams(data map[string]interface{}) *url.Values {
+	params := url.Values{}
+	
+	for key, value := range data {
+		if value == nil {
+			continue
+		}
+		
+		// Check if value is a map (nested object)
+		if nestedMap, ok := value.(map[string]interface{}); ok {
+			for nestedKey, nestedValue := range nestedMap {
+				paramKey := fmt.Sprintf("%s[%s]", key, nestedKey)
+				params.Add(paramKey, fmt.Sprintf(formatValue, nestedValue))
+			}
+		} else if arr, ok := value.([]interface{}); ok {
+			// Handle arrays
+			for _, item := range arr {
+				params.Add(key, fmt.Sprintf(formatValue, item))
+			}
+		} else {
+			// Handle primitive values
+			params.Add(key, fmt.Sprintf(formatValue, value))
+		}
+	}
+	
+	return &params
+}
+
+func RUrlencode(parents []interface{}, pairs map[string]string, data interface{}) map[string]string {
 
 	switch reflect.TypeOf(data).Kind() {
 	case reflect.Int:
@@ -205,7 +431,7 @@ func rUrlencode(parents []interface{}, pairs map[string]string, data interface{}
 		var mapOfdata = (data).(map[string]interface{})
 		for index, value := range mapOfdata {
 			parents = append(parents, index)
-			rUrlencode(parents, pairs, value)
+			RUrlencode(parents, pairs, value)
 			parents = parents[:len(parents)-1]
 		}
 	default:
@@ -219,7 +445,7 @@ func renderKey(parents []interface{}) string {
 	for index := range parents {
 		var typeOfindex = reflect.TypeOf(parents[index]).Kind()
 		if depth > 0 || typeOfindex == reflect.Int {
-			outputString = outputString + fmt.Sprintf("[%v]", parents[index])
+			outputString = outputString + fmt.Sprintf("["+formatValue+"]", parents[index])
 		} else {
 			outputString = outputString + (parents[index]).(string)
 		}
@@ -260,9 +486,17 @@ func setHeaders(request *http.Request, api ConnectionController, invokeRequest c
 	} else {
 		request.Header.Set(constants.HEADER_AUTHORIZATION, api.Token)
 	}
-	request.Header.Set(constants.HEADER_CONTENT_TYPE, constants.CONTENT_TYPE_JSON)
+	
+	// Only set default content-type if not already set (preserve multipart boundary)
+	if request.Header.Get(constants.HEADER_CONTENT_TYPE) == "" {
+		request.Header.Set(constants.HEADER_CONTENT_TYPE, constants.CONTENT_TYPE_JSON)
+	}
 
 	for key, value := range invokeRequest.Headers {
+		// Skip content-type from user headers to preserve the one set in prepareRequest (especially multipart boundaries)
+		if strings.ToLower(key) == constants.HEADER_CONTENT_TYPE {
+			continue
+		}
 		request.Header.Set(key, value)
 	}
 }
@@ -277,14 +511,52 @@ func sendRequest(request *http.Request) (*http.Response, string, error) {
 	}
 	return response, requestId, nil
 }
-func parseResponse(response *http.Response) (map[string]interface{}, *errors.SkyflowError) {
-	data, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return nil, errors.NewSkyflowError(errors.INVALID_INPUT_CODE, errors.INVALID_RESPONSE)
+
+// mapToXML converts a map[string]interface{} to XML format
+func mapToXML(data map[string]interface{}) ([]byte, error) {
+	var buf bytes.Buffer
+	buf.WriteString("<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
+	buf.WriteString("<request>")
+	
+	for key, value := range data {
+		writeXMLElement(&buf, key, value)
 	}
-	var result map[string]interface{}
-	if err1 := json.Unmarshal(data, &result); err1 != nil {
-		return nil, errors.NewSkyflowError(errors.INVALID_INPUT_CODE, errors.INVALID_RESPONSE)
+	
+	buf.WriteString("</request>")
+	return buf.Bytes(), nil
+}
+
+// writeXMLElement recursively writes XML elements with proper escaping
+func writeXMLElement(buf *bytes.Buffer, key string, value interface{}) {
+	if value == nil {
+		buf.WriteString(fmt.Sprintf("<%s/>", key))
+		return
 	}
-	return result, nil
+
+	switch v := value.(type) {
+	case map[string]interface{}:
+		buf.WriteString(fmt.Sprintf("<%s>", key))
+		for k, val := range v {
+			writeXMLElement(buf, k, val)
+		}
+		buf.WriteString(fmt.Sprintf("</%s>", key))
+	case []interface{}:
+		for _, item := range v {
+			writeXMLElement(buf, key, item)
+		}
+	default:
+		// Escape special XML characters
+		escapedValue := escapeXML(fmt.Sprintf(formatValue, v))
+		buf.WriteString(fmt.Sprintf("<%s>%s</%s>", key, escapedValue, key))
+	}
+}
+
+// escapeXML escapes special XML characters
+func escapeXML(s string) string {
+	s = strings.ReplaceAll(s, "&", "&amp;")
+	s = strings.ReplaceAll(s, "<", "&lt;")
+	s = strings.ReplaceAll(s, ">", "&gt;")
+	s = strings.ReplaceAll(s, "\"", "&quot;")
+	s = strings.ReplaceAll(s, "'", "&apos;")
+	return s
 }
