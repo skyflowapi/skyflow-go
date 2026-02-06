@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 
+	constants "github.com/skyflowapi/skyflow-go/v2/internal/constants"
 	"github.com/skyflowapi/skyflow-go/v2/internal/validation"
 	"github.com/skyflowapi/skyflow-go/v2/serviceaccount"
 	"github.com/skyflowapi/skyflow-go/v2/utils/common"
@@ -65,8 +66,8 @@ func setConnectionCredentials(config *common.ConnectionConfig, builderCreds *com
 		// here if builder credentials are available
 		if builderCreds != nil && !isCredentialsEmpty(*builderCreds) {
 			creds = *builderCreds
-		} else if envCreds := os.Getenv("SKYFLOW_CREDENTIALS"); envCreds != "" {
-			creds.CredentialsString = os.Getenv("SKYFLOW_CREDENTIALS")
+		} else if envCreds := os.Getenv(constants.SKYFLOW_CREDENTIALS_ENV); envCreds != "" {
+			creds.CredentialsString = os.Getenv(constants.SKYFLOW_CREDENTIALS_ENV)
 		} else {
 			return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.INVALID_INPUT_CODE), errors.EMPTY_CREDENTIALS)
 		}
@@ -77,7 +78,7 @@ func setConnectionCredentials(config *common.ConnectionConfig, builderCreds *com
 }
 
 func (v *ConnectionController) Invoke(ctx context.Context, request common.InvokeConnectionRequest) (*common.InvokeConnectionResponse, *errors.SkyflowError) {
-	tag := "Invoke Connection"
+	tag := constants.REQUEST_INVOKE_CONN
 	logger.Info(logs.INVOKE_CONNECTION_TRIGGERED)
 	// Step 1: Validate Configuration
 	logger.Info(logs.VALIDATING_INVOKE_CONNECTION_REQUEST)
@@ -128,7 +129,7 @@ func (v *ConnectionController) Invoke(ctx context.Context, request common.Invoke
 	}
 	
 	metaData := map[string]interface{}{
-		"request_id": requestId,
+		constants.REQUEST_ID_KEY: requestId,
 	}
 
 	logger.Info(logs.INVOKE_CONNECTION_REQUEST_RESOLVED)
@@ -435,9 +436,9 @@ func RUrlencode(parents []interface{}, pairs map[string]string, data interface{}
 	case reflect.Int:
 		pairs[renderKey(parents)] = fmt.Sprintf("%d", data)
 	case reflect.Float32:
-		pairs[renderKey(parents)] = fmt.Sprintf("%f", data)
+		pairs[renderKey(parents)] = fmt.Sprintf("%f", data) //nolint:revive
 	case reflect.Float64:
-		pairs[renderKey(parents)] = fmt.Sprintf("%f", data)
+		pairs[renderKey(parents)] = fmt.Sprintf("%f", data) //nolint:revive
 	case reflect.Bool:
 		pairs[renderKey(parents)] = fmt.Sprintf("%t", data)
 	case reflect.Map:
@@ -468,7 +469,7 @@ func renderKey(parents []interface{}) string {
 }
 func detectContentType(headers map[string]string) string {
 	for key, value := range headers {
-		if strings.ToLower(key) == "content-type" {
+		if strings.ToLower(key) == constants.HEADER_CONTENT_TYPE {
 			return value
 		}
 	}
@@ -495,14 +496,14 @@ func setQueryParams(request *http.Request, queryParams map[string]interface{}) *
 }
 func setHeaders(request *http.Request, api ConnectionController, invokeRequest common.InvokeConnectionRequest) {
 	if api.ApiKey != "" {
-		request.Header.Set("x-skyflow-authorization", api.ApiKey)
+		request.Header.Set(constants.HEADER_AUTHORIZATION, api.ApiKey)
 	} else {
-		request.Header.Set("x-skyflow-authorization", api.Token)
+		request.Header.Set(constants.HEADER_AUTHORIZATION, api.Token)
 	}
 	
 	// Only set default content-type if not already set (preserve multipart boundary)
-	if request.Header.Get("content-type") == "" {
-		request.Header.Set("content-type", "application/json")
+	if request.Header.Get(constants.HEADER_CONTENT_TYPE) == "" {
+		request.Header.Set(constants.HEADER_CONTENT_TYPE, constants.CONTENT_TYPE_JSON)
 	}
 
 	for key, value := range invokeRequest.Headers {
@@ -517,7 +518,7 @@ func sendRequest(request *http.Request) (*http.Response, string, error) {
 	response, err := http.DefaultClient.Do(request)
 	requestId := ""
 	if response != nil {
-		requestId = response.Header.Get("x-request-id")
+		requestId = response.Header.Get(constants.RESPONSE_HEADER_REQUEST_ID)
 	}
 	if err != nil {
 		return nil, requestId, err

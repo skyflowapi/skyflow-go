@@ -1,6 +1,6 @@
 package errors
 
-import  "github.com/skyflowapi/skyflow-go/v2/internal/constants"
+import internal "github.com/skyflowapi/skyflow-go/v2/internal/constants"
 
 // TO DO
 const (
@@ -121,6 +121,7 @@ const (
 	UNKNOWN_ERROR                      string = internal.SDK_PREFIX + " Error occurred. %s"
 	INVALID_BYOT                       string = internal.SDK_PREFIX + " Validation error. Invalid BYOT."
 	SKYFLOW_ID_KEY_ERROR               string = internal.SDK_PREFIX + " Validation error. 'skyflow_id' is missing from the data payload. Specify a 'skyflow_id'."
+	FAILED_TO_UNMARSHAL_ERROR          string = internal.SDK_PREFIX + "Failed to unmarshal error"
 	COLUMN_NAME_KEY_ERROR_FILE_UPLOAD                        = internal.SDK_PREFIX + " Validation error. columnName is missing from the payload. Specify a columnName key."
 	MISSING_FILE_SOURCE_IN_UPLOAD_FILE                       = internal.SDK_PREFIX + " Validation error. Provide exactly one of filePath, base64, or fileObject."
 	FILE_NAME_MUST_BE_PROVIDED_WITH_FILE_OBJECT              = internal.SDK_PREFIX + " Validation error. fileName must be provided when using fileObject."
