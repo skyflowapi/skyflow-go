@@ -1405,8 +1405,7 @@ var _ = Describe("ConnectionController", func() {
 				service, err := client.Connection("failed")
 				response, err := service.Invoke(ctx, mockRequest)
 				Expect(err).To(BeNil())
-				fmt.Printf("Response: %+v\n", response.Data)
-				Expect(response.Data).To(Equal(`{"key": "value"}`))
+				Expect(response.Data).To(Equal(fmt.Sprintf("%v", `{"key": "value"}`)))
 			})
 		})
 		Context("Handling query parameters", func() {

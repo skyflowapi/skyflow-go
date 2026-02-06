@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -138,7 +137,7 @@ func (v *ConnectionController) Invoke(ctx context.Context, request common.Invoke
 		response := common.InvokeConnectionResponse{Metadata: metaData}
 		if res.Body != nil {
 			contentType := res.Header.Get("Content-Type")
-			data, err := ioutil.ReadAll(res.Body)
+			data, err := io.ReadAll(res.Body)
 			if err != nil {
 					return nil, errors.NewSkyflowError(errors.INVALID_INPUT_CODE, errors.INVALID_RESPONSE)
 			}
@@ -202,7 +201,6 @@ func prepareRequest(request common.InvokeConnectionRequest, url string) (*http.R
 	var body io.Reader
 	var writer *multipart.Writer
 	var contentType string
-	var bodyContent string // For debugging
 	shouldSetContentType := true
 	
 	contentType = detectContentType(request.Headers)
@@ -223,7 +221,6 @@ func prepareRequest(request common.InvokeConnectionRequest, url string) (*http.R
 			if err != nil {
 				return nil, err
 			}
-			bodyContent = string(data)
 			body = strings.NewReader(string(data))
 		} else if request.Body != nil {
 			if strBody, ok := request.Body.(string); ok {
@@ -236,10 +233,8 @@ func prepareRequest(request common.InvokeConnectionRequest, url string) (*http.R
 	case string(common.FORMURLENCODED):
 		if bodyMap, ok := request.Body.(map[string]interface{}); ok {
 			urlParams := buildURLEncodedParams(bodyMap)
-			bodyContent = urlParams.Encode()
-			body = strings.NewReader(bodyContent)
+			body = strings.NewReader(urlParams.Encode())
 		} else { //need to check here
-			bodyContent = ""
 			body = strings.NewReader("")	
 		}
 
@@ -299,14 +294,12 @@ func prepareRequest(request common.InvokeConnectionRequest, url string) (*http.R
 			}
 		} else if strBody, ok := request.Body.(string); ok {
 			// If body is already a string, use it as-is (though this is unusual for multipart)
-			bodyContent = strBody
 			body = strings.NewReader(strBody)
 			writer = nil // Don't use multipart writer for string body
 			shouldSetContentType = false // Keep user's content-type
 		} else if request.Body != nil {
 			// For other types, convert to string
-			bodyContent = fmt.Sprintf(formatValue, request.Body)
-			body = strings.NewReader(bodyContent)
+			body = strings.NewReader(fmt.Sprintf(formatValue, request.Body))
 			writer = nil
 			shouldSetContentType = false
 		}
@@ -314,7 +307,6 @@ func prepareRequest(request common.InvokeConnectionRequest, url string) (*http.R
 		if writer != nil {
 			writer.Close()
 			body = buffer
-			bodyContent = buffer.String()
 			contentType = writer.FormDataContentType() // set with boundary
 			shouldSetContentType = true // Force set with boundary
 		}
@@ -337,14 +329,12 @@ func prepareRequest(request common.InvokeConnectionRequest, url string) (*http.R
 
 	case string(common.TEXTORPLAIN):
 		if strBody, ok := request.Body.(string); ok {
-			bodyContent = strBody
 			body = strings.NewReader(strBody)
 		} else if request.Body != nil {
 			body = strings.NewReader(fmt.Sprintf(formatValue, request.Body))
 		} 
 	case string(common.TEXTHTML):
 		if strBody, ok := request.Body.(string); ok {
-			bodyContent = strBody
 			body = strings.NewReader(strBody)
 		} else if bodyMap, ok := request.Body.(map[string]interface{}); ok {
 			// send map as json in body
@@ -352,16 +342,13 @@ func prepareRequest(request common.InvokeConnectionRequest, url string) (*http.R
 			if err != nil {
 				return nil, err
 			}
-			bodyContent = string(data)
 			body = strings.NewReader(string(data))
 		} else if request.Body != nil {
-			bodyContent = fmt.Sprintf(formatValue, request.Body)
-			body = strings.NewReader(bodyContent)
+			body = strings.NewReader(fmt.Sprintf(formatValue, request.Body))
 		} 
 	
 	default:
 		if strBody, ok := request.Body.(string); ok {
-			bodyContent = strBody
 			body = strings.NewReader(strBody)
 		} else if request.Body != nil {
 			if bodyMap, ok := request.Body.(map[string]interface{}); ok {
@@ -369,7 +356,6 @@ func prepareRequest(request common.InvokeConnectionRequest, url string) (*http.R
 				if err != nil {
 					return nil, err
 				}
-				bodyContent = string(data)
 				body = strings.NewReader(string(data))
 			} else {
 				body = strings.NewReader(fmt.Sprintf(formatValue, request.Body))
@@ -507,8 +493,8 @@ func setHeaders(request *http.Request, api ConnectionController, invokeRequest c
 	}
 
 	for key, value := range invokeRequest.Headers {
-		// Skip content-type from user headers to preserve the one set in prepareRequest
-		if strings.ToLower(key) == "content-type" {
+		// Skip content-type from user headers to preserve the one set in prepareRequest (especially multipart boundaries)
+		if strings.ToLower(key) == constants.HEADER_CONTENT_TYPE {
 			continue
 		}
 		request.Header.Set(key, value)
