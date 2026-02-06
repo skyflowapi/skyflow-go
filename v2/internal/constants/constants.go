@@ -110,7 +110,7 @@ const (
 	UNKNOWN_STATUS = "UNKNOWN"
 	UNKNOWN_ERROR = "Unknown error"
 	HTTP_STATUS_BAD_REQUEST = "Bad Request"
-	ERROR_DETAIL_KEY_FROM_CLIENT = "errorFromClient"
+	ERROR_KEY_FROM_CLIENT = "errorFromClient"
 	
 	// Environment variables
 	SKYFLOW_CREDENTIALS_ENV = "SKYFLOW_CREDENTIALS"
@@ -182,5 +182,5 @@ const (
 	SDK_METADATA_KEY_RUNTIME_DETAILS = "sdk_runtime_details"
 	
 	// Magic numbers
-	MAX_REQUEST_SIZE = 42
+	API_KEY_LENGTH = 42
 )

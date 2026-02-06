@@ -572,7 +572,7 @@ func ValidateCredentials(credentials common.Credentials) *skyflowError.SkyflowEr
 	// API key validation
 	if credentials.ApiKey != "" {
 		// Validate API key format
-		if len(credentials.ApiKey) != constants.MAX_REQUEST_SIZE || !strings.Contains(credentials.ApiKey, constants.API_KEY_PREFIX) {
+		if len(credentials.ApiKey) != constants.API_KEY_LENGTH || !strings.Contains(credentials.ApiKey, constants.API_KEY_PREFIX) {
 			logger.Error(logs.INVALID_API_KEY)
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_API_KEY)
 
