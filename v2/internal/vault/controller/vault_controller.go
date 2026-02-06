@@ -143,8 +143,8 @@ func setVaultCredentials(config *common.VaultConfig, builderCreds *common.Creden
 		// here if builder credentials are available
 		if builderCreds != nil && !isCredentialsEmpty(*builderCreds) {
 			creds = *builderCreds
-		} else if envCreds := os.Getenv("SKYFLOW_CREDENTIALS"); envCreds != "" {
-			creds.CredentialsString = os.Getenv("SKYFLOW_CREDENTIALS")
+		} else if envCreds := os.Getenv(constants.SKYFLOW_CREDENTIALS_ENV); envCreds != "" {
+			creds.CredentialsString = os.Getenv(constants.SKYFLOW_CREDENTIALS_ENV)
 		} else {
 			return nil, skyflowError.NewSkyflowError(skyflowError.ErrorCodesEnum(skyflowError.INVALID_INPUT_CODE), skyflowError.EMPTY_CREDENTIALS)
 		}
@@ -220,11 +220,11 @@ func (v *VaultController) Insert(ctx context.Context, request common.InsertReque
 			if parseErr != nil {
 				return nil, parseErr
 			}
-			if formattedRecord["skyflow_id"] != nil {
+			if formattedRecord[constants.SKYFLOW_ID] != nil {
 				insertedFields = append(insertedFields, formattedRecord)
 			} else {
-				formattedRecord["RequestId"] = header.Get(constants.REQUEST_KEY)
-				formattedRecord["HttpCode"] = skyflowError.INVALID_INPUT_CODE
+				formattedRecord[constants.RESPONSE_KEY_REQUEST_ID] = header.Get(constants.REQUEST_KEY)
+				formattedRecord[constants.RESPONSE_KEY_HTTP_CODE] = skyflowError.INVALID_INPUT_CODE
 				errors = append(errors, formattedRecord)
 			}
 		}
@@ -504,7 +504,7 @@ func (v *VaultController) Update(ctx context.Context, request common.UpdateReque
 	var updatedField map[string]interface{}
 	updatedField = make(map[string]interface{})
 	updatedField = res
-	updatedField["skyflowId"] = *id
+	updatedField[constants.RESPONSE_KEY_SKYFLOW_ID] = *id
 	return &common.UpdateResponse{
 		UpdatedField: updatedField,
 		Errors:       nil,
