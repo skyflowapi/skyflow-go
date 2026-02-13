@@ -485,7 +485,7 @@ func ValidateVaultConfig(vaultConfig common.VaultConfig) *skyflowError.SkyflowEr
 	if vaultConfig.BaseVaultURL == "" {
 		if vaultConfig.ClusterId == "" {
 			logger.Error(logs.CLUSTER_ID_IS_REQUIRED)
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_CLUSTER_ID)
+			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.INVALID_CLUSTER_ID, vaultConfig.VaultId))
 		}
 	} else {
 		// Parse the URL

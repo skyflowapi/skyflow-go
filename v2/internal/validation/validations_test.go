@@ -353,7 +353,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 				}
 				err := ValidateVaultConfig(config)
 				Expect(err).ToNot(BeNil())
-				Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_CLUSTER_ID))
+				Expect(err.GetMessage()).To(ContainSubstring(fmt.Sprintf(errors.INVALID_CLUSTER_ID, "valid-vault-id")))
 			})
 			It("should return error for empty VaultId", func() {
 				config := common.VaultConfig{
