@@ -6,8 +6,8 @@ require (
 	github.com/cristalhq/jwt/v3 v3.1.0
 	github.com/hetiansu5/urlquery v1.2.7
 	github.com/joho/godotenv v1.4.0
-	github.com/skyflowapi/skyflow-go/commonutils v0.0.0-20260106102501-e4411ad29dfd
-	github.com/skyflowapi/skyflow-go/serviceaccount v0.0.0-20260106102501-e4411ad29dfd
+	github.com/skyflowapi/skyflow-go/commonutils v0.0.0-20260306055355-e363885f48d4
+	github.com/skyflowapi/skyflow-go/serviceaccount v0.0.0-20260306055355-e363885f48d4
 	github.com/stretchr/testify v1.7.0
 )
 

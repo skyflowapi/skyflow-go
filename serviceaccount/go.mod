@@ -5,8 +5,8 @@ go 1.23.8
 require (
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/joho/godotenv v1.4.0
-	github.com/skyflowapi/skyflow-go/commonutils v0.0.0-20260106102501-e4411ad29dfd
-	github.com/skyflowapi/skyflow-go/skyflow v0.0.0-20260106102501-e4411ad29dfd
+	github.com/skyflowapi/skyflow-go/commonutils v0.0.0-20260306055355-e363885f48d4
+	github.com/skyflowapi/skyflow-go/skyflow v0.0.0-20260306055355-e363885f48d4
 )
 
 require (
