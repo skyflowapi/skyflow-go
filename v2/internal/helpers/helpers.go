@@ -20,7 +20,7 @@ import (
 	"github.com/skyflowapi/skyflow-go/v2/internal/generated/core"
 
 	vaultapis "github.com/skyflowapi/skyflow-go/v2/internal/generated"
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v4"
 	constants "github.com/skyflowapi/skyflow-go/v2/internal/constants"
 	internal "github.com/skyflowapi/skyflow-go/v2/internal/generated"
 	internalAuthApi "github.com/skyflowapi/skyflow-go/v2/internal/generated/authentication"
