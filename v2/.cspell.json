@@ -101,7 +101,7 @@
     ".git/**",
     ".github/**",
     "**/vendor/**",
-    "*.sum",
+    "**/*.sum",
     "**/go.mod",
     "Rule/**",
     "**/internal/generated/**",
