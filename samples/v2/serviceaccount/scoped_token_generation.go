@@ -31,9 +31,9 @@ func ExampleTokenGenerationWithScope() {
 
 	// Generate bearer token using cred as string
 	var credString = "<CRED_STRING>"
-	tokenUsingCredString, errr := serviceaccount.GenerateBearerTokenFromCreds(credString, common.BearerTokenOptions{LogLevel: logger.DEBUG, RoleIDs: []string{"<ROLE_ID_1>", "<ROLE_ID_2>", "<ROLE_ID_3>"}})
-	if errr != nil {
-		fmt.Println("errors:", *errr)
+	tokenUsingCredString, err := serviceaccount.GenerateBearerTokenFromCreds(credString, common.BearerTokenOptions{LogLevel: logger.DEBUG, RoleIDs: []string{"<ROLE_ID_1>", "<ROLE_ID_2>", "<ROLE_ID_3>"}})
+	if err != nil {
+		fmt.Println("errors:", *err)
 	} else {
 		fmt.Println("Token using credential string:", tokenUsingCredString.AccessToken)
 	}

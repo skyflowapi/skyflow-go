@@ -6,6 +6,7 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/skyflowapi/skyflow-go/v2/serviceaccount"
 	"github.com/skyflowapi/skyflow-go/v2/utils/common"
 	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
@@ -30,9 +31,9 @@ func ExampleTokenGeneration() {
 
 	// Generate bearer token using cred as string
 	var credString = "<CRED_STRING>"
-	tokenResUsingCredString, errr := serviceaccount.GenerateBearerTokenFromCreds(credString, common.BearerTokenOptions{LogLevel: logger.DEBUG})
-	if errr != nil {
-		fmt.Println("errors", *errr)
+	tokenResUsingCredString, err := serviceaccount.GenerateBearerTokenFromCreds(credString, common.BearerTokenOptions{LogLevel: logger.DEBUG})
+	if err != nil {
+		fmt.Println("errors", *err)
 	} else {
 		fmt.Println("Token using cred string:", tokenResUsingCredString.AccessToken)
 	}
