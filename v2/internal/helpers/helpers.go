@@ -441,7 +441,7 @@ func isValidURL(urlStr string) bool {
 	if err != nil {
 		return false
 	}
-	return parsedUrl.Scheme == "https" && parsedUrl.Host != ""
+	return parsedUrl.Scheme == constants.HTTPS_PROTOCOL && parsedUrl.Host != ""
 }
 
 // GenerateBearerTokenHelper  helper functions

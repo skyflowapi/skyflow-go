@@ -941,5 +941,5 @@ func isValidHTTPSURL(raw string) bool {
 		return false
 	}
 
-	return u.Scheme == "https" && u.Host != ""
+	return u.Scheme == constants.HTTPS_PROTOCOL && u.Host != ""
 }
