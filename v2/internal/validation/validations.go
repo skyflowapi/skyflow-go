@@ -361,11 +361,8 @@ func ValidateInsertRequest(request common.InsertRequest, options common.InsertOp
 
 	// Validate each key-value pair in values
 	for _, valueMap := range request.Values {
-		for key, value := range valueMap {
-			if value == nil || value == "" {
-				logger.Error(fmt.Sprintf(logs.EMPTY_OR_NULL_VALUE_IN_VALUES, tag, key))
-				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_VALUE_IN_VALUES)
-			} else if key == "" {
+		for key := range valueMap {
+			if key == "" {
 				logger.Error(fmt.Sprintf(logs.EMPTY_OR_NULL_KEY_IN_VALUES, tag))
 				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_KEY_IN_VALUES)
 			}
@@ -830,13 +827,13 @@ func ValidateUpdateRequest(request common.UpdateRequest, options common.UpdateOp
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_DATA)
 	}
 
-	for key, data := range request.Data {
-		if data == "" {
-			logger.Error(fmt.Sprintf(logs.EMPTY_OR_NULL_VALUE_IN_DATA, tag, key))
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_DATA_IN_DATA_KEY)
-		} else if key == "" {
+	for key := range request.Data {
+		if key == "" {
 			logger.Error(fmt.Sprintf(logs.EMPTY_OR_NULL_KEY_IN_DATA, tag))
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_KEY_IN_DATA)
+		}
+		if key == constants.SKYFLOW_ID {
+			continue
 		}
 	}
 	switch options.TokenMode {
