@@ -697,7 +697,7 @@ Sample response :
   }],
   "errors": [{
     "request_index": "1",
-    "error": "Insert failed. Column card_number is invalid. Specify a valid column."
+    "error": "Insert failed. Column card_numbe is invalid. Specify a valid column."
   }]
 }
 ```
