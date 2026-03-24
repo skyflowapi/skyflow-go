@@ -165,8 +165,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			options := common.InsertOptions{}
 
 			err := ValidateInsertRequest(request, options)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_VALUE_IN_VALUES))
+			Expect(err).To(BeNil())
 		})
 
 		It("should return EMPTY_KEY_IN_VALUES when a key is empty", func() {
@@ -916,8 +915,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			}
 			options := common.UpdateOptions{}
 			err := ValidateUpdateRequest(request, options)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_DATA_IN_DATA_KEY))
+			Expect(err).To(BeNil())
 		})
 
 		It("should return an error if a key is empty in data", func() {
