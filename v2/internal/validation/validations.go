@@ -873,11 +873,6 @@ tag := constants.REQUEST_UPLOAD_FILE
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.TABLE_KEY_ERROR)
 	}
 
-	if strings.TrimSpace(req.SkyflowId) == "" {
-		logger.Error(fmt.Sprintf(logs.EMPTY_SKYFLOW_ID, tag))
-		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.SKYFLOW_ID_KEY_ERROR)
-	}
-
 	if strings.TrimSpace(req.ColumnName) == "" {
 		logger.Error(fmt.Sprintf(logs.EMPTY_COLUMN_NAME, tag))
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.COLUMN_NAME_KEY_ERROR)
