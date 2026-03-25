@@ -1,10 +1,11 @@
 package errors
 
-import  "github.com/skyflowapi/skyflow-go/v2/internal/constants"
+import internal "github.com/skyflowapi/skyflow-go/v2/internal/constants"
 
 // TO DO
 const (
 	// config
+	INVALID_XML_FORMAT                                string = internal.SDK_PREFIX + " Validation error. Invalid XML format. Specify a valid XML format as string."
 	VAULT_ID_ALREADY_IN_CONFIG_LIST                   string = internal.SDK_PREFIX + " Validation error. VaultId is present in an existing config. Specify a new vaultId in config."
 	VAULT_ID_NOT_IN_CONFIG_LIST                       string = internal.SDK_PREFIX + " Validation error. VaultId is missing from the config. Specify the vaultIds from configs."
 	CONNECTION_ID_NOT_IN_CONFIG_LIST                  string = internal.SDK_PREFIX + " Validation error. ConnectionId is missing from the config. Specify the connectionIds from configs."
@@ -35,7 +36,7 @@ const (
 	MISSING_CLIENT_ID                                 string = internal.SDK_PREFIX + " Initialization failed. Unable to read client ID in credentials. Verify your client ID."
 	MISSING_KEY_ID                                    string = internal.SDK_PREFIX + " Initialization failed. Unable to read key ID in credentials. Verify your key ID."
 	MISSING_TOKEN_URI                                 string = internal.SDK_PREFIX + " Initialization failed. Unable to read token URI in credentials. Verify your token URI."
-	INVALID_TOKEN_URI                                 string = internal.SDK_PREFIX + " Initialization failed. Token URI in not a valid URL in credentials. Verify your token URI."
+	INVALID_TOKEN_URI                                 string = internal.SDK_PREFIX + " Initialization failed. Invalid Skyflow credentials. The token URI must be a string and a valid URL."
 	JWT_INVALID_FORMAT                                string = internal.SDK_PREFIX + " Initialization failed. Invalid private key format. Verify your credentials."
 	INVALID_ALGORITHM                                 string = internal.SDK_PREFIX + " Initialization failed. Invalid algorithm to parse private key. Specify valid algorithm."
 	INVALID_KEY_SPEC                                  string = internal.SDK_PREFIX + " Initialization failed. Unable to parse RSA private key. Verify your credentials."
@@ -120,6 +121,7 @@ const (
 	UNKNOWN_ERROR                      string = internal.SDK_PREFIX + " Error occurred. %s"
 	INVALID_BYOT                       string = internal.SDK_PREFIX + " Validation error. Invalid BYOT."
 	SKYFLOW_ID_KEY_ERROR               string = internal.SDK_PREFIX + " Validation error. 'skyflow_id' is missing from the data payload. Specify a 'skyflow_id'."
+	FAILED_TO_UNMARSHAL_ERROR          string = internal.SDK_PREFIX + "Failed to unmarshal error"
 	COLUMN_NAME_KEY_ERROR_FILE_UPLOAD                        = internal.SDK_PREFIX + " Validation error. columnName is missing from the payload. Specify a columnName key."
 	MISSING_FILE_SOURCE_IN_UPLOAD_FILE                       = internal.SDK_PREFIX + " Validation error. Provide exactly one of filePath, base64, or fileObject."
 	FILE_NAME_MUST_BE_PROVIDED_WITH_FILE_OBJECT              = internal.SDK_PREFIX + " Validation error. fileName must be provided when using fileObject."

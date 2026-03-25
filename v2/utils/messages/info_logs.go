@@ -6,7 +6,7 @@ import (
 
 const (
 	EMPTY_BEARER_TOKEN                 = SDK_LOG_PREFIX + "BearerToken is Empty"
-	BEARER_TOKEN_EXPIRED               = SDK_LOG_PREFIX + "BearerToken is expired"
+	BEARER_TOKEN_EXPIRED               = SDK_LOG_PREFIX + "Bearer Token provided is either invalid or has expired."
 	GENERATE_BEARER_TOKEN_TRIGGERED    = SDK_LOG_PREFIX + "GenerateBearerToken is triggered"
 	GENERATE_BEARER_TOKEN_SUCCESS      = SDK_LOG_PREFIX + "BearerToken is generated"
 	GENERATE_SIGNED_DATA_TOKEN_SUCCESS = SDK_LOG_PREFIX + "Signed Data tokens are generated"

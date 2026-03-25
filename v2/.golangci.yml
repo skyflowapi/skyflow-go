@@ -9,6 +9,7 @@ linters:
   default: none
   enable:
     - revive
+    - goconst
   exclusions:
     paths:
       - internal/generated
@@ -19,6 +20,15 @@ linters:
       enable-all-rules: false
       enable-default-rules: false
       rules:
+        - name: add-constant
+          severity: warning
+          disabled: false
+          arguments:
+            - max-lit-count: "1"
+              allow-strs: '""'
+              allow-ints: "0,1,2,64,0644"
+              allow-floats: "0.0,0.,1.0,1.,2.0,2."
+        
         - name: var-naming
           arguments:
             - ["ID", "URL", "API", "HTTP", "JSON", "UUID"]
@@ -26,7 +36,13 @@ linters:
             - - upper-case-const: true
                 skip-package-name-checks: true
         - name: receiver-naming
-
+        
+        - name: unexported-return
+          disabled: true
+        - name: unused-parameter
+          disabled: true
+        - name: redefines-builtin-id
+          disabled: true
         - name: exported
           disabled: true
         - name: package-comments
@@ -35,3 +51,9 @@ linters:
           disabled: true
         - name: indent-error-flow
           disabled: true
+    
+    goconst:
+      min-len: 1
+      min-occurrences: 1
+      match-constant: true
+      numbers: true

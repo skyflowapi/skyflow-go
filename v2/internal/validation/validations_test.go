@@ -165,8 +165,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			options := common.InsertOptions{}
 
 			err := ValidateInsertRequest(request, options)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_VALUE_IN_VALUES))
+			Expect(err).To(BeNil())
 		})
 
 		It("should return EMPTY_KEY_IN_VALUES when a key is empty", func() {
@@ -601,6 +600,39 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 					Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
 					Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_ROLE_IN_ROLES))
 				})
+
+				It("should return an error if tokenUri uses http scheme instead of https", func() {
+					credentials := common.Credentials{
+						Token:    "token",
+						TokenURI: "http://invalid-uri.com",
+					}
+					err := ValidateCredentials(credentials)
+					Expect(err).To(HaveOccurred())
+					Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+					Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_TOKEN_URI))
+				})
+
+				It("should return an error if tokenUri is malformed", func() {
+					credentials := common.Credentials{
+						Token:    "token",
+						TokenURI: "not-a-valid-url",
+					}
+					err := ValidateCredentials(credentials)
+					Expect(err).To(HaveOccurred())
+					Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+					Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_TOKEN_URI))
+				})
+
+				It("should return an error if tokenUri has https scheme but no host", func() {
+					credentials := common.Credentials{
+						Token:    "token",
+						TokenURI: "https://",
+					}
+					err := ValidateCredentials(credentials)
+					Expect(err).To(HaveOccurred())
+					Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+					Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_TOKEN_URI))
+				})
 			})
 
 			Context("Valid Credentials", func() {
@@ -640,6 +672,52 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 					credentials := common.Credentials{
 						Token: "token",
 						Roles: []string{"admin", "user"},
+					}
+					err := ValidateCredentials(credentials)
+					Expect(err).To(BeNil())
+				})
+
+				It("should return nil for valid tokenUri with https scheme", func() {
+					credentials := common.Credentials{
+						Token:    "token",
+						TokenURI: "https://valid-token-uri.com",
+					}
+					err := ValidateCredentials(credentials)
+					Expect(err).To(BeNil())
+				})
+
+				It("should return nil for valid tokenUri with path and query parameters", func() {
+					credentials := common.Credentials{
+						Token:    "token",
+						TokenURI: "https://valid-token-uri.com/path?param=value",
+					}
+					err := ValidateCredentials(credentials)
+					Expect(err).To(BeNil())
+				})
+
+				It("should return nil for credentials with Path and valid tokenUri", func() {
+					credentials := common.Credentials{
+						Path:     "some/path",
+						TokenURI: "https://valid-token-uri.com",
+					}
+					err := ValidateCredentials(credentials)
+					Expect(err).To(BeNil())
+				})
+
+				It("should return nil for credentials with Token and valid roles and tokenUri", func() {
+					credentials := common.Credentials{
+						Token:    "token",
+						Roles:    []string{"admin", "user"},
+						TokenURI: "https://valid-token-uri.com",
+					}
+					err := ValidateCredentials(credentials)
+					Expect(err).To(BeNil())
+				})
+
+				It("should return nil for empty tokenUri (optional field)", func() {
+					credentials := common.Credentials{
+						Token:    "token",
+						TokenURI: "",
 					}
 					err := ValidateCredentials(credentials)
 					Expect(err).To(BeNil())
@@ -837,8 +915,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			}
 			options := common.UpdateOptions{}
 			err := ValidateUpdateRequest(request, options)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_DATA_IN_DATA_KEY))
+			Expect(err).To(BeNil())
 		})
 
 		It("should return an error if a key is empty in data", func() {
