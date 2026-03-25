@@ -393,14 +393,14 @@ var _ = Describe("Skyflow Client", func() {
 			})
 			Expect(err).Should(BeNil())
 
-			errr := client.AddSkyflowCredentials(common.Credentials{
-				Token: "token1",
-			})
-			Expect(errr).Should(BeNil())
+				err2 := client.AddSkyflowCredentials(common.Credentials{
+					Token: "token1",
+				})
+				Expect(err2).Should(BeNil())
 
-			// should return error when invalid cred passed
-			errr1 := client.AddSkyflowCredentials(common.Credentials{Token: "token"})
-			Expect(errr1).Should(BeNil())
+				// should return error when invalid cred passed
+				err3 := client.AddSkyflowCredentials(common.Credentials{Token: "token"})
+				Expect(err3).Should(BeNil())
 		})
 		It("should successfully update a config and remove config", func() {
 			err := client.UpdateSkyflowCredentials(common.Credentials{})
