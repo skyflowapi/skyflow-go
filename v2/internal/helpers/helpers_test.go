@@ -819,7 +819,7 @@ MIIBAAIBADANINVALIDKEY==
 				Expect(err).To(BeNil())
 			})
 			It("should return error for invalid base64 data", func() {
-				_, err := GetFileForFileUpload(common.FileUploadRequest{Base64: "invalid_base64"})
+				_, err := GetFileForFileUpload(common.FileUploadRequest{Base64: "invalid_base64", FileName: "test.txt"})
 				Expect(err).ToNot(BeNil())
 				Expect(err.Error()).To(ContainSubstring("illegal base64 data at input byte"))
 			})

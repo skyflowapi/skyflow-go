@@ -300,11 +300,14 @@ func GetFileForFileUpload(request common.FileUploadRequest) (*os.File, error) {
 		return file, nil
 	}
 	if request.Base64 != "" {
+		if request.FileName == "" {
+			return nil, fmt.Errorf("FileName is required when Base64 is provided")
+		}
 		data, err := base64.StdEncoding.DecodeString(request.Base64)
 		if err != nil {
 			return nil, fmt.Errorf("failed to decode base64: %w", err)
 		}
-		file, err := os.Create(request.FileName)
+		file, err := os.CreateTemp("", request.FileName)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create file: %w", err)
 		}
@@ -318,7 +321,7 @@ func GetFileForFileUpload(request common.FileUploadRequest) (*os.File, error) {
 		file.Seek(0, io.SeekStart)
 
 		// Remove from disk but keep open
-		os.Remove(request.FileName)
+		os.Remove(file.Name())
 		return file, nil
 	}
 
