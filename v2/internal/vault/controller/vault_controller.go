@@ -39,7 +39,7 @@ func GenerateToken(credentials common.Credentials) (*string, *skyflowError.Skyfl
 	if credentials.Roles != nil {
 		options.RoleIDs = credentials.Roles
 	}
-	if credentials.Context != "" {
+	if credentials.Context != nil {
 		options.Ctx = credentials.Context
 	}
 	switch {

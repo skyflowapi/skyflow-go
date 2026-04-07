@@ -164,7 +164,7 @@ const (
 )
 
 type BearerTokenOptions struct {
-	Ctx      string
+	Ctx      interface{}
 	RoleIDs  []string
 	LogLevel logger.LogLevel
 }
@@ -172,7 +172,7 @@ type BearerTokenOptions struct {
 type SignedDataTokensOptions struct {
 	DataTokens []string
 	TimeToLive int
-	Ctx        string
+	Ctx        interface{}
 	LogLevel   logger.LogLevel
 }
 
@@ -192,7 +192,7 @@ type VaultConfig struct {
 type Credentials struct {
 	Path              string
 	Roles             []string
-	Context           string
+	Context           interface{}
 	CredentialsString string
 	Token             string
 	ApiKey            string
