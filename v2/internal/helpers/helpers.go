@@ -517,7 +517,7 @@ func GetBaseURL(urlStr string) (string, *skyflowError.SkyflowError) {
 }
 // ValidateAndResolveCtx validates the ctx value and returns the resolved value for JWT claims.
 // Returns (nil, nil) if ctx should be omitted, (value, nil) if valid, or (nil, error) if invalid.
-var ctxKeyPattern = regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
+var ctxKeyPattern = regexp.MustCompile(constants.CTX_KEY_REGEX)
 
 func ValidateAndResolveCtx(ctx interface{}) (interface{}, *skyflowError.SkyflowError) {
 	if ctx == nil {
