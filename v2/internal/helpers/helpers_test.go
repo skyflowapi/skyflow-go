@@ -9,6 +9,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -830,11 +831,46 @@ MIIBAAIBADANINVALIDKEY==
 				Expect(err).To(BeNil())
 				Expect(file).ToNot(BeNil())
 			})
-			It("should return error for valid base64 data when file name is not passed", func() {
+			It("should not return error for valid base64 data when file name is not passed", func() {
 				data := "SGVsbG8sIFdvcmxkIQ==" // base64 for "Hello, World!"
 				file, err := GetFileForFileUpload(common.FileUploadRequest{Base64: data})
+				Expect(err).To(BeNil())
+				Expect(file).ToNot(BeNil())
+				type namer interface{ Name() string }
+				named, ok := file.(namer)
+				Expect(ok).To(BeTrue())
+				Expect(named.Name()).To(Equal(""))
+			})
+			It("should return namedReader with correct Name() for valid base64 data", func() {
+				data := "SGVsbG8sIFdvcmxkIQ==" // base64 for "Hello, World!"
+				file, err := GetFileForFileUpload(common.FileUploadRequest{Base64: data, FileName: "hello.txt"})
+				Expect(err).To(BeNil())
+				Expect(file).ToNot(BeNil())
+				type namer interface{ Name() string }
+				named, ok := file.(namer)
+				Expect(ok).To(BeTrue())
+				Expect(named.Name()).To(Equal("hello.txt"))
+			})
+			It("should return namedReader with correct content for valid base64 data", func() {
+				data := "SGVsbG8sIFdvcmxkIQ==" // base64 for "Hello, World!"
+				file, err := GetFileForFileUpload(common.FileUploadRequest{Base64: data, FileName: "hello.txt"})
+				Expect(err).To(BeNil())
+				Expect(file).ToNot(BeNil())
+				content, readErr := io.ReadAll(file)
+				Expect(readErr).To(BeNil())
+				Expect(string(content)).To(Equal("Hello, World!"))
+			})
+			It("should close namedReader without error", func() {
+				data := "SGVsbG8sIFdvcmxkIQ==" // base64 for "Hello, World!"
+				file, err := GetFileForFileUpload(common.FileUploadRequest{Base64: data, FileName: "hello.txt"})
+				Expect(err).To(BeNil())
+				Expect(file).ToNot(BeNil())
+				Expect(file.Close()).To(BeNil())
+			})
+			It("should return error containing failed to decode for invalid base64 data", func() {
+				_, err := GetFileForFileUpload(common.FileUploadRequest{Base64: "!!!invalid!!!", FileName: "test.txt"})
 				Expect(err).ToNot(BeNil())
-				Expect(file).To(BeNil())
+				Expect(err.Error()).To(ContainSubstring("failed to decode base64"))
 			})
 			It("should not return error for valid file object", func() {
 				tmpfile, err := os.Open("../../../credentials.json")
