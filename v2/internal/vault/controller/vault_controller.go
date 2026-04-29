@@ -554,6 +554,9 @@ func (v *VaultController) UploadFile(ctx context.Context, request common.FileUpl
 	if fileObjError != nil {
 		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fileObjError.Error())
 	}
+	if file != nil {
+		defer file.Close()
+	}
 	// create payload
 	payload := vaultapis.UploadFileV2Request{}
 	payload.File = file

@@ -302,7 +302,11 @@ func (r *namedReader) Name() string {
 	return r.name
 }
 
-func GetFileForFileUpload(request common.FileUploadRequest) (io.Reader, error) {
+func (r *namedReader) Close() error {
+	return nil
+}
+
+func GetFileForFileUpload(request common.FileUploadRequest) (io.ReadCloser, error) {
 	if request.FilePath != "" {
 		file, err := os.Open(request.FilePath)
 		if err != nil {
@@ -311,9 +315,6 @@ func GetFileForFileUpload(request common.FileUploadRequest) (io.Reader, error) {
 		return file, nil
 	}
 	if request.Base64 != "" {
-		if request.FileName == "" {
-			return nil, fmt.Errorf("file name is required for base64 upload")
-		}
 		data, err := base64.StdEncoding.DecodeString(request.Base64)
 		if err != nil {
 			return nil, fmt.Errorf("failed to decode base64: %w", err)
@@ -323,9 +324,7 @@ func GetFileForFileUpload(request common.FileUploadRequest) (io.Reader, error) {
 			name:   request.FileName,
 		}, nil
 	}
-
 	if request.FileObject != (os.File{}) {
-		// make *os.File act as ReadCloser
 		return &request.FileObject, nil
 	}
 	return nil, nil
