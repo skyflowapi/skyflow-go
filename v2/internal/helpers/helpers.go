@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"context"
+	"bytes"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/base64"
@@ -291,7 +292,17 @@ func ParseTokenizeResponse(apiResponse vaultapis.V1TokenizeResponse) *common.Tok
 		Tokens: tokens,
 	}
 }
-func GetFileForFileUpload(request common.FileUploadRequest) (*os.File, error) {
+
+type namedReader struct {
+	*bytes.Reader
+	name string
+}
+
+func (r *namedReader) Name() string {
+	return r.name
+}
+
+func GetFileForFileUpload(request common.FileUploadRequest) (io.Reader, error) {
 	if request.FilePath != "" {
 		file, err := os.Open(request.FilePath)
 		if err != nil {
@@ -300,26 +311,17 @@ func GetFileForFileUpload(request common.FileUploadRequest) (*os.File, error) {
 		return file, nil
 	}
 	if request.Base64 != "" {
+		if request.FileName == "" {
+			return nil, fmt.Errorf("file name is required for base64 upload")
+		}
 		data, err := base64.StdEncoding.DecodeString(request.Base64)
 		if err != nil {
 			return nil, fmt.Errorf("failed to decode base64: %w", err)
 		}
-		file, err := os.Create(request.FileName)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create file: %w", err)
-		}
-		// Write data
-		_, err = file.Write(data)
-		if err != nil {
-			file.Close()
-			return nil, err
-		}
-		// Reset pointer
-		file.Seek(0, io.SeekStart)
-
-		// Remove from disk but keep open
-		os.Remove(request.FileName)
-		return file, nil
+		return &namedReader{
+			Reader: bytes.NewReader(data),
+			name:   request.FileName,
+		}, nil
 	}
 
 	if request.FileObject != (os.File{}) {
