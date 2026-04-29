@@ -134,7 +134,7 @@ const (
 	EMPTY_SKYFLOW_ID = SDK_LOG_PREFIX + "Invalid %s request. Skyflow Id can not be empty."
     EMPTY_COLUMN_NAME = SDK_LOG_PREFIX + "Invalid %s request. Column name can not be empty."
 	INVALID_BASE64 = SDK_LOG_PREFIX + "Invalid %s request. Base64 string is not valid."
-	FILE_NAME_MUST_BE_PROVIDED_WITH_FILE_OBJECT = SDK_LOG_PREFIX + "Validation error. fileName must be provided when using fileObject."
+	FILE_NAME_MUST_BE_PROVIDED_WITH_FILE_OBJECT = SDK_LOG_PREFIX + "Validation error. fileName must be provided when using base64."
 	INVALID_FILE_OBJECT = SDK_LOG_PREFIX + "Validation error. Invalid file object in file upload request. Specify a valid file object."
 	INVALID_FILE_PATH                                        = SDK_LOG_PREFIX + "Invalid %s request. Validation error. The file path is invalid. Specify a valid file path."
 )
