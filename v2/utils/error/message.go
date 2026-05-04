@@ -122,7 +122,7 @@ const (
 	SKYFLOW_ID_KEY_ERROR               string = internal.SDK_PREFIX + " Validation error. 'skyflow_id' is missing from the data payload. Specify a 'skyflow_id'."
 	COLUMN_NAME_KEY_ERROR_FILE_UPLOAD                        = internal.SDK_PREFIX + " Validation error. columnName is missing from the payload. Specify a columnName key."
 	MISSING_FILE_SOURCE_IN_UPLOAD_FILE                       = internal.SDK_PREFIX + " Validation error. Provide exactly one of filePath, base64, or fileObject."
-	FILE_NAME_MUST_BE_PROVIDED_WITH_FILE_OBJECT              = internal.SDK_PREFIX + " Validation error. fileName must be provided when using fileObject."
+	FILE_NAME_MUST_BE_PROVIDED_WITH_FILE_OBJECT              = internal.SDK_PREFIX + " Validation error. fileName must be provided when using base64."
 	INVALID_FILE_OBJECT                                       = internal.SDK_PREFIX + " Validation error. Invalid file object in file upload request. Specify a valid file object."
 	INVALID_BASE64                                           = internal.SDK_PREFIX + " Validation error. Invalid base64 string in file upload request. Specify a valid base64 string."
 	INVALID_FILE_PATH                                       = internal.SDK_PREFIX + " Validation error. The file path is invalid. Specify a valid file path."
