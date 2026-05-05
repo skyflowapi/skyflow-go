@@ -16,4 +16,5 @@ const (
 	ERROR_FROM_CLIENT      = "error-from-client"
 	REQUEST_KEY            = "X-Request-Id"
 	SKYFLOW_ID             = "skyflow_id"
+	CTX_KEY_REGEX          = `^[a-zA-Z0-9_]+$`
 )
