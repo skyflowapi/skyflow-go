@@ -128,6 +128,6 @@ const (
 	INVALID_FILE_PATH                                       = internal.SDK_PREFIX + " Validation error. The file path is invalid. Specify a valid file path."
 	EMPTY_COLUMN_NAME                                       = internal.SDK_PREFIX + " Validation error. 'columnName' can't be empty. Specify a column name."
 	EMPTY_CONTEXT                                           = internal.SDK_PREFIX + " Initialization failed. Invalid context. Specify a valid context."
-	INVALID_CTX_TYPE                                        = internal.SDK_PREFIX + " Initialization failed. Invalid ctx type. Specify ctx as a string or a map[string]interface{}."
+	INVALID_CTX_TYPE                                        = internal.SDK_PREFIX + " Initialization failed. Invalid ctx type. Specify ctx as a string, number, boolean, or a map[string]interface{}."
 	INVALID_CTX_MAP_KEY                                     = internal.SDK_PREFIX + " Initialization failed. Invalid key '%s' in ctx map. Keys must contain only alphanumeric characters and underscores."
 )

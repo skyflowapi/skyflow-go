@@ -530,6 +530,12 @@ func ValidateAndResolveCtx(ctx interface{}) (interface{}, *skyflowError.SkyflowE
 			return nil, nil
 		}
 		return v, nil
+	case bool:
+		return v, nil
+	case float64:
+		return v, nil
+	case int:
+		return float64(v), nil
 	case map[string]interface{}:
 		if len(v) == 0 {
 			return nil, nil

@@ -955,12 +955,28 @@ MIIBAAIBADANINVALIDKEY==
 				Expect(err.GetMessage()).To(ContainSubstring("invalid.key"))
 			})
 
-			It("should return error when input is an int (invalid type)", func() {
+			It("should return float64 when input is an int", func() {
 				result, err := ValidateAndResolveCtx(42)
-				Expect(err).ToNot(BeNil())
-				Expect(result).To(BeNil())
-				Expect(err.GetCode()).To(Equal("Code: 400"))
-				Expect(err.GetMessage()).To(ContainSubstring(INVALID_CTX_TYPE))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(float64(42)))
+			})
+
+			It("should return float64 when input is a float64", func() {
+				result, err := ValidateAndResolveCtx(3.14)
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(3.14))
+			})
+
+			It("should return bool when input is true", func() {
+				result, err := ValidateAndResolveCtx(true)
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(true))
+			})
+
+			It("should return bool when input is false", func() {
+				result, err := ValidateAndResolveCtx(false)
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(false))
 			})
 
 			It("should return error when input is a slice (invalid type)", func() {
