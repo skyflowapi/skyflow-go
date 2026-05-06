@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"runtime"
 	"time"
 
@@ -359,6 +360,11 @@ func GetCredentialParams(credKeys map[string]interface{}) (string, string, strin
 
 // Generate signed tokens
 func GenerateSignedDataTokensHelper(clientID, keyID string, pvtKey *rsa.PrivateKey, options common.SignedDataTokensOptions, tokenURI string) ([]common.SignedDataTokensResponse, *skyflowError.SkyflowError) {
+	resolvedCtx, ctxErr := ValidateAndResolveCtx(options.Ctx)
+	if ctxErr != nil {
+		return nil, ctxErr
+	}
+
 	var responseArray []common.SignedDataTokensResponse
 	for _, token := range options.DataTokens {
 		claims := jwt.MapClaims{
@@ -374,8 +380,8 @@ func GenerateSignedDataTokensHelper(clientID, keyID string, pvtKey *rsa.PrivateK
 		} else {
 			claims["exp"] = time.Now().Add(time.Duration(60) * time.Second).Unix()
 		}
-		if options.Ctx != "" {
-			claims["ctx"] = options.Ctx
+		if resolvedCtx != nil {
+			claims["ctx"] = resolvedCtx
 		}
 
 		tokenString, err := jwt.NewWithClaims(jwt.SigningMethodRS256, claims).SignedString(pvtKey)
@@ -510,7 +516,41 @@ func GetBaseURL(urlStr string) (string, *skyflowError.SkyflowError) {
 	baseURL := fmt.Sprintf("%s://%s", parsedUrl.Scheme, parsedUrl.Host)
 	return baseURL, nil
 }
+// ValidateAndResolveCtx validates the ctx value and returns the resolved value for JWT claims.
+// Returns (nil, nil) if ctx should be omitted, (value, nil) if valid, or (nil, error) if invalid.
+var ctxKeyPattern = regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
+
+func ValidateAndResolveCtx(ctx interface{}) (interface{}, *skyflowError.SkyflowError) {
+	if ctx == nil {
+		return nil, nil
+	}
+	switch v := ctx.(type) {
+	case string:
+		if v == "" {
+			return nil, nil
+		}
+		return v, nil
+	case map[string]interface{}:
+		if len(v) == 0 {
+			return nil, nil
+		}
+		for key := range v {
+			if !ctxKeyPattern.MatchString(key) {
+				return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE,
+					fmt.Sprintf(skyflowError.INVALID_CTX_MAP_KEY, key))
+			}
+		}
+		return v, nil
+	default:
+		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_CTX_TYPE)
+	}
+}
+
 func GetSignedBearerUserToken(clientID, keyID, tokenURI string, pvtKey *rsa.PrivateKey, options common.BearerTokenOptions) (string, *skyflowError.SkyflowError) {
+	resolvedCtx, ctxErr := ValidateAndResolveCtx(options.Ctx)
+	if ctxErr != nil {
+		return "", ctxErr
+	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
 		"iss": clientID,
@@ -519,8 +559,8 @@ func GetSignedBearerUserToken(clientID, keyID, tokenURI string, pvtKey *rsa.Priv
 		"sub": clientID,
 		"exp": time.Now().Add(60 * time.Minute).Unix(),
 	})
-	if options.Ctx != "" {
-		token.Claims.(jwt.MapClaims)["ctx"] = options.Ctx
+	if resolvedCtx != nil {
+		token.Claims.(jwt.MapClaims)["ctx"] = resolvedCtx
 	}
 	var err error
 	signedToken, err := token.SignedString(pvtKey)
