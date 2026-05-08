@@ -231,6 +231,52 @@ var _ = Describe("Vault controller Test cases", func() {
 				Expect(res).To(BeNil(), "Expected no response due to error in insert operation")
 			})
 
+			It("should return error when custom headers map is empty in Insert", func() {
+				request := InsertRequest{
+					Table:  "test_table",
+					Values: []map[string]interface{}{{"field1": "value1"}},
+				}
+				options := InsertOptions{
+					CustomHeaders: make(map[CustomHeaderKey]string),
+				}
+				ctx := context.Background()
+				res, err := contrl.Insert(ctx, request, options)
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
+			})
+
+			It("should return error when custom headers has invalid key in Insert", func() {
+				request := InsertRequest{
+					Table:  "test_table",
+					Values: []map[string]interface{}{{"field1": "value1"}},
+				}
+				options := InsertOptions{
+					CustomHeaders: map[CustomHeaderKey]string{
+						CustomHeaderKey("x-invalid-header"): "value",
+					},
+				}
+				ctx := context.Background()
+				res, err := contrl.Insert(ctx, request, options)
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
+			})
+
+			It("should return error when custom headers has empty value in Insert", func() {
+				request := InsertRequest{
+					Table:  "test_table",
+					Values: []map[string]interface{}{{"field1": "value1"}},
+				}
+				options := InsertOptions{
+					CustomHeaders: map[CustomHeaderKey]string{
+						SkyflowAccountID: "",
+					},
+				}
+				ctx := context.Background()
+				res, err := contrl.Insert(ctx, request, options)
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
+			})
+
 		})
 		Context("Insert with ContinueOnError True - Partial Error Case", func() {
 			It("should return partial success and error fields", func() {
@@ -597,6 +643,37 @@ var _ = Describe("Vault controller Test cases", func() {
 				Expect(err).ToNot(BeNil())
 				Expect(res).To(BeNil())
 			})
+
+			It("should return error when custom headers map is empty in Detokenize", func() {
+				opts := DetokenizeOptions{
+					CustomHeaders: make(map[CustomHeaderKey]string),
+				}
+				res, err := vaultController.Detokenize(ctx, request, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
+			})
+
+			It("should return error when custom headers has invalid key in Detokenize", func() {
+				opts := DetokenizeOptions{
+					CustomHeaders: map[CustomHeaderKey]string{
+						CustomHeaderKey("x-invalid-header"): "value",
+					},
+				}
+				res, err := vaultController.Detokenize(ctx, request, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
+			})
+
+			It("should return error when custom headers has empty value in Detokenize", func() {
+				opts := DetokenizeOptions{
+					CustomHeaders: map[CustomHeaderKey]string{
+						SkyflowAccountID: "",
+					},
+				}
+				res, err := vaultController.Detokenize(ctx, request, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
+			})
 		})
 	})
 	Describe("Test Get functions", func() {
@@ -707,6 +784,43 @@ var _ = Describe("Vault controller Test cases", func() {
 				Expect(err).To(BeNil())
 				Expect(res).ToNot(BeNil())
 			})
+
+			It("should return error when custom headers map is empty in Get", func() {
+				req := GetRequest{Table: "table", Ids: []string{"id1"}}
+				opts := GetOptions{
+					RedactionType: REDACTED,
+					CustomHeaders: make(map[CustomHeaderKey]string),
+				}
+				res, err := vaultController.Get(ctx, req, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
+			})
+
+			It("should return error when custom headers has invalid key in Get", func() {
+				req := GetRequest{Table: "table", Ids: []string{"id1"}}
+				opts := GetOptions{
+					RedactionType: REDACTED,
+					CustomHeaders: map[CustomHeaderKey]string{
+						CustomHeaderKey("x-invalid-header"): "value",
+					},
+				}
+				res, err := vaultController.Get(ctx, req, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
+			})
+
+			It("should return error when custom headers has empty value in Get", func() {
+				req := GetRequest{Table: "table", Ids: []string{"id1"}}
+				opts := GetOptions{
+					RedactionType: REDACTED,
+					CustomHeaders: map[CustomHeaderKey]string{
+						SkyflowAccountID: "",
+					},
+				}
+				res, err := vaultController.Get(ctx, req, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
+			})
 		})
 	})
 	Describe("Test Delete functions", func() {
@@ -791,6 +905,40 @@ var _ = Describe("Vault controller Test cases", func() {
 				Expect(res).To(BeNil())
 				Expect(err).ToNot(BeNil())
 			})
+
+			It("should return error when custom headers map is empty in Delete", func() {
+				req := DeleteRequest{Table: "table", Ids: []string{"id1"}}
+				opts := common.DeleteOptions{
+					CustomHeaders: make(map[CustomHeaderKey]string),
+				}
+				res, err := vaultController.Delete(ctx, req, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
+			})
+
+			It("should return error when custom headers has invalid key in Delete", func() {
+				req := DeleteRequest{Table: "table", Ids: []string{"id1"}}
+				opts := common.DeleteOptions{
+					CustomHeaders: map[CustomHeaderKey]string{
+						CustomHeaderKey("x-invalid-header"): "value",
+					},
+				}
+				res, err := vaultController.Delete(ctx, req, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
+			})
+
+			It("should return error when custom headers has empty value in Delete", func() {
+				req := DeleteRequest{Table: "table", Ids: []string{"id1"}}
+				opts := common.DeleteOptions{
+					CustomHeaders: map[CustomHeaderKey]string{
+						SkyflowAccountID: "",
+					},
+				}
+				res, err := vaultController.Delete(ctx, req, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
+			})
 		})
 	})
 	Describe("Test Query functions", func() {
@@ -874,6 +1022,40 @@ var _ = Describe("Vault controller Test cases", func() {
 				res, err := vaultController.Query(ctx, request, common.QueryOptions{})
 				Expect(res).To(BeNil())
 				Expect(err).ToNot(BeNil())
+			})
+
+			It("should return error when custom headers map is empty in Query", func() {
+				req := QueryRequest{Query: "SELECT * FROM persons WHERE skyflow_id='id'"}
+				opts := common.QueryOptions{
+					CustomHeaders: make(map[CustomHeaderKey]string),
+				}
+				res, err := vaultController.Query(ctx, req, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
+			})
+
+			It("should return error when custom headers has invalid key in Query", func() {
+				req := QueryRequest{Query: "SELECT * FROM persons WHERE skyflow_id='id'"}
+				opts := common.QueryOptions{
+					CustomHeaders: map[CustomHeaderKey]string{
+						CustomHeaderKey("x-invalid-header"): "value",
+					},
+				}
+				res, err := vaultController.Query(ctx, req, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
+			})
+
+			It("should return error when custom headers has empty value in Query", func() {
+				req := QueryRequest{Query: "SELECT * FROM persons WHERE skyflow_id='id'"}
+				opts := common.QueryOptions{
+					CustomHeaders: map[CustomHeaderKey]string{
+						SkyflowAccountID: "",
+					},
+				}
+				res, err := vaultController.Query(ctx, req, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
 			})
 		})
 	})
@@ -965,6 +1147,52 @@ var _ = Describe("Vault controller Test cases", func() {
 				Expect(res).To(BeNil())
 				Expect(err).ToNot(BeNil())
 			})
+
+			It("should return error when custom headers map is empty in Update", func() {
+				req := UpdateRequest{
+					Table: "demo",
+					Data:  map[string]interface{}{"skyflow_id": "123", "name": "john"},
+				}
+				opts := UpdateOptions{
+					TokenMode:     DISABLE,
+					CustomHeaders: make(map[CustomHeaderKey]string),
+				}
+				res, err := vaultController.Update(ctx, req, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
+			})
+
+			It("should return error when custom headers has invalid key in Update", func() {
+				req := UpdateRequest{
+					Table: "demo",
+					Data:  map[string]interface{}{"skyflow_id": "123", "name": "john"},
+				}
+				opts := UpdateOptions{
+					TokenMode: DISABLE,
+					CustomHeaders: map[CustomHeaderKey]string{
+						CustomHeaderKey("x-invalid-header"): "value",
+					},
+				}
+				res, err := vaultController.Update(ctx, req, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
+			})
+
+			It("should return error when custom headers has empty value in Update", func() {
+				req := UpdateRequest{
+					Table: "demo",
+					Data:  map[string]interface{}{"skyflow_id": "123", "name": "john"},
+				}
+				opts := UpdateOptions{
+					TokenMode: DISABLE,
+					CustomHeaders: map[CustomHeaderKey]string{
+						SkyflowAccountID: "",
+					},
+				}
+				res, err := vaultController.Update(ctx, req, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
+			})
 		})
 	})
 	Describe("Test Tokenize functions", func() {
@@ -1049,6 +1277,40 @@ var _ = Describe("Vault controller Test cases", func() {
 				res, err := vaultController.Tokenize(ctx, arrReq, common.TokenizeOptions{})
 				Expect(res).To(BeNil())
 				Expect(err).ToNot(BeNil())
+			})
+
+			It("should return error when custom headers map is empty in Tokenize", func() {
+				req := []TokenizeRequest{{ColumnGroup: "group_name", Value: "41111111111111"}}
+				opts := common.TokenizeOptions{
+					CustomHeaders: make(map[CustomHeaderKey]string),
+				}
+				res, err := vaultController.Tokenize(ctx, req, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
+			})
+
+			It("should return error when custom headers has invalid key in Tokenize", func() {
+				req := []TokenizeRequest{{ColumnGroup: "group_name", Value: "41111111111111"}}
+				opts := common.TokenizeOptions{
+					CustomHeaders: map[CustomHeaderKey]string{
+						CustomHeaderKey("x-invalid-header"): "value",
+					},
+				}
+				res, err := vaultController.Tokenize(ctx, req, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
+			})
+
+			It("should return error when custom headers has empty value in Tokenize", func() {
+				req := []TokenizeRequest{{ColumnGroup: "group_name", Value: "41111111111111"}}
+				opts := common.TokenizeOptions{
+					CustomHeaders: map[CustomHeaderKey]string{
+						SkyflowAccountID: "",
+					},
+				}
+				res, err := vaultController.Tokenize(ctx, req, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
 			})
 		})
 	})
@@ -1144,6 +1406,58 @@ var _ = Describe("Vault controller Test cases", func() {
 			Expect(res).To(BeNil())
 			Expect(err).ToNot(BeNil())
 			Expect(err.GetMessage()).To(ContainSubstring(skyflowError.MISSING_FILE_SOURCE_IN_UPLOAD_FILE))
+		})
+
+		It("should return error when custom headers map is empty in UploadFile", func() {
+			request := common.FileUploadRequest{
+				Table:      "table",
+				ColumnName: "column",
+				Base64:     "dGVzdA==",
+				FileName:   "test.txt",
+				SkyflowId:  "skyflowid",
+			}
+			opts := common.FileUploadOptions{
+				CustomHeaders: make(map[CustomHeaderKey]string),
+			}
+			res, err := vaultController.UploadFile(ctx, request, opts)
+			Expect(err).ToNot(BeNil())
+			Expect(res).To(BeNil())
+		})
+
+		It("should return error when custom headers has invalid key in UploadFile", func() {
+			request := common.FileUploadRequest{
+				Table:      "table",
+				ColumnName: "column",
+				Base64:     "dGVzdA==",
+				FileName:   "test.txt",
+				SkyflowId:  "skyflowid",
+			}
+			opts := common.FileUploadOptions{
+				CustomHeaders: map[CustomHeaderKey]string{
+					CustomHeaderKey("x-invalid-header"): "value",
+				},
+			}
+			res, err := vaultController.UploadFile(ctx, request, opts)
+			Expect(err).ToNot(BeNil())
+			Expect(res).To(BeNil())
+		})
+
+		It("should return error when custom headers has empty value in UploadFile", func() {
+			request := common.FileUploadRequest{
+				Table:      "table",
+				ColumnName: "column",
+				Base64:     "dGVzdA==",
+				FileName:   "test.txt",
+				SkyflowId:  "skyflowid",
+			}
+			opts := common.FileUploadOptions{
+				CustomHeaders: map[CustomHeaderKey]string{
+					SkyflowAccountID: "",
+				},
+			}
+			res, err := vaultController.UploadFile(ctx, request, opts)
+			Expect(err).ToNot(BeNil())
+			Expect(res).To(BeNil())
 		})
 	})
 })
@@ -2282,6 +2596,37 @@ var _ = Describe("DetectController", func() {
 				Expect(err).ToNot(BeNil())
 				Expect(err.GetCode()).To(Equal("Code: 400"))
 			})
+
+			It("should return error when custom headers map is empty in DeidentifyText", func() {
+				opts := common.DeidentifyTextOptions{
+					CustomHeaders: make(map[CustomHeaderKey]string),
+				}
+				result, err := detectController.DeidentifyText(ctx, mockRequest, opts)
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
+			})
+
+			It("should return error when custom headers has invalid key in DeidentifyText", func() {
+				opts := common.DeidentifyTextOptions{
+					CustomHeaders: map[CustomHeaderKey]string{
+						CustomHeaderKey("x-invalid-header"): "value",
+					},
+				}
+				result, err := detectController.DeidentifyText(ctx, mockRequest, opts)
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
+			})
+
+			It("should return error when custom headers has empty value in DeidentifyText", func() {
+				opts := common.DeidentifyTextOptions{
+					CustomHeaders: map[CustomHeaderKey]string{
+						SkyflowAccountID: "",
+					},
+				}
+				result, err := detectController.DeidentifyText(ctx, mockRequest, opts)
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
+			})
 		})
 
 		Context("Advanced configuration cases", func() {
@@ -2514,6 +2859,37 @@ var _ = Describe("DetectController", func() {
 				Expect(result).To(BeNil())
 				Expect(err).ToNot(BeNil())
 				Expect(err.GetCode()).To(Equal("Code: 400"))
+			})
+
+			It("should return error when custom headers map is empty in ReidentifyText", func() {
+				opts := common.ReidentifyTextOptions{
+					CustomHeaders: make(map[CustomHeaderKey]string),
+				}
+				result, err := detectController.ReidentifyText(ctx, mockRequest, opts)
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
+			})
+
+			It("should return error when custom headers has invalid key in ReidentifyText", func() {
+				opts := common.ReidentifyTextOptions{
+					CustomHeaders: map[CustomHeaderKey]string{
+						CustomHeaderKey("x-invalid-header"): "value",
+					},
+				}
+				result, err := detectController.ReidentifyText(ctx, mockRequest, opts)
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
+			})
+
+			It("should return error when custom headers has empty value in ReidentifyText", func() {
+				opts := common.ReidentifyTextOptions{
+					CustomHeaders: map[CustomHeaderKey]string{
+						SkyflowAccountID: "",
+					},
+				}
+				result, err := detectController.ReidentifyText(ctx, mockRequest, opts)
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
 			})
 		})
 	})
@@ -3093,6 +3469,49 @@ var _ = Describe("DetectController", func() {
 				Expect(result.Status).To(Equal("FAILED"))
 				Expect(result.Type).To(Equal("UNKNOWN"))
 			})
+
+			It("should return error when custom headers map is empty in DeidentifyFile", func() {
+				req := DeidentifyFileRequest{
+					File:     FileInput{FilePath: testFiles["txt"].Name()},
+					Entities: []DetectEntities{Name},
+				}
+				opts := common.DeidentifyFileOptions{
+					CustomHeaders: make(map[CustomHeaderKey]string),
+				}
+				result, err := detectController.DeidentifyFile(ctx, req, opts)
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
+			})
+
+			It("should return error when custom headers has invalid key in DeidentifyFile", func() {
+				req := DeidentifyFileRequest{
+					File:     FileInput{FilePath: testFiles["txt"].Name()},
+					Entities: []DetectEntities{Name},
+				}
+				opts := common.DeidentifyFileOptions{
+					CustomHeaders: map[CustomHeaderKey]string{
+						CustomHeaderKey("x-invalid-header"): "value",
+					},
+				}
+				result, err := detectController.DeidentifyFile(ctx, req, opts)
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
+			})
+
+			It("should return error when custom headers has empty value in DeidentifyFile", func() {
+				req := DeidentifyFileRequest{
+					File:     FileInput{FilePath: testFiles["txt"].Name()},
+					Entities: []DetectEntities{Name},
+				}
+				opts := common.DeidentifyFileOptions{
+					CustomHeaders: map[CustomHeaderKey]string{
+						SkyflowAccountID: "",
+					},
+				}
+				result, err := detectController.DeidentifyFile(ctx, req, opts)
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
+			})
 		})
 	})
 	Describe("GetDetectRun tests", func() {
@@ -3384,6 +3803,40 @@ var _ = Describe("DetectController", func() {
 				Expect(result).To(BeNil())
 				Expect(err).ToNot(BeNil())
 				Expect(err.GetCode()).To(Equal("Code: 400"))
+			})
+
+			It("should return error when custom headers map is empty in GetDetectRun", func() {
+				req := GetDetectRunRequest{RunId: "run123"}
+				opts := common.GetDetectRunOptions{
+					CustomHeaders: make(map[CustomHeaderKey]string),
+				}
+				result, err := detectController.GetDetectRun(ctx, req, opts)
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
+			})
+
+			It("should return error when custom headers has invalid key in GetDetectRun", func() {
+				req := GetDetectRunRequest{RunId: "run123"}
+				opts := common.GetDetectRunOptions{
+					CustomHeaders: map[CustomHeaderKey]string{
+						CustomHeaderKey("x-invalid-header"): "value",
+					},
+				}
+				result, err := detectController.GetDetectRun(ctx, req, opts)
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
+			})
+
+			It("should return error when custom headers has empty value in GetDetectRun", func() {
+				req := GetDetectRunRequest{RunId: "run123"}
+				opts := common.GetDetectRunOptions{
+					CustomHeaders: map[CustomHeaderKey]string{
+						SkyflowAccountID: "",
+					},
+				}
+				result, err := detectController.GetDetectRun(ctx, req, opts)
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
 			})
 		})
 	})

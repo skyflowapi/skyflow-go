@@ -46,7 +46,7 @@ func main() {
 		} else {
 			ctx := context.TODO()
 			// Step 4: Query records from vault using query and handle results
-			queryRes, queryErr := service.Query(ctx, common.QueryRequest{Query: "SELECT * FROM demo WHERE skyflow_id='<ID>'"}) // Pass query here
+			queryRes, queryErr := service.Query(ctx, common.QueryRequest{Query: "SELECT * FROM demo WHERE skyflow_id='<ID>'"}, common.QueryOptions{}) // Pass query here
 
 			// Step 5: Handle the response and errors
 			if queryErr != nil {

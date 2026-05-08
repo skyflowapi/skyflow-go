@@ -49,7 +49,7 @@ func main() {
 			deleteRes, deleteErr := service.Delete(ctx, common.DeleteRequest{
 				Table: "<TABLE_NAME>",
 				Ids:   []string{"<SKYFLOW_ID1>", "<SKYFLOW_ID2>"},
-			})
+			}, common.DeleteOptions{})
 			// Step 5: Handling the response and errors
 			if deleteErr != nil {
 				fmt.Println("ERROR: ", *deleteErr)

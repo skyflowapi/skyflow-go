@@ -101,7 +101,7 @@ func main() {
 					StopPadding:  8,
 				},
 				// OutputTranscription: common.PLAINTEXT_TRANSCRIPTION,
-			})
+			}, common.DeidentifyFileOptions{})
 
 			// Step 5: Handle the response and errors.
 			if deidentifyFileErr != nil {
