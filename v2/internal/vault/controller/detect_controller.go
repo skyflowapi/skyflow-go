@@ -28,13 +28,13 @@ import (
 
 type DetectController struct {
 	Config         *common.VaultConfig
-	CommonCreds *common.Credentials
+	CommonCreds    *common.Credentials
 	Loglevel       *logger.LogLevel
 	Token          string
 	ApiKey         string
 	TextApiClient  text.Client
 	FilesApiClient files.Client
-	CustomHeaders  map[string]string
+	CustomHeaders  map[common.CustomHeaderKey]string
 }
 
 var CreateDetectRequestClientFunc = CreateDetectRequestClient
@@ -42,7 +42,7 @@ var CreateDetectRequestClientFunc = CreateDetectRequestClient
 var SetBearerTokenForDetectControllerFunc = SetBearerTokenForDetectController
 
 // CreateRequestClient initializes the API client with the appropriate authorization header.
-func CreateDetectRequestClient(v *DetectController) *skyflowError.SkyflowError {
+func CreateDetectRequestClient(v *DetectController, requestHeaders map[common.CustomHeaderKey]string) *skyflowError.SkyflowError {
 	token := ""
 	if v.Config.Credentials.ApiKey != "" {
 		v.ApiKey = v.Config.Credentials.ApiKey
@@ -68,14 +68,20 @@ func CreateDetectRequestClient(v *DetectController) *skyflowError.SkyflowError {
 	}
 
 	header := http.Header{}
-	header.Set(constants.SDK_METRICS_HEADER_KEY, helpers.CreateJsonMetadata())
 
 	// Add custom headers if provided
 	if v.CustomHeaders != nil {
 		for key, value := range v.CustomHeaders {
-			header.Set(key, value)
+			header.Set(string(key), value)
 		}
 	}
+	if requestHeaders != nil {
+		for key, value := range requestHeaders {
+			header.Set(string(key), value)
+		}
+	}
+	header.Set(constants.SDK_METRICS_HEADER_KEY, helpers.CreateJsonMetadata())
+
 
 	var baseURL string
 	if v.Config.BaseVaultURL != "" {
@@ -617,7 +623,7 @@ func CreateTransformations(transformations common.Transformations) *vaultapis.Tr
 }
 
 // DeidentifyText handles the de-identification of text using the DetectController.
-func (d *DetectController) DeidentifyText(ctx context.Context, request common.DeidentifyTextRequest) (*common.DeidentifyTextResponse, *skyflowError.SkyflowError) {
+func (d *DetectController) DeidentifyText(ctx context.Context, request common.DeidentifyTextRequest, options common.DeidentifyTextOptions) (*common.DeidentifyTextResponse, *skyflowError.SkyflowError) {
 	// Log the start of the operation
 	logger.Info(logs.DEIDENTIFY_TEXT_TRIGGERED)
 	logger.Info(logs.VALIDATE_DEIDENTIFY_TEXT_REQUEST)
@@ -626,18 +632,20 @@ func (d *DetectController) DeidentifyText(ctx context.Context, request common.De
 	if err := validation.ValidateDeidentifyTextRequest(request); err != nil {
 		return nil, err
 	}
-		// Ensure the bearer token is valid
+	if err := validation.ValidateCustomHeaders(options.CustomHeaders, "DeidentifyText"); err != nil {
+		return nil, err
+	}
+	// Ensure the bearer token is valid
 	if err := SetBearerTokenForDetectControllerFunc(d); err != nil {
 		logger.Error(logs.BEARER_TOKEN_REJECTED)
 		return nil, err
 	}
 
 	// Create the API client if needed
-	if err := CreateDetectRequestClientFunc(d); err != nil {
+	if err := CreateDetectRequestClientFunc(d, options.CustomHeaders); err != nil {
 		logger.Error(logs.BEARER_TOKEN_REJECTED)
 		return nil, err
 	}
-
 
 	// Prepare the API request payload
 	apiRequest, err := CreateDeidentifyTextRequest(request, *d.Config)
@@ -710,13 +718,16 @@ func (d *DetectController) DeidentifyText(ctx context.Context, request common.De
 }
 
 // ReidentifyText handles the re-identification of text using the DetectController.
-func (d *DetectController) ReidentifyText(ctx context.Context, request common.ReidentifyTextRequest) (*common.ReidentifyTextResponse, *skyflowError.SkyflowError) {
+func (d *DetectController) ReidentifyText(ctx context.Context, request common.ReidentifyTextRequest, options common.ReidentifyTextOptions) (*common.ReidentifyTextResponse, *skyflowError.SkyflowError) {
 	// Log the start of the operation
 	logger.Info(logs.REIDENTIFY_TEXT_TRIGGERED)
 	logger.Info(logs.VALIDATE_REIDENTIFY_TEXT_REQUEST)
 
 	// Validate the deidentify text request
 	if err := validation.ValidateReidentifyTextRequest(request); err != nil {
+		return nil, err
+	}
+	if err := validation.ValidateCustomHeaders(options.CustomHeaders, "ReidentifyText"); err != nil {
 		return nil, err
 	}
 
@@ -726,9 +737,8 @@ func (d *DetectController) ReidentifyText(ctx context.Context, request common.Re
 		return nil, err
 	}
 
-
 	// Create the API client if needed
-	if err := CreateDetectRequestClientFunc(d); err != nil {
+	if err := CreateDetectRequestClientFunc(d, options.CustomHeaders); err != nil {
 		return nil, err
 	}
 
@@ -758,13 +768,16 @@ func (d *DetectController) ReidentifyText(ctx context.Context, request common.Re
 }
 
 // DeidentifyFile handles the de-identification of files using the DetectController.
-func (d *DetectController) DeidentifyFile(ctx context.Context, request common.DeidentifyFileRequest) (*common.DeidentifyFileResponse, *skyflowError.SkyflowError) {
+func (d *DetectController) DeidentifyFile(ctx context.Context, request common.DeidentifyFileRequest, options common.DeidentifyFileOptions) (*common.DeidentifyFileResponse, *skyflowError.SkyflowError) {
 	// Log the start of the operation
 	logger.Info(logs.DEIDENTIFY_FILE_TRIGGERED)
 	logger.Info(logs.VALIDATE_DEIDENTIFY_FILE_REQUEST)
 
 	// Validate the deidentify file request
 	if err := validation.ValidateDeidentifyFileRequest(request); err != nil {
+		return nil, err
+	}
+	if err := validation.ValidateCustomHeaders(options.CustomHeaders, "DeidentifyFile"); err != nil {
 		return nil, err
 	}
 
@@ -775,7 +788,7 @@ func (d *DetectController) DeidentifyFile(ctx context.Context, request common.De
 	}
 
 	// Create the API client if needed
-	if err := CreateDetectRequestClientFunc(d); err != nil {
+	if err := CreateDetectRequestClientFunc(d, options.CustomHeaders); err != nil {
 		return nil, err
 	}
 
@@ -1045,7 +1058,7 @@ func parseDeidentifyFileResponse(response *vaultapis.DetectRunsResponse, runID s
 	return fileResponse, nil
 }
 
-func (d *DetectController) GetDetectRun(ctx context.Context, request common.GetDetectRunRequest) (*common.DeidentifyFileResponse, *skyflowError.SkyflowError) {
+func (d *DetectController) GetDetectRun(ctx context.Context, request common.GetDetectRunRequest, options common.GetDetectRunOptions) (*common.DeidentifyFileResponse, *skyflowError.SkyflowError) {
 	// Log the start of the operation
 	logger.Info(logs.GET_DETECT_RUN_TRIGGERED)
 	logger.Info(logs.VALIDATE_GET_DETECT_RUN_REQUEST)
@@ -1054,9 +1067,12 @@ func (d *DetectController) GetDetectRun(ctx context.Context, request common.GetD
 	if err := validation.ValidateGetDetectRunRequest(request); err != nil {
 		return nil, err
 	}
+	if err := validation.ValidateCustomHeaders(options.CustomHeaders, "GetDetectRun"); err != nil {
+		return nil, err
+	}
 
 	// Create the API client if needed
-	if err := CreateDetectRequestClientFunc(d); err != nil {
+	if err := CreateDetectRequestClientFunc(d, options.CustomHeaders); err != nil {
 		return nil, err
 	}
 

@@ -15,32 +15,32 @@ type detectService struct {
 	controller *controller.DetectController
 }
 
-func (d *detectService) DeidentifyText(ctx context.Context, request common.DeidentifyTextRequest) (*common.DeidentifyTextResponse, *skyflowError.SkyflowError) {
-	res, err := d.controller.DeidentifyText(ctx, request)
+func (d *detectService) DeidentifyText(ctx context.Context, request common.DeidentifyTextRequest, options common.DeidentifyTextOptions) (*common.DeidentifyTextResponse, *skyflowError.SkyflowError) {
+	res, err := d.controller.DeidentifyText(ctx, request, options)
 	if err != nil {
 		return nil, err
 	}
 	return res, nil
 }
 
-func (d *detectService) ReidentifyText(ctx context.Context, request common.ReidentifyTextRequest) (*common.ReidentifyTextResponse, *skyflowError.SkyflowError) {
-	res, err := d.controller.ReidentifyText(ctx, request)
+func (d *detectService) ReidentifyText(ctx context.Context, request common.ReidentifyTextRequest, options common.ReidentifyTextOptions) (*common.ReidentifyTextResponse, *skyflowError.SkyflowError) {
+	res, err := d.controller.ReidentifyText(ctx, request, options)
 	if err != nil {
 		return nil, err
 	}
 	return res, nil
 }
 
-func (d *detectService) DeidentifyFile(ctx context.Context, request common.DeidentifyFileRequest) (*common.DeidentifyFileResponse, *skyflowError.SkyflowError) {
-	res, err := d.controller.DeidentifyFile(ctx, request)
+func (d *detectService) DeidentifyFile(ctx context.Context, request common.DeidentifyFileRequest, options common.DeidentifyFileOptions) (*common.DeidentifyFileResponse, *skyflowError.SkyflowError) {
+	res, err := d.controller.DeidentifyFile(ctx, request, options)
 	if err != nil {
 		return nil, err
 	}
 	return res, nil
 }
 
-func (d *detectService) GetDetectRun(ctx context.Context, request common.GetDetectRunRequest) (*common.DeidentifyFileResponse, *skyflowError.SkyflowError) {
-	res, err := d.controller.GetDetectRun(ctx, request)
+func (d *detectService) GetDetectRun(ctx context.Context, request common.GetDetectRunRequest, options common.GetDetectRunOptions) (*common.DeidentifyFileResponse, *skyflowError.SkyflowError) {
+	res, err := d.controller.GetDetectRun(ctx, request, options)
 	if err != nil {
 		return nil, err
 	}

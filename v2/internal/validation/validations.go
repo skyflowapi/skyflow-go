@@ -911,6 +911,25 @@ func ValidateFileUploadRequest(req common.FileUploadRequest) *skyflowError.Skyfl
 
 	return nil
 }
+// ValidateCustomHeaders checks that every key in headers is one of the
+func ValidateCustomHeaders(headers map[common.CustomHeaderKey]string, tag string) *skyflowError.SkyflowError {
+	allowedKeys := map[common.CustomHeaderKey]struct{}{
+		common.SkyflowAccountID:   {},
+		common.SkyflowAccountName: {},
+		common.RequestIDHeader:    {},
+	}
+	for key := range headers {
+		if _, ok := allowedKeys[key]; !ok {
+			logger.Error(fmt.Sprintf(logs.INVALID_HEADER_KEY, tag, key))
+			return skyflowError.NewSkyflowError(
+				skyflowError.INVALID_INPUT_CODE,
+				fmt.Sprintf(skyflowError.INVALID_HEADER_KEY, tag, key),
+			)
+		}
+	}
+	return nil
+}
+
 func isValidHTTPURL(raw string) bool {
 	u, err := url.Parse(raw)
 	if err != nil {

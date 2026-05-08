@@ -137,5 +137,6 @@ const (
 	FILE_NAME_MUST_BE_PROVIDED_WITH_FILE_OBJECT = SDK_LOG_PREFIX + "Validation error. fileName must be provided when using base64."
 	INVALID_FILE_OBJECT = SDK_LOG_PREFIX + "Validation error. Invalid file object in file upload request. Specify a valid file object."
 	INVALID_FILE_PATH                                        = SDK_LOG_PREFIX + "Invalid %s request. Validation error. The file path is invalid. Specify a valid file path."
+	INVALID_HEADER_KEY = SDK_LOG_PREFIX + "Invalid %s request. Validation error. Custom header key %s is not valid. Specify a valid custom header key."
 )
 
