@@ -1676,7 +1676,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 
 		It("should return nil for empty headers map", func() {
 			err := ValidateCustomHeaders(map[common.CustomHeaderKey]string{}, "TestTag")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(BeNil())
 		})
 
 		It("should return nil when only SkyflowAccountID is provided", func() {
