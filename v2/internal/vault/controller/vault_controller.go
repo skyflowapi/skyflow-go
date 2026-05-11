@@ -584,7 +584,7 @@ func (v *VaultController) Tokenize(ctx context.Context, request []common.Tokeniz
 
 func (v *VaultController) UploadFile(ctx context.Context, request common.FileUploadRequest, options common.FileUploadOptions) (*common.FileUploadResponse, *skyflowError.SkyflowError) {
 	logger.Info(logs.UPLOAD_FILE_TRIGGERED)
-	logger.Info(logs.VALIDATE_UPDATE_INPUT)
+	logger.Info(logs.VALIDATE_FILE_UPLOAD_INPUT)
 	// validate the request
 	errs := validation.ValidateFileUploadRequest(request)
 	if errs != nil {
