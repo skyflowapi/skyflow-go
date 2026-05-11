@@ -17,7 +17,7 @@ type Skyflow struct {
 	detectServices     map[string]*detectService
 	credentials        *vaultutils.Credentials
 	logLevel           logger.LogLevel
-	customHeaders      map[string]string
+	customHeaders      map[vaultutils.CustomHeaderKey]string
 }
 
 type Option func(*Skyflow) *error.SkyflowError
@@ -131,7 +131,7 @@ func WithLogLevel(logLevel logger.LogLevel) Option {
 	}
 }
 
-func WithCustomHeaders(headers map[string]string) Option {
+func WithCustomHeaders(headers map[vaultutils.CustomHeaderKey]string) Option {
 	return func(s *Skyflow) *error.SkyflowError {
 		s.customHeaders = headers
 		return nil

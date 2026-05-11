@@ -130,4 +130,6 @@ const (
 	EMPTY_CONTEXT                                           = internal.SDK_PREFIX + " Initialization failed. Invalid context. Specify a valid context."
 	INVALID_CTX_TYPE                                        = internal.SDK_PREFIX + " Initialization failed. Invalid ctx type. Specify ctx as a string, number, boolean, or a map[string]interface{}."
 	INVALID_CTX_MAP_KEY                                     = internal.SDK_PREFIX + " Initialization failed. Invalid key '%s' in ctx map. Keys must contain only alphanumeric characters and underscores."
+	INVALID_HEADER_KEY  = internal.SDK_PREFIX + " Validation error. Invalid %s options. Custom header key %s is not valid. Specify a valid custom header key. Allowed keys: x-skyflow-account-id, x-skyflow-account-name, x-request-id."
+    EMPTY_OR_NULL_VALUE_IN_HEADERS = internal.SDK_PREFIX + " Validation error. Invalid %s options. Custom header key %s has an empty or null value. Specify a valid value for the custom header key."
 )

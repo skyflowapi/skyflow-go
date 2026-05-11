@@ -17,4 +17,5 @@ const (
 	REQUEST_KEY            = "X-Request-Id"
 	SKYFLOW_ID             = "skyflow_id"
 	CTX_KEY_REGEX          = `^[a-zA-Z0-9_]+$`
+	METRICS_SDK_NAME       = "skyflow-go"
 )

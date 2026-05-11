@@ -15,6 +15,7 @@ import (
 	client2 "github.com/skyflowapi/skyflow-go/v2/internal/generated/client"
 	"github.com/skyflowapi/skyflow-go/v2/internal/generated/option"
 	. "github.com/skyflowapi/skyflow-go/v2/internal/vault/controller"
+	"github.com/skyflowapi/skyflow-go/v2/utils/common"
 	. "github.com/skyflowapi/skyflow-go/v2/utils/common"
 	skyflowError "github.com/skyflowapi/skyflow-go/v2/utils/error"
 )
@@ -75,8 +76,8 @@ var _ = Describe("Vault controller Test cases", func() {
 			err      *skyflowError.SkyflowError
 		)
 		BeforeEach(func() {
-			customHeader := make(map[string]string)
-			customHeader["x-custom-header"] = "custom-header-value"
+			customHeader := make(map[common.CustomHeaderKey]string)
+			customHeader[common.RequestIDHeader] = "custom-header-value"
 			client, err = NewSkyflow(WithVaults(VaultConfig{
 				VaultId:   "id",
 				ClusterId: "cid",
@@ -85,7 +86,7 @@ var _ = Describe("Vault controller Test cases", func() {
 					ApiKey: "test-api-key",
 				},
 			}),
-				WithCustomHeaders(customHeader))
+			WithCustomHeaders(customHeader))
 			response = make(map[string]interface{})
 			ts = nil
 		})
@@ -105,7 +106,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				ts = setupMockServer(response, "ok", "/vaults/v1/vaults/")
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[common.CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client2.NewClient(
 						option.WithBaseURL(ts.URL+"/vaults"),
 						option.WithToken("token"),
@@ -169,7 +170,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				// Set the mock server URL in the controller's client
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[common.CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client2.NewClient(
 						option.WithBaseURL(ts.URL+"/vaults"),
 						option.WithToken("token"),
@@ -256,7 +257,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				// Set the mock server URL in the controller's client
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[common.CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client2.NewClient(
 						option.WithBaseURL(ts.URL+"/vaults"),
 						option.WithToken("token"),
@@ -288,7 +289,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				// Set the mock server URL in the controller's client
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[common.CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client2.NewClient(
 						option.WithBaseURL(ts.URL+"/vaults"),
 						option.WithToken("token"),
@@ -343,7 +344,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				// Set the mock server URL in the controller's client
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[common.CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client2.NewClient(
 						option.WithBaseURL(ts.URL+"/vaults"),
 						option.WithToken("token"),
@@ -368,7 +369,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				// Set the mock server URL in the controller's client
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[common.CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client2.NewClient(
 						option.WithBaseURL(ts.URL+"/vaults"),
 						option.WithToken("token"),
@@ -413,7 +414,7 @@ var _ = Describe("Vault controller Test cases", func() {
 
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[common.CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client2.NewClient(
 						option.WithBaseURL(ts.URL+"/vaults"),
 						option.WithToken("token"),
@@ -423,7 +424,7 @@ var _ = Describe("Vault controller Test cases", func() {
 					return nil
 				}
 				service, _ := client.Vault()
-				res, err := service.Delete(ctx, request)
+				res, err := service.Delete(ctx, request, common.DeleteOptions{})
 				Expect(err).To(BeNil())
 				Expect(res).ToNot(BeNil())
 			})
@@ -436,7 +437,7 @@ var _ = Describe("Vault controller Test cases", func() {
 
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[common.CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client2.NewClient(
 						option.WithBaseURL(ts.URL+"/vaults"),
 						option.WithToken("token"),
@@ -446,7 +447,7 @@ var _ = Describe("Vault controller Test cases", func() {
 					return nil
 				}
 				service, _ := client.Vault()
-				res, err := service.Delete(ctx, request)
+				res, err := service.Delete(ctx, request, common.DeleteOptions{})
 				Expect(res).To(BeNil())
 				Expect(err).ToNot(BeNil())
 			})
@@ -484,7 +485,7 @@ var _ = Describe("Vault controller Test cases", func() {
 			// Set the mock server URL in the controller's client
 			header := http.Header{}
 			header.Set("Content-Type", "application/json")
-			CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+			CreateRequestClientFunc = func(v *VaultController, requestHeaders map[common.CustomHeaderKey]string) *skyflowError.SkyflowError {
 				client := client2.NewClient(
 					option.WithBaseURL(ts.URL+"/vaults"),
 					option.WithToken("token"),
@@ -496,7 +497,7 @@ var _ = Describe("Vault controller Test cases", func() {
 			var service, err1 = client.Vault()
 			Expect(err1).To(BeNil())
 			ctx = context.TODO()
-			res, err := service.UploadFile(ctx, request)
+			res, err := service.UploadFile(ctx, request, common.FileUploadOptions{})
 			Expect(err).To(BeNil())
 			Expect(res).ToNot(BeNil())
 		})
@@ -510,7 +511,7 @@ var _ = Describe("Vault controller Test cases", func() {
 			// Set the mock server URL in the controller's client
 			header := http.Header{}
 			header.Set("Content-Type", "application/json")
-			CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+			CreateRequestClientFunc = func(v *VaultController, requestHeaders map[common.CustomHeaderKey]string) *skyflowError.SkyflowError {
 				client := client2.NewClient(
 					option.WithBaseURL(ts.URL+"/vaults"),
 					option.WithToken("token"),
@@ -520,7 +521,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				return nil
 			}
 			service, _ := client.Vault()
-			res, err := service.UploadFile(ctx, request)
+			res, err := service.UploadFile(ctx, request, common.FileUploadOptions{})
 			Expect(res).To(BeNil())
 			Expect(err).ToNot(BeNil())
 		})
@@ -554,7 +555,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				// Set the mock server URL in the controller's client
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[common.CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client2.NewClient(
 						option.WithBaseURL(ts.URL+"/vaults"),
 						option.WithToken("token"),
@@ -564,7 +565,7 @@ var _ = Describe("Vault controller Test cases", func() {
 					return nil
 				}
 				service, _ := client.Vault()
-				res, err := service.Query(ctx, request)
+				res, err := service.Query(ctx, request, common.QueryOptions{})
 				Expect(err).To(BeNil())
 				Expect(res).ToNot(BeNil())
 			})
@@ -578,7 +579,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				// Set the mock server URL in the controller's client
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[common.CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client2.NewClient(
 						option.WithBaseURL(ts.URL+"/vaults"),
 						option.WithToken("token"),
@@ -588,7 +589,7 @@ var _ = Describe("Vault controller Test cases", func() {
 					return nil
 				}
 				service, _ := client.Vault()
-				res, err := service.Query(ctx, request)
+				res, err := service.Query(ctx, request, common.QueryOptions{})
 				Expect(res).To(BeNil())
 				Expect(err).ToNot(BeNil())
 			})
@@ -624,7 +625,7 @@ var _ = Describe("Vault controller Test cases", func() {
 
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[common.CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client2.NewClient(
 						option.WithBaseURL(ts.URL+"/vaults"),
 						option.WithToken("token"),
@@ -650,7 +651,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				request.Tokens = map[string]interface{}{"name": "token"}
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[common.CustomHeaderKey]string	) *skyflowError.SkyflowError {
 					client := client2.NewClient(
 						option.WithBaseURL(ts.URL+"/vaults"),
 						option.WithToken("token"),
@@ -697,7 +698,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				// Set the mock server URL in the controller's client
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[common.CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client2.NewClient(
 						option.WithBaseURL(ts.URL+"/vaults"),
 						option.WithToken("token"),
@@ -707,7 +708,7 @@ var _ = Describe("Vault controller Test cases", func() {
 					return nil
 				}
 				service, _ := client.Vault()
-				res, err := service.Tokenize(ctx, arrReq)
+				res, err := service.Tokenize(ctx, arrReq, common.TokenizeOptions{})
 				Expect(err).To(BeNil())
 				Expect(res).ToNot(BeNil())
 			})
@@ -720,7 +721,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				// Set the mock server URL in the controller's client
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[common.CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client2.NewClient(
 						option.WithBaseURL(ts.URL+"/vaults"),
 						option.WithToken("token"),
@@ -730,7 +731,7 @@ var _ = Describe("Vault controller Test cases", func() {
 					return nil
 				}
 				service, _ := client.Vault()
-				res, err := service.Tokenize(ctx, arrReq)
+				res, err := service.Tokenize(ctx, arrReq, common.TokenizeOptions{})
 				Expect(res).To(BeNil())
 				Expect(err).ToNot(BeNil())
 			})
@@ -767,7 +768,7 @@ var _ = Describe("Detect controller Test cases", func() {
 
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+				CreateDetectRequestClientFunc = func(d *DetectController, customHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client2.NewClient(
 						option.WithBaseURL(ts.URL),
 						option.WithToken("token"),
@@ -787,7 +788,7 @@ var _ = Describe("Detect controller Test cases", func() {
 				}
 
 				service, _ := client.Detect()
-				res, err := service.DeidentifyText(ctx, request)
+				res, err := service.DeidentifyText(ctx, request, common.DeidentifyTextOptions{})
 
 				Expect(err).To(BeNil())
 				Expect(res).ToNot(BeNil())
@@ -809,7 +810,7 @@ var _ = Describe("Detect controller Test cases", func() {
 
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+				CreateDetectRequestClientFunc = func(d *DetectController, customHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client2.NewClient(
 						option.WithBaseURL(ts.URL),
 						option.WithToken("token"),
@@ -829,7 +830,7 @@ var _ = Describe("Detect controller Test cases", func() {
 				}
 
 				service, _ := client.Detect()
-				res, err := service.DeidentifyText(ctx, request)
+				res, err := service.DeidentifyText(ctx, request, common.DeidentifyTextOptions{})
 
 				Expect(err).To(BeNil())
 				Expect(res).ToNot(BeNil())
@@ -851,7 +852,7 @@ var _ = Describe("Detect controller Test cases", func() {
 
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+				CreateDetectRequestClientFunc = func(d *DetectController, customHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client2.NewClient(
 						option.WithBaseURL(ts.URL),
 						option.WithToken("token"),
@@ -875,7 +876,7 @@ var _ = Describe("Detect controller Test cases", func() {
 				}
 
 				service, _ := client.Detect()
-				res, err := service.ReidentifyText(ctx, request)
+				res, err := service.ReidentifyText(ctx, request, common.ReidentifyTextOptions{})
 
 				Expect(err).To(BeNil())
 				Expect(res).ToNot(BeNil())
@@ -892,7 +893,7 @@ var _ = Describe("Detect controller Test cases", func() {
 
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+				CreateDetectRequestClientFunc = func(d *DetectController, customHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client2.NewClient(
 						option.WithBaseURL(ts.URL),
 						option.WithToken("token"),
@@ -907,7 +908,7 @@ var _ = Describe("Detect controller Test cases", func() {
 				}
 
 				service, _ := client.Detect()
-				res, err := service.ReidentifyText(ctx, request)
+				res, err := service.ReidentifyText(ctx, request, common.ReidentifyTextOptions{})
 
 				Expect(err).ToNot(BeNil())
 				Expect(res).To(BeNil())
@@ -1087,7 +1088,7 @@ var _ = Describe("Detect controller Test cases", func() {
 						// Configure mock client
 						header := http.Header{}
 						header.Set("Content-Type", "application/json")
-						CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+						CreateDetectRequestClientFunc = func(d *DetectController, customHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 							client := client2.NewClient(
 								option.WithBaseURL(ts.URL),
 								option.WithToken("token"),
@@ -1101,7 +1102,7 @@ var _ = Describe("Detect controller Test cases", func() {
 						}
 
 						service, _ := client.Detect()
-						result, err := service.DeidentifyFile(ctx, tc.mockRequest)
+						result, err := service.DeidentifyFile(ctx, tc.mockRequest, common.DeidentifyFileOptions{})
 
 						// Verify results
 						Expect(err).To(BeNil())
@@ -1150,7 +1151,7 @@ var _ = Describe("Detect controller Test cases", func() {
 				}
 
 				service, _ := client.Detect()
-				result, err := service.DeidentifyFile(ctx, request)
+				result, err := service.DeidentifyFile(ctx, request, common.DeidentifyFileOptions{})
 
 				Expect(err).ToNot(BeNil())
 				Expect(err.GetCode()).To(Equal(fmt.Sprintf("Code: %v", skyflowError.INVALID_INPUT_CODE)))
@@ -1170,7 +1171,7 @@ var _ = Describe("Detect controller Test cases", func() {
 
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+				CreateDetectRequestClientFunc = func(d *DetectController, customHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client2.NewClient(
 						option.WithBaseURL(ts.URL),
 						option.WithToken("token"),
@@ -1192,7 +1193,7 @@ var _ = Describe("Detect controller Test cases", func() {
 				}
 
 				service, _ := client.Detect()
-				result, err := service.DeidentifyFile(ctx, request)
+				result, err := service.DeidentifyFile(ctx, request, common.DeidentifyFileOptions{})
 
 				Expect(err).ToNot(BeNil())
 				Expect(result).To(BeNil())
@@ -1225,7 +1226,7 @@ var _ = Describe("Detect controller Test cases", func() {
 
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+				CreateDetectRequestClientFunc = func(d *DetectController, customHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client2.NewClient(
 						option.WithBaseURL(ts.URL),
 						option.WithToken("token"),
@@ -1244,7 +1245,7 @@ var _ = Describe("Detect controller Test cases", func() {
 				}
 
 				service, _ := client.Detect()
-				result, err := service.GetDetectRun(ctx, request)
+				result, err := service.GetDetectRun(ctx, request, common.GetDetectRunOptions{})
 
 				Expect(err).To(BeNil())
 				Expect(result).ToNot(BeNil())
@@ -1272,7 +1273,7 @@ var _ = Describe("Detect controller Test cases", func() {
 				}
 
 				service, _ := client.Detect()
-				result, err := service.GetDetectRun(ctx, request)
+				result, err := service.GetDetectRun(ctx, request, common.GetDetectRunOptions{})
 
 				Expect(result).To(BeNil())
 				Expect(err).ToNot(BeNil())
@@ -1288,7 +1289,7 @@ var _ = Describe("Detect controller Test cases", func() {
 
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+				CreateDetectRequestClientFunc = func(d *DetectController, customHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client2.NewClient(
 						option.WithBaseURL(ts.URL),
 						option.WithToken("token"),
@@ -1307,7 +1308,7 @@ var _ = Describe("Detect controller Test cases", func() {
 				}
 
 				service, _ := client.Detect()
-				result, err := service.GetDetectRun(ctx, request)
+				result, err := service.GetDetectRun(ctx, request, common.GetDetectRunOptions{})
 
 				Expect(err).To(BeNil())
 				Expect(result).ToNot(BeNil())
@@ -1326,7 +1327,7 @@ var _ = Describe("Detect controller Test cases", func() {
 
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+				CreateDetectRequestClientFunc = func(d *DetectController, customHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client2.NewClient(
 						option.WithBaseURL(ts.URL),
 						option.WithToken("token"),
@@ -1345,7 +1346,7 @@ var _ = Describe("Detect controller Test cases", func() {
 				}
 
 				service, _ := client.Detect()
-				result, err := service.GetDetectRun(ctx, request)
+				result, err := service.GetDetectRun(ctx, request, common.GetDetectRunOptions{})
 
 				Expect(result).To(BeNil())
 				Expect(err).ToNot(BeNil())

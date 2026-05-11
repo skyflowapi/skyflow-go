@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-
 	constants "github.com/skyflowapi/skyflow-go/v2/internal/constants"
 	vaultapis "github.com/skyflowapi/skyflow-go/v2/internal/generated"
 	"github.com/skyflowapi/skyflow-go/v2/internal/generated/client"
@@ -21,13 +20,13 @@ import (
 )
 
 type VaultController struct {
-	Config      *common.VaultConfig
-	CommonCreds *common.Credentials
-	Loglevel  *logger.LogLevel
-	Token     string
-	ApiKey    string
-	ApiClient client.Client
-	CustomHeaders      map[string]string
+	Config        *common.VaultConfig
+	CommonCreds   *common.Credentials
+	Loglevel      *logger.LogLevel
+	Token         string
+	ApiKey        string
+	ApiClient     client.Client
+	CustomHeaders map[common.CustomHeaderKey]string
 }
 
 var CreateRequestClientFunc = CreateRequestClient
@@ -85,9 +84,7 @@ func SetBearerTokenForVaultController(v *VaultController) *skyflowError.SkyflowE
 	}
 	return nil
 }
-
-// CreateRequestClient initializes the API client with the appropriate authorization header.
-func CreateRequestClient(v *VaultController) *skyflowError.SkyflowError {
+func CreateRequestClient(v *VaultController, requestHeaders map[common.CustomHeaderKey]string) *skyflowError.SkyflowError {
 	token := ""
 	if v.Config.Credentials.ApiKey != "" {
 		v.ApiKey = v.Config.Credentials.ApiKey
@@ -113,13 +110,18 @@ func CreateRequestClient(v *VaultController) *skyflowError.SkyflowError {
 	}
 
 	header := http.Header{}
-	header.Set(constants.SDK_METRICS_HEADER_KEY, helpers.CreateJsonMetadata())
-	// Add custom headers if provided
 	if v.CustomHeaders != nil {
 		for key, value := range v.CustomHeaders {
-			header.Set(key, value)
+			header.Set(string(key), value)
 		}
 	}
+	if requestHeaders != nil {
+		for key, value := range requestHeaders {
+			header.Set(string(key), value)
+		}
+	}
+	header.Set(constants.SDK_METRICS_HEADER_KEY, helpers.CreateJsonMetadata())
+
 	var baseURL string
 	if v.Config.BaseVaultURL != "" {
 		baseURL = v.Config.BaseVaultURL
@@ -188,11 +190,17 @@ func (v *VaultController) Insert(ctx context.Context, request common.InsertReque
 	if errs != nil {
 		return nil, errs
 	}
+	if errs = validation.ValidateCustomHeaders(options.CustomHeaders, "Insert"); errs != nil {
+		return nil, errs
+	}
+	if errs = validation.ValidateCustomHeaders(v.CustomHeaders, "Client headers in"); errs != nil {
+		return nil, errs
+	}
 	// Initialize the response structure
 	var resp common.InsertResponse
 	var insertedFields, errors []map[string]interface{}
 	// Create the API client
-	if err := CreateRequestClientFunc(v); err != nil {
+	if err := CreateRequestClientFunc(v, options.CustomHeaders); err != nil {
 		return nil, err
 	}
 	if options.ContinueOnError {
@@ -266,7 +274,14 @@ func (v *VaultController) Detokenize(ctx context.Context, request common.Detoken
 	if er != nil {
 		return nil, er
 	}
-	if err := CreateRequestClientFunc(v); err != nil {
+	if er = validation.ValidateCustomHeaders(options.CustomHeaders, "Detokenize"); er != nil {
+		return nil, er
+	}
+	if er = validation.ValidateCustomHeaders(v.CustomHeaders, "Client headers in"); er != nil {
+		return nil, er
+	}
+
+	if err := CreateRequestClientFunc(v, options.CustomHeaders); err != nil {
 		return nil, err
 	}
 
@@ -319,8 +334,14 @@ func (v *VaultController) Get(ctx context.Context, request common.GetRequest, op
 	if errs != nil {
 		return nil, errs
 	}
+	if errs = validation.ValidateCustomHeaders(options.CustomHeaders, "Get"); errs != nil {
+		return nil, errs
+	}
+	if er := validation.ValidateCustomHeaders(v.CustomHeaders, "Client headers in"); er != nil {
+		return nil, er
+	}
 	var data []map[string]interface{}
-	if err := CreateRequestClientFunc(v); err != nil {
+	if err := CreateRequestClientFunc(v, options.CustomHeaders); err != nil {
 		return nil, err
 	}
 	req := vaultapis.RecordServiceBulkGetRecordRequest{}
@@ -395,7 +416,7 @@ func (v *VaultController) Get(ctx context.Context, request common.GetRequest, op
 	return &common.GetResponse{Data: data}, nil
 }
 
-func (v *VaultController) Delete(ctx context.Context, request common.DeleteRequest) (*common.DeleteResponse, *skyflowError.SkyflowError) {
+func (v *VaultController) Delete(ctx context.Context, request common.DeleteRequest, options common.DeleteOptions) (*common.DeleteResponse, *skyflowError.SkyflowError) {
 	// Delete validate logic here
 	logger.Info(logs.DELETE_TRIGGERED)
 	logger.Info(logs.VALIDATE_DELETE_INPUT)
@@ -403,8 +424,14 @@ func (v *VaultController) Delete(ctx context.Context, request common.DeleteReque
 	if errs != nil {
 		return nil, errs
 	}
-	
-	if err := CreateRequestClientFunc(v); err != nil {
+	if errs = validation.ValidateCustomHeaders(options.CustomHeaders, "Delete"); errs != nil {
+		return nil, errs
+	}
+	if er := validation.ValidateCustomHeaders(v.CustomHeaders, "Client headers in"); er != nil {
+		return nil, er
+	}
+
+	if err := CreateRequestClientFunc(v, options.CustomHeaders); err != nil {
 		return nil, err
 	}
 	reqBody := vaultapis.RecordServiceBulkDeleteRecordBody{}
@@ -425,7 +452,7 @@ func (v *VaultController) Delete(ctx context.Context, request common.DeleteReque
 	return deleteRes, nil
 }
 
-func (v *VaultController) Query(ctx context.Context, queryRequest common.QueryRequest) (*common.QueryResponse, *skyflowError.SkyflowError) {
+func (v *VaultController) Query(ctx context.Context, queryRequest common.QueryRequest, options common.QueryOptions) (*common.QueryResponse, *skyflowError.SkyflowError) {
 	// validate the query request
 	logger.Info(logs.QUERY_TRIGGERED)
 	logger.Info(logs.VALIDATE_QUERY_INPUT)
@@ -433,9 +460,15 @@ func (v *VaultController) Query(ctx context.Context, queryRequest common.QueryRe
 	if errs != nil {
 		return nil, errs
 	}
+	if errs = validation.ValidateCustomHeaders(options.CustomHeaders, "Query"); errs != nil {
+		return nil, errs
+	}
+	if er := validation.ValidateCustomHeaders(v.CustomHeaders, "Client headers in"); er != nil {
+		return nil, er
+	}
 	var fields []map[string]interface{}
-	
-	if err := CreateRequestClientFunc(v); err != nil {
+
+	if err := CreateRequestClientFunc(v, options.CustomHeaders); err != nil {
 		return nil, err
 	}
 	body := vaultapis.QueryServiceExecuteQueryBody{}
@@ -466,8 +499,13 @@ func (v *VaultController) Update(ctx context.Context, request common.UpdateReque
 	if errs != nil {
 		return nil, errs
 	}
-	
-	if err := CreateRequestClientFunc(v); err != nil {
+	if errs = validation.ValidateCustomHeaders(options.CustomHeaders, "Update"); errs != nil {
+		return nil, errs
+	}
+	if er := validation.ValidateCustomHeaders(v.CustomHeaders, "Client headers in"); er != nil {
+		return nil, er
+	}
+	if err := CreateRequestClientFunc(v, options.CustomHeaders); err != nil {
 		return nil, err
 	}
 	payload := vaultapis.RecordServiceUpdateRecordBody{}
@@ -511,7 +549,7 @@ func (v *VaultController) Update(ctx context.Context, request common.UpdateReque
 	}, nil
 }
 
-func (v *VaultController) Tokenize(ctx context.Context, request []common.TokenizeRequest) (*common.TokenizeResponse, *skyflowError.SkyflowError) {
+func (v *VaultController) Tokenize(ctx context.Context, request []common.TokenizeRequest, options common.TokenizeOptions) (*common.TokenizeResponse, *skyflowError.SkyflowError) {
 	// Update validate logic here
 	logger.Info(logs.TOKENIZE_TRIGGERED)
 	logger.Info(logs.VALIDATE_TOKENIZE_INPUT)
@@ -519,7 +557,13 @@ func (v *VaultController) Tokenize(ctx context.Context, request []common.Tokeniz
 	if err != nil {
 		return nil, err
 	}
-	if err := CreateRequestClientFunc(v); err != nil {
+	if err = validation.ValidateCustomHeaders(options.CustomHeaders, "Tokenize"); err != nil {
+		return nil, err
+	}
+	if err := validation.ValidateCustomHeaders(v.CustomHeaders, "Client headers in"); err != nil {
+		return nil, err
+	}
+	if err := CreateRequestClientFunc(v, options.CustomHeaders); err != nil {
 		return nil, err
 	}
 	payload := helpers.GetTokenizePayload(request)
@@ -538,16 +582,22 @@ func (v *VaultController) Tokenize(ctx context.Context, request []common.Tokeniz
 	return helpers.ParseTokenizeResponse(*tokenizeRes), nil
 }
 
-func (v *VaultController) UploadFile(ctx context.Context, request common.FileUploadRequest) (*common.FileUploadResponse, *skyflowError.SkyflowError) {
+func (v *VaultController) UploadFile(ctx context.Context, request common.FileUploadRequest, options common.FileUploadOptions) (*common.FileUploadResponse, *skyflowError.SkyflowError) {
 	logger.Info(logs.UPLOAD_FILE_TRIGGERED)
-	logger.Info(logs.VALIDATE_UPDATE_INPUT)
+	logger.Info(logs.VALIDATE_FILE_UPLOAD_INPUT)
 	// validate the request
 	errs := validation.ValidateFileUploadRequest(request)
 	if errs != nil {
 		return nil, errs
 	}
-	
-	if err := CreateRequestClientFunc(v); err != nil {
+	if errs = validation.ValidateCustomHeaders(options.CustomHeaders, "UploadFile"); errs != nil {
+		return nil, errs
+	}
+	if err := validation.ValidateCustomHeaders(v.CustomHeaders, "Client headers in"); err != nil {
+		return nil, err
+	}
+
+	if err := CreateRequestClientFunc(v, options.CustomHeaders); err != nil {
 		return nil, err
 	}
 	file, fileObjError := helpers.GetFileForFileUpload(request)

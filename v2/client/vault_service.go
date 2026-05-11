@@ -15,6 +15,7 @@ type vaultService struct {
 	controller  *controller.VaultController
 }
 
+
 func (v *vaultService) Insert(ctx context.Context, request common.InsertRequest, options common.InsertOptions) (*common.InsertResponse, *skyflowError.SkyflowError) {
 	res, err := v.controller.Insert(ctx, request, options)
 	if err != nil {
@@ -40,18 +41,18 @@ func (v *vaultService) Get(ctx context.Context, request common.GetRequest, optio
 	return res, nil
 }
 
-func (v *vaultService) Delete(ctx context.Context, request common.DeleteRequest) (*common.DeleteResponse, *skyflowError.SkyflowError) {
+func (v *vaultService) Delete(ctx context.Context, request common.DeleteRequest, options common.DeleteOptions) (*common.DeleteResponse, *skyflowError.SkyflowError) {
 	// Delete logic here
-	res, err := v.controller.Delete(ctx, request)
+	res, err := v.controller.Delete(ctx, request, options)
 	if err != nil {
 		return nil, err
 	}
 	return res, nil
 }
 
-func (v *vaultService) Query(ctx context.Context, request common.QueryRequest) (*common.QueryResponse, *skyflowError.SkyflowError) {
+func (v *vaultService) Query(ctx context.Context, request common.QueryRequest, options common.QueryOptions) (*common.QueryResponse, *skyflowError.SkyflowError) {
 	// Query logic here
-	res, err := v.controller.Query(ctx, request)
+	res, err := v.controller.Query(ctx, request, options)
 	if err != nil {
 		return nil, err
 	}
@@ -67,15 +68,15 @@ func (v *vaultService) Update(ctx context.Context, request common.UpdateRequest,
 	return res, nil
 }
 
-func (v *vaultService) Tokenize(ctx context.Context, request []common.TokenizeRequest) (*common.TokenizeResponse, *skyflowError.SkyflowError) {
-	res, err := v.controller.Tokenize(ctx, request)
+func (v *vaultService) Tokenize(ctx context.Context, request []common.TokenizeRequest, options common.TokenizeOptions) (*common.TokenizeResponse, *skyflowError.SkyflowError) {
+	res, err := v.controller.Tokenize(ctx, request, options)
 	if err != nil {
 		return nil, err
 	}
 	return res, nil
 }
-func (v *vaultService) UploadFile(ctx context.Context, request common.FileUploadRequest) (*common.FileUploadResponse, *skyflowError.SkyflowError) {
-	res, err := v.controller.UploadFile(ctx, request)
+func (v *vaultService) UploadFile(ctx context.Context, request common.FileUploadRequest, options common.FileUploadOptions) (*common.FileUploadResponse, *skyflowError.SkyflowError) {
+	res, err := v.controller.UploadFile(ctx, request, options)
 	if err != nil {
 		return nil, err
 	}

@@ -50,7 +50,7 @@ func main() {
 			// Step 4: Retrieve the detect run status and results
 			getDetectRunRes, deidentifyFileErr := service.GetDetectRun(ctx, common.GetDetectRunRequest{
 				RunId: "<RUN_ID_FROM_DEIDENTIFY_FILE_RESPONSE>",
-			})
+			}, common.GetDetectRunOptions{})
 
 			// Step 5: Handle the response and errors.
 			if deidentifyFileErr != nil {

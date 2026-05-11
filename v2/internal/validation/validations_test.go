@@ -1668,6 +1668,502 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			Expect(err).To(BeNil())
 		})
 	})
+	Context("ValidateCustomHeaders", func() {
+		It("should return nil for nil headers map", func() {
+			err := ValidateCustomHeaders(nil, "TestTag")
+			Expect(err).To(BeNil())
+		})
+
+		It("should return nil for empty headers map", func() {
+			err := ValidateCustomHeaders(map[common.CustomHeaderKey]string{}, "TestTag")
+			Expect(err).ToNot(BeNil())
+		})
+
+		It("should return nil when only SkyflowAccountID is provided", func() {
+			err := ValidateCustomHeaders(map[common.CustomHeaderKey]string{
+				common.SkyflowAccountID: "account-123",
+			}, "TestTag")
+			Expect(err).To(BeNil())
+		})
+
+		It("should return nil when only SkyflowAccountName is provided", func() {
+			err := ValidateCustomHeaders(map[common.CustomHeaderKey]string{
+				common.SkyflowAccountName: "my-account",
+			}, "TestTag")
+			Expect(err).To(BeNil())
+		})
+
+		It("should return nil when only RequestIDHeader is provided", func() {
+			err := ValidateCustomHeaders(map[common.CustomHeaderKey]string{
+				common.RequestIDHeader: "req-abc",
+			}, "TestTag")
+			Expect(err).To(BeNil())
+		})
+
+		It("should return nil when all three allowed keys are provided", func() {
+			err := ValidateCustomHeaders(map[common.CustomHeaderKey]string{
+				common.SkyflowAccountID:   "account-123",
+				common.SkyflowAccountName: "my-account",
+				common.RequestIDHeader:    "req-abc",
+			}, "TestTag")
+			Expect(err).To(BeNil())
+		})
+
+		It("should return error for an unknown header key", func() {
+			err := ValidateCustomHeaders(map[common.CustomHeaderKey]string{
+				"x-unknown-header": "some-value",
+			}, "Insert")
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+			Expect(err.GetMessage()).To(ContainSubstring("Insert"))
+			Expect(err.GetMessage()).To(ContainSubstring("x-unknown-header"))
+		})
+
+		It("should return error when a mix of valid and invalid keys is provided", func() {
+			err := ValidateCustomHeaders(map[common.CustomHeaderKey]string{
+				common.SkyflowAccountID: "account-123",
+				"x-bad-header":          "bad-value",
+			}, "Get")
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+			Expect(err.GetMessage()).To(ContainSubstring("x-bad-header"))
+		})
+
+		It("should include the tag in the error message", func() {
+			tag := "MyOperation"
+			err := ValidateCustomHeaders(map[common.CustomHeaderKey]string{
+				"x-not-allowed": "val",
+			}, tag)
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(tag))
+		})
+	})
+
+	Context("ValidateFileUploadRequest", Ordered, func() {
+		var (
+			tempDir      string
+			validFile    string
+		)
+
+		BeforeAll(func() {
+			var err error
+			tempDir, err = os.MkdirTemp("", "skyflow_upload_test_*")
+			Expect(err).To(BeNil())
+
+			validFile = filepath.Join(tempDir, "upload_test.txt")
+			err = os.WriteFile(validFile, []byte("file upload test content"), 0644)
+			Expect(err).To(BeNil())
+		})
+
+		AfterAll(func() {
+			if tempDir != "" {
+				os.RemoveAll(tempDir)
+			}
+		})
+
+		Context("Table validation", func() {
+			It("should return error when table is empty", func() {
+				req := common.FileUploadRequest{
+					Table:      "",
+					ColumnName: "col1",
+					FilePath:   validFile,
+				}
+				err := ValidateFileUploadRequest(req)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+				Expect(err.GetMessage()).To(ContainSubstring(errors.TABLE_KEY_ERROR))
+			})
+
+			It("should return error when table is only whitespace", func() {
+				req := common.FileUploadRequest{
+					Table:      "   ",
+					ColumnName: "col1",
+					FilePath:   validFile,
+				}
+				err := ValidateFileUploadRequest(req)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetMessage()).To(ContainSubstring(errors.TABLE_KEY_ERROR))
+			})
+		})
+
+		Context("ColumnName validation", func() {
+			It("should return error when columnName is empty", func() {
+				req := common.FileUploadRequest{
+					Table:      "test_table",
+					ColumnName: "",
+					FilePath:   validFile,
+				}
+				err := ValidateFileUploadRequest(req)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+				Expect(err.GetMessage()).To(ContainSubstring(errors.COLUMN_NAME_KEY_ERROR))
+			})
+
+			It("should return error when columnName is only whitespace", func() {
+				req := common.FileUploadRequest{
+					Table:      "test_table",
+					ColumnName: "   ",
+					FilePath:   validFile,
+				}
+				err := ValidateFileUploadRequest(req)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetMessage()).To(ContainSubstring(errors.COLUMN_NAME_KEY_ERROR))
+			})
+		})
+
+		Context("File source validation", func() {
+			It("should return error when no file source is provided", func() {
+				req := common.FileUploadRequest{
+					Table:      "test_table",
+					ColumnName: "col1",
+				}
+				err := ValidateFileUploadRequest(req)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+				Expect(err.GetMessage()).To(ContainSubstring(errors.MISSING_FILE_SOURCE_IN_UPLOAD_FILE))
+			})
+
+			It("should return error when only whitespace FilePath and no other source", func() {
+				req := common.FileUploadRequest{
+					Table:      "test_table",
+					ColumnName: "col1",
+					FilePath:   "   ",
+				}
+				err := ValidateFileUploadRequest(req)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetMessage()).To(ContainSubstring(errors.MISSING_FILE_SOURCE_IN_UPLOAD_FILE))
+			})
+		})
+
+		Context("FilePath validation", func() {
+			It("should return error for a non-existent file path", func() {
+				req := common.FileUploadRequest{
+					Table:      "test_table",
+					ColumnName: "col1",
+					FilePath:   "/non/existent/file.txt",
+				}
+				err := ValidateFileUploadRequest(req)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+				Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_FILE_PATH))
+			})
+
+			It("should return error when FilePath points to a directory", func() {
+				req := common.FileUploadRequest{
+					Table:      "test_table",
+					ColumnName: "col1",
+					FilePath:   tempDir,
+				}
+				err := ValidateFileUploadRequest(req)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_FILE_PATH))
+			})
+
+			It("should return nil for a valid file path", func() {
+				req := common.FileUploadRequest{
+					Table:      "test_table",
+					ColumnName: "col1",
+					FilePath:   validFile,
+				}
+				err := ValidateFileUploadRequest(req)
+				Expect(err).To(BeNil())
+			})
+		})
+
+		Context("Base64 validation", func() {
+			It("should return error when Base64 is provided without FileName", func() {
+				req := common.FileUploadRequest{
+					Table:      "test_table",
+					ColumnName: "col1",
+					Base64:     "dGVzdCBjb250ZW50",
+					FileName:   "",
+				}
+				err := ValidateFileUploadRequest(req)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+				Expect(err.GetMessage()).To(ContainSubstring(errors.FILE_NAME_MUST_BE_PROVIDED_WITH_FILE_OBJECT))
+			})
+
+			It("should return error when Base64 string is invalid", func() {
+				req := common.FileUploadRequest{
+					Table:      "test_table",
+					ColumnName: "col1",
+					Base64:     "!!!not-valid-base64###",
+					FileName:   "test.txt",
+				}
+				err := ValidateFileUploadRequest(req)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+				Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_BASE64))
+			})
+
+			It("should return nil for a valid Base64 string with FileName", func() {
+				req := common.FileUploadRequest{
+					Table:      "test_table",
+					ColumnName: "col1",
+					Base64:     "dGVzdCBjb250ZW50",
+					FileName:   "test.txt",
+				}
+				err := ValidateFileUploadRequest(req)
+				Expect(err).To(BeNil())
+			})
+		})
+
+		Context("FileObject validation", func() {
+			It("should return error when FileObject is a directory", func() {
+				dirFile, osErr := os.Open(tempDir)
+				Expect(osErr).To(BeNil())
+				defer dirFile.Close()
+
+				req := common.FileUploadRequest{
+					Table:      "test_table",
+					ColumnName: "col1",
+					FileObject: *dirFile,
+				}
+				err := ValidateFileUploadRequest(req)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+				Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_FILE_OBJECT))
+			})
+
+			It("should return error when FileObject is a closed file", func() {
+				f, osErr := os.Open(validFile)
+				Expect(osErr).To(BeNil())
+				fileVal := *f
+				f.Close()
+
+				req := common.FileUploadRequest{
+					Table:      "test_table",
+					ColumnName: "col1",
+					FileObject: fileVal,
+				}
+				err := ValidateFileUploadRequest(req)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_FILE_OBJECT))
+			})
+
+			It("should return nil for a valid open FileObject", func() {
+				f, osErr := os.Open(validFile)
+				Expect(osErr).To(BeNil())
+				defer f.Close()
+
+				req := common.FileUploadRequest{
+					Table:      "test_table",
+					ColumnName: "col1",
+					FileObject: *f,
+				}
+				err := ValidateFileUploadRequest(req)
+				Expect(err).To(BeNil())
+			})
+		})
+	})
+
+	Context("ValidateGetRequest", func() {
+		Context("Table validation", func() {
+			It("should return error when table is empty", func() {
+				req := common.GetRequest{Table: "", Ids: []string{"id1"}}
+				err := ValidateGetRequest(req, common.GetOptions{})
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+				Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_TABLE))
+			})
+		})
+
+		Context("Ids validation", func() {
+			It("should return error when Ids is a non-nil empty slice", func() {
+				req := common.GetRequest{Table: "test_table", Ids: []string{}}
+				err := ValidateGetRequest(req, common.GetOptions{})
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+				Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_IDS))
+			})
+
+			It("should return error when an id in Ids is empty", func() {
+				req := common.GetRequest{Table: "test_table", Ids: []string{"id1", ""}}
+				err := ValidateGetRequest(req, common.GetOptions{})
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+				Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_ID_IN_IDS))
+			})
+
+			It("should return nil for valid Ids", func() {
+				req := common.GetRequest{Table: "test_table", Ids: []string{"id1", "id2"}}
+				err := ValidateGetRequest(req, common.GetOptions{})
+				Expect(err).To(BeNil())
+			})
+		})
+
+		Context("Fields validation", func() {
+			It("should return error when Fields is a non-nil empty slice", func() {
+				req := common.GetRequest{Table: "test_table", Ids: []string{"id1"}}
+				opts := common.GetOptions{Fields: []string{}}
+				err := ValidateGetRequest(req, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+				Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_FIELDS))
+			})
+
+			It("should return error when a field in Fields is empty", func() {
+				req := common.GetRequest{Table: "test_table", Ids: []string{"id1"}}
+				opts := common.GetOptions{Fields: []string{"col1", ""}}
+				err := ValidateGetRequest(req, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+				Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_FIELD_IN_FIELDS))
+			})
+
+			It("should return nil for valid Fields", func() {
+				req := common.GetRequest{Table: "test_table", Ids: []string{"id1"}}
+				opts := common.GetOptions{Fields: []string{"col1", "col2"}}
+				err := ValidateGetRequest(req, opts)
+				Expect(err).To(BeNil())
+			})
+		})
+
+		Context("ReturnTokens conflicts", func() {
+			It("should return error when ReturnTokens is true and ColumnName is set", func() {
+				req := common.GetRequest{Table: "test_table", Ids: []string{"id1"}}
+				opts := common.GetOptions{
+					ReturnTokens: true,
+					ColumnName:   "ssn",
+				}
+				err := ValidateGetRequest(req, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+				Expect(err.GetMessage()).To(ContainSubstring(errors.TOKENS_GET_COLUMN_NOT_SUPPORTED))
+			})
+
+			It("should return error when ReturnTokens is true and ColumnValues is set", func() {
+				req := common.GetRequest{Table: "test_table", Ids: []string{"id1"}}
+				opts := common.GetOptions{
+					ReturnTokens: true,
+					ColumnValues: []string{"val1"},
+				}
+				err := ValidateGetRequest(req, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+				Expect(err.GetMessage()).To(ContainSubstring(errors.TOKENS_GET_COLUMN_NOT_SUPPORTED))
+			})
+
+			It("should return error when ReturnTokens is true and RedactionType is set", func() {
+				req := common.GetRequest{Table: "test_table", Ids: []string{"id1"}}
+				opts := common.GetOptions{
+					ReturnTokens:  true,
+					RedactionType: common.PLAIN_TEXT,
+				}
+				err := ValidateGetRequest(req, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+				Expect(err.GetMessage()).To(ContainSubstring(errors.REDACTION_WITH_TOKENS_NOT_SUPPORTED))
+			})
+
+			It("should return nil when ReturnTokens is true with only Ids", func() {
+				req := common.GetRequest{Table: "test_table", Ids: []string{"id1"}}
+				opts := common.GetOptions{ReturnTokens: true}
+				err := ValidateGetRequest(req, opts)
+				Expect(err).To(BeNil())
+			})
+		})
+
+		Context("Ids vs ColumnName/ColumnValues mutual exclusion", func() {
+			It("should return error when neither Ids nor ColumnName is provided", func() {
+				req := common.GetRequest{Table: "test_table"}
+				err := ValidateGetRequest(req, common.GetOptions{})
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+				Expect(err.GetMessage()).To(ContainSubstring(errors.UNIQUE_COLUMN_OR_IDS_KEY_ERROR))
+			})
+
+			It("should return error when both Ids and ColumnName are provided", func() {
+				req := common.GetRequest{Table: "test_table", Ids: []string{"id1"}}
+				opts := common.GetOptions{
+					ColumnName:   "ssn",
+					ColumnValues: []string{"123"},
+				}
+				err := ValidateGetRequest(req, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+				Expect(err.GetMessage()).To(ContainSubstring(errors.BOTH_IDS_AND_COLUMN_DETAILS_SPECIFIED))
+			})
+
+			It("should return error when both Ids and ColumnValues are provided without ColumnName", func() {
+				req := common.GetRequest{Table: "test_table", Ids: []string{"id1"}}
+				opts := common.GetOptions{ColumnValues: []string{"val1"}}
+				err := ValidateGetRequest(req, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+				Expect(err.GetMessage()).To(ContainSubstring(errors.BOTH_IDS_AND_COLUMN_DETAILS_SPECIFIED))
+			})
+		})
+
+		Context("ColumnName and ColumnValues validation", func() {
+			It("should return error when ColumnValues is set but ColumnName is empty", func() {
+				req := common.GetRequest{Table: "test_table"}
+				opts := common.GetOptions{ColumnValues: []string{"val1"}}
+				err := ValidateGetRequest(req, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+				Expect(err.GetMessage()).To(ContainSubstring(errors.COLUMN_NAME_KEY_ERROR))
+			})
+
+			It("should return error when ColumnName is set but ColumnValues is nil", func() {
+				req := common.GetRequest{Table: "test_table"}
+				opts := common.GetOptions{ColumnName: "ssn"}
+				err := ValidateGetRequest(req, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+				Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_COLUMN_VALUES))
+			})
+
+			It("should return error when ColumnName is set but ColumnValues is an empty slice", func() {
+				req := common.GetRequest{Table: "test_table"}
+				opts := common.GetOptions{ColumnName: "ssn", ColumnValues: []string{}}
+				err := ValidateGetRequest(req, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+				Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_COLUMN_VALUES))
+			})
+
+			It("should return error when a value in ColumnValues is empty", func() {
+				req := common.GetRequest{Table: "test_table"}
+				opts := common.GetOptions{ColumnName: "ssn", ColumnValues: []string{"val1", ""}}
+				err := ValidateGetRequest(req, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+				Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_VALUE_IN_COLUMN_VALUES))
+			})
+
+			It("should return nil for valid ColumnName and ColumnValues", func() {
+				req := common.GetRequest{Table: "test_table"}
+				opts := common.GetOptions{ColumnName: "ssn", ColumnValues: []string{"123", "456"}}
+				err := ValidateGetRequest(req, opts)
+				Expect(err).To(BeNil())
+			})
+		})
+
+		Context("Valid requests", func() {
+			It("should return nil for a valid request with Ids and Fields", func() {
+				req := common.GetRequest{Table: "test_table", Ids: []string{"id1", "id2"}}
+				opts := common.GetOptions{
+					Fields:        []string{"col1", "col2"},
+					RedactionType: common.PLAIN_TEXT,
+				}
+				err := ValidateGetRequest(req, opts)
+				Expect(err).To(BeNil())
+			})
+
+			It("should return nil for a valid request with ColumnName and multiple ColumnValues", func() {
+				req := common.GetRequest{Table: "test_table"}
+				opts := common.GetOptions{
+					ColumnName:   "email",
+					ColumnValues: []string{"a@b.com", "c@d.com"},
+				}
+				err := ValidateGetRequest(req, opts)
+				Expect(err).To(BeNil())
+			})
+		})
+	})
+
 	Context("ValidateUpdateConnectionConfig", func() {
 		var validConfig common.ConnectionConfig
 		BeforeEach(func() {

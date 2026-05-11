@@ -44,7 +44,7 @@ func main() {
 					ColumnName: "<COLUMN_NAME>",
 					SkyflowId:  "<SKYFLOW_ID>",
 				}
-				fileResponse, errFile := service.UploadFile(ctx, request)
+				fileResponse, errFile := service.UploadFile(ctx, request, common.FileUploadOptions{})
 
 				if errFile != nil {
 					fmt.Println("ERROR: ", *errFile)

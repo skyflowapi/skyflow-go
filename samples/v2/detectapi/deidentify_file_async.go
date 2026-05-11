@@ -120,7 +120,7 @@ func main() {
 						StopPadding:  8,
 					},
 					// OutputTranscription: common.PLAINTEXT_TRANSCRIPTION,
-				})
+				}, common.DeidentifyFileOptions{})
 
 				// Send the result through the channel
 				if deidentifyFileErr != nil {
