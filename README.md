@@ -36,6 +36,10 @@ The Skyflow Go SDK is designed to help with integrating Skyflow into a go backen
   - [Delete](#delete)
   - [Query](#query)
   - [Upload File](#upload-file)
+- [Custom Request Headers](#custom-request-headers)
+  - [Supported headers](#supported-headers)
+  - [Client-level custom headers](#client-level-custom-headers)
+  - [Request-level custom headers](#request-level-custom-headers)
 - [Detect](#detect)
   - [Deidentify Text](#deidentify-text)
   - [Reidentify Text](#reidentify-text)
@@ -1915,7 +1919,7 @@ func main() {
 - We can pass only one from file path, file object and base64 in file upload request.
 - File name is required when base64 is passed in request.
 
-#### An [example] of file upload call
+#### An [example](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v2/vaultapi/upload_file.go) of file upload call
 ```go
 package main
 
@@ -1979,6 +1983,97 @@ Sample response:
 ```json
 {
   "SkyflowId": "5b699e2c-4301-4f9f-bcff-0a8fd3057413"
+}
+```
+
+## Custom Request Headers
+
+The SDK supports passing custom HTTP headers at two levels: **client level** (applied to all requests) and **request level** (applied to a single API call).
+
+### Supported headers
+
+| Constant | Header name | Description |
+|---|---|---|
+| `common.RequestIDHeader` | `x-request-id` | Custom request identifier for tracing |
+| `common.SkyflowAccountID` | `x-skyflow-account-id` | Skyflow account identifier |
+| `common.SkyflowAccountName` | `x-skyflow-account-name` | Skyflow account name |
+
+### Client-level custom headers
+
+Use `client.WithCustomHeaders` when building the Skyflow client. These headers are sent with every request made through that client.
+
+```go
+import (
+  "github.com/skyflowapi/skyflow-go/v2/client"
+  "github.com/skyflowapi/skyflow-go/v2/utils/common"
+)
+
+customHeaders := map[common.CustomHeaderKey]string{
+    common.RequestIDHeader:    "<REQUEST_ID>",   // Replace with your request ID
+    common.SkyflowAccountID:  "<ACCOUNT_ID>",   // Replace with your account ID
+}
+
+skyflowClient, err := client.NewSkyflow(
+    client.WithVaultConfig(vaultConfig),
+    client.WithCredentials(skyflowCredentials),
+    client.WithCustomHeaders(customHeaders),
+)
+```
+
+### Request-level custom headers
+
+Pass `CustomHeaders` in the options struct for any individual operation. Request-level headers take precedence over client-level headers for that call.
+
+The following options structs support `CustomHeaders`:
+
+**Vault operations**
+| Operation | Options struct |
+|---|---|
+| `Insert` | `InsertOptions` |
+| `Detokenize` | `DetokenizeOptions` |
+| `Get` | `GetOptions` |
+| `Update` | `UpdateOptions` |
+| `Delete` | `DeleteOptions` |
+| `Query` | `QueryOptions` |
+| `Tokenize` | `TokenizeOptions` |
+| `UploadFile` | `FileUploadOptions` |
+
+**Detect operations**
+| Operation | Options struct |
+|---|---|
+| `DeidentifyText` | `DeidentifyTextOptions` |
+| `ReidentifyText` | `ReidentifyTextOptions` |
+| `DeidentifyFile` | `DeidentifyFileOptions` |
+| `GetDetectRun` | `GetDetectRunOptions` |
+
+Example — passing a custom request ID on a single insert call:
+
+```go
+import (
+  "context"
+  "fmt"
+  "github.com/skyflowapi/skyflow-go/v2/utils/common"
+)
+
+customHeaders := map[common.CustomHeaderKey]string{
+    common.RequestIDHeader: "<REQUEST_ID>", // Replace with your request ID
+}
+
+insertOptions := common.InsertOptions{
+    ReturnTokens:  true,
+    CustomHeaders: customHeaders,
+}
+
+service, serviceErr := skyflowClient.Vault("<VAULT_ID>")
+if serviceErr != nil {
+    fmt.Println("Error:", serviceErr)
+}
+
+response, err := service.Insert(context.TODO(), insertRequest, insertOptions)
+if err != nil {
+    fmt.Println("Error:", err)
+} else {
+    fmt.Println("Response:", response)
 }
 ```
 
