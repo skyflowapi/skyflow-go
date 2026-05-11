@@ -68,7 +68,7 @@ var _ = Describe("Vault controller Test cases", func() {
 
 		BeforeEach(func() {
 			customHeader := make(map[CustomHeaderKey]string)
-			customHeader[CustomHeaderKey("x-custom-header")] = "custom-header-value"
+			customHeader[RequestIDHeader] = "custom-header-value"
 			response = make(map[string]interface{})
 			ts = nil
 			contrl = VaultController{
@@ -4132,8 +4132,8 @@ var _ = Describe("Custom Headers Tests", func() {
 
 				// Create controller with custom headers
 				customHeaders := make(map[CustomHeaderKey]string)
-				customHeaders[CustomHeaderKey("x-custom-header")] = "custom-value"
-				customHeaders[CustomHeaderKey("x-api-version")] = "v1"
+				customHeaders[SkyflowAccountID] = "custom-account-id"
+				customHeaders[SkyflowAccountName] = "custom-account-name"
 
 				contrl := VaultController{
 					Config: &VaultConfig{
@@ -4192,8 +4192,8 @@ var _ = Describe("Custom Headers Tests", func() {
 				// Assertions
 				Expect(insertError).To(BeNil())
 				Expect(res).ToNot(BeNil())
-				Expect(capturedHeader.Get("x-custom-header")).To(Equal("custom-value"))
-				Expect(capturedHeader.Get("x-api-version")).To(Equal("v1"))
+				Expect(capturedHeader.Get(string(SkyflowAccountID))).To(Equal("custom-account-id"))
+				Expect(capturedHeader.Get(string(SkyflowAccountName))).To(Equal("custom-account-name"))
 			})
 		})
 
@@ -4361,7 +4361,7 @@ var _ = Describe("Custom Headers Tests", func() {
 				defer ts.Close()
 
 				customHeaders := make(map[CustomHeaderKey]string)
-				customHeaders[CustomHeaderKey("x-trace-id")] = "trace-123"
+				customHeaders[RequestIDHeader] = "trace-123"
 
 				vaultController := &VaultController{
 					Config: &VaultConfig{
@@ -4413,7 +4413,7 @@ var _ = Describe("Custom Headers Tests", func() {
 
 				Expect(err).To(BeNil())
 				Expect(res).ToNot(BeNil())
-				Expect(capturedHeader.Get("x-trace-id")).To(Equal("trace-123"))
+				Expect(capturedHeader.Get(string(RequestIDHeader))).To(Equal("trace-123"))
 			})
 		})
 
@@ -4542,7 +4542,7 @@ var _ = Describe("Custom Headers Tests", func() {
 				defer ts.Close()
 
 				customHeaders := make(map[CustomHeaderKey]string)
-				customHeaders[CustomHeaderKey("x-user-id")] = "user-789"
+				customHeaders[SkyflowAccountName] = "user-789"
 
 				vaultController := VaultController{
 					Config: &VaultConfig{
@@ -4586,7 +4586,7 @@ var _ = Describe("Custom Headers Tests", func() {
 
 				Expect(err).To(BeNil())
 				Expect(res).ToNot(BeNil())
-				Expect(capturedHeader.Get("x-user-id")).To(Equal("user-789"))
+				Expect(capturedHeader.Get(string(SkyflowAccountName))).To(Equal("user-789"))
 			})
 		})
 
@@ -4599,10 +4599,9 @@ var _ = Describe("Custom Headers Tests", func() {
 				defer ts.Close()
 
 				customHeaders := make(map[CustomHeaderKey]string)
-				customHeaders[CustomHeaderKey("x-api-key")] = "api-key-123"
+				customHeaders[SkyflowAccountID] = "account-id-123"
+				customHeaders[SkyflowAccountName] = "account-name-456"
 				customHeaders[RequestIDHeader] = "req-456"
-				customHeaders[CustomHeaderKey("x-timestamp")] = "2024-05-06"
-				customHeaders[CustomHeaderKey("x-client-version")] = "1.0.0"
 
 				contrl := VaultController{
 					Config: &VaultConfig{
@@ -4651,10 +4650,9 @@ var _ = Describe("Custom Headers Tests", func() {
 
 				Expect(insertError).To(BeNil())
 				Expect(res).ToNot(BeNil())
-				Expect(capturedHeader.Get("x-api-key")).To(Equal("api-key-123"))
-				Expect(capturedHeader.Get("x-request-id")).To(Equal("req-456"))
-				Expect(capturedHeader.Get("x-timestamp")).To(Equal("2024-05-06"))
-				Expect(capturedHeader.Get("x-client-version")).To(Equal("1.0.0"))
+				Expect(capturedHeader.Get(string(SkyflowAccountID))).To(Equal("account-id-123"))
+				Expect(capturedHeader.Get(string(SkyflowAccountName))).To(Equal("account-name-456"))
+				Expect(capturedHeader.Get(string(RequestIDHeader))).To(Equal("req-456"))
 			})
 		})
 	})
