@@ -105,7 +105,7 @@ import (
 )
 
 configuration := common.Configuration {
-        VaultID: "<vauld_id>",      //Id of the vault that the client should connect to 
+        VaultID: "<vault_id>",      //Id of the vault that the client should connect to 
         VaultURL: "<vault_url>",    //URL of the vault that the client should connect to
         TokenProvider: GetToken     //helper function that retrieves a Skyflow bearer token from your backend
 }
@@ -479,7 +479,7 @@ Sample response:
   "records": [
     {
       "token": "45012507-f72b-4f5c-9bf9-86b133bae719",
-      "value": "Jhon"
+      "value": "John"
     },
     {
       "token": "131e70dc-6f76-4319-bdd3-96281e051051",

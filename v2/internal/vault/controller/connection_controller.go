@@ -37,7 +37,7 @@ var SetBearerTokenForConnectionControllerFunc = setBearerTokenForConnectionContr
 // SetBearerTokenForConnectionController checks and updates the token if necessary.
 func setBearerTokenForConnectionController(v *ConnectionController) *errors.SkyflowError {
 	// Validate token or generate a new one if expired or not set.
-	// check if apikey or token already initalised
+	// check if apikey or token already initialized
 	credToUse, err := setConnectionCredentials(v.Config, v.CommonCreds)
 	if err != nil {
 		return err

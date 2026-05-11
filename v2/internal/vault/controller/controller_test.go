@@ -576,7 +576,7 @@ var _ = Describe("Vault controller Test cases", func() {
 			It("should return error while creating client in detokenize", func() {
 				ctx = context.Background()
 				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
-					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "error occurred in client fucntion")
+					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "error occurred in client function")
 				}
 				// Call the Detokenize function
 				res, err := vaultController.Detokenize(ctx, request, options)
@@ -587,7 +587,7 @@ var _ = Describe("Vault controller Test cases", func() {
 			It("should return error in get token while calling in detokenize", func() {
 				ctx = context.Background()
 				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
-					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "error occurred in client fucntion")
+					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "error occurred in client function")
 				}
 				// Call the Detokenize function
 				res, err := vaultController.Detokenize(ctx, request, options)
@@ -670,7 +670,7 @@ var _ = Describe("Vault controller Test cases", func() {
 			})
 			It("should return error client creation step Get", func() {
 				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
-					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "error occurred in client fucntion")
+					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "error occurred in client function")
 				}
 				res, err := vaultController.Get(ctx, request, options)
 				Expect(res).To(BeNil())
@@ -783,7 +783,7 @@ var _ = Describe("Vault controller Test cases", func() {
 
 			It("should return error client creation step Delete", func() {
 				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
-					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "error occurred in client fucntion")
+					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "error occurred in client function")
 				}
 				res, err := vaultController.Delete(ctx, request)
 				Expect(res).To(BeNil())
@@ -867,7 +867,7 @@ var _ = Describe("Vault controller Test cases", func() {
 
 			It("should return error client creation step Query", func() {
 				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
-					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "error occurred in client fucntion")
+					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "error occurred in client function")
 				}
 				res, err := vaultController.Query(ctx, request)
 				Expect(res).To(BeNil())
@@ -957,7 +957,7 @@ var _ = Describe("Vault controller Test cases", func() {
 
 			It("should return error client creation step Update", func() {
 				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
-					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "error occurred in client fucntion")
+					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "error occurred in client function")
 				}
 				res, err := vaultController.Update(ctx, request, UpdateOptions{ReturnTokens: true, TokenMode: ENABLE_STRICT})
 				Expect(res).To(BeNil())
@@ -1042,7 +1042,7 @@ var _ = Describe("Vault controller Test cases", func() {
 
 			It("should return error client creation step Tokenize", func() {
 				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
-					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "error occurred in client fucntion")
+					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "error occurred in client function")
 				}
 				res, err := vaultController.Tokenize(ctx, arrReq)
 				Expect(res).To(BeNil())
@@ -1232,7 +1232,7 @@ var _ = Describe("ConnectionController", func() {
 			})
 			It("should return an error when invalid token passed", func() {
 				SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError {
-					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "error occurred in client fucntion")
+					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "error occurred in client function")
 				}
 				response, err := ctrl.Invoke(ctx, mockRequest)
 				Expect(response).To(BeNil())

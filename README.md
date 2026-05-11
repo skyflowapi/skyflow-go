@@ -166,7 +166,7 @@ import (
 )
 
 configuration := common.Configuration {
-        VaultID: "<vauld_id>",      //Id of the vault that the client should connect to 
+        VaultID: "<vault_id>",      //Id of the vault that the client should connect to 
         VaultURL: "<vault_url>",    //URL of the vault that the client should connect to
         TokenProvider: GetToken     //helper function that retrieves a Skyflow bearer token from your backend
 }
@@ -2169,6 +2169,7 @@ Sample Response:
   "CharCount": 57
 }
 ```
+<!-- cspell:enable -->
 
 ### Reidentify Text
 
@@ -3114,7 +3115,7 @@ func main(){
 	}
 
 	// Configuring the Skyflow vault with necessary details
-	privaryVaultConfig := common.VaultConfig{
+	primaryVaultConfig := common.VaultConfig{
 		VaultId:     "<YOUR_VAULT_ID1>",
 		ClusterId:   "<YOUR_CLUSTER_ID1>",
 		Env:         common.DEV,
@@ -3122,7 +3123,7 @@ func main(){
 	}
 	// Create a new Skyflow client
 	skyflowClient, err := client.NewSkyflow(
-		client.WithVaults(privaryVaultConfig),
+		client.WithVaults(primaryVaultConfig),
 		client.WithCredentials(credentials),
 		client.WithLogLevel(logger.DEBUG),
 	)

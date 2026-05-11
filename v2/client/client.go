@@ -533,7 +533,7 @@ func getConnectionConfig(builder map[string]*connectionService, connectionId ...
 		return config.config, nil
 	}
 
-	// No conenction ID passed, return the first config available
+	// No connection ID passed, return the first config available
 	for _, cfg := range builder {
 		return cfg.config, nil
 	}

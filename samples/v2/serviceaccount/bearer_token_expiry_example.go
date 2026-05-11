@@ -63,7 +63,7 @@ func main() {
 	}
 
 	// Step 2: Configure the vault.
-	privaryVaultConfig := common.VaultConfig{
+	primaryVaultConfig := common.VaultConfig{
 		VaultId:     "<YOUR_VAULT_ID1>",
 		ClusterId:   "<YOUR_CLUSTER_ID1>",
 		Env:         common.DEV,
@@ -71,7 +71,7 @@ func main() {
 	}
 	// Step 3: Create a new Skyflow client
 	skyflowClient, err := client.NewSkyflow(
-		client.WithVaults(privaryVaultConfig),
+		client.WithVaults(primaryVaultConfig),
 		client.WithCredentials(credentials),
 		client.WithLogLevel(logger.ERROR),
 	)

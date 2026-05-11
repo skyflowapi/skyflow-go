@@ -82,3 +82,23 @@ jobs:
         files: coverage.out
         name: codecov-skyflow-go
         verbose: true
+
+  spellcheck:
+    name: Run spellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: streetsidesoftware/cspell-action@v8
+        with:
+          config: v2/.cspell.json
+          files: |
+            v2/**/*.{go,md,yml,yaml,json,txt}
+            samples/v2/**/*.{go,md,yml,yaml,json,txt}
+            README.md
+            README-v1.md
+            SECURITY.md
+            CHANGELOG.md
+            codecov.yml
+          strict: true
+          inline: error
+          incremental_files_only: false
