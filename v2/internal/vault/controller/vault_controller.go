@@ -193,6 +193,9 @@ func (v *VaultController) Insert(ctx context.Context, request common.InsertReque
 	if errs = validation.ValidateCustomHeaders(options.CustomHeaders, "Insert"); errs != nil {
 		return nil, errs
 	}
+	if errs = validation.ValidateCustomHeaders(v.CustomHeaders, "Client headers in"); errs != nil {
+		return nil, errs
+	}
 	// Initialize the response structure
 	var resp common.InsertResponse
 	var insertedFields, errors []map[string]interface{}
@@ -274,6 +277,10 @@ func (v *VaultController) Detokenize(ctx context.Context, request common.Detoken
 	if er = validation.ValidateCustomHeaders(options.CustomHeaders, "Detokenize"); er != nil {
 		return nil, er
 	}
+	if er = validation.ValidateCustomHeaders(v.CustomHeaders, "Client headers in"); er != nil {
+		return nil, er
+	}
+
 	if err := CreateRequestClientFunc(v, options.CustomHeaders); err != nil {
 		return nil, err
 	}
@@ -329,6 +336,9 @@ func (v *VaultController) Get(ctx context.Context, request common.GetRequest, op
 	}
 	if errs = validation.ValidateCustomHeaders(options.CustomHeaders, "Get"); errs != nil {
 		return nil, errs
+	}
+	if er := validation.ValidateCustomHeaders(v.CustomHeaders, "Client headers in"); er != nil {
+		return nil, er
 	}
 	var data []map[string]interface{}
 	if err := CreateRequestClientFunc(v, options.CustomHeaders); err != nil {
@@ -417,6 +427,9 @@ func (v *VaultController) Delete(ctx context.Context, request common.DeleteReque
 	if errs = validation.ValidateCustomHeaders(options.CustomHeaders, "Delete"); errs != nil {
 		return nil, errs
 	}
+	if er := validation.ValidateCustomHeaders(v.CustomHeaders, "Client headers in"); er != nil {
+		return nil, er
+	}
 
 	if err := CreateRequestClientFunc(v, options.CustomHeaders); err != nil {
 		return nil, err
@@ -449,6 +462,9 @@ func (v *VaultController) Query(ctx context.Context, queryRequest common.QueryRe
 	}
 	if errs = validation.ValidateCustomHeaders(options.CustomHeaders, "Query"); errs != nil {
 		return nil, errs
+	}
+	if er := validation.ValidateCustomHeaders(v.CustomHeaders, "Client headers in"); er != nil {
+		return nil, er
 	}
 	var fields []map[string]interface{}
 
@@ -486,7 +502,9 @@ func (v *VaultController) Update(ctx context.Context, request common.UpdateReque
 	if errs = validation.ValidateCustomHeaders(options.CustomHeaders, "Update"); errs != nil {
 		return nil, errs
 	}
-
+	if er := validation.ValidateCustomHeaders(v.CustomHeaders, "Client headers in"); er != nil {
+		return nil, er
+	}
 	if err := CreateRequestClientFunc(v, options.CustomHeaders); err != nil {
 		return nil, err
 	}
@@ -542,6 +560,9 @@ func (v *VaultController) Tokenize(ctx context.Context, request []common.Tokeniz
 	if err = validation.ValidateCustomHeaders(options.CustomHeaders, "Tokenize"); err != nil {
 		return nil, err
 	}
+	if err := validation.ValidateCustomHeaders(v.CustomHeaders, "Client headers in"); err != nil {
+		return nil, err
+	}
 	if err := CreateRequestClientFunc(v, options.CustomHeaders); err != nil {
 		return nil, err
 	}
@@ -571,6 +592,9 @@ func (v *VaultController) UploadFile(ctx context.Context, request common.FileUpl
 	}
 	if errs = validation.ValidateCustomHeaders(options.CustomHeaders, "UploadFile"); errs != nil {
 		return nil, errs
+	}
+	if err := validation.ValidateCustomHeaders(v.CustomHeaders, "Client headers in"); err != nil {
+		return nil, err
 	}
 
 	if err := CreateRequestClientFunc(v, options.CustomHeaders); err != nil {
