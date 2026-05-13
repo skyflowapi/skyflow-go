@@ -136,7 +136,7 @@ var _ = Describe("Vault controller Test cases", func() {
 
 				Expect(insertError).To(BeNil())
 				Expect(len(res.InsertedFields)).To(Equal(1))
-				Expect(res.InsertedFields[0]["skyflow_id"]).To(Equal("skyflowid"))
+				Expect(res.InsertedFields[0]["SkyflowId"]).To(Equal("skyflowid"))
 			})
 		})
 		Context("Insert with ContinueOnError True - Error Case", func() {
@@ -336,7 +336,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				Expect(insertError).To(BeNil(), "Expected no error during insert operation")
 				Expect(res).ToNot(BeNil(), "Expected valid response")
 				Expect(len(res.InsertedFields)).To(Equal(1), "Expected exactly 1 inserted field")
-				Expect(res.InsertedFields[0]["skyflow_id"]).To(Equal("skyflowid"), "Expected the inserted field to have skyflow_id 'skyflowid'")
+				Expect(res.InsertedFields[0]["SkyflowId"]).To(Equal("skyflowid"), "Expected the inserted field to have skyflow_id 'skyflowid'")
 				Expect(len(res.Errors)).To(Equal(1), "Expected exactly 1 error field")
 			})
 		})
@@ -384,8 +384,8 @@ var _ = Describe("Vault controller Test cases", func() {
 				Expect(insertError).To(BeNil(), "Expected no error during insert operation")
 				Expect(res).ToNot(BeNil(), "Expected valid response from insert operation")
 				Expect(len(res.InsertedFields)).To(Equal(2), "Expected exactly 2 inserted fields")
-				Expect(res.InsertedFields[0]["skyflow_id"]).To(Equal("skyflowid1"), "Expected first inserted field to have skyflow_id 'skyflowid1'")
-				Expect(res.InsertedFields[1]["skyflow_id"]).To(Equal("skyflowid2"), "Expected second inserted field to have skyflow_id 'skyflowid2'")
+				Expect(res.InsertedFields[0]["SkyflowId"]).To(Equal("skyflowid1"), "Expected first inserted field to have skyflow_id 'skyflowid1'")
+				Expect(res.InsertedFields[1]["SkyflowId"]).To(Equal("skyflowid2"), "Expected second inserted field to have skyflow_id 'skyflowid2'")
 			})
 		})
 		Context("Insert with ContinueOnError False - Error Case", func() {
@@ -506,7 +506,7 @@ var _ = Describe("Vault controller Test cases", func() {
 					},
 					Env:          PROD,
 					ClusterId:    "clusterID",
-					BaseVaultURL: "http://127.0.0.1",
+					BaseVaultUrl: "http://127.0.0.1",
 				},
 			}
 
@@ -765,7 +765,7 @@ var _ = Describe("Vault controller Test cases", func() {
 					Table: "table1",
 				}
 				response := make(map[string]interface{})
-				mockJSONResponse := `{"records":[{"fields":{"name":"name1", "skyflow_id":"id1"}, "tokens":null}]}`
+				mockJSONResponse := `{"records":[{"fields":{"name":"name1", "SkyflowId":"id1"}, "tokens":null}]}`
 				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
 				ts := setupMockServer(response, "ok", "/vaults/v1/vaults/")
 				// Set the mock server URL in the controller's client
@@ -1079,7 +1079,7 @@ var _ = Describe("Vault controller Test cases", func() {
 		Context("Test the success and error case", func() {
 			request := UpdateRequest{
 				Table:  "demo",
-				Data:   map[string]interface{}{"skyflow_id": "123", "name": "john"},
+				Data:   map[string]interface{}{"SkyflowId": "123", "name": "john"},
 				Tokens: nil,
 			}
 			It("should return success response when valid ids passed in Update", func() {
@@ -1151,7 +1151,7 @@ var _ = Describe("Vault controller Test cases", func() {
 			It("should return error when custom headers map is empty in Update", func() {
 				req := UpdateRequest{
 					Table: "demo",
-					Data:  map[string]interface{}{"skyflow_id": "123", "name": "john"},
+					Data:  map[string]interface{}{"SkyflowId": "123", "name": "john"},
 				}
 				opts := UpdateOptions{
 					TokenMode:     DISABLE,
@@ -1165,7 +1165,7 @@ var _ = Describe("Vault controller Test cases", func() {
 			It("should return error when custom headers has invalid key in Update", func() {
 				req := UpdateRequest{
 					Table: "demo",
-					Data:  map[string]interface{}{"skyflow_id": "123", "name": "john"},
+					Data:  map[string]interface{}{"SkyflowId": "123", "name": "john"},
 				}
 				opts := UpdateOptions{
 					TokenMode: DISABLE,
@@ -1181,7 +1181,7 @@ var _ = Describe("Vault controller Test cases", func() {
 			It("should return error when custom headers has empty value in Update", func() {
 				req := UpdateRequest{
 					Table: "demo",
-					Data:  map[string]interface{}{"skyflow_id": "123", "name": "john"},
+					Data:  map[string]interface{}{"SkyflowId": "123", "name": "john"},
 				}
 				opts := UpdateOptions{
 					TokenMode: DISABLE,
@@ -1941,7 +1941,7 @@ var _ = Describe("VaultController", func() {
 			vaultController.Config.Credentials.ApiKey = "test-api-key"
 
 			requestHeaders := map[CustomHeaderKey]string{
-				RequestIDHeader:                    "req-123",
+				RequestIDHeader:                   "req-123",
 				CustomHeaderKey("x-trace-header"): "trace-value",
 			}
 
@@ -1981,11 +1981,11 @@ var _ = Describe("VaultController", func() {
 			Expect(vaultController.Token).To(Equal(tokenString))
 			Expect(vaultController.ApiClient).ToNot(BeNil())
 		})
-		It("should use BaseVaultURL when set instead of constructing from Env and ClusterId", func() {
+		It("should use BaseVaultUrl when set instead of constructing from Env and ClusterId", func() {
 			vaultController.Config.Credentials.Token = ""
 			vaultController.Config.Credentials.Path = ""
 			vaultController.Config.Credentials.ApiKey = "test-api-key"
-			vaultController.Config.BaseVaultURL = "https://custom.vault.example.com"
+			vaultController.Config.BaseVaultUrl = "https://custom.vault.example.com"
 
 			err := CreateRequestClient(vaultController, nil)
 			Expect(err).To(BeNil())
@@ -2015,7 +2015,7 @@ var _ = Describe("VaultController", func() {
 			vaultController.Config.Credentials.Path = ""
 			vaultController.Config.Credentials.ApiKey = "test-api-key"
 			vaultController.Config.VaultId = "vault-id"
-			vaultController.Config.BaseVaultURL = ts.URL
+			vaultController.Config.BaseVaultUrl = ts.URL
 			vaultController.CustomHeaders = map[CustomHeaderKey]string{
 				CustomHeaderKey("x-priority"): "controller-value",
 			}
@@ -2158,9 +2158,9 @@ var _ = Describe("DetectController", func() {
 
 				detectController.Config.Env = DEV
 				detectController.Config.ClusterId = "test-cluster"
-                detectController.CustomHeaders = map[CustomHeaderKey]string{
+				detectController.CustomHeaders = map[CustomHeaderKey]string{
 					CustomHeaderKey("x-request-id"): "test-value",
-				}	
+				}
 				err := CreateDetectRequestClient(detectController, nil)
 				Expect(err).ToNot(BeNil())
 			})
@@ -3859,7 +3859,7 @@ var _ = Describe("applyCustomHeaders edge cases", func() {
 				VaultId:      "vault-id",
 				ClusterId:    "cluster-id",
 				Env:          PROD,
-				BaseVaultURL: ts.URL,
+				BaseVaultUrl: ts.URL,
 				Credentials: Credentials{
 					ApiKey: "test-api-key",
 				},
@@ -3917,7 +3917,7 @@ var _ = Describe("applyCustomHeaders edge cases", func() {
 		}))
 		defer ts2.Close()
 
-		vaultCtrl.Config.BaseVaultURL = ts2.URL
+		vaultCtrl.Config.BaseVaultUrl = ts2.URL
 		vaultCtrl.CustomHeaders = map[CustomHeaderKey]string{
 			RequestIDHeader: "my-request-id",
 		}
@@ -3964,7 +3964,7 @@ var _ = Describe("applyCustomHeaders edge cases", func() {
 		}))
 		defer ts2.Close()
 
-		vaultCtrl.Config.BaseVaultURL = ts2.URL
+		vaultCtrl.Config.BaseVaultUrl = ts2.URL
 		vaultCtrl.CustomHeaders = map[CustomHeaderKey]string{
 			RequestIDHeader: "controller-value",
 		}
@@ -3999,7 +3999,7 @@ var _ = Describe("applyCustomHeaders edge cases", func() {
 		}))
 		defer ts2.Close()
 
-		vaultCtrl.Config.BaseVaultURL = ts2.URL
+		vaultCtrl.Config.BaseVaultUrl = ts2.URL
 		vaultCtrl.CustomHeaders = map[CustomHeaderKey]string{
 			CustomHeaderKey("authorization"): "sneaky-token",
 		}
@@ -4030,7 +4030,7 @@ var _ = Describe("applyCustomHeaders edge cases", func() {
 		}))
 		defer ts2.Close()
 
-		vaultCtrl.Config.BaseVaultURL = ts2.URL
+		vaultCtrl.Config.BaseVaultUrl = ts2.URL
 		vaultCtrl.CustomHeaders = map[CustomHeaderKey]string{
 			CustomHeaderKey("AUTHORIZATION"): "sneaky-token",
 		}
@@ -4061,7 +4061,7 @@ var _ = Describe("applyCustomHeaders edge cases", func() {
 		}))
 		defer ts2.Close()
 
-		vaultCtrl.Config.BaseVaultURL = ts2.URL
+		vaultCtrl.Config.BaseVaultUrl = ts2.URL
 		vaultCtrl.CustomHeaders = map[CustomHeaderKey]string{
 			RequestIDHeader: "",
 		}
@@ -4092,7 +4092,7 @@ var _ = Describe("applyCustomHeaders edge cases", func() {
 		}))
 		defer ts2.Close()
 
-		vaultCtrl.Config.BaseVaultURL = ts2.URL
+		vaultCtrl.Config.BaseVaultUrl = ts2.URL
 		// controller sets "x-request-id", request-level sets "X-REQUEST-ID" — both canonicalise to X-Request-Id
 		vaultCtrl.CustomHeaders = map[CustomHeaderKey]string{
 			RequestIDHeader: "from-controller",
@@ -4371,7 +4371,7 @@ var _ = Describe("Custom Headers Tests", func() {
 						},
 						Env:          PROD,
 						ClusterId:    "clusterID",
-						BaseVaultURL: "http://127.0.0.1",
+						BaseVaultUrl: "http://127.0.0.1",
 					},
 					CustomHeaders: customHeaders,
 				}
@@ -4685,8 +4685,8 @@ func setupMockServer(mockResponse map[string]interface{}, status string, path st
 // Missing edge-case tests
 // ---------------------------------------------------------------------------
 
-// 1. Request-level reserved headers (Authorization, sky-metadata) must be blocked
-//    even when supplied as per-request headers (second arg to CreateRequestClient).
+//  1. Request-level reserved headers (Authorization, sky-metadata) must be blocked
+//     even when supplied as per-request headers (second arg to CreateRequestClient).
 var _ = Describe("Request-level reserved header blocking", func() {
 	var vaultCtrl *VaultController
 	var ts *httptest.Server
@@ -4705,7 +4705,7 @@ var _ = Describe("Request-level reserved header blocking", func() {
 				VaultId:      "vault-id",
 				ClusterId:    "cluster-id",
 				Env:          PROD,
-				BaseVaultURL: ts.URL,
+				BaseVaultUrl: ts.URL,
 				Credentials: Credentials{
 					ApiKey: "test-api-key",
 				},
@@ -4867,7 +4867,7 @@ var _ = Describe("Per-request CustomHeaders for remaining operations", func() {
 			}
 			res, err := baseCtrl.Update(ctx, UpdateRequest{
 				Table: "demo",
-				Data:  map[string]interface{}{"skyflow_id": "123", "name": "john"},
+				Data:  map[string]interface{}{"SkyflowId": "123", "name": "john"},
 			}, opts)
 
 			Expect(err).To(BeNil())
@@ -4926,7 +4926,7 @@ var _ = Describe("SkyflowAccountID and SkyflowAccountName constants", func() {
 				VaultId:      "vault-id",
 				ClusterId:    "cluster-id",
 				Env:          PROD,
-				BaseVaultURL: ts.URL,
+				BaseVaultUrl: ts.URL,
 				Credentials: Credentials{
 					ApiKey: "test-api-key",
 				},

@@ -165,8 +165,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			options := common.InsertOptions{}
 
 			err := ValidateInsertRequest(request, options)
-			Expect(err).ToNot(BeNil())
-			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_VALUE_IN_VALUES))
+			Expect(err).To(BeNil())
 		})
 
 		It("should return EMPTY_KEY_IN_VALUES when a key is empty", func() {
@@ -360,7 +359,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 					VaultId:      "id",
 					Env:          common.PROD,
 					Credentials:  validCredentials,
-					BaseVaultURL: "http://demo.com",
+					BaseVaultUrl: "http://demo.com",
 				}
 				err := ValidateVaultConfig(config)
 				Expect(err).To(BeNil())
@@ -380,7 +379,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 					ClusterId:    "cid",
 					Env:          common.PROD,
 					Credentials:  validCredentials,
-					BaseVaultURL: "http://demo.com",
+					BaseVaultUrl: "http://demo.com",
 				}
 				err := ValidateVaultConfig(config)
 				Expect(err).To(BeNil())
@@ -391,7 +390,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 					ClusterId:    "cid",
 					Env:          common.PROD,
 					Credentials:  validCredentials,
-					BaseVaultURL: "htt://demo.com",
+					BaseVaultUrl: "htt://demo.com",
 				}
 				err := ValidateVaultConfig(config)
 				Expect(err).ToNot(BeNil())
@@ -403,7 +402,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 					ClusterId:    "cid",
 					Env:          common.PROD,
 					Credentials:  validCredentials,
-					BaseVaultURL: "====",
+					BaseVaultUrl: "====",
 				}
 				err := ValidateVaultConfig(config)
 				Expect(err).ToNot(BeNil())
@@ -420,7 +419,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 					ClusterId:    "cid",
 					Env:          common.PROD,
 					Credentials:  validCredentials,
-					BaseVaultURL: invalidURL,
+					BaseVaultUrl: invalidURL,
 				}
 				err := ValidateVaultConfig(config)
 				Expect(err).ToNot(BeNil())
@@ -433,7 +432,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 					ClusterId:    "cid",
 					Env:          common.PROD,
 					Credentials:  validCredentials,
-					BaseVaultURL: invalidURL,
+					BaseVaultUrl: invalidURL,
 				}
 				err := ValidateVaultConfig(config)
 				Expect(err).ToNot(BeNil())
@@ -446,7 +445,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 					ClusterId:    "cid",
 					Env:          common.PROD,
 					Credentials:  validCredentials,
-					BaseVaultURL: invalidURL,
+					BaseVaultUrl: invalidURL,
 				}
 				err := ValidateVaultConfig(config)
 				Expect(err).ToNot(BeNil())
@@ -459,7 +458,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 					ClusterId:    "cid",
 					Env:          common.PROD,
 					Credentials:  validCredentials,
-					BaseVaultURL: invalidURL,
+					BaseVaultUrl: invalidURL,
 				}
 				err := ValidateVaultConfig(config)
 				Expect(err).ToNot(BeNil())
@@ -473,7 +472,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 					ClusterId:    "cid",
 					Env:          common.PROD,
 					Credentials:  validCredentials,
-					BaseVaultURL: validURL,
+					BaseVaultUrl: validURL,
 				}
 				err := ValidateVaultConfig(config)
 				Expect(err).To(BeNil())
@@ -485,7 +484,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 					ClusterId:    "cid",
 					Env:          common.PROD,
 					Credentials:  validCredentials,
-					BaseVaultURL: validURL,
+					BaseVaultUrl: validURL,
 				}
 				err := ValidateVaultConfig(config)
 				Expect(err).To(BeNil())
@@ -781,7 +780,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 		})
 	})
 	Context("when validating update requests", func() {
-		var validData = map[string]interface{}{"skyflow_id": "123", "key": "value", "key2": "value2"}
+		var validData = map[string]interface{}{"SkyflowId": "123", "key": "value", "key2": "value2"}
 		It("should return an error if the table is empty", func() {
 			request := common.UpdateRequest{
 				Table:  "",
@@ -797,7 +796,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 		It("should return an error if the id is empty", func() {
 			request := common.UpdateRequest{
 				Table:  "test_table",
-				Data:   map[string]interface{}{"skyflow_id": "", "key": "value"},
+				Data:   map[string]interface{}{"SkyflowId": "", "key": "value"},
 				Tokens: map[string]interface{}{"key": "token"},
 			}
 			options := common.UpdateOptions{}
@@ -832,7 +831,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 		It("should return an error if a data is empty", func() {
 			request := common.UpdateRequest{
 				Table:  "test_table",
-				Data:   map[string]interface{}{"skyflow_id": "123", "key": ""},
+				Data:   map[string]interface{}{"SkyflowId": "123", "key": ""},
 				Tokens: map[string]interface{}{"key": "token"},
 			}
 			options := common.UpdateOptions{}
@@ -844,7 +843,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 		It("should return an error if a key is empty in data", func() {
 			request := common.UpdateRequest{
 				Table:  "test_table",
-				Data:   map[string]interface{}{"skyflow_id": "123", "": "value"},
+				Data:   map[string]interface{}{"SkyflowId": "123", "": "value"},
 				Tokens: map[string]interface{}{"key": "token"},
 			}
 			options := common.UpdateOptions{}
@@ -970,7 +969,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 		It("should return an error for tokens key not exist in values with TokenMode ENABLE", func() {
 			request := common.UpdateRequest{
 				Table:  "test_table",
-				Data:   map[string]interface{}{"skyflow_id": "123", "key": "value", "key2": nil},
+				Data:   map[string]interface{}{"SkyflowId": "123", "key": "value", "key2": nil},
 				Tokens: map[string]interface{}{"key": "value", "key2": "token"},
 			}
 			options := common.UpdateOptions{TokenMode: common.ENABLE}
@@ -982,7 +981,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 		It("should return error if sufficient tokens is not passed for all values object in BYOT ENABLE STRICT mode", func() {
 			request := common.UpdateRequest{
 				Table:  "test_table",
-				Data:   map[string]interface{}{"skyflow_id": "123", "key": "value", "key2": "value2"},
+				Data:   map[string]interface{}{"SkyflowId": "123", "key": "value", "key2": "value2"},
 				Tokens: map[string]interface{}{"key2": "token"},
 			}
 			options := common.UpdateOptions{TokenMode: common.ENABLE_STRICT}
@@ -994,7 +993,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 		It("should not return error if tokens and values count is not equal in BYOT ENABLE mode", func() {
 			request := common.UpdateRequest{
 				Table:  "test_table",
-				Data:   map[string]interface{}{"skyflow_id": "123", "key": "value", "key2": "value2"},
+				Data:   map[string]interface{}{"SkyflowId": "123", "key": "value", "key2": "value2"},
 				Tokens: map[string]interface{}{"key2": "token"},
 			}
 			options := common.UpdateOptions{TokenMode: common.ENABLE}
@@ -1005,7 +1004,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 		It("should return error if tokens and values count is not equal in BYOT ENABLE STRICT mode", func() {
 			request := common.UpdateRequest{
 				Table:  "test_table",
-				Data:   map[string]interface{}{"skyflow_id": "123", "key": "value", "key2": "value2"},
+				Data:   map[string]interface{}{"SkyflowId": "123", "key": "value", "key2": "value2"},
 				Tokens: map[string]interface{}{"key2": "token"},
 			}
 			options := common.UpdateOptions{TokenMode: common.ENABLE_STRICT}
@@ -1741,8 +1740,8 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 
 	Context("ValidateFileUploadRequest", Ordered, func() {
 		var (
-			tempDir      string
-			validFile    string
+			tempDir   string
+			validFile string
 		)
 
 		BeforeAll(func() {

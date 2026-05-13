@@ -362,11 +362,8 @@ func ValidateInsertRequest(request common.InsertRequest, options common.InsertOp
 
 	// Validate each key-value pair in values
 	for _, valueMap := range request.Values {
-		for key, value := range valueMap {
-			if value == nil || value == "" {
-				logger.Error(fmt.Sprintf(logs.EMPTY_OR_NULL_VALUE_IN_VALUES, tag, key))
-				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_VALUE_IN_VALUES)
-			} else if key == "" {
+		for key, _ := range valueMap {
+			if key == "" {
 				logger.Error(fmt.Sprintf(logs.EMPTY_OR_NULL_KEY_IN_VALUES, tag))
 				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_KEY_IN_VALUES)
 			}
@@ -451,7 +448,7 @@ func validateTokenForStrict(tokens map[string]interface{}, values map[string]int
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_TOKENS)
 	}
 	// id will be ignored while comparing length
-	if len(tokens) != len(values) - 1 && mode == common.ENABLE_STRICT {
+	if len(tokens) != len(values)-1 && mode == common.ENABLE_STRICT {
 		logger.Error(fmt.Sprintf(logs.INSUFFICIENT_TOKENS_PASSED_FOR_BYOT_ENABLE_STRICT, tag))
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INSUFFICIENT_TOKENS_PASSED_FOR_BYOT_ENABLE_STRICT)
 	}
@@ -482,14 +479,14 @@ func ValidateVaultConfig(vaultConfig common.VaultConfig) *skyflowError.SkyflowEr
 		logger.Error(logs.VAULT_ID_IS_REQUIRED)
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_VAULT_ID)
 	}
-	if vaultConfig.BaseVaultURL == "" {
+	if vaultConfig.BaseVaultUrl == "" {
 		if vaultConfig.ClusterId == "" {
 			logger.Error(logs.CLUSTER_ID_IS_REQUIRED)
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_CLUSTER_ID)
 		}
 	} else {
 		// Parse the URL
-		isValidHTTPURL := isValidHTTPURL(vaultConfig.BaseVaultURL)
+		isValidHTTPURL := isValidHTTPURL(vaultConfig.BaseVaultUrl)
 		if !isValidHTTPURL {
 			logger.Error(logs.VAULT_URL_IS_INVALID)
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_VAULT_URL)
@@ -531,8 +528,8 @@ func ValidateUpdateConnectionConfig(config common.ConnectionConfig) *skyflowErro
 	if config.ConnectionId == "" {
 		logger.Error(logs.CONNECTION_ID_IS_REQUIRED)
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_CONNECTION_ID)
-	} 
-	
+	}
+
 	if config.ConnectionUrl != "" {
 		_, err := url.Parse(config.ConnectionUrl)
 		if err != nil {
@@ -857,10 +854,10 @@ func ValidateUpdateRequest(request common.UpdateRequest, options common.UpdateOp
 	}
 	return nil
 }
+
 // ValidateFileUploadRequest validates the required fields of FileUploadRequest.
 func ValidateFileUploadRequest(req common.FileUploadRequest) *skyflowError.SkyflowError {
 	tag := "UploadFile"
-
 
 	if strings.TrimSpace(req.Table) == "" {
 		logger.Error(fmt.Sprintf(logs.EMPTY_TABLE, tag))
@@ -911,6 +908,7 @@ func ValidateFileUploadRequest(req common.FileUploadRequest) *skyflowError.Skyfl
 
 	return nil
 }
+
 // ValidateCustomHeaders checks that every key in headers is one of the
 func ValidateCustomHeaders(headers map[common.CustomHeaderKey]string, tag string) *skyflowError.SkyflowError {
 	if headers != nil && len(headers) == 0 {

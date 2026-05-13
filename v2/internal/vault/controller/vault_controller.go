@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+
 	constants "github.com/skyflowapi/skyflow-go/v2/internal/constants"
 	vaultapis "github.com/skyflowapi/skyflow-go/v2/internal/generated"
 	"github.com/skyflowapi/skyflow-go/v2/internal/generated/client"
@@ -36,7 +37,7 @@ func GenerateToken(credentials common.Credentials) (*string, *skyflowError.Skyfl
 	var bearerToken string
 	var options = common.BearerTokenOptions{}
 	if credentials.Roles != nil {
-		options.RoleIDs = credentials.Roles
+		options.RoleIds = credentials.Roles
 	}
 	if credentials.Context != nil {
 		options.Ctx = credentials.Context
@@ -123,8 +124,8 @@ func CreateRequestClient(v *VaultController, requestHeaders map[common.CustomHea
 	header.Set(constants.SDK_METRICS_HEADER_KEY, helpers.CreateJsonMetadata())
 
 	var baseURL string
-	if v.Config.BaseVaultURL != "" {
-		baseURL = v.Config.BaseVaultURL
+	if v.Config.BaseVaultUrl != "" {
+		baseURL = v.Config.BaseVaultUrl
 	} else {
 		baseURL = helpers.GetURLWithEnv(v.Config.Env, v.Config.ClusterId)
 	}
@@ -228,7 +229,7 @@ func (v *VaultController) Insert(ctx context.Context, request common.InsertReque
 			if parseErr != nil {
 				return nil, parseErr
 			}
-			if formattedRecord["skyflow_id"] != nil {
+			if formattedRecord["SkyflowId"] != nil {
 				insertedFields = append(insertedFields, formattedRecord)
 			} else {
 				formattedRecord["RequestId"] = header.Get(constants.REQUEST_KEY)
@@ -542,7 +543,7 @@ func (v *VaultController) Update(ctx context.Context, request common.UpdateReque
 	var updatedField map[string]interface{}
 	updatedField = make(map[string]interface{})
 	updatedField = res
-	updatedField["skyflowId"] = *id
+	updatedField[constants.SKYFLOW_ID] = *id
 	return &common.UpdateResponse{
 		UpdatedField: updatedField,
 		Errors:       nil,

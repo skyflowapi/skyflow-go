@@ -139,8 +139,9 @@ var _ = Describe("Vault controller Test cases", func() {
 				res, insertError := service.Insert(ctx, request, options)
 				Expect(err).To(BeNil())
 				Expect(insertError).To(BeNil())
+				fmt.Println("response ", res.InsertedFields)
 				Expect(len(res.InsertedFields)).To(Equal(1))
-				Expect(res.InsertedFields[0]["skyflow_id"]).To(Equal("skyflowid"))
+				Expect(res.InsertedFields[0]["SkyflowId"]).To(Equal("skyflowid"))
 			})
 		})
 
@@ -614,7 +615,7 @@ var _ = Describe("Vault controller Test cases", func() {
 		Context("Test the success and error case", func() {
 			request := UpdateRequest{
 				Table:  "demo",
-				Data:   map[string]interface{}{"skyflow_id": "123", "name": "john"},
+				Data:   map[string]interface{}{"SkyflowId": "123", "name": "john"},
 				Tokens: nil,
 			}
 			It("should return success response when valid ids passed in Update", func() {
@@ -651,7 +652,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				request.Tokens = map[string]interface{}{"name": "token"}
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[common.CustomHeaderKey]string	) *skyflowError.SkyflowError {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[common.CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client2.NewClient(
 						option.WithBaseURL(ts.URL+"/vaults"),
 						option.WithToken("token"),

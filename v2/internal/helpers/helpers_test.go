@@ -16,6 +16,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	vaultapis "github.com/skyflowapi/skyflow-go/v2/internal/generated"
@@ -33,7 +34,7 @@ func TestController(t *testing.T) {
 var _ = Describe("Helpers", func() {
 	Context("ParseCredentialsFile", func() {
 		It("should parse a valid credentials file successfully", func() {
-			credentialsContent := `{"clientID":"test-client-id", "privateKey":"test-private-key"}`
+			credentialsContent := `{"clientId":"test-client-id", "privateKey":"test-private-key"}`
 			filePath := "test_credentials.json"
 			ioutil.WriteFile(filePath, []byte(credentialsContent), 0644)
 			defer os.Remove(filePath)
@@ -41,7 +42,7 @@ var _ = Describe("Helpers", func() {
 			credKeys, err := ParseCredentialsFile(filePath)
 
 			Expect(err).To(BeNil())
-			Expect(credKeys).To(HaveKeyWithValue("clientID", "test-client-id"))
+			Expect(credKeys).To(HaveKeyWithValue("clientId", "test-client-id"))
 			Expect(credKeys).To(HaveKeyWithValue("privateKey", "test-private-key"))
 		})
 		It("should fail when invalid type of private key is passes", func() {
@@ -201,52 +202,52 @@ MIIBAAIBADANINVALIDKEY==
 		BeforeEach(func() {
 			// Setting up valid and invalid credential maps before each test
 			validCredKeys = map[string]interface{}{
-				"clientID": "validClientID",
-				"tokenURI": "validTokenURI",
-				"keyID":    "validKeyID",
+				"clientId": "validclientId",
+				"tokenUri": "validtokenUri",
+				"keyId":    "validkeyId",
 			}
 			invalidCredKeys = map[string]interface{}{
-				"clientID": "validClientID",
-				// Missing tokenURI
-				"keyID": "validKeyID",
+				"clientId": "validclientId",
+				// Missing tokenUri
+				"keyId": "validkeyId",
 			}
 		})
 
 		Context("When all credential parameters are valid", func() {
-			It("should return clientID, tokenURI, keyID and no error", func() {
-				clientID, tokenURI, keyID, err := GetCredentialParams(validCredKeys)
+			It("should return clientId, tokenUri, keyId and no error", func() {
+				clientId, tokenUri, keyId, err := GetCredentialParams(validCredKeys)
 
-				Expect(clientID).To(Equal("validClientID"))
-				Expect(tokenURI).To(Equal("validTokenURI"))
-				Expect(keyID).To(Equal("validKeyID"))
+				Expect(clientId).To(Equal("validclientId"))
+				Expect(tokenUri).To(Equal("validtokenUri"))
+				Expect(keyId).To(Equal("validkeyId"))
 				Expect(err).To(BeNil())
 			})
 		})
 
 		Context("When one or more credential parameters are missing", func() {
 			It("should return an error", func() {
-				clientID, tokenURI, keyID, err := GetCredentialParams(invalidCredKeys)
+				clientId, tokenUri, keyId, err := GetCredentialParams(invalidCredKeys)
 
-				Expect(clientID).To(BeEmpty())
-				Expect(tokenURI).To(BeEmpty())
-				Expect(keyID).To(BeEmpty())
+				Expect(clientId).To(BeEmpty())
+				Expect(tokenUri).To(BeEmpty())
+				Expect(keyId).To(BeEmpty())
 				Expect(err).ToNot(BeNil())
 				Expect(err.GetCode()).To(Equal("Code: 400"))
-				Expect(err.GetMessage()).To(ContainSubstring(INVALID_CREDENTIALS))
+				Expect(err.GetMessage()).To(ContainSubstring(MISSING_TOKEN_URI))
 			})
 		})
 
 		Context("When all credential parameters are missing", func() {
 			It("should return an error", func() {
 				emptyCredKeys := make(map[string]interface{})
-				clientID, tokenURI, keyID, err := GetCredentialParams(emptyCredKeys)
+				clientId, tokenUri, keyId, err := GetCredentialParams(emptyCredKeys)
 
-				Expect(clientID).To(BeEmpty())
-				Expect(tokenURI).To(BeEmpty())
-				Expect(keyID).To(BeEmpty())
+				Expect(clientId).To(BeEmpty())
+				Expect(tokenUri).To(BeEmpty())
+				Expect(keyId).To(BeEmpty())
 				Expect(err).ToNot(BeNil())
 				Expect(err.GetCode()).To(Equal("Code: 400"))
-				Expect(err.GetMessage()).To(ContainSubstring(INVALID_CREDENTIALS))
+				Expect(err.GetMessage()).To(ContainSubstring(MISSING_CLIENT_ID))
 			})
 		})
 
@@ -262,9 +263,9 @@ MIIBAAIBADANINVALIDKEY==
 		BeforeEach(func() {
 			// Prepare the mock credentials map
 			credKeys = map[string]interface{}{
-				"clientID":   "client_123",
-				"keyID":      "key_456",
-				"tokenURI":   "http://example.com",
+				"clientId":   "client_123",
+				"keyId":      "key_456",
+				"tokenUri":   "http://example.com",
 				"privateKey": "mockPrivateKey", // This should be a mock or a valid private key
 			}
 
@@ -321,7 +322,7 @@ MIIBAAIBADANINVALIDKEY==
 				Expect(response).Should(BeNil())
 				Expect(err).ShouldNot(BeNil())
 				Expect(err.GetCode()).Should(Equal("Code: 400")) // Assuming a 400 error code for this case
-				Expect(err.GetMessage()).Should(ContainSubstring(INVALID_CREDENTIALS))
+				Expect(err.GetMessage()).Should(ContainSubstring(MISSING_CLIENT_ID))
 			})
 		})
 
@@ -394,13 +395,13 @@ MIIBAAIBADANINVALIDKEY==
 			BeforeEach(func() {
 				credKeys = map[string]interface{}{
 					"privateKey": "dummyPrivateKey",
-					"clientID":   "client_123",
-					"tokenURI":   "http://mock-api.com/token",
-					"keyID":      "key_456",
+					"clientId":   "client_123",
+					"tokenUri":   "http://mock-api.com/token",
+					"keyId":      "key_456",
 				}
 				options = common.BearerTokenOptions{
 					Ctx:     "testContext",
-					RoleIDs: []string{"roleid1", "roleid2"},
+					RoleIds: []string{"roleid1", "roleid2"},
 				}
 			})
 
@@ -432,7 +433,7 @@ MIIBAAIBADANINVALIDKEY==
 				It("should return a error", func() {
 					// Set the base URL for the mock server
 					credKeys = getValidCreds()
-					credKeys["tokenURI"] = mockServer.URL
+					credKeys["tokenUri"] = mockServer.URL
 					mockServer = mockserver("err")
 					originalGetBaseURLHelper := GetBaseURLHelper
 
@@ -467,7 +468,7 @@ MIIBAAIBADANINVALIDKEY==
 					Expect(err.GetCode()).Should(Equal("Code: 400"))
 					Expect(err.GetMessage()).Should(ContainSubstring(MISSING_PRIVATE_KEY))
 				})
-				It("should return an error when clientID is missing", func() {
+				It("should return an error when clientId is missing", func() {
 					// Remove privateKey from credKeys to simulate missing key
 					credKeys = getValidCreds()
 					delete(credKeys, "clientID")
@@ -480,7 +481,7 @@ MIIBAAIBADANINVALIDKEY==
 					Expect(err.GetCode()).Should(Equal("Code: 400"))
 					Expect(err.GetMessage()).Should(ContainSubstring(MISSING_CLIENT_ID))
 				})
-				It("should return an error when tokenURI is missing", func() {
+				It("should return an error when tokenUri is missing", func() {
 					// Remove privateKey from credKeys to simulate missing key
 					credKeys = getValidCreds()
 					delete(credKeys, "tokenURI")
@@ -493,7 +494,7 @@ MIIBAAIBADANINVALIDKEY==
 					Expect(err.GetCode()).Should(Equal("Code: 400"))
 					Expect(err.GetMessage()).Should(ContainSubstring(MISSING_TOKEN_URI))
 				})
-				It("should return an error when keyID is missing", func() {
+				It("should return an error when keyId is missing", func() {
 					// Remove privateKey from credKeys to simulate missing key
 					credKeys = getValidCreds()
 					delete(credKeys, "keyID")
@@ -553,7 +554,7 @@ MIIBAAIBADANINVALIDKEY==
 		})
 		Context("GetSkyflowID", func() {
 			It("should return skyflow_id and true if present", func() {
-				m := map[string]interface{}{"skyflow_id": "id123"}
+				m := map[string]interface{}{"SkyflowId": "id123"}
 				id, ok := GetSkyflowID(m)
 				Expect(ok).To(BeTrue())
 				Expect(id).To(Equal("id123"))
@@ -565,7 +566,7 @@ MIIBAAIBADANINVALIDKEY==
 				Expect(id).To(Equal(""))
 			})
 			It("should return empty string and false if skyflow_id is not a string", func() {
-				m := map[string]interface{}{"skyflow_id": 123}
+				m := map[string]interface{}{"SkyflowId": 123}
 				id, ok := GetSkyflowID(m)
 				Expect(ok).To(BeFalse())
 				Expect(id).To(Equal(""))
@@ -694,7 +695,7 @@ MIIBAAIBADANINVALIDKEY==
 				}
 				result, err := GetFormattedBatchInsertRecord(record, 0)
 				Expect(err).To(BeNil())
-				Expect(result).To(HaveKeyWithValue("skyflow_id", "id123"))
+				Expect(result).To(HaveKeyWithValue("SkyflowId", "id123"))
 				Expect(result).To(HaveKeyWithValue("field1", "token1"))
 				Expect(result).To(HaveKeyWithValue("request_index", 0))
 			})

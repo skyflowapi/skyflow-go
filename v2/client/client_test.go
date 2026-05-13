@@ -97,7 +97,7 @@ var _ = Describe("Skyflow Client", func() {
 				VaultId:      "id",
 				ClusterId:    "cluster1",
 				Env:          0,
-				BaseVaultURL: "invalid-url",
+				BaseVaultUrl: "invalid-url",
 			})
 			client, err := NewSkyflow(
 				WithVaults(config...))

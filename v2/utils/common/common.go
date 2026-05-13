@@ -174,7 +174,7 @@ const (
 
 type BearerTokenOptions struct {
 	Ctx      interface{}
-	RoleIDs  []string
+	RoleIds  []string
 	LogLevel logger.LogLevel
 }
 
@@ -193,7 +193,7 @@ type SignedDataTokensResponse struct {
 type VaultConfig struct {
 	VaultId      string
 	ClusterId    string
-	BaseVaultURL string
+	BaseVaultUrl string
 	Env          Env
 	Credentials  Credentials
 }
@@ -392,9 +392,9 @@ const (
 type CustomHeaderKey string
 
 const (
-	SkyflowAccountID        CustomHeaderKey = "x-skyflow-account-id"
-	SkyflowAccountName      CustomHeaderKey = "x-skyflow-account-name"
-	RequestIDHeader         CustomHeaderKey = "x-request-id"
+	SkyflowAccountID   CustomHeaderKey = "x-skyflow-account-id"
+	SkyflowAccountName CustomHeaderKey = "x-skyflow-account-name"
+	RequestIDHeader    CustomHeaderKey = "x-request-id"
 )
 
 type InsertOptions struct {
