@@ -869,11 +869,6 @@ tag := constants.REQUEST_UPLOAD_FILE
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.TABLE_KEY_ERROR)
 	}
 
-	if strings.TrimSpace(req.SkyflowId) == "" {
-		logger.Error(fmt.Sprintf(logs.EMPTY_SKYFLOW_ID, tag))
-		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.SKYFLOW_ID_KEY_ERROR)
-	}
-
 	if strings.TrimSpace(req.ColumnName) == "" {
 		logger.Error(fmt.Sprintf(logs.EMPTY_COLUMN_NAME, tag))
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.COLUMN_NAME_KEY_ERROR)
@@ -918,6 +913,36 @@ tag := constants.REQUEST_UPLOAD_FILE
 
 	return nil
 }
+// ValidateCustomHeaders checks that every key in headers is one of the
+func ValidateCustomHeaders(headers map[common.CustomHeaderKey]string, tag string) *skyflowError.SkyflowError {
+	if headers != nil && len(headers) == 0 {
+		logger.Error(fmt.Sprintf(logs.EMPTY_REQUEST_HEADERS, tag))
+		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_REQUEST_HEADER)
+	}
+	allowedKeys := map[common.CustomHeaderKey]struct{}{
+		common.SkyflowAccountID:   {},
+		common.SkyflowAccountName: {},
+		common.RequestIDHeader:    {},
+	}
+	for key := range headers {
+		if _, ok := allowedKeys[key]; !ok {
+			logger.Error(fmt.Sprintf(logs.INVALID_HEADER_KEY, tag, key))
+			return skyflowError.NewSkyflowError(
+				skyflowError.INVALID_INPUT_CODE,
+				fmt.Sprintf(skyflowError.INVALID_HEADER_KEY, tag, key),
+			)
+		}
+		if strings.TrimSpace(headers[key]) == "" {
+			logger.Error(fmt.Sprintf(logs.EMPTY_OR_NULL_VALUE_IN_HEADERS, tag, key))
+			return skyflowError.NewSkyflowError(
+				skyflowError.INVALID_INPUT_CODE,
+				fmt.Sprintf(skyflowError.EMPTY_OR_NULL_VALUE_IN_HEADERS, tag, key),
+			)
+		}
+	}
+	return nil
+}
+
 func isValidHTTPURL(raw string) bool {
 	u, err := url.Parse(raw)
 	if err != nil {

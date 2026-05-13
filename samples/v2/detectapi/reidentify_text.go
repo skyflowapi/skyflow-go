@@ -58,7 +58,7 @@ func main() {
 				PlainTextEntities: []common.DetectEntities{
 					common.Year, // Entities to keep as plain text in the text
 				},
-			})
+			}, common.ReidentifyTextOptions{})
 			// Step 5: Handle the response and errors.
 			if reidentifyTextErr != nil {
 				fmt.Println("ERROR: ", *reidentifyTextErr)

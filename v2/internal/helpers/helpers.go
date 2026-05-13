@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"context"
+	"bytes"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/base64"
@@ -14,12 +15,14 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"runtime"
 	"time"
 
 	"github.com/skyflowapi/skyflow-go/v2/internal/generated/core"
 
-	"github.com/golang-jwt/jwt"
+	vaultapis "github.com/skyflowapi/skyflow-go/v2/internal/generated"
+	"github.com/golang-jwt/jwt/v4"
 	constants "github.com/skyflowapi/skyflow-go/v2/internal/constants"
 	internal "github.com/skyflowapi/skyflow-go/v2/internal/generated"
 	vaultapis "github.com/skyflowapi/skyflow-go/v2/internal/generated"
@@ -291,7 +294,21 @@ func ParseTokenizeResponse(apiResponse vaultapis.V1TokenizeResponse) *common.Tok
 		Tokens: tokens,
 	}
 }
-func GetFileForFileUpload(request common.FileUploadRequest) (*os.File, error) {
+
+type namedReader struct {
+	*bytes.Reader
+	name string
+}
+
+func (r *namedReader) Name() string {
+	return r.name
+}
+
+func (r *namedReader) Close() error {
+	return nil
+}
+
+func GetFileForFileUpload(request common.FileUploadRequest) (io.ReadCloser, error) {
 	if request.FilePath != "" {
 		file, err := os.Open(request.FilePath)
 		if err != nil {
@@ -304,26 +321,12 @@ func GetFileForFileUpload(request common.FileUploadRequest) (*os.File, error) {
 		if err != nil {
 			return nil, fmt.Errorf(logs.FAILED_TO_DECODE_BASE64, err)
 		}
-		file, err := os.Create(request.FileName)
-		if err != nil {
-			return nil, fmt.Errorf(logs.FAILED_TO_CREATE_FILE, err)
-		}
-		// Write data
-		_, err = file.Write(data)
-		if err != nil {
-			file.Close()
-			return nil, err
-		}
-		// Reset pointer
-		file.Seek(0, io.SeekStart)
-
-		// Remove from disk but keep open
-		os.Remove(request.FileName)
-		return file, nil
+		return &namedReader{
+			Reader: bytes.NewReader(data),
+			name:   request.FileName,
+		}, nil
 	}
-
 	if request.FileObject != (os.File{}) {
-		// make *os.File act as ReadCloser
 		return &request.FileObject, nil
 	}
 	return nil, nil
@@ -358,6 +361,11 @@ func GetCredentialParams(credKeys map[string]interface{}) (string, string, strin
 
 // Generate signed tokens
 func GenerateSignedDataTokensHelper(clientID, keyID string, pvtKey *rsa.PrivateKey, options common.SignedDataTokensOptions, tokenURI string) ([]common.SignedDataTokensResponse, *skyflowError.SkyflowError) {
+	resolvedCtx, ctxErr := ValidateAndResolveCtx(options.Ctx)
+	if ctxErr != nil {
+		return nil, ctxErr
+	}
+
 	var responseArray []common.SignedDataTokensResponse
 	for _, token := range options.DataTokens {
 		claims := jwt.MapClaims{
@@ -509,7 +517,47 @@ func GetBaseURL(urlStr string) (string, *skyflowError.SkyflowError) {
 	baseURL := fmt.Sprintf("%s://%s", parsedUrl.Scheme, parsedUrl.Host)
 	return baseURL, nil
 }
+// ValidateAndResolveCtx validates the ctx value and returns the resolved value for JWT claims.
+// Returns (nil, nil) if ctx should be omitted, (value, nil) if valid, or (nil, error) if invalid.
+var ctxKeyPattern = regexp.MustCompile(constants.CTX_KEY_REGEX)
+
+func ValidateAndResolveCtx(ctx interface{}) (interface{}, *skyflowError.SkyflowError) {
+	if ctx == nil {
+		return nil, nil
+	}
+	switch v := ctx.(type) {
+	case string:
+		if v == "" {
+			return nil, nil
+		}
+		return v, nil
+	case bool:
+		return v, nil
+	case float64:
+		return v, nil
+	case int:
+		return float64(v), nil
+	case map[string]interface{}:
+		if len(v) == 0 {
+			return nil, nil
+		}
+		for key := range v {
+			if !ctxKeyPattern.MatchString(key) {
+				return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE,
+					fmt.Sprintf(skyflowError.INVALID_CTX_MAP_KEY, key))
+			}
+		}
+		return v, nil
+	default:
+		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_CTX_TYPE)
+	}
+}
+
 func GetSignedBearerUserToken(clientID, keyID, tokenURI string, pvtKey *rsa.PrivateKey, options common.BearerTokenOptions) (string, *skyflowError.SkyflowError) {
+	resolvedCtx, ctxErr := ValidateAndResolveCtx(options.Ctx)
+	if ctxErr != nil {
+		return "", ctxErr
+	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
 		constants.JWT_CLAIM_ISS: clientID,
@@ -518,8 +566,8 @@ func GetSignedBearerUserToken(clientID, keyID, tokenURI string, pvtKey *rsa.Priv
 		constants.JWT_CLAIM_SUB: clientID,
 		constants.JWT_CLAIM_EXP: time.Now().Add(60 * time.Minute).Unix(),
 	})
-	if options.Ctx != "" {
-		token.Claims.(jwt.MapClaims)[constants.JWT_CLAIM_CTX] = options.Ctx
+	if resolvedCtx != "" {
+		token.Claims.(jwt.MapClaims)[constants.JWT_CLAIM_CTX] = resolvedCtx
 	}
 	var err error
 	signedToken, err := token.SignedString(pvtKey)
@@ -561,7 +609,7 @@ func GetPrivateKeyFromPem(pemKey string) (*rsa.PrivateKey, *skyflowError.Skyflow
 func CreateJsonMetadata() string {
 	// Create a map to hold the key-value pairs
 	data := map[string]string{
-		constants.SDK_METADATA_KEY_NAME_VERSION: fmt.Sprintf("%s@%s", constants.SDK_NAME, constants.SDK_VERSION),
+		constants.SDK_METADATA_KEY_NAME_VERSION: fmt.Sprintf("%s@%s", constants.METRICS_SDK_NAME, constants.SDK_VERSION),
 		constants.SDK_METADATA_KEY_DEVICE_MODEL: string(runtime.GOOS),
 		constants.SDK_METADATA_KEY_OS_DETAILS:   fmt.Sprintf("%s %s", runtime.GOOS, runtime.GOARCH),
 		constants.SDK_METADATA_KEY_RUNTIME_DETAILS: runtime.Version(),

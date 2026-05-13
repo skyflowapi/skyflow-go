@@ -28,6 +28,15 @@ type DeidentifyTextRequest struct {
 	RestrictRegexList []string
 	Transformations   Transformations
 }
+type DeidentifyTextOptions struct {
+	CustomHeaders map[CustomHeaderKey]string
+}
+type ReidentifyTextOptions struct {
+	CustomHeaders map[CustomHeaderKey]string
+}
+type DeidentifyFileOptions struct {
+	CustomHeaders map[CustomHeaderKey]string
+}
 
 type Transformations struct {
 	ShiftDates DateTransformation
@@ -73,32 +82,32 @@ const (
 type DetectEntities string
 
 const (
-	AccountNumber               DetectEntities = "account_number"
-	Age                         DetectEntities = "age"
-	All                         DetectEntities = "all"
-	BankAccount                 DetectEntities = "bank_account"
-	BloodType                   DetectEntities = "blood_type"
-	Condition                   DetectEntities = "condition"
-	CorporateAction             DetectEntities = "corporate_action"
-	CreditCard                  DetectEntities = "credit_card"
-	CreditCardExpiration        DetectEntities = "credit_card_expiration"
-	Cvv                         DetectEntities = "cvv"
-	Date                        DetectEntities = "date"
-	Day                         DetectEntities = "day"
-	DateInterval                DetectEntities = "date_interval"
-	Dob                         DetectEntities = "dob"
-	Dose                        DetectEntities = "dose"
-	DriverLicense               DetectEntities = "driver_license"
-	Drug                        DetectEntities = "drug"
-	Duration                    DetectEntities = "duration"
-	Effect                      DetectEntities = "effect"
-	EmailAddress                DetectEntities = "email_address"
-	Event                       DetectEntities = "event"
-	Filename                    DetectEntities = "filename"
-	FinancialMetric             DetectEntities = "financial_metric"
-	Gender                      DetectEntities = "gender"
-	HealthcareNumber            DetectEntities = "healthcare_number"
-	Injury                      DetectEntities = "injury"
+	AccountNumber        DetectEntities = "account_number"
+	Age                  DetectEntities = "age"
+	All                  DetectEntities = "all"
+	BankAccount          DetectEntities = "bank_account"
+	BloodType            DetectEntities = "blood_type"
+	Condition            DetectEntities = "condition"
+	CorporateAction      DetectEntities = "corporate_action"
+	CreditCard           DetectEntities = "credit_card"
+	CreditCardExpiration DetectEntities = "credit_card_expiration"
+	Cvv                  DetectEntities = "cvv"
+	Date                 DetectEntities = "date"
+	Day                  DetectEntities = "day"
+	DateInterval         DetectEntities = "date_interval"
+	Dob                  DetectEntities = "dob"
+	Dose                 DetectEntities = "dose"
+	DriverLicense        DetectEntities = "driver_license"
+	Drug                 DetectEntities = "drug"
+	Duration             DetectEntities = "duration"
+	Effect               DetectEntities = "effect"
+	EmailAddress         DetectEntities = "email_address"
+	Event                DetectEntities = "event"
+	Filename             DetectEntities = "filename"
+	FinancialMetric      DetectEntities = "financial_metric"
+	Gender               DetectEntities = "gender"
+	HealthcareNumber     DetectEntities = "healthcare_number"
+	Injury               DetectEntities = "injury"
 	//revive:disable-next-line:var-naming
 	IpAddress                   DetectEntities = "ip_address"
 	Language                    DetectEntities = "language"
@@ -164,7 +173,7 @@ const (
 )
 
 type BearerTokenOptions struct {
-	Ctx      string
+	Ctx      interface{}
 	RoleIDs  []string
 	LogLevel logger.LogLevel
 }
@@ -172,7 +181,7 @@ type BearerTokenOptions struct {
 type SignedDataTokensOptions struct {
 	DataTokens []string
 	TimeToLive int
-	Ctx        string
+	Ctx        interface{}
 	LogLevel   logger.LogLevel
 }
 
@@ -182,17 +191,17 @@ type SignedDataTokensResponse struct {
 }
 
 type VaultConfig struct {
-	VaultId     string
-	ClusterId   string
+	VaultId      string
+	ClusterId    string
 	BaseVaultURL string
-	Env         Env
-	Credentials Credentials
+	Env          Env
+	Credentials  Credentials
 }
 
 type Credentials struct {
 	Path              string
 	Roles             []string
-	Context           string
+	Context           interface{}
 	CredentialsString string
 	Token             string
 	ApiKey            string
@@ -233,10 +242,10 @@ const (
 )
 
 type DeidentifyTextResponse struct {
-	ProcessedText  string
-	Entities       []EntityInfo
-	WordCount      int
-	CharCount int
+	ProcessedText string
+	Entities      []EntityInfo
+	WordCount     int
+	CharCount     int
 }
 
 type EntityInfo struct {
@@ -325,6 +334,9 @@ type DeidentifyFileResponse struct {
 type GetDetectRunRequest struct {
 	RunId string
 }
+type GetDetectRunOptions struct {
+	CustomHeaders map[CustomHeaderKey]string
+}
 
 func (m RequestMethod) IsValid() bool {
 	validMethods := []RequestMethod{
@@ -379,6 +391,14 @@ const (
 	REDACTED   RedactionType = "REDACTED"
 )
 
+type CustomHeaderKey string
+
+const (
+	SkyflowAccountID        CustomHeaderKey = "x-skyflow-account-id"
+	SkyflowAccountName      CustomHeaderKey = "x-skyflow-account-name"
+	RequestIDHeader         CustomHeaderKey = "x-request-id"
+)
+
 type InsertOptions struct {
 	ReturnTokens    bool
 	Upsert          string
@@ -386,6 +406,7 @@ type InsertOptions struct {
 	TokenMode       BYOT
 	ContinueOnError bool
 	Tokens          []map[string]interface{}
+	CustomHeaders   map[CustomHeaderKey]string
 }
 
 type InsertRequest struct {
@@ -406,9 +427,11 @@ type DetokenizeData struct {
 	Token         string
 	RedactionType RedactionType
 }
+
 type DetokenizeOptions struct {
 	ContinueOnError bool
 	DownloadURL     bool
+	CustomHeaders   map[CustomHeaderKey]string
 }
 
 type DetokenizeRecordResponse struct {
@@ -427,7 +450,10 @@ type DetokenizeResponse struct {
 type DeleteRequest struct {
 	Table string
 	//revive:disable-next-line:var-naming
-	Ids   []string
+	Ids []string
+}
+type DeleteOptions struct {
+	CustomHeaders map[CustomHeaderKey]string
 }
 
 type DeleteResponse struct {
@@ -443,19 +469,20 @@ type UpdateRequest struct {
 	Tokens map[string]interface{}
 }
 type UpdateOptions struct {
-	ReturnTokens bool
-	TokenMode    BYOT
+	ReturnTokens  bool
+	TokenMode     BYOT
+	CustomHeaders map[CustomHeaderKey]string
 }
 type UpdateResponse struct {
 	// Response fields
-	UpdatedField map[string]interface{} 
+	UpdatedField map[string]interface{}
 	Errors       []map[string]interface{}
 }
 
 type GetRequest struct {
 	Table string
 	//revive:disable-next-line:var-naming
-	Ids   []string
+	Ids []string
 }
 type GetOptions struct {
 	RedactionType RedactionType
@@ -467,6 +494,7 @@ type GetOptions struct {
 	ColumnName    string
 	ColumnValues  []string
 	OrderBy       OrderByEnum
+	CustomHeaders map[CustomHeaderKey]string
 }
 
 type GetResponse struct {
@@ -478,12 +506,21 @@ type GetResponse struct {
 type QueryRequest struct {
 	Query string
 }
+type QueryOptions struct {
+	CustomHeaders map[CustomHeaderKey]string
+}
+type TokenizeOptions struct {
+	CustomHeaders map[CustomHeaderKey]string
+}
+type FileUploadOptions struct {
+	CustomHeaders map[CustomHeaderKey]string
+}
 type TokenizeRequest struct {
 	ColumnGroup string
 	Value       string
 }
 type FileUploadRequest struct {
-	Table  string
+	Table      string
 	SkyflowId  string
 	ColumnName string
 	FilePath   string
@@ -494,7 +531,7 @@ type FileUploadRequest struct {
 
 type FileUploadResponse struct {
 	SkyflowId string
-	Errors  []map[string]interface{}
+	Errors    []map[string]interface{}
 }
 
 type TokenizeResponse struct {
@@ -502,6 +539,6 @@ type TokenizeResponse struct {
 	Errors []map[string]interface{}
 }
 type QueryResponse struct {
-	Fields        []map[string]interface{}
-	Errors        []map[string]interface{}
+	Fields []map[string]interface{}
+	Errors []map[string]interface{}
 }

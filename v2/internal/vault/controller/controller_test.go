@@ -14,7 +14,9 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
+	jwt "github.com/golang-jwt/jwt/v4"
 	"github.com/skyflowapi/skyflow-go/v2/internal/generated/option"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -77,8 +79,8 @@ var _ = Describe("Vault controller Test cases", func() {
 		)
 
 		BeforeEach(func() {
-			customHeader := make(map[string]string)
-			customHeader["x-custom-header"] = "custom-header-value"
+			customHeader := make(map[CustomHeaderKey]string)
+			customHeader[RequestIDHeader] = "custom-header-value"
 			response = make(map[string]interface{})
 			ts = nil
 			contrl = VaultController{
@@ -90,7 +92,7 @@ var _ = Describe("Vault controller Test cases", func() {
 						ApiKey: "sky-token",
 					},
 				},
-			CustomHeaders: customHeader,
+				CustomHeaders: customHeader,
 			}
 		})
 
@@ -108,10 +110,10 @@ var _ = Describe("Vault controller Test cases", func() {
 				ts = setupMockServer(response, "ok", "/vaults/v1/vaults/")
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
-					if (v.CustomHeaders != nil ) {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
+					if v.CustomHeaders != nil {
 						for key, value := range v.CustomHeaders {
-							header.Set(key, value)
+							header.Set(string(key), value)
 						}
 					}
 					client := client.NewClient(
@@ -176,7 +178,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				// Set the mock server URL in the controller's client
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client.NewClient(
 						option.WithBaseURL(ts.URL+"/vaults"),
 						option.WithToken("token"),
@@ -241,6 +243,52 @@ var _ = Describe("Vault controller Test cases", func() {
 				Expect(res).To(BeNil(), "Expected no response due to error in insert operation")
 			})
 
+			It("should return error when custom headers map is empty in Insert", func() {
+				request := InsertRequest{
+					Table:  "test_table",
+					Values: []map[string]interface{}{{"field1": "value1"}},
+				}
+				options := InsertOptions{
+					CustomHeaders: make(map[CustomHeaderKey]string),
+				}
+				ctx := context.Background()
+				res, err := contrl.Insert(ctx, request, options)
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
+			})
+
+			It("should return error when custom headers has invalid key in Insert", func() {
+				request := InsertRequest{
+					Table:  "test_table",
+					Values: []map[string]interface{}{{"field1": "value1"}},
+				}
+				options := InsertOptions{
+					CustomHeaders: map[CustomHeaderKey]string{
+						CustomHeaderKey("x-invalid-header"): "value",
+					},
+				}
+				ctx := context.Background()
+				res, err := contrl.Insert(ctx, request, options)
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
+			})
+
+			It("should return error when custom headers has empty value in Insert", func() {
+				request := InsertRequest{
+					Table:  "test_table",
+					Values: []map[string]interface{}{{"field1": "value1"}},
+				}
+				options := InsertOptions{
+					CustomHeaders: map[CustomHeaderKey]string{
+						SkyflowAccountID: "",
+					},
+				}
+				ctx := context.Background()
+				res, err := contrl.Insert(ctx, request, options)
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
+			})
+
 		})
 		Context("Insert with ContinueOnError True - Partial Error Case", func() {
 			It("should return partial success and error fields", func() {
@@ -270,7 +318,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				// Set the mock server URL in the controller's client
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client.NewClient(
 						option.WithBaseURL(ts.URL+"/vaults"),
 						option.WithToken("token"),
@@ -330,7 +378,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				ts = setupMockServer(response, "ok", "/vaults/v1/vaults/")
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client.NewClient(
 						option.WithBaseURL(ts.URL+"/vaults"),
 						option.WithToken("token"),
@@ -379,7 +427,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				// Set the mock server URL in the controller's client
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client.NewClient(
 						option.WithBaseURL(ts.URL+"/vaults"),
 						option.WithToken("token"),
@@ -440,7 +488,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				defer ts.Close()
 
 				// Set the mock server URL in the controller's client
-				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					return skyflowError.NewSkyflowError("code", "error occurred in api")
 				}
 
@@ -468,8 +516,8 @@ var _ = Describe("Vault controller Test cases", func() {
 					Credentials: Credentials{
 						ApiKey: "sky-token",
 					},
-					Env:       PROD,
-					ClusterId: "clusterID",
+					Env:          PROD,
+					ClusterId:    "clusterID",
 					BaseVaultURL: "http://127.0.0.1",
 				},
 			}
@@ -498,7 +546,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				// Set the mock server URL in the controller's client
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client.NewClient(
 						option.WithBaseURL(ts.URL+"/vaults"),
 						option.WithToken("token"),
@@ -528,7 +576,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				// Set the mock server URL in the controller's client
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client.NewClient(
 						option.WithBaseURL(ts.URL+"/vaults"),
 						option.WithToken("token"),
@@ -570,7 +618,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				// Set the mock server URL in the controller's client
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client.NewClient(
 						option.WithBaseURL(ts.URL+"/vaults"),
 						option.WithToken("token"),
@@ -587,7 +635,7 @@ var _ = Describe("Vault controller Test cases", func() {
 			})
 			It("should return error while creating client in detokenize", func() {
 				ctx = context.Background()
-				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "error occurred in client fucntion")
 				}
 				// Call the Detokenize function
@@ -598,12 +646,43 @@ var _ = Describe("Vault controller Test cases", func() {
 			})
 			It("should return error in get token while calling in detokenize", func() {
 				ctx = context.Background()
-				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "error occurred in client fucntion")
 				}
 				// Call the Detokenize function
 				res, err := vaultController.Detokenize(ctx, request, options)
 				// Validate the response
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
+			})
+
+			It("should return error when custom headers map is empty in Detokenize", func() {
+				opts := DetokenizeOptions{
+					CustomHeaders: make(map[CustomHeaderKey]string),
+				}
+				res, err := vaultController.Detokenize(ctx, request, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
+			})
+
+			It("should return error when custom headers has invalid key in Detokenize", func() {
+				opts := DetokenizeOptions{
+					CustomHeaders: map[CustomHeaderKey]string{
+						CustomHeaderKey("x-invalid-header"): "value",
+					},
+				}
+				res, err := vaultController.Detokenize(ctx, request, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
+			})
+
+			It("should return error when custom headers has empty value in Detokenize", func() {
+				opts := DetokenizeOptions{
+					CustomHeaders: map[CustomHeaderKey]string{
+						SkyflowAccountID: "",
+					},
+				}
+				res, err := vaultController.Detokenize(ctx, request, opts)
 				Expect(err).ToNot(BeNil())
 				Expect(res).To(BeNil())
 			})
@@ -643,7 +722,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				// Set the mock server URL in the controller's client
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client.NewClient(
 						option.WithBaseURL(ts.URL+"/vaults"),
 						option.WithToken("token"),
@@ -666,7 +745,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				// Set the mock server URL in the controller's client
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client.NewClient(
 						option.WithBaseURL(ts.URL+"/vaults"),
 						option.WithToken("token"),
@@ -681,7 +760,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				Expect(err).ToNot(BeNil())
 			})
 			It("should return error client creation step Get", func() {
-				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "error occurred in client fucntion")
 				}
 				res, err := vaultController.Get(ctx, request, options)
@@ -704,7 +783,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				// Set the mock server URL in the controller's client
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client.NewClient(
 						option.WithBaseURL(ts.URL+"/vaults"),
 						option.WithToken("token"),
@@ -716,6 +795,43 @@ var _ = Describe("Vault controller Test cases", func() {
 				res, err := vaultController.Get(ctx, request, options)
 				Expect(err).To(BeNil())
 				Expect(res).ToNot(BeNil())
+			})
+
+			It("should return error when custom headers map is empty in Get", func() {
+				req := GetRequest{Table: "table", Ids: []string{"id1"}}
+				opts := GetOptions{
+					RedactionType: REDACTED,
+					CustomHeaders: make(map[CustomHeaderKey]string),
+				}
+				res, err := vaultController.Get(ctx, req, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
+			})
+
+			It("should return error when custom headers has invalid key in Get", func() {
+				req := GetRequest{Table: "table", Ids: []string{"id1"}}
+				opts := GetOptions{
+					RedactionType: REDACTED,
+					CustomHeaders: map[CustomHeaderKey]string{
+						CustomHeaderKey("x-invalid-header"): "value",
+					},
+				}
+				res, err := vaultController.Get(ctx, req, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
+			})
+
+			It("should return error when custom headers has empty value in Get", func() {
+				req := GetRequest{Table: "table", Ids: []string{"id1"}}
+				opts := GetOptions{
+					RedactionType: REDACTED,
+					CustomHeaders: map[CustomHeaderKey]string{
+						SkyflowAccountID: "",
+					},
+				}
+				res, err := vaultController.Get(ctx, req, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
 			})
 		})
 	})
@@ -749,7 +865,7 @@ var _ = Describe("Vault controller Test cases", func() {
 
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client.NewClient(
 						option.WithBaseURL(ts.URL+"/vaults"),
 						option.WithToken("token"),
@@ -759,7 +875,7 @@ var _ = Describe("Vault controller Test cases", func() {
 					return nil
 				}
 
-				res, err := vaultController.Delete(ctx, request)
+				res, err := vaultController.Delete(ctx, request, common.DeleteOptions{})
 				Expect(err).To(BeNil())
 				Expect(res).ToNot(BeNil())
 			})
@@ -772,7 +888,7 @@ var _ = Describe("Vault controller Test cases", func() {
 
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client.NewClient(
 						option.WithBaseURL(ts.URL+"/vaults"),
 						option.WithToken("token"),
@@ -782,24 +898,58 @@ var _ = Describe("Vault controller Test cases", func() {
 					return nil
 				}
 
-				res, err := vaultController.Delete(ctx, request)
+				res, err := vaultController.Delete(ctx, request, common.DeleteOptions{})
 				Expect(res).To(BeNil())
 				Expect(err).ToNot(BeNil())
 			})
 			It("should return error response when invalid data passed in Delete", func() {
 				request.Ids = []string{}
-				res, err := vaultController.Delete(ctx, request)
+				res, err := vaultController.Delete(ctx, request, common.DeleteOptions{})
 				Expect(res).To(BeNil())
 				Expect(err).ToNot(BeNil())
 			})
 
 			It("should return error client creation step Delete", func() {
-				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "error occurred in client fucntion")
 				}
-				res, err := vaultController.Delete(ctx, request)
+				res, err := vaultController.Delete(ctx, request, common.DeleteOptions{})
 				Expect(res).To(BeNil())
 				Expect(err).ToNot(BeNil())
+			})
+
+			It("should return error when custom headers map is empty in Delete", func() {
+				req := DeleteRequest{Table: "table", Ids: []string{"id1"}}
+				opts := common.DeleteOptions{
+					CustomHeaders: make(map[CustomHeaderKey]string),
+				}
+				res, err := vaultController.Delete(ctx, req, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
+			})
+
+			It("should return error when custom headers has invalid key in Delete", func() {
+				req := DeleteRequest{Table: "table", Ids: []string{"id1"}}
+				opts := common.DeleteOptions{
+					CustomHeaders: map[CustomHeaderKey]string{
+						CustomHeaderKey("x-invalid-header"): "value",
+					},
+				}
+				res, err := vaultController.Delete(ctx, req, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
+			})
+
+			It("should return error when custom headers has empty value in Delete", func() {
+				req := DeleteRequest{Table: "table", Ids: []string{"id1"}}
+				opts := common.DeleteOptions{
+					CustomHeaders: map[CustomHeaderKey]string{
+						SkyflowAccountID: "",
+					},
+				}
+				res, err := vaultController.Delete(ctx, req, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
 			})
 		})
 	})
@@ -833,7 +983,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				// Set the mock server URL in the controller's client
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client.NewClient(
 						option.WithBaseURL(ts.URL+"/vaults"),
 						option.WithToken("token"),
@@ -842,7 +992,7 @@ var _ = Describe("Vault controller Test cases", func() {
 					v.ApiClient = *client
 					return nil
 				}
-				res, err := vaultController.Query(ctx, request)
+				res, err := vaultController.Query(ctx, request, common.QueryOptions{})
 				Expect(err).To(BeNil())
 				Expect(res).ToNot(BeNil())
 			})
@@ -856,7 +1006,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				// Set the mock server URL in the controller's client
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client.NewClient(
 						option.WithBaseURL(ts.URL+"/vaults"),
 						option.WithToken("token"),
@@ -866,24 +1016,58 @@ var _ = Describe("Vault controller Test cases", func() {
 					return nil
 				}
 
-				res, err := vaultController.Query(ctx, request)
+				res, err := vaultController.Query(ctx, request, common.QueryOptions{})
 				Expect(res).To(BeNil())
 				Expect(err).ToNot(BeNil())
 			})
 			It("should return error response when invalid data passed in Query", func() {
 				request.Query = ""
-				res, err := vaultController.Query(ctx, request)
+				res, err := vaultController.Query(ctx, request, common.QueryOptions{})
 				Expect(res).To(BeNil())
 				Expect(err).ToNot(BeNil())
 			})
 
 			It("should return error client creation step Query", func() {
-				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "error occurred in client fucntion")
 				}
-				res, err := vaultController.Query(ctx, request)
+				res, err := vaultController.Query(ctx, request, common.QueryOptions{})
 				Expect(res).To(BeNil())
 				Expect(err).ToNot(BeNil())
+			})
+
+			It("should return error when custom headers map is empty in Query", func() {
+				req := QueryRequest{Query: "SELECT * FROM persons WHERE skyflow_id='id'"}
+				opts := common.QueryOptions{
+					CustomHeaders: make(map[CustomHeaderKey]string),
+				}
+				res, err := vaultController.Query(ctx, req, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
+			})
+
+			It("should return error when custom headers has invalid key in Query", func() {
+				req := QueryRequest{Query: "SELECT * FROM persons WHERE skyflow_id='id'"}
+				opts := common.QueryOptions{
+					CustomHeaders: map[CustomHeaderKey]string{
+						CustomHeaderKey("x-invalid-header"): "value",
+					},
+				}
+				res, err := vaultController.Query(ctx, req, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
+			})
+
+			It("should return error when custom headers has empty value in Query", func() {
+				req := QueryRequest{Query: "SELECT * FROM persons WHERE skyflow_id='id'"}
+				opts := common.QueryOptions{
+					CustomHeaders: map[CustomHeaderKey]string{
+						SkyflowAccountID: "",
+					},
+				}
+				res, err := vaultController.Query(ctx, req, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
 			})
 		})
 	})
@@ -918,7 +1102,7 @@ var _ = Describe("Vault controller Test cases", func() {
 
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client.NewClient(
 						option.WithBaseURL(ts.URL+"/vaults"),
 						option.WithToken("token"),
@@ -945,7 +1129,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				request.Tokens = map[string]interface{}{"name": "token"}
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client.NewClient(
 						option.WithBaseURL(ts.URL+"/vaults"),
 						option.WithToken("token"),
@@ -968,12 +1152,58 @@ var _ = Describe("Vault controller Test cases", func() {
 			})
 
 			It("should return error client creation step Update", func() {
-				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "error occurred in client fucntion")
 				}
 				res, err := vaultController.Update(ctx, request, UpdateOptions{ReturnTokens: true, TokenMode: ENABLE_STRICT})
 				Expect(res).To(BeNil())
 				Expect(err).ToNot(BeNil())
+			})
+
+			It("should return error when custom headers map is empty in Update", func() {
+				req := UpdateRequest{
+					Table: "demo",
+					Data:  map[string]interface{}{"skyflow_id": "123", "name": "john"},
+				}
+				opts := UpdateOptions{
+					TokenMode:     DISABLE,
+					CustomHeaders: make(map[CustomHeaderKey]string),
+				}
+				res, err := vaultController.Update(ctx, req, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
+			})
+
+			It("should return error when custom headers has invalid key in Update", func() {
+				req := UpdateRequest{
+					Table: "demo",
+					Data:  map[string]interface{}{"skyflow_id": "123", "name": "john"},
+				}
+				opts := UpdateOptions{
+					TokenMode: DISABLE,
+					CustomHeaders: map[CustomHeaderKey]string{
+						CustomHeaderKey("x-invalid-header"): "value",
+					},
+				}
+				res, err := vaultController.Update(ctx, req, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
+			})
+
+			It("should return error when custom headers has empty value in Update", func() {
+				req := UpdateRequest{
+					Table: "demo",
+					Data:  map[string]interface{}{"skyflow_id": "123", "name": "john"},
+				}
+				opts := UpdateOptions{
+					TokenMode: DISABLE,
+					CustomHeaders: map[CustomHeaderKey]string{
+						SkyflowAccountID: "",
+					},
+				}
+				res, err := vaultController.Update(ctx, req, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
 			})
 		})
 	})
@@ -1009,7 +1239,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				// Set the mock server URL in the controller's client
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client.NewClient(
 						option.WithBaseURL(ts.URL+"/vaults"),
 						option.WithToken("token"),
@@ -1019,7 +1249,7 @@ var _ = Describe("Vault controller Test cases", func() {
 					return nil
 				}
 
-				res, err := vaultController.Tokenize(ctx, arrReq)
+				res, err := vaultController.Tokenize(ctx, arrReq, common.TokenizeOptions{})
 				Expect(err).To(BeNil())
 				Expect(res).ToNot(BeNil())
 			})
@@ -1032,7 +1262,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				// Set the mock server URL in the controller's client
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client.NewClient(
 						option.WithBaseURL(ts.URL+"/vaults"),
 						option.WithToken("token"),
@@ -1041,24 +1271,58 @@ var _ = Describe("Vault controller Test cases", func() {
 					v.ApiClient = *client
 					return nil
 				}
-				res, err := vaultController.Tokenize(ctx, arrReq)
+				res, err := vaultController.Tokenize(ctx, arrReq, common.TokenizeOptions{})
 				Expect(res).To(BeNil())
 				Expect(err).ToNot(BeNil())
 			})
 			It("should return error response when validations failed for invalid data passedin Tokenize", func() {
 				arrReq = append(arrReq, TokenizeRequest{})
-				res, err := vaultController.Tokenize(ctx, arrReq)
+				res, err := vaultController.Tokenize(ctx, arrReq, common.TokenizeOptions{})
 				Expect(res).To(BeNil())
 				Expect(err).ToNot(BeNil())
 			})
 
 			It("should return error client creation step Tokenize", func() {
-				CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "error occurred in client fucntion")
 				}
-				res, err := vaultController.Tokenize(ctx, arrReq)
+				res, err := vaultController.Tokenize(ctx, arrReq, common.TokenizeOptions{})
 				Expect(res).To(BeNil())
 				Expect(err).ToNot(BeNil())
+			})
+
+			It("should return error when custom headers map is empty in Tokenize", func() {
+				req := []TokenizeRequest{{ColumnGroup: "group_name", Value: "41111111111111"}}
+				opts := common.TokenizeOptions{
+					CustomHeaders: make(map[CustomHeaderKey]string),
+				}
+				res, err := vaultController.Tokenize(ctx, req, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
+			})
+
+			It("should return error when custom headers has invalid key in Tokenize", func() {
+				req := []TokenizeRequest{{ColumnGroup: "group_name", Value: "41111111111111"}}
+				opts := common.TokenizeOptions{
+					CustomHeaders: map[CustomHeaderKey]string{
+						CustomHeaderKey("x-invalid-header"): "value",
+					},
+				}
+				res, err := vaultController.Tokenize(ctx, req, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
+			})
+
+			It("should return error when custom headers has empty value in Tokenize", func() {
+				req := []TokenizeRequest{{ColumnGroup: "group_name", Value: "41111111111111"}}
+				opts := common.TokenizeOptions{
+					CustomHeaders: map[CustomHeaderKey]string{
+						SkyflowAccountID: "",
+					},
+				}
+				res, err := vaultController.Tokenize(ctx, req, opts)
+				Expect(err).ToNot(BeNil())
+				Expect(res).To(BeNil())
 			})
 		})
 	})
@@ -1089,7 +1353,7 @@ var _ = Describe("Vault controller Test cases", func() {
 			// Set the mock server URL in the controller's client
 			header := http.Header{}
 			header.Set("Content-Type", "application/json")
-			CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+			CreateRequestClientFunc = func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 				client := client.NewClient(
 					option.WithBaseURL(ts.URL+"/vaults"),
 					option.WithToken("token"),
@@ -1105,7 +1369,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				SkyflowId:  "skyflowid",
 			}
 
-			res, err := vaultController.UploadFile(ctx, request)
+			res, err := vaultController.UploadFile(ctx, request, common.FileUploadOptions{})
 			Expect(err).To(BeNil())
 			Expect(res).ToNot(BeNil())
 			Expect(res.SkyflowId).To(Equal("id"))
@@ -1120,7 +1384,7 @@ var _ = Describe("Vault controller Test cases", func() {
 			// Set the mock server URL in the controller's client
 			header := http.Header{}
 			header.Set("Content-Type", "application/json")
-			CreateRequestClientFunc = func(v *VaultController) *skyflowError.SkyflowError {
+			CreateRequestClientFunc = func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 				client := client.NewClient(
 					option.WithBaseURL(ts.URL+"/vaults"),
 					option.WithToken("token"),
@@ -1136,7 +1400,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				SkyflowId:  "skyflowid",
 			}
 
-			res, err := vaultController.UploadFile(ctx, request)
+			res, err := vaultController.UploadFile(ctx, request, common.FileUploadOptions{})
 			Expect(res).To(BeNil())
 			Expect(err).ToNot(BeNil())
 			Expect(err.GetMessage()).To(Equal("Message: error occurred"))
@@ -1150,10 +1414,62 @@ var _ = Describe("Vault controller Test cases", func() {
 				SkyflowId:  "skyflowid",
 			}
 
-			res, err := vaultController.UploadFile(ctx, request)
+			res, err := vaultController.UploadFile(ctx, request, common.FileUploadOptions{})
 			Expect(res).To(BeNil())
 			Expect(err).ToNot(BeNil())
 			Expect(err.GetMessage()).To(ContainSubstring(skyflowError.MISSING_FILE_SOURCE_IN_UPLOAD_FILE))
+		})
+
+		It("should return error when custom headers map is empty in UploadFile", func() {
+			request := common.FileUploadRequest{
+				Table:      "table",
+				ColumnName: "column",
+				Base64:     "dGVzdA==",
+				FileName:   "test.txt",
+				SkyflowId:  "skyflowid",
+			}
+			opts := common.FileUploadOptions{
+				CustomHeaders: make(map[CustomHeaderKey]string),
+			}
+			res, err := vaultController.UploadFile(ctx, request, opts)
+			Expect(err).ToNot(BeNil())
+			Expect(res).To(BeNil())
+		})
+
+		It("should return error when custom headers has invalid key in UploadFile", func() {
+			request := common.FileUploadRequest{
+				Table:      "table",
+				ColumnName: "column",
+				Base64:     "dGVzdA==",
+				FileName:   "test.txt",
+				SkyflowId:  "skyflowid",
+			}
+			opts := common.FileUploadOptions{
+				CustomHeaders: map[CustomHeaderKey]string{
+					CustomHeaderKey("x-invalid-header"): "value",
+				},
+			}
+			res, err := vaultController.UploadFile(ctx, request, opts)
+			Expect(err).ToNot(BeNil())
+			Expect(res).To(BeNil())
+		})
+
+		It("should return error when custom headers has empty value in UploadFile", func() {
+			request := common.FileUploadRequest{
+				Table:      "table",
+				ColumnName: "column",
+				Base64:     "dGVzdA==",
+				FileName:   "test.txt",
+				SkyflowId:  "skyflowid",
+			}
+			opts := common.FileUploadOptions{
+				CustomHeaders: map[CustomHeaderKey]string{
+					SkyflowAccountID: "",
+				},
+			}
+			res, err := vaultController.UploadFile(ctx, request, opts)
+			Expect(err).ToNot(BeNil())
+			Expect(res).To(BeNil())
 		})
 	})
 })
@@ -3504,7 +3820,7 @@ var _ = Describe("VaultController", func() {
 			err := SetBearerTokenForVaultController(vaultController)
 			Expect(err).ToNot(BeNil())
 		})
-	   It("should generate token if apikey string is provided", func() {
+		It("should generate token if apikey string is provided", func() {
 			vaultController.Token = ""
 			vaultController.Config.Credentials.Path = ""
 			vaultController.Config.Credentials.ApiKey = os.Getenv("API_KEY")
@@ -3547,7 +3863,7 @@ var _ = Describe("VaultController", func() {
 			vaultController.Config.Env = DEV
 			vaultController.Config.ClusterId = "test-cluster"
 
-			err := CreateRequestClient(vaultController)
+			err := CreateRequestClient(vaultController, map[CustomHeaderKey]string{})
 			Expect(err).To(BeNil())
 			Expect(vaultController.ApiClient).ToNot(BeNil())
 		})
@@ -3561,7 +3877,7 @@ var _ = Describe("VaultController", func() {
 			vaultController.Config.Env = DEV
 			vaultController.Config.ClusterId = "test-cluster"
 
-			err := CreateRequestClient(vaultController)
+			err := CreateRequestClient(vaultController, map[CustomHeaderKey]string{})
 			Expect(err).To(BeNil())
 			Expect(vaultController.ApiClient).ToNot(BeNil())
 		})
@@ -3575,12 +3891,12 @@ var _ = Describe("VaultController", func() {
 			vaultController.Config.Env = DEV
 			vaultController.Config.ClusterId = "test-cluster"
 
-			err := CreateRequestClient(vaultController)
+			err := CreateRequestClient(vaultController, map[CustomHeaderKey]string{})
 			Expect(err).ToNot(BeNil())
 		})
 		It("should return an error if the token is expired", func() {
 			vaultController.Config.Credentials.Token = os.Getenv("EXPIRED_TOKEN")
-			err := CreateRequestClient(vaultController)
+			err := CreateRequestClient(vaultController, map[CustomHeaderKey]string{})
 			Expect(err).ToNot(BeNil())
 			Expect(err.GetCode()).To(Equal(fmt.Sprintf("Code: %v", skyflowError.INVALID_INPUT_CODE)))
 			vaultController.Config.Credentials.Token = os.Getenv("EXPIRED_TOKEN")
@@ -3589,7 +3905,7 @@ var _ = Describe("VaultController", func() {
 			err1 := SetBearerTokenForVaultController(vaultController)
 			Expect(err1).To(BeNil())
 
-			err2 := CreateRequestClient(vaultController)
+			err2 := CreateRequestClient(vaultController, map[CustomHeaderKey]string{})
 			Expect(err2).ToNot(BeNil())
 			Expect(err2.GetCode()).To(Equal(fmt.Sprintf("Code: %v", skyflowError.INVALID_INPUT_CODE)))
 
@@ -3600,9 +3916,128 @@ var _ = Describe("VaultController", func() {
 			vaultController.Config.Credentials.Path = ""
 			vaultController.Config.Credentials.ApiKey = "test-api-key"
 
-			err := CreateRequestClient(vaultController)
+			err := CreateRequestClient(vaultController, map[CustomHeaderKey]string{})
 			Expect(err).To(BeNil())
 			//Expect(vaultController.Token).To(Equal(vaultController.Config.Credentials.ApiKey))
+		})
+		It("should apply controller-level CustomHeaders when set", func() {
+			vaultController.Config.Credentials.Token = ""
+			vaultController.Config.Credentials.Path = ""
+			vaultController.Config.Credentials.ApiKey = "test-api-key"
+			vaultController.CustomHeaders = map[CustomHeaderKey]string{
+				CustomHeaderKey("x-custom-header"): "custom-value",
+				CustomHeaderKey("x-api-version"):   "v1",
+			}
+
+			err := CreateRequestClient(vaultController, nil)
+			Expect(err).To(BeNil())
+			Expect(vaultController.ApiClient).ToNot(BeNil())
+		})
+		It("should apply request-level headers when provided", func() {
+			vaultController.Config.Credentials.Token = ""
+			vaultController.Config.Credentials.Path = ""
+			vaultController.Config.Credentials.ApiKey = "test-api-key"
+
+			requestHeaders := map[CustomHeaderKey]string{
+				RequestIDHeader:                    "req-123",
+				CustomHeaderKey("x-trace-header"): "trace-value",
+			}
+
+			err := CreateRequestClient(vaultController, requestHeaders)
+			Expect(err).To(BeNil())
+			Expect(vaultController.ApiClient).ToNot(BeNil())
+		})
+		It("should apply both controller CustomHeaders and request-level headers", func() {
+			vaultController.Config.Credentials.Token = ""
+			vaultController.Config.Credentials.Path = ""
+			vaultController.Config.Credentials.ApiKey = "test-api-key"
+			vaultController.CustomHeaders = map[CustomHeaderKey]string{
+				CustomHeaderKey("x-controller-header"): "controller-value",
+				CustomHeaderKey("x-common-header"):     "controller-common",
+			}
+
+			requestHeaders := map[CustomHeaderKey]string{
+				CustomHeaderKey("x-request-header"): "request-value",
+				CustomHeaderKey("x-common-header"):  "request-common",
+			}
+
+			err := CreateRequestClient(vaultController, requestHeaders)
+			Expect(err).To(BeNil())
+			Expect(vaultController.ApiClient).ToNot(BeNil())
+		})
+		It("should use Config.Credentials.Token when valid and not expired", func() {
+			claims := jwt.MapClaims{"exp": time.Now().Add(time.Hour).Unix()}
+			tok := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+			tokenString, _ := tok.SignedString([]byte("secret"))
+
+			vaultController.Config.Credentials.ApiKey = ""
+			vaultController.Config.Credentials.Path = ""
+			vaultController.Config.Credentials.Token = tokenString
+
+			err := CreateRequestClient(vaultController, nil)
+			Expect(err).To(BeNil())
+			Expect(vaultController.Token).To(Equal(tokenString))
+			Expect(vaultController.ApiClient).ToNot(BeNil())
+		})
+		It("should use BaseVaultURL when set instead of constructing from Env and ClusterId", func() {
+			vaultController.Config.Credentials.Token = ""
+			vaultController.Config.Credentials.Path = ""
+			vaultController.Config.Credentials.ApiKey = "test-api-key"
+			vaultController.Config.BaseVaultURL = "https://custom.vault.example.com"
+
+			err := CreateRequestClient(vaultController, nil)
+			Expect(err).To(BeNil())
+			Expect(vaultController.ApiClient).ToNot(BeNil())
+		})
+		It("should not panic when CustomHeaders is a non-nil empty map", func() {
+			vaultController.Config.Credentials.Token = ""
+			vaultController.Config.Credentials.Path = ""
+			vaultController.Config.Credentials.ApiKey = "test-api-key"
+			vaultController.CustomHeaders = map[CustomHeaderKey]string{}
+
+			err := CreateRequestClient(vaultController, nil)
+			Expect(err).To(BeNil())
+			Expect(vaultController.ApiClient).ToNot(BeNil())
+		})
+		It("should give request-level headers precedence over controller-level headers for the same key", func() {
+			var capturedHeader http.Header
+			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				capturedHeader = r.Header.Clone()
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"records":[]}`))
+			}))
+			defer ts.Close()
+
+			vaultController.Config.Credentials.Token = ""
+			vaultController.Config.Credentials.Path = ""
+			vaultController.Config.Credentials.ApiKey = "test-api-key"
+			vaultController.Config.VaultId = "vault-id"
+			vaultController.Config.BaseVaultURL = ts.URL
+			vaultController.CustomHeaders = map[CustomHeaderKey]string{
+				CustomHeaderKey("x-priority"): "controller-value",
+			}
+			requestHeaders := map[CustomHeaderKey]string{
+				CustomHeaderKey("x-priority"): "request-value",
+			}
+
+			err := CreateRequestClient(vaultController, requestHeaders)
+			Expect(err).To(BeNil())
+
+			// Trigger a real HTTP request to capture the headers the server receives
+			tok := "test-token"
+			payload := &vaultapis.V1DetokenizePayload{
+				DetokenizationParameters: []*vaultapis.V1DetokenizeRecordRequest{
+					{Token: &tok},
+				},
+			}
+			_, _ = vaultController.ApiClient.Tokens.WithRawResponse.RecordServiceDetokenize(
+				context.Background(), vaultController.Config.VaultId, payload,
+			)
+
+			Expect(capturedHeader).ToNot(BeNil())
+			Expect(capturedHeader.Get("x-priority")).To(Equal("request-value"),
+				"request-level header should override controller-level header for the same key")
 		})
 
 	})
@@ -3691,7 +4126,7 @@ var _ = Describe("DetectController", func() {
 				detectController.Config.Env = DEV
 				detectController.Config.ClusterId = "test-cluster"
 
-				err := CreateDetectRequestClient(detectController)
+				err := CreateDetectRequestClient(detectController, nil)
 				Expect(err).To(BeNil())
 				Expect(detectController.TextApiClient).ToNot(BeNil())
 				Expect(detectController.FilesApiClient).ToNot(BeNil())
@@ -3705,8 +4140,10 @@ var _ = Describe("DetectController", func() {
 
 				detectController.Config.Env = DEV
 				detectController.Config.ClusterId = "test-cluster"
-
-				err := CreateDetectRequestClient(detectController)
+				headers := map[CustomHeaderKey]string{
+					CustomHeaderKey("x-request-id"): "test-value",
+				}
+				err := CreateDetectRequestClient(detectController, headers)
 				Expect(err).To(BeNil())
 				Expect(detectController.TextApiClient).ToNot(BeNil())
 				Expect(detectController.FilesApiClient).ToNot(BeNil())
@@ -3719,13 +4156,15 @@ var _ = Describe("DetectController", func() {
 
 				detectController.Config.Env = DEV
 				detectController.Config.ClusterId = "test-cluster"
-
-				err := CreateDetectRequestClient(detectController)
+                detectController.CustomHeaders = map[CustomHeaderKey]string{
+					CustomHeaderKey("x-request-id"): "test-value",
+				}	
+				err := CreateDetectRequestClient(detectController, nil)
 				Expect(err).ToNot(BeNil())
 			})
 			It("should return an error if the token is expired", func() {
 				detectController.Config.Credentials.Token = os.Getenv("EXPIRED_TOKEN")
-				err := CreateDetectRequestClient(detectController)
+				err := CreateDetectRequestClient(detectController, nil)
 				Expect(err).ToNot(BeNil())
 				Expect(err.GetCode()).To(Equal(fmt.Sprintf("Code: %v", skyflowError.INVALID_INPUT_CODE)))
 				detectController.Config.Credentials.Token = os.Getenv("EXPIRED_TOKEN")
@@ -3734,7 +4173,7 @@ var _ = Describe("DetectController", func() {
 				err1 := SetBearerTokenForDetectControllerFunc(detectController)
 				Expect(err1).To(BeNil())
 
-				err2 := CreateDetectRequestClient(detectController)
+				err2 := CreateDetectRequestClient(detectController, nil)
 				Expect(err2).ToNot(BeNil())
 				Expect(err2.GetCode()).To(Equal(fmt.Sprintf("Code: %v", skyflowError.INVALID_INPUT_CODE)))
 
@@ -3744,8 +4183,12 @@ var _ = Describe("DetectController", func() {
 				detectController.Config.Credentials.Token = ""
 				detectController.Config.Credentials.Path = ""
 				detectController.Config.Credentials.ApiKey = "test-api-key"
-
-				err := CreateDetectRequestClient(detectController)
+				detectController.CustomHeaders = map[CustomHeaderKey]string{
+					CustomHeaderKey("x-request-id"): "test-value",
+				}
+				err := CreateDetectRequestClient(detectController, map[CustomHeaderKey]string{
+					CustomHeaderKey("x-request-id"): "test-value2",
+				})
 				Expect(err).To(BeNil())
 			})
 
@@ -4025,7 +4468,7 @@ var _ = Describe("DetectController", func() {
 
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+				CreateDetectRequestClientFunc = func(d *DetectController, customHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client.NewClient(
 						option.WithBaseURL(ts.URL),
 						option.WithToken("token"),
@@ -4039,7 +4482,7 @@ var _ = Describe("DetectController", func() {
 					return nil
 				}
 
-				result, err := detectController.DeidentifyText(ctx, mockRequest)
+				result, err := detectController.DeidentifyText(ctx, mockRequest, common.DeidentifyTextOptions{})
 
 				Expect(err).To(BeNil())
 				Expect(result).ToNot(BeNil())
@@ -4060,7 +4503,7 @@ var _ = Describe("DetectController", func() {
 
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+				CreateDetectRequestClientFunc = func(d *DetectController, customHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client.NewClient(
 						option.WithBaseURL(ts.URL),
 						option.WithToken("token"),
@@ -4074,7 +4517,7 @@ var _ = Describe("DetectController", func() {
 					return nil
 				}
 
-				result, err := detectController.DeidentifyText(ctx, mockRequest)
+				result, err := detectController.DeidentifyText(ctx, mockRequest, common.DeidentifyTextOptions{})
 
 				Expect(err).To(BeNil())
 				Expect(result).ToNot(BeNil())
@@ -4089,7 +4532,7 @@ var _ = Describe("DetectController", func() {
 					Text: "", // Empty text should fail validation
 				}
 
-				result, err := detectController.DeidentifyText(ctx, invalidRequest)
+				result, err := detectController.DeidentifyText(ctx, invalidRequest, common.DeidentifyTextOptions{})
 
 				Expect(result).To(BeNil())
 				Expect(err).ToNot(BeNil())
@@ -4105,7 +4548,7 @@ var _ = Describe("DetectController", func() {
 
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+				CreateDetectRequestClientFunc = func(d *DetectController, customHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client.NewClient(
 						option.WithBaseURL(ts.URL),
 						option.WithToken("token"),
@@ -4119,17 +4562,17 @@ var _ = Describe("DetectController", func() {
 					return nil
 				}
 
-				result, err := detectController.DeidentifyText(ctx, mockRequest)
+				result, err := detectController.DeidentifyText(ctx, mockRequest, common.DeidentifyTextOptions{})
 				Expect(result).To(BeNil())
 				Expect(err).ToNot(BeNil())
 			})
 
 			It("should return error when client creation fails", func() {
-				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+				CreateDetectRequestClientFunc = func(d *DetectController, customHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "Failed to create client")
 				}
 
-				result, err := detectController.DeidentifyText(ctx, mockRequest)
+				result, err := detectController.DeidentifyText(ctx, mockRequest, common.DeidentifyTextOptions{})
 
 				Expect(result).To(BeNil())
 				Expect(err).ToNot(BeNil())
@@ -4137,7 +4580,7 @@ var _ = Describe("DetectController", func() {
 			})
 
 			It("should return error when bearer token validation fails", func() {
-				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+				CreateDetectRequestClientFunc = func(d *DetectController, customHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					return nil
 				}
 
@@ -4145,11 +4588,42 @@ var _ = Describe("DetectController", func() {
 					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "Invalid bearer token")
 				}
 
-				result, err := detectController.DeidentifyText(ctx, mockRequest)
+				result, err := detectController.DeidentifyText(ctx, mockRequest, common.DeidentifyTextOptions{})
 
 				Expect(result).To(BeNil())
 				Expect(err).ToNot(BeNil())
 				Expect(err.GetCode()).To(Equal("Code: 400"))
+			})
+
+			It("should return error when custom headers map is empty in DeidentifyText", func() {
+				opts := common.DeidentifyTextOptions{
+					CustomHeaders: make(map[CustomHeaderKey]string),
+				}
+				result, err := detectController.DeidentifyText(ctx, mockRequest, opts)
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
+			})
+
+			It("should return error when custom headers has invalid key in DeidentifyText", func() {
+				opts := common.DeidentifyTextOptions{
+					CustomHeaders: map[CustomHeaderKey]string{
+						CustomHeaderKey("x-invalid-header"): "value",
+					},
+				}
+				result, err := detectController.DeidentifyText(ctx, mockRequest, opts)
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
+			})
+
+			It("should return error when custom headers has empty value in DeidentifyText", func() {
+				opts := common.DeidentifyTextOptions{
+					CustomHeaders: map[CustomHeaderKey]string{
+						SkyflowAccountID: "",
+					},
+				}
+				result, err := detectController.DeidentifyText(ctx, mockRequest, opts)
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
 			})
 		})
 
@@ -4184,7 +4658,7 @@ var _ = Describe("DetectController", func() {
 
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+				CreateDetectRequestClientFunc = func(d *DetectController, customHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client.NewClient(
 						option.WithBaseURL(ts.URL),
 						option.WithToken("token"),
@@ -4198,7 +4672,7 @@ var _ = Describe("DetectController", func() {
 					return nil
 				}
 
-				result, err := detectController.DeidentifyText(ctx, mockRequest)
+				result, err := detectController.DeidentifyText(ctx, mockRequest, common.DeidentifyTextOptions{})
 
 				Expect(err).To(BeNil())
 				Expect(result).ToNot(BeNil())
@@ -4234,7 +4708,7 @@ var _ = Describe("DetectController", func() {
 
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+				CreateDetectRequestClientFunc = func(d *DetectController, customHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client.NewClient(
 						option.WithBaseURL(ts.URL),
 						option.WithToken("token"),
@@ -4248,7 +4722,7 @@ var _ = Describe("DetectController", func() {
 					return nil
 				}
 
-				result, err := detectController.DeidentifyText(ctx, mockRequest)
+				result, err := detectController.DeidentifyText(ctx, mockRequest, common.DeidentifyTextOptions{})
 
 				Expect(err).To(BeNil())
 				Expect(result).ToNot(BeNil())
@@ -4293,7 +4767,7 @@ var _ = Describe("DetectController", func() {
 
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+				CreateDetectRequestClientFunc = func(d *DetectController, customHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client.NewClient(
 						option.WithBaseURL(ts.URL),
 						option.WithToken("token"),
@@ -4307,7 +4781,7 @@ var _ = Describe("DetectController", func() {
 					return nil
 				}
 
-				result, err := detectController.ReidentifyText(ctx, mockRequest)
+				result, err := detectController.ReidentifyText(ctx, mockRequest, common.ReidentifyTextOptions{})
 
 				Expect(err).To(BeNil())
 				Expect(result).ToNot(BeNil())
@@ -4321,7 +4795,7 @@ var _ = Describe("DetectController", func() {
 					Text: "", // Empty text should fail validation
 				}
 
-				result, err := detectController.ReidentifyText(ctx, invalidRequest)
+				result, err := detectController.ReidentifyText(ctx, invalidRequest, common.ReidentifyTextOptions{})
 
 				Expect(result).To(BeNil())
 				Expect(err).ToNot(BeNil())
@@ -4337,7 +4811,7 @@ var _ = Describe("DetectController", func() {
 
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+				CreateDetectRequestClientFunc = func(d *DetectController, customHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client.NewClient(
 						option.WithBaseURL(ts.URL),
 						option.WithToken("token"),
@@ -4351,18 +4825,18 @@ var _ = Describe("DetectController", func() {
 					return nil
 				}
 
-				result, err := detectController.ReidentifyText(ctx, mockRequest)
+				result, err := detectController.ReidentifyText(ctx, mockRequest, common.ReidentifyTextOptions{})
 
 				Expect(result).To(BeNil())
 				Expect(err).ToNot(BeNil())
 			})
 
 			It("should return error when client creation fails", func() {
-				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+				CreateDetectRequestClientFunc = func(d *DetectController, customHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "Failed to create client")
 				}
 
-				result, err := detectController.ReidentifyText(ctx, mockRequest)
+				result, err := detectController.ReidentifyText(ctx, mockRequest, common.ReidentifyTextOptions{})
 
 				Expect(result).To(BeNil())
 				Expect(err).ToNot(BeNil())
@@ -4370,7 +4844,7 @@ var _ = Describe("DetectController", func() {
 			})
 
 			It("should return error when bearer token validation fails", func() {
-				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+				CreateDetectRequestClientFunc = func(d *DetectController, customHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					return nil
 				}
 
@@ -4378,11 +4852,42 @@ var _ = Describe("DetectController", func() {
 					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "Invalid bearer token")
 				}
 
-				result, err := detectController.ReidentifyText(ctx, mockRequest)
+				result, err := detectController.ReidentifyText(ctx, mockRequest, common.ReidentifyTextOptions{})
 
 				Expect(result).To(BeNil())
 				Expect(err).ToNot(BeNil())
 				Expect(err.GetCode()).To(Equal("Code: 400"))
+			})
+
+			It("should return error when custom headers map is empty in ReidentifyText", func() {
+				opts := common.ReidentifyTextOptions{
+					CustomHeaders: make(map[CustomHeaderKey]string),
+				}
+				result, err := detectController.ReidentifyText(ctx, mockRequest, opts)
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
+			})
+
+			It("should return error when custom headers has invalid key in ReidentifyText", func() {
+				opts := common.ReidentifyTextOptions{
+					CustomHeaders: map[CustomHeaderKey]string{
+						CustomHeaderKey("x-invalid-header"): "value",
+					},
+				}
+				result, err := detectController.ReidentifyText(ctx, mockRequest, opts)
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
+			})
+
+			It("should return error when custom headers has empty value in ReidentifyText", func() {
+				opts := common.ReidentifyTextOptions{
+					CustomHeaders: map[CustomHeaderKey]string{
+						SkyflowAccountID: "",
+					},
+				}
+				result, err := detectController.ReidentifyText(ctx, mockRequest, opts)
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
 			})
 		})
 	})
@@ -4719,7 +5224,7 @@ var _ = Describe("DetectController", func() {
 						// Configure mock client
 						header := http.Header{}
 						header.Set("Content-Type", "application/json")
-						CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+						CreateDetectRequestClientFunc = func(d *DetectController, customHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 							client := client.NewClient(
 								option.WithBaseURL(ts.URL),
 								option.WithToken("token"),
@@ -4734,7 +5239,7 @@ var _ = Describe("DetectController", func() {
 						}
 
 						// Execute test
-						result, err := detectController.DeidentifyFile(ctx, tc.mockRequest)
+						result, err := detectController.DeidentifyFile(ctx, tc.mockRequest, common.DeidentifyFileOptions{})
 
 						// Verify results
 						Expect(err).To(BeNil())
@@ -4778,7 +5283,7 @@ var _ = Describe("DetectController", func() {
 					File: FileInput{}, // Empty file input should fail validation
 				}
 
-				result, err := detectController.DeidentifyFile(ctx, request)
+				result, err := detectController.DeidentifyFile(ctx, request, common.DeidentifyFileOptions{})
 
 				Expect(err).ToNot(BeNil())
 				Expect(err.GetCode()).To(Equal(fmt.Sprintf("Code: %v", skyflowError.INVALID_INPUT_CODE)))
@@ -4797,7 +5302,7 @@ var _ = Describe("DetectController", func() {
 
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+				CreateDetectRequestClientFunc = func(d *DetectController, customHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client.NewClient(
 						option.WithBaseURL(ts.URL),
 						option.WithToken("token"),
@@ -4818,13 +5323,13 @@ var _ = Describe("DetectController", func() {
 					Entities: []DetectEntities{Name},
 				}
 
-				result, err := detectController.DeidentifyFile(ctx, request)
+				result, err := detectController.DeidentifyFile(ctx, request, common.DeidentifyFileOptions{})
 				Expect(err).ToNot(BeNil())
 				Expect(result).To(BeNil())
 			})
 
 			It("should return error when client creation fails", func() {
-				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+				CreateDetectRequestClientFunc = func(d *DetectController, headers map[common.CustomHeaderKey]string) *skyflowError.SkyflowError {
 					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "Failed to create client")
 				}
 
@@ -4835,14 +5340,14 @@ var _ = Describe("DetectController", func() {
 					Entities: []DetectEntities{Name},
 				}
 
-				result, err := detectController.DeidentifyFile(ctx, request)
+				result, err := detectController.DeidentifyFile(ctx, request, common.DeidentifyFileOptions{})
 				Expect(err).ToNot(BeNil())
 				Expect(err.GetCode()).To(Equal("Code: 400"))
 				Expect(result).To(BeNil())
 			})
 
 			It("should return error when bearer token validation fails", func() {
-				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+				CreateDetectRequestClientFunc = func(d *DetectController, headers map[common.CustomHeaderKey]string) *skyflowError.SkyflowError {
 					return nil
 				}
 
@@ -4857,7 +5362,7 @@ var _ = Describe("DetectController", func() {
 					Entities: []DetectEntities{Name},
 				}
 
-				result, err := detectController.DeidentifyFile(ctx, request)
+				result, err := detectController.DeidentifyFile(ctx, request, common.DeidentifyFileOptions{})
 				Expect(err).ToNot(BeNil())
 				Expect(err.GetCode()).To(Equal("Code: 400"))
 				Expect(result).To(BeNil())
@@ -4893,7 +5398,7 @@ var _ = Describe("DetectController", func() {
 
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+				CreateDetectRequestClientFunc = func(d *DetectController, customHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client.NewClient(
 						option.WithBaseURL(ts.URL),
 						option.WithToken("token"),
@@ -4907,7 +5412,7 @@ var _ = Describe("DetectController", func() {
 					return nil
 				}
 
-				result, err := detectController.DeidentifyFile(ctx, request)
+				result, err := detectController.DeidentifyFile(ctx, request, common.DeidentifyFileOptions{})
 				Expect(err).To(BeNil())
 				Expect(result).ToNot(BeNil())
 				Expect(result.Status).To(Equal("in_progress"))
@@ -4942,7 +5447,7 @@ var _ = Describe("DetectController", func() {
 
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+				CreateDetectRequestClientFunc = func(d *DetectController, customHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client.NewClient(
 						option.WithBaseURL(ts.URL),
 						option.WithToken("token"),
@@ -4956,11 +5461,54 @@ var _ = Describe("DetectController", func() {
 					return nil
 				}
 
-				result, err := detectController.DeidentifyFile(ctx, request)
+				result, err := detectController.DeidentifyFile(ctx, request, common.DeidentifyFileOptions{})
 				Expect(err).To(BeNil())
 				Expect(result).ToNot(BeNil())
 				Expect(result.Status).To(Equal("FAILED"))
 				Expect(result.Type).To(Equal("UNKNOWN"))
+			})
+
+			It("should return error when custom headers map is empty in DeidentifyFile", func() {
+				req := DeidentifyFileRequest{
+					File:     FileInput{FilePath: testFiles["txt"].Name()},
+					Entities: []DetectEntities{Name},
+				}
+				opts := common.DeidentifyFileOptions{
+					CustomHeaders: make(map[CustomHeaderKey]string),
+				}
+				result, err := detectController.DeidentifyFile(ctx, req, opts)
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
+			})
+
+			It("should return error when custom headers has invalid key in DeidentifyFile", func() {
+				req := DeidentifyFileRequest{
+					File:     FileInput{FilePath: testFiles["txt"].Name()},
+					Entities: []DetectEntities{Name},
+				}
+				opts := common.DeidentifyFileOptions{
+					CustomHeaders: map[CustomHeaderKey]string{
+						CustomHeaderKey("x-invalid-header"): "value",
+					},
+				}
+				result, err := detectController.DeidentifyFile(ctx, req, opts)
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
+			})
+
+			It("should return error when custom headers has empty value in DeidentifyFile", func() {
+				req := DeidentifyFileRequest{
+					File:     FileInput{FilePath: testFiles["txt"].Name()},
+					Entities: []DetectEntities{Name},
+				}
+				opts := common.DeidentifyFileOptions{
+					CustomHeaders: map[CustomHeaderKey]string{
+						SkyflowAccountID: "",
+					},
+				}
+				result, err := detectController.DeidentifyFile(ctx, req, opts)
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
 			})
 		})
 	})
@@ -5018,7 +5566,7 @@ var _ = Describe("DetectController", func() {
 
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+				CreateDetectRequestClientFunc = func(d *DetectController, customHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client.NewClient(
 						option.WithBaseURL(ts.URL),
 						option.WithToken("token"),
@@ -5036,7 +5584,7 @@ var _ = Describe("DetectController", func() {
 					RunId: "run123",
 				}
 
-				result, err := detectController.GetDetectRun(ctx, request)
+				result, err := detectController.GetDetectRun(ctx, request, common.GetDetectRunOptions{})
 
 				Expect(err).To(BeNil())
 				Expect(result).ToNot(BeNil())
@@ -5061,7 +5609,7 @@ var _ = Describe("DetectController", func() {
 
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+				CreateDetectRequestClientFunc = func(d *DetectController, customHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client.NewClient(
 						option.WithBaseURL(ts.URL),
 						option.WithToken("token"),
@@ -5075,7 +5623,7 @@ var _ = Describe("DetectController", func() {
 					RunId: "run123",
 				}
 
-				result, err := detectController.GetDetectRun(ctx, request)
+				result, err := detectController.GetDetectRun(ctx, request, common.GetDetectRunOptions{})
 
 				Expect(err).To(BeNil())
 				Expect(result).ToNot(BeNil())
@@ -5092,7 +5640,7 @@ var _ = Describe("DetectController", func() {
 
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+				CreateDetectRequestClientFunc = func(d *DetectController, customHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client.NewClient(
 						option.WithBaseURL(ts.URL),
 						option.WithToken("token"),
@@ -5106,7 +5654,7 @@ var _ = Describe("DetectController", func() {
 					RunId: "run123",
 				}
 
-				result, err := detectController.GetDetectRun(ctx, request)
+				result, err := detectController.GetDetectRun(ctx, request, common.GetDetectRunOptions{})
 
 				Expect(err).To(BeNil())
 				Expect(result).ToNot(BeNil())
@@ -5122,7 +5670,7 @@ var _ = Describe("DetectController", func() {
 					RunId: "",
 				}
 
-				result, err := detectController.GetDetectRun(ctx, request)
+				result, err := detectController.GetDetectRun(ctx, request, common.GetDetectRunOptions{})
 
 				Expect(result).To(BeNil())
 				Expect(err).ToNot(BeNil())
@@ -5139,7 +5687,7 @@ var _ = Describe("DetectController", func() {
 
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+				CreateDetectRequestClientFunc = func(d *DetectController, customHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client.NewClient(
 						option.WithBaseURL(ts.URL),
 						option.WithToken("token"),
@@ -5153,7 +5701,7 @@ var _ = Describe("DetectController", func() {
 					RunId: "invalid-format",
 				}
 
-				result, err := detectController.GetDetectRun(ctx, request)
+				result, err := detectController.GetDetectRun(ctx, request, common.GetDetectRunOptions{})
 				Expect(result).To(BeNil())
 				Expect(err).ToNot(BeNil())
 			})
@@ -5168,7 +5716,7 @@ var _ = Describe("DetectController", func() {
 
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+				CreateDetectRequestClientFunc = func(d *DetectController, customHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client.NewClient(
 						option.WithBaseURL(ts.URL),
 						option.WithToken("token"),
@@ -5182,7 +5730,7 @@ var _ = Describe("DetectController", func() {
 					RunId: "invalid-run-id",
 				}
 
-				result, err := detectController.GetDetectRun(ctx, request)
+				result, err := detectController.GetDetectRun(ctx, request, common.GetDetectRunOptions{})
 				Expect(err).To(BeNil())
 				Expect(result).ToNot(BeNil())
 				Expect(result.Status).To(Equal("UNKNOWN"))
@@ -5199,7 +5747,7 @@ var _ = Describe("DetectController", func() {
 
 				header := http.Header{}
 				header.Set("Content-Type", "application/json")
-				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+				CreateDetectRequestClientFunc = func(d *DetectController, customHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					client := client.NewClient(
 						option.WithBaseURL(ts.URL),
 						option.WithToken("token"),
@@ -5213,14 +5761,14 @@ var _ = Describe("DetectController", func() {
 					RunId: "invalid_run_id",
 				}
 
-				result, err := detectController.GetDetectRun(ctx, request)
+				result, err := detectController.GetDetectRun(ctx, request, common.GetDetectRunOptions{})
 
 				Expect(result).To(BeNil())
 				Expect(err).ToNot(BeNil())
 			})
 
 			It("should return error when client creation fails", func() {
-				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+				CreateDetectRequestClientFunc = func(d *DetectController, customHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "Failed to create client")
 				}
 
@@ -5228,7 +5776,7 @@ var _ = Describe("DetectController", func() {
 					RunId: "run123",
 				}
 
-				result, err := detectController.GetDetectRun(ctx, request)
+				result, err := detectController.GetDetectRun(ctx, request, common.GetDetectRunOptions{})
 
 				Expect(result).To(BeNil())
 				Expect(err).ToNot(BeNil())
@@ -5236,7 +5784,7 @@ var _ = Describe("DetectController", func() {
 			})
 
 			It("should return error when bearer token validation fails", func() {
-				CreateDetectRequestClientFunc = func(d *DetectController) *skyflowError.SkyflowError {
+				CreateDetectRequestClientFunc = func(d *DetectController, customHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
 					return nil
 				}
 
@@ -5248,11 +5796,861 @@ var _ = Describe("DetectController", func() {
 					RunId: "run123",
 				}
 
-				result, err := detectController.GetDetectRun(ctx, request)
+				result, err := detectController.GetDetectRun(ctx, request, common.GetDetectRunOptions{})
 
 				Expect(result).To(BeNil())
 				Expect(err).ToNot(BeNil())
 				Expect(err.GetCode()).To(Equal("Code: 400"))
+			})
+
+			It("should return error when custom headers map is empty in GetDetectRun", func() {
+				req := GetDetectRunRequest{RunId: "run123"}
+				opts := common.GetDetectRunOptions{
+					CustomHeaders: make(map[CustomHeaderKey]string),
+				}
+				result, err := detectController.GetDetectRun(ctx, req, opts)
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
+			})
+
+			It("should return error when custom headers has invalid key in GetDetectRun", func() {
+				req := GetDetectRunRequest{RunId: "run123"}
+				opts := common.GetDetectRunOptions{
+					CustomHeaders: map[CustomHeaderKey]string{
+						CustomHeaderKey("x-invalid-header"): "value",
+					},
+				}
+				result, err := detectController.GetDetectRun(ctx, req, opts)
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
+			})
+
+			It("should return error when custom headers has empty value in GetDetectRun", func() {
+				req := GetDetectRunRequest{RunId: "run123"}
+				opts := common.GetDetectRunOptions{
+					CustomHeaders: map[CustomHeaderKey]string{
+						SkyflowAccountID: "",
+					},
+				}
+				result, err := detectController.GetDetectRun(ctx, req, opts)
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
+			})
+		})
+	})
+})
+
+var _ = Describe("applyCustomHeaders edge cases", func() {
+	var (
+		vaultCtrl *VaultController
+		ts        *httptest.Server
+	)
+
+	BeforeEach(func() {
+		ts = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"records":[]}`))
+		}))
+		vaultCtrl = &VaultController{
+			Config: &VaultConfig{
+				VaultId:      "vault-id",
+				ClusterId:    "cluster-id",
+				Env:          PROD,
+				BaseVaultURL: ts.URL,
+				Credentials: Credentials{
+					ApiKey: "test-api-key",
+				},
+			},
+		}
+	})
+
+	AfterEach(func() {
+		ts.Close()
+	})
+
+	It("should skip an empty-string key", func() {
+		vaultCtrl.CustomHeaders = map[CustomHeaderKey]string{
+			CustomHeaderKey(""): "should-be-skipped",
+		}
+		err := CreateRequestClient(vaultCtrl, nil)
+		Expect(err).To(BeNil())
+		Expect(vaultCtrl.ApiClient).ToNot(BeNil())
+	})
+
+	It("should skip a whitespace-only key", func() {
+		vaultCtrl.CustomHeaders = map[CustomHeaderKey]string{
+			CustomHeaderKey("   "): "should-be-skipped",
+		}
+		err := CreateRequestClient(vaultCtrl, nil)
+		Expect(err).To(BeNil())
+		Expect(vaultCtrl.ApiClient).ToNot(BeNil())
+	})
+
+	It("should skip the reserved header sky-metadata", func() {
+		vaultCtrl.CustomHeaders = map[CustomHeaderKey]string{
+			CustomHeaderKey("sky-metadata"): "should-be-skipped",
+		}
+		err := CreateRequestClient(vaultCtrl, nil)
+		Expect(err).To(BeNil())
+		Expect(vaultCtrl.ApiClient).ToNot(BeNil())
+	})
+
+	It("should skip the reserved Authorization header", func() {
+		vaultCtrl.CustomHeaders = map[CustomHeaderKey]string{
+			CustomHeaderKey("Authorization"): "should-be-skipped",
+		}
+		err := CreateRequestClient(vaultCtrl, nil)
+		Expect(err).To(BeNil())
+		Expect(vaultCtrl.ApiClient).ToNot(BeNil())
+	})
+
+	It("should apply a valid enum key correctly", func() {
+		var capturedHeader http.Header
+		ts2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			capturedHeader = r.Header.Clone()
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"records":[]}`))
+		}))
+		defer ts2.Close()
+
+		vaultCtrl.Config.BaseVaultURL = ts2.URL
+		vaultCtrl.CustomHeaders = map[CustomHeaderKey]string{
+			RequestIDHeader: "my-request-id",
+		}
+		err := CreateRequestClient(vaultCtrl, nil)
+		Expect(err).To(BeNil())
+
+		tok := "test-token"
+		payload := &vaultapis.V1DetokenizePayload{
+			DetokenizationParameters: []*vaultapis.V1DetokenizeRecordRequest{
+				{Token: &tok},
+			},
+		}
+		_, _ = vaultCtrl.ApiClient.Tokens.WithRawResponse.RecordServiceDetokenize(
+			context.Background(), vaultCtrl.Config.VaultId, payload,
+		)
+
+		Expect(capturedHeader).ToNot(BeNil())
+		Expect(capturedHeader.Get(string(RequestIDHeader))).To(Equal("my-request-id"))
+	})
+
+	It("should not panic when CustomHeaders map is nil", func() {
+		vaultCtrl.CustomHeaders = nil
+		Expect(func() {
+			_ = CreateRequestClient(vaultCtrl, nil)
+		}).ToNot(Panic())
+	})
+
+	It("should not panic when requestHeaders map is nil", func() {
+		vaultCtrl.CustomHeaders = map[CustomHeaderKey]string{
+			RequestIDHeader: "req-id",
+		}
+		Expect(func() {
+			_ = CreateRequestClient(vaultCtrl, nil)
+		}).ToNot(Panic())
+	})
+
+	It("request-level headers override controller-level headers for the same key", func() {
+		var capturedHeader http.Header
+		ts2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			capturedHeader = r.Header.Clone()
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"records":[]}`))
+		}))
+		defer ts2.Close()
+
+		vaultCtrl.Config.BaseVaultURL = ts2.URL
+		vaultCtrl.CustomHeaders = map[CustomHeaderKey]string{
+			RequestIDHeader: "controller-value",
+		}
+		requestHeaders := map[CustomHeaderKey]string{
+			RequestIDHeader: "request-value",
+		}
+
+		err := CreateRequestClient(vaultCtrl, requestHeaders)
+		Expect(err).To(BeNil())
+
+		tok := "test-token"
+		payload := &vaultapis.V1DetokenizePayload{
+			DetokenizationParameters: []*vaultapis.V1DetokenizeRecordRequest{
+				{Token: &tok},
+			},
+		}
+		_, _ = vaultCtrl.ApiClient.Tokens.WithRawResponse.RecordServiceDetokenize(
+			context.Background(), vaultCtrl.Config.VaultId, payload,
+		)
+
+		Expect(capturedHeader).ToNot(BeNil())
+		Expect(capturedHeader.Get(string(RequestIDHeader))).To(Equal("request-value"),
+			"request-level header should override controller-level header for same key")
+	})
+
+	It("should skip lowercase variant of reserved Authorization header", func() {
+		var capturedHeader http.Header
+		ts2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			capturedHeader = r.Header.Clone()
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{}`))
+		}))
+		defer ts2.Close()
+
+		vaultCtrl.Config.BaseVaultURL = ts2.URL
+		vaultCtrl.CustomHeaders = map[CustomHeaderKey]string{
+			CustomHeaderKey("authorization"): "sneaky-token",
+		}
+		err := CreateRequestClient(vaultCtrl, nil)
+		Expect(err).To(BeNil())
+
+		tok := "test-token"
+		payload := &vaultapis.V1DetokenizePayload{
+			DetokenizationParameters: []*vaultapis.V1DetokenizeRecordRequest{
+				{Token: &tok},
+			},
+		}
+		_, _ = vaultCtrl.ApiClient.Tokens.WithRawResponse.RecordServiceDetokenize(
+			context.Background(), vaultCtrl.Config.VaultId, payload,
+		)
+
+		Expect(capturedHeader).ToNot(BeNil())
+		Expect(capturedHeader.Get("Authorization")).ToNot(Equal("sneaky-token"),
+			"lowercase 'authorization' must be treated as reserved and not override the SDK-set value")
+	})
+
+	It("should skip all-uppercase variant of reserved AUTHORIZATION header", func() {
+		var capturedHeader http.Header
+		ts2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			capturedHeader = r.Header.Clone()
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{}`))
+		}))
+		defer ts2.Close()
+
+		vaultCtrl.Config.BaseVaultURL = ts2.URL
+		vaultCtrl.CustomHeaders = map[CustomHeaderKey]string{
+			CustomHeaderKey("AUTHORIZATION"): "sneaky-token",
+		}
+		err := CreateRequestClient(vaultCtrl, nil)
+		Expect(err).To(BeNil())
+
+		tok := "test-token"
+		payload := &vaultapis.V1DetokenizePayload{
+			DetokenizationParameters: []*vaultapis.V1DetokenizeRecordRequest{
+				{Token: &tok},
+			},
+		}
+		_, _ = vaultCtrl.ApiClient.Tokens.WithRawResponse.RecordServiceDetokenize(
+			context.Background(), vaultCtrl.Config.VaultId, payload,
+		)
+
+		Expect(capturedHeader).ToNot(BeNil())
+		Expect(capturedHeader.Get("Authorization")).ToNot(Equal("sneaky-token"),
+			"uppercase 'AUTHORIZATION' must be treated as reserved and not override the SDK-set value")
+	})
+
+	It("should set a header with an empty string value", func() {
+		var capturedHeader http.Header
+		ts2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			capturedHeader = r.Header.Clone()
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{}`))
+		}))
+		defer ts2.Close()
+
+		vaultCtrl.Config.BaseVaultURL = ts2.URL
+		vaultCtrl.CustomHeaders = map[CustomHeaderKey]string{
+			RequestIDHeader: "",
+		}
+		err := CreateRequestClient(vaultCtrl, nil)
+		Expect(err).To(BeNil())
+
+		tok := "test-token"
+		payload := &vaultapis.V1DetokenizePayload{
+			DetokenizationParameters: []*vaultapis.V1DetokenizeRecordRequest{
+				{Token: &tok},
+			},
+		}
+		_, _ = vaultCtrl.ApiClient.Tokens.WithRawResponse.RecordServiceDetokenize(
+			context.Background(), vaultCtrl.Config.VaultId, payload,
+		)
+
+		Expect(capturedHeader).ToNot(BeNil())
+		_, present := capturedHeader[http.CanonicalHeaderKey(string(RequestIDHeader))]
+		Expect(present).To(BeTrue(), "header key with empty value should still be present in the request")
+	})
+
+	It("request-level key that normalises to same header as controller-level key should produce one header entry", func() {
+		var capturedHeader http.Header
+		ts2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			capturedHeader = r.Header.Clone()
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{}`))
+		}))
+		defer ts2.Close()
+
+		vaultCtrl.Config.BaseVaultURL = ts2.URL
+		// controller sets "x-request-id", request-level sets "X-REQUEST-ID" — both canonicalise to X-Request-Id
+		vaultCtrl.CustomHeaders = map[CustomHeaderKey]string{
+			RequestIDHeader: "from-controller",
+		}
+		requestHeaders := map[CustomHeaderKey]string{
+			CustomHeaderKey("X-REQUEST-ID"): "from-request",
+		}
+		err := CreateRequestClient(vaultCtrl, requestHeaders)
+		Expect(err).To(BeNil())
+
+		tok := "test-token"
+		payload := &vaultapis.V1DetokenizePayload{
+			DetokenizationParameters: []*vaultapis.V1DetokenizeRecordRequest{
+				{Token: &tok},
+			},
+		}
+		_, _ = vaultCtrl.ApiClient.Tokens.WithRawResponse.RecordServiceDetokenize(
+			context.Background(), vaultCtrl.Config.VaultId, payload,
+		)
+
+		Expect(capturedHeader).ToNot(BeNil())
+		vals := capturedHeader[http.CanonicalHeaderKey(string(RequestIDHeader))]
+		Expect(vals).To(HaveLen(1), "both keys normalise to the same header — only one value should be present")
+		Expect(vals[0]).To(Equal("from-request"), "request-level value should win")
+	})
+})
+
+var _ = Describe("Custom Headers Tests", func() {
+	Describe("Test Custom Headers in CreateRequestClient", func() {
+		Context("Controller-level CustomHeaders only", func() {
+			It("should apply controller-level custom headers to request", func() {
+				response := make(map[string]interface{})
+				_ = json.Unmarshal([]byte(mockInsertContinueFalseSuccessJSON), &response)
+
+				ts := setupMockServer(response, "ok", "/vaults/v1/vaults/")
+				defer ts.Close()
+
+				// Create controller with custom headers
+				customHeaders := make(map[CustomHeaderKey]string)
+				customHeaders[SkyflowAccountID] = "custom-account-id"
+				customHeaders[SkyflowAccountName] = "custom-account-name"
+
+				contrl := VaultController{
+					Config: &VaultConfig{
+						VaultId:   "id",
+						ClusterId: "clusterid",
+						Env:       PROD,
+						Credentials: Credentials{
+							ApiKey: "sky-token",
+						},
+					},
+					CustomHeaders: customHeaders,
+				}
+
+				// Track headers passed to client
+				capturedHeader := http.Header{}
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
+
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
+					// Verify controller headers are applied
+					if v.CustomHeaders != nil {
+						for key, value := range v.CustomHeaders {
+							header.Set(string(key), value)
+							capturedHeader.Set(string(key), value)
+						}
+					}
+					// Apply request headers (would override controller headers)
+					if requestHeaders != nil {
+						for key, value := range requestHeaders {
+							header.Set(string(key), value)
+							capturedHeader.Set(string(key), value)
+						}
+					}
+					client := client.NewClient(
+						option.WithBaseURL(ts.URL+"/vaults"),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					v.ApiClient = *client
+					return nil
+				}
+
+				request := InsertRequest{
+					Table: "test_table",
+					Values: []map[string]interface{}{
+						{"name": "value1"},
+					},
+				}
+				options := InsertOptions{
+					ContinueOnError: false,
+				}
+
+				ctx := context.Background()
+				res, insertError := contrl.Insert(ctx, request, options)
+
+				// Assertions
+				Expect(insertError).To(BeNil())
+				Expect(res).ToNot(BeNil())
+				Expect(capturedHeader.Get(string(SkyflowAccountID))).To(Equal("custom-account-id"))
+				Expect(capturedHeader.Get(string(SkyflowAccountName))).To(Equal("custom-account-name"))
+			})
+		})
+
+		Context("Per-request custom headers only", func() {
+			It("should apply request-level custom headers to request", func() {
+				response := make(map[string]interface{})
+				_ = json.Unmarshal([]byte(mockInsertContinueFalseSuccessJSON), &response)
+
+				ts := setupMockServer(response, "ok", "/vaults/v1/vaults/")
+				defer ts.Close()
+
+				contrl := VaultController{
+					Config: &VaultConfig{
+						VaultId:   "id",
+						ClusterId: "clusterid",
+						Env:       PROD,
+						Credentials: Credentials{
+							ApiKey: "sky-token",
+						},
+					},
+				}
+
+				// Track headers passed to client
+				capturedHeader := http.Header{}
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
+
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
+					if v.CustomHeaders != nil {
+						for key, value := range v.CustomHeaders {
+							header.Set(string(key), value)
+							capturedHeader.Set(string(key), value)
+						}
+					}
+					if requestHeaders != nil {
+						for key, value := range requestHeaders {
+							header.Set(string(key), value)
+							capturedHeader.Set(string(key), value)
+						}
+					}
+					client := client.NewClient(
+						option.WithBaseURL(ts.URL+"/vaults"),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					v.ApiClient = *client
+					return nil
+				}
+
+				request := InsertRequest{
+					Table: "test_table",
+					Values: []map[string]interface{}{
+						{"name": "value1"},
+					},
+				}
+
+				requestHeaders := make(map[CustomHeaderKey]string)
+				requestHeaders[RequestIDHeader] = "request-value"
+
+				options := InsertOptions{
+					ContinueOnError: false,
+					CustomHeaders:   requestHeaders,
+				}
+
+				ctx := context.Background()
+				res, insertError := contrl.Insert(ctx, request, options)
+
+				// Assertions
+				Expect(insertError).To(BeNil())
+				Expect(res).ToNot(BeNil())
+				Expect(capturedHeader.Get(string(RequestIDHeader))).To(Equal("request-value"))
+			})
+		})
+
+		Context("Both controller and request custom headers", func() {
+			It("should apply and merge both controller and request custom headers", func() {
+				response := make(map[string]interface{})
+				_ = json.Unmarshal([]byte(mockInsertContinueFalseSuccessJSON), &response)
+
+				ts := setupMockServer(response, "ok", "/vaults/v1/vaults/")
+				defer ts.Close()
+
+				// Create controller with custom headers
+				customHeaders := make(map[CustomHeaderKey]string)
+				customHeaders[SkyflowAccountID] = "controller-value"
+				customHeaders[RequestIDHeader] = "controller-common"
+
+				contrl := VaultController{
+					Config: &VaultConfig{
+						VaultId:   "id",
+						ClusterId: "clusterid",
+						Env:       PROD,
+						Credentials: Credentials{
+							ApiKey: "sky-token",
+						},
+					},
+					CustomHeaders: customHeaders,
+				}
+
+				// Track headers passed to client
+				capturedHeader := http.Header{}
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
+
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
+					if v.CustomHeaders != nil {
+						for key, value := range v.CustomHeaders {
+							header.Set(string(key), value)
+							capturedHeader.Set(string(key), value)
+						}
+					}
+					// Request headers override controller headers with same key
+					if requestHeaders != nil {
+						for key, value := range requestHeaders {
+							header.Set(string(key), value)
+							capturedHeader.Set(string(key), value)
+						}
+					}
+					client := client.NewClient(
+						option.WithBaseURL(ts.URL+"/vaults"),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					v.ApiClient = *client
+					return nil
+				}
+
+				request := InsertRequest{
+					Table: "test_table",
+					Values: []map[string]interface{}{
+						{"name": "value1"},
+					},
+				}
+
+				requestHeaders := make(map[CustomHeaderKey]string)
+				requestHeaders[SkyflowAccountName] = "request-value"
+				requestHeaders[RequestIDHeader] = "request-common" // This should override controller header
+
+				options := InsertOptions{
+					ContinueOnError: false,
+					CustomHeaders:   requestHeaders,
+				}
+
+				ctx := context.Background()
+				res, insertError := contrl.Insert(ctx, request, options)
+
+				// Assertions
+				Expect(insertError).To(BeNil())
+				Expect(res).ToNot(BeNil())
+				// Controller header should be present
+				Expect(capturedHeader.Get(string(SkyflowAccountID))).To(Equal("controller-value"))
+				// Request header should be present
+				Expect(capturedHeader.Get(string(SkyflowAccountName))).To(Equal("request-value"))
+				// Request header should override controller header with same key
+				Expect(capturedHeader.Get(string(RequestIDHeader))).To(Equal("request-common"))
+			})
+		})
+
+		Context("Custom headers with Detokenize operation", func() {
+			It("should apply custom headers to detokenize request", func() {
+				response := make(map[string]interface{})
+				_ = json.Unmarshal([]byte(mockDetokenizeSuccessJSON), &response)
+
+				ts := setupMockServer(response, "ok", "/vaults/v1/vaults/")
+				defer ts.Close()
+
+				customHeaders := make(map[CustomHeaderKey]string)
+				customHeaders[RequestIDHeader] = "trace-123"
+
+				vaultController := &VaultController{
+					Config: &VaultConfig{
+						VaultId: "vaultID",
+						Credentials: Credentials{
+							ApiKey: "sky-token",
+						},
+						Env:          PROD,
+						ClusterId:    "clusterID",
+						BaseVaultURL: "http://127.0.0.1",
+					},
+					CustomHeaders: customHeaders,
+				}
+
+				capturedHeader := http.Header{}
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
+
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
+					if v.CustomHeaders != nil {
+						for key, value := range v.CustomHeaders {
+							header.Set(string(key), value)
+							capturedHeader.Set(string(key), value)
+						}
+					}
+					client := client.NewClient(
+						option.WithBaseURL(ts.URL+"/vaults"),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					v.ApiClient = *client
+					return nil
+				}
+
+				request := DetokenizeRequest{
+					DetokenizeData: []DetokenizeData{
+						{
+							Token:         "token1",
+							RedactionType: MASKED,
+						},
+					},
+				}
+				options := DetokenizeOptions{
+					ContinueOnError: true,
+				}
+
+				ctx := context.Background()
+				res, err := vaultController.Detokenize(ctx, request, options)
+
+				Expect(err).To(BeNil())
+				Expect(res).ToNot(BeNil())
+				Expect(capturedHeader.Get(string(RequestIDHeader))).To(Equal("trace-123"))
+			})
+		})
+
+		Context("Custom headers with Get operation", func() {
+			It("should apply custom headers to get request", func() {
+				response := make(map[string]interface{})
+				_ = json.Unmarshal([]byte(mockGetSuccessJSON), &response)
+
+				ts := setupMockServer(response, "ok", "/vaults/v1/vaults/")
+				defer ts.Close()
+
+				customHeaders := make(map[CustomHeaderKey]string)
+				customHeaders[RequestIDHeader] = "corr-456"
+
+				vaultController := VaultController{
+					Config: &VaultConfig{
+						VaultId: "vaultID",
+						Credentials: Credentials{
+							ApiKey: "sky-token",
+						},
+						Env:       PROD,
+						ClusterId: "clusterID",
+					},
+					CustomHeaders: customHeaders,
+				}
+
+				capturedHeader := http.Header{}
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
+
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
+					if v.CustomHeaders != nil {
+						for key, value := range v.CustomHeaders {
+							header.Set(string(key), value)
+							capturedHeader.Set(string(key), value)
+						}
+					}
+					client := client.NewClient(
+						option.WithBaseURL(ts.URL+"/vaults"),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					v.ApiClient = *client
+					return nil
+				}
+
+				ctx := context.Background()
+				request := GetRequest{
+					Table: "table",
+					Ids:   []string{"id1"},
+				}
+				options := GetOptions{
+					RedactionType: REDACTED,
+				}
+
+				res, err := vaultController.Get(ctx, request, options)
+
+				Expect(err).To(BeNil())
+				Expect(res).ToNot(BeNil())
+				Expect(capturedHeader.Get("x-request-id")).To(Equal("corr-456"))
+			})
+		})
+
+		Context("Empty custom headers", func() {
+			It("should handle nil custom headers gracefully", func() {
+				response := make(map[string]interface{})
+				_ = json.Unmarshal([]byte(mockInsertContinueFalseSuccessJSON), &response)
+
+				ts := setupMockServer(response, "ok", "/vaults/v1/vaults/")
+				defer ts.Close()
+
+				contrl := VaultController{
+					Config: &VaultConfig{
+						VaultId:   "id",
+						ClusterId: "clusterid",
+						Env:       PROD,
+						Credentials: Credentials{
+							ApiKey: "sky-token",
+						},
+					},
+					CustomHeaders: nil, // No custom headers
+				}
+
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
+
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
+					if v.CustomHeaders != nil {
+						for key, value := range v.CustomHeaders {
+							header.Set(string(key), value)
+						}
+					}
+					client := client.NewClient(
+						option.WithBaseURL(ts.URL+"/vaults"),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					v.ApiClient = *client
+					return nil
+				}
+
+				request := InsertRequest{
+					Table: "test_table",
+					Values: []map[string]interface{}{
+						{"name": "value1"},
+					},
+				}
+				options := InsertOptions{
+					ContinueOnError: false,
+				}
+
+				ctx := context.Background()
+				res, insertError := contrl.Insert(ctx, request, options)
+
+				Expect(insertError).To(BeNil())
+				Expect(res).ToNot(BeNil())
+			})
+		})
+
+		Context("Custom headers with Delete operation", func() {
+			It("should apply custom headers to delete request", func() {
+				response := make(map[string]interface{})
+				_ = json.Unmarshal([]byte(mockDeleteSuccessJSON), &response)
+
+				ts := setupMockServer(response, "ok", "/vaults/v1/vaults/")
+				defer ts.Close()
+
+				customHeaders := make(map[CustomHeaderKey]string)
+				customHeaders[SkyflowAccountName] = "user-789"
+
+				vaultController := VaultController{
+					Config: &VaultConfig{
+						VaultId: "vaultID",
+						Credentials: Credentials{
+							ApiKey: "sky-token",
+						},
+						Env:       PROD,
+						ClusterId: "clusterID",
+					},
+					CustomHeaders: customHeaders,
+				}
+
+				capturedHeader := http.Header{}
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
+
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
+					if v.CustomHeaders != nil {
+						for key, value := range v.CustomHeaders {
+							header.Set(string(key), value)
+							capturedHeader.Set(string(key), value)
+						}
+					}
+					client := client.NewClient(
+						option.WithBaseURL(ts.URL+"/vaults"),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					v.ApiClient = *client
+					return nil
+				}
+
+				ctx := context.Background()
+				request := DeleteRequest{
+					Table: "table",
+					Ids:   []string{"id1"},
+				}
+
+				res, err := vaultController.Delete(ctx, request, common.DeleteOptions{})
+
+				Expect(err).To(BeNil())
+				Expect(res).ToNot(BeNil())
+				Expect(capturedHeader.Get(string(SkyflowAccountName))).To(Equal("user-789"))
+			})
+		})
+
+		Context("Multiple custom headers", func() {
+			It("should apply all custom headers correctly", func() {
+				response := make(map[string]interface{})
+				_ = json.Unmarshal([]byte(mockInsertContinueFalseSuccessJSON), &response)
+
+				ts := setupMockServer(response, "ok", "/vaults/v1/vaults/")
+				defer ts.Close()
+
+				customHeaders := make(map[CustomHeaderKey]string)
+				customHeaders[SkyflowAccountID] = "account-id-123"
+				customHeaders[SkyflowAccountName] = "account-name-456"
+				customHeaders[RequestIDHeader] = "req-456"
+
+				contrl := VaultController{
+					Config: &VaultConfig{
+						VaultId:   "id",
+						ClusterId: "clusterid",
+						Env:       PROD,
+						Credentials: Credentials{
+							ApiKey: "sky-token",
+						},
+					},
+					CustomHeaders: customHeaders,
+				}
+
+				capturedHeader := http.Header{}
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
+
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
+					if v.CustomHeaders != nil {
+						for key, value := range v.CustomHeaders {
+							header.Set(string(key), value)
+							capturedHeader.Set(string(key), value)
+						}
+					}
+					client := client.NewClient(
+						option.WithBaseURL(ts.URL+"/vaults"),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					v.ApiClient = *client
+					return nil
+				}
+
+				request := InsertRequest{
+					Table: "test_table",
+					Values: []map[string]interface{}{
+						{"name": "value1"},
+					},
+				}
+				options := InsertOptions{
+					ContinueOnError: false,
+				}
+
+				ctx := context.Background()
+				res, insertError := contrl.Insert(ctx, request, options)
+
+				Expect(insertError).To(BeNil())
+				Expect(res).ToNot(BeNil())
+				Expect(capturedHeader.Get(string(SkyflowAccountID))).To(Equal("account-id-123"))
+				Expect(capturedHeader.Get(string(SkyflowAccountName))).To(Equal("account-name-456"))
+				Expect(capturedHeader.Get(string(RequestIDHeader))).To(Equal("req-456"))
 			})
 		})
 	})
@@ -5280,3 +6678,321 @@ func setupMockServer(mockResponse map[string]interface{}, status string, path st
 	// Start the server and return it
 	return httptest.NewServer(mockServer)
 }
+
+// ---------------------------------------------------------------------------
+// Missing edge-case tests
+// ---------------------------------------------------------------------------
+
+// 1. Request-level reserved headers (Authorization, sky-metadata) must be blocked
+//    even when supplied as per-request headers (second arg to CreateRequestClient).
+var _ = Describe("Request-level reserved header blocking", func() {
+	var vaultCtrl *VaultController
+	var ts *httptest.Server
+	var capturedHeader http.Header
+
+	BeforeEach(func() {
+		capturedHeader = nil
+		ts = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			capturedHeader = r.Header.Clone()
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"records":[]}`))
+		}))
+		vaultCtrl = &VaultController{
+			Config: &VaultConfig{
+				VaultId:      "vault-id",
+				ClusterId:    "cluster-id",
+				Env:          PROD,
+				BaseVaultURL: ts.URL,
+				Credentials: Credentials{
+					ApiKey: "test-api-key",
+				},
+			},
+		}
+	})
+
+	AfterEach(func() { ts.Close() })
+
+	makeDetokenizeCall := func() {
+		tok := "test-token"
+		payload := &vaultapis.V1DetokenizePayload{
+			DetokenizationParameters: []*vaultapis.V1DetokenizeRecordRequest{
+				{Token: &tok},
+			},
+		}
+		_, _ = vaultCtrl.ApiClient.Tokens.WithRawResponse.RecordServiceDetokenize(
+			context.Background(), vaultCtrl.Config.VaultId, payload,
+		)
+	}
+
+	It("should block 'Authorization' supplied as a request-level header", func() {
+		requestHeaders := map[CustomHeaderKey]string{
+			CustomHeaderKey("Authorization"): "sneaky-token",
+		}
+		err := CreateRequestClient(vaultCtrl, requestHeaders)
+		Expect(err).To(BeNil())
+		makeDetokenizeCall()
+		Expect(capturedHeader).ToNot(BeNil())
+		Expect(capturedHeader.Get("Authorization")).ToNot(Equal("sneaky-token"),
+			"request-level Authorization must be blocked by reserved-header check")
+	})
+
+	It("should block lowercase 'authorization' supplied as a request-level header", func() {
+		requestHeaders := map[CustomHeaderKey]string{
+			CustomHeaderKey("authorization"): "sneaky-token",
+		}
+		err := CreateRequestClient(vaultCtrl, requestHeaders)
+		Expect(err).To(BeNil())
+		makeDetokenizeCall()
+		Expect(capturedHeader).ToNot(BeNil())
+		Expect(capturedHeader.Get("Authorization")).ToNot(Equal("sneaky-token"),
+			"lowercase request-level authorization must be blocked")
+	})
+
+	It("should allow a non-reserved request-level header through", func() {
+		requestHeaders := map[CustomHeaderKey]string{
+			RequestIDHeader: "req-999",
+		}
+		err := CreateRequestClient(vaultCtrl, requestHeaders)
+		Expect(err).To(BeNil())
+		makeDetokenizeCall()
+		Expect(capturedHeader).ToNot(BeNil())
+		Expect(capturedHeader.Get(string(RequestIDHeader))).To(Equal("req-999"))
+	})
+})
+
+// 2. Per-request CustomHeaders for Query, Tokenize, Update, UploadFile
+var _ = Describe("Per-request CustomHeaders for remaining operations", func() {
+	var baseCtrl VaultController
+	var ctx context.Context
+
+	BeforeEach(func() {
+		ctx = context.Background()
+		baseCtrl = VaultController{
+			Config: &VaultConfig{
+				VaultId:   "vaultID",
+				ClusterId: "clusterID",
+				Env:       PROD,
+				Credentials: Credentials{
+					ApiKey: "sky-token",
+				},
+			},
+		}
+	})
+
+	buildMockClientFunc := func(ts *httptest.Server, capturedReqHeaders *map[CustomHeaderKey]string) func(*VaultController, map[CustomHeaderKey]string) *skyflowError.SkyflowError {
+		return func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
+			*capturedReqHeaders = requestHeaders
+			hdr := http.Header{}
+			hdr.Set("Content-Type", "application/json")
+			c := client.NewClient(
+				option.WithBaseURL(ts.URL+"/vaults"),
+				option.WithToken("token"),
+				option.WithHTTPHeader(hdr),
+			)
+			v.ApiClient = *c
+			return nil
+		}
+	}
+
+	Context("Query", func() {
+		It("should pass CustomHeaders from QueryOptions to CreateRequestClientFunc", func() {
+			response := make(map[string]interface{})
+			_ = json.Unmarshal([]byte(mockQuerySuccessJSON), &response)
+			ts := setupMockServer(response, "ok", "/vaults/v1/vaults/")
+			defer ts.Close()
+
+			var capturedReqHeaders map[CustomHeaderKey]string
+			CreateRequestClientFunc = buildMockClientFunc(ts, &capturedReqHeaders)
+
+			opts := common.QueryOptions{
+				CustomHeaders: map[CustomHeaderKey]string{
+					RequestIDHeader: "query-req-123",
+				},
+			}
+			res, err := baseCtrl.Query(ctx, QueryRequest{
+				Query: "SELECT * FROM persons WHERE skyflow_id='id'",
+			}, opts)
+
+			Expect(err).To(BeNil())
+			Expect(res).ToNot(BeNil())
+			Expect(capturedReqHeaders[RequestIDHeader]).To(Equal("query-req-123"),
+				"QueryOptions.CustomHeaders must be forwarded to CreateRequestClientFunc")
+		})
+	})
+
+	Context("Tokenize", func() {
+		It("should pass CustomHeaders from TokenizeOptions to CreateRequestClientFunc", func() {
+			response := make(map[string]interface{})
+			_ = json.Unmarshal([]byte(mockTokenizeSuccessJSON), &response)
+			ts := setupMockServer(response, "ok", "/vaults/v1/vaults/")
+			defer ts.Close()
+
+			var capturedReqHeaders map[CustomHeaderKey]string
+			CreateRequestClientFunc = buildMockClientFunc(ts, &capturedReqHeaders)
+
+			arrReq := []TokenizeRequest{{ColumnGroup: "group_name", Value: "41111111111111"}}
+			opts := common.TokenizeOptions{
+				CustomHeaders: map[CustomHeaderKey]string{
+					SkyflowAccountID: "acct-abc",
+				},
+			}
+			res, err := baseCtrl.Tokenize(ctx, arrReq, opts)
+
+			Expect(err).To(BeNil())
+			Expect(res).ToNot(BeNil())
+			Expect(capturedReqHeaders[SkyflowAccountID]).To(Equal("acct-abc"),
+				"TokenizeOptions.CustomHeaders must be forwarded to CreateRequestClientFunc")
+		})
+	})
+
+	Context("Update", func() {
+		It("should pass CustomHeaders from UpdateOptions to CreateRequestClientFunc", func() {
+			response := make(map[string]interface{})
+			_ = json.Unmarshal([]byte(mockUpdateSuccessJSON), &response)
+			ts := setupMockServer(response, "ok", "/vaults/v1/vaults/")
+			defer ts.Close()
+
+			var capturedReqHeaders map[CustomHeaderKey]string
+			CreateRequestClientFunc = buildMockClientFunc(ts, &capturedReqHeaders)
+
+			opts := UpdateOptions{
+				ReturnTokens: true,
+				TokenMode:    DISABLE,
+				CustomHeaders: map[CustomHeaderKey]string{
+					SkyflowAccountName: "my-account",
+				},
+			}
+			res, err := baseCtrl.Update(ctx, UpdateRequest{
+				Table: "demo",
+				Data:  map[string]interface{}{"skyflow_id": "123", "name": "john"},
+			}, opts)
+
+			Expect(err).To(BeNil())
+			Expect(res).ToNot(BeNil())
+			Expect(capturedReqHeaders[SkyflowAccountName]).To(Equal("my-account"),
+				"UpdateOptions.CustomHeaders must be forwarded to CreateRequestClientFunc")
+		})
+	})
+
+	Context("UploadFile", func() {
+		It("should pass CustomHeaders from FileUploadOptions to CreateRequestClientFunc", func() {
+			response := make(map[string]interface{})
+			_ = json.Unmarshal([]byte(`{"skyflowID":"id"}`), &response)
+			ts := setupMockServer(response, "ok", "/vaults/v2/vaults/")
+			defer ts.Close()
+
+			var capturedReqHeaders map[CustomHeaderKey]string
+			CreateRequestClientFunc = buildMockClientFunc(ts, &capturedReqHeaders)
+
+			opts := common.FileUploadOptions{
+				CustomHeaders: map[CustomHeaderKey]string{
+					RequestIDHeader: "upload-req-456",
+				},
+			}
+			res, err := baseCtrl.UploadFile(ctx, common.FileUploadRequest{
+				Table:      "table",
+				ColumnName: "column",
+				FilePath:   "../../../../credentials.json",
+				SkyflowId:  "skyflowid",
+			}, opts)
+
+			Expect(err).To(BeNil())
+			Expect(res).ToNot(BeNil())
+			Expect(capturedReqHeaders[RequestIDHeader]).To(Equal("upload-req-456"),
+				"FileUploadOptions.CustomHeaders must be forwarded to CreateRequestClientFunc")
+		})
+	})
+})
+
+// 3. SkyflowAccountID and SkyflowAccountName enum constants end-to-end
+var _ = Describe("SkyflowAccountID and SkyflowAccountName constants", func() {
+	var vaultCtrl *VaultController
+	var ts *httptest.Server
+	var capturedHeader http.Header
+
+	BeforeEach(func() {
+		capturedHeader = nil
+		ts = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			capturedHeader = r.Header.Clone()
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"records":[]}`))
+		}))
+		vaultCtrl = &VaultController{
+			Config: &VaultConfig{
+				VaultId:      "vault-id",
+				ClusterId:    "cluster-id",
+				Env:          PROD,
+				BaseVaultURL: ts.URL,
+				Credentials: Credentials{
+					ApiKey: "test-api-key",
+				},
+			},
+		}
+	})
+
+	AfterEach(func() { ts.Close() })
+
+	makeDetokenizeCall := func() {
+		tok := "test-token"
+		payload := &vaultapis.V1DetokenizePayload{
+			DetokenizationParameters: []*vaultapis.V1DetokenizeRecordRequest{
+				{Token: &tok},
+			},
+		}
+		_, _ = vaultCtrl.ApiClient.Tokens.WithRawResponse.RecordServiceDetokenize(
+			context.Background(), vaultCtrl.Config.VaultId, payload,
+		)
+	}
+
+	It("should send SkyflowAccountID header set at controller level", func() {
+		vaultCtrl.CustomHeaders = map[CustomHeaderKey]string{
+			SkyflowAccountID: "acct-001",
+		}
+		err := CreateRequestClient(vaultCtrl, nil)
+		Expect(err).To(BeNil())
+		makeDetokenizeCall()
+		Expect(capturedHeader).ToNot(BeNil())
+		Expect(capturedHeader.Get(string(SkyflowAccountID))).To(Equal("acct-001"))
+	})
+
+	It("should send SkyflowAccountName header set at controller level", func() {
+		vaultCtrl.CustomHeaders = map[CustomHeaderKey]string{
+			SkyflowAccountName: "my-org",
+		}
+		err := CreateRequestClient(vaultCtrl, nil)
+		Expect(err).To(BeNil())
+		makeDetokenizeCall()
+		Expect(capturedHeader).ToNot(BeNil())
+		Expect(capturedHeader.Get(string(SkyflowAccountName))).To(Equal("my-org"))
+	})
+
+	It("should send SkyflowAccountID and SkyflowAccountName together as request-level headers", func() {
+		requestHeaders := map[CustomHeaderKey]string{
+			SkyflowAccountID:   "acct-002",
+			SkyflowAccountName: "partner-org",
+		}
+		err := CreateRequestClient(vaultCtrl, requestHeaders)
+		Expect(err).To(BeNil())
+		makeDetokenizeCall()
+		Expect(capturedHeader).ToNot(BeNil())
+		Expect(capturedHeader.Get(string(SkyflowAccountID))).To(Equal("acct-002"))
+		Expect(capturedHeader.Get(string(SkyflowAccountName))).To(Equal("partner-org"))
+	})
+
+	It("request-level SkyflowAccountID should override controller-level value", func() {
+		vaultCtrl.CustomHeaders = map[CustomHeaderKey]string{
+			SkyflowAccountID: "controller-acct",
+		}
+		requestHeaders := map[CustomHeaderKey]string{
+			SkyflowAccountID: "request-acct",
+		}
+		err := CreateRequestClient(vaultCtrl, requestHeaders)
+		Expect(err).To(BeNil())
+		makeDetokenizeCall()
+		Expect(capturedHeader).ToNot(BeNil())
+		Expect(capturedHeader.Get(string(SkyflowAccountID))).To(Equal("request-acct"),
+			"request-level value must override controller-level value for the same key")
+	})
+})

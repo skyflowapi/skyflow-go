@@ -53,12 +53,13 @@ func main() {
 				"<FIELD_NAME_2>": "<VALUE_1>",
 				"<FIELD_NAME_3>": "<VALUE_2>",
 			})
-
+			customHeader := make(map[common.CustomHeaderKey]string) // Add custom headers if needed from the options parameter in InsertOptions
+			customHeader[common.RequestIDHeader] = "123456789" // Example of adding a custom header for request ID
 			// Step 4: Insert records with proper data and receive tokens
 			insert, insertErr := service.Insert(ctx, common.InsertRequest{
 				Table:  "<TABLE_NAME>", // Replace with actual table
 				Values: values,
-			}, common.InsertOptions{ContinueOnError: false, ReturnTokens: true})
+			}, common.InsertOptions{ContinueOnError: false, ReturnTokens: true, CustomHeaders: customHeader}) // Step 5: Custom headers can be passed in options parameter of InsertOptions
 
 			// Step 5: Handle the response and errors
 			if insertErr != nil {

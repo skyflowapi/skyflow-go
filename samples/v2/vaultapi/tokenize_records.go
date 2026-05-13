@@ -52,7 +52,7 @@ func main() {
 			})
 
 			// Step 4: Tokenize sensitive data and receive secure tokens
-			tokenizeRes, tokenizeErr := service.Tokenize(ctx, reqArray)
+			tokenizeRes, tokenizeErr := service.Tokenize(ctx, reqArray, common.TokenizeOptions{})
 
 			// Step 5: Handling the response and errors
 			if tokenizeErr != nil {

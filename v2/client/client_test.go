@@ -124,8 +124,8 @@ var _ = Describe("Skyflow Client", func() {
 				ClusterId: "cluster1",
 				Env:       0,
 			})
-			customHeader := make(map[string]string)
-			customHeader["x-custom-header"] = "custom-header-value"
+			customHeader := make(map[common.CustomHeaderKey]string)
+			customHeader[common.RequestIDHeader] = "custom-header-value"
 			client, err := NewSkyflow(
 				WithVaults(config...),
 				WithCustomHeaders(customHeader),

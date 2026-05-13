@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/skyflowapi/skyflow-go/v2/internal/helpers"
 	"github.com/skyflowapi/skyflow-go/v2/utils/common"
 	skyflowError "github.com/skyflowapi/skyflow-go/v2/utils/error"

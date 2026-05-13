@@ -11,12 +11,11 @@ const (
 	GRANT_TYPE             = "urn:ietf:params:oauth:grant-type:jwt-bearer"
 	SDK_LOG_PREFIX         = "[ " + SDK_PREFIX + " ] "
 	SDK_NAME               = "Skyflow Go SDK "
-	SDK_VERSION            = "v2.0.4"
+	SDK_VERSION            = "v2.0.9"
 	SDK_PREFIX             = SDK_NAME + SDK_VERSION
 	ERROR_FROM_CLIENT      = "error-from-client"
 	REQUEST_KEY            = "X-Request-Id"
 	SKYFLOW_ID             = "skyflow_id"
-
 	// File extensions
 	FILE_EXTENSION_TXT    = "txt"
 	FILE_EXTENSION_PDF    = "pdf"
@@ -183,4 +182,6 @@ const (
 	
 	// Magic numbers
 	API_KEY_LENGTH = 42
+	CTX_KEY_REGEX          = `^[a-zA-Z0-9_]+$`
+	METRICS_SDK_NAME       = "skyflow-go"
 )

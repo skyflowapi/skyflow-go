@@ -9,6 +9,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -830,11 +831,46 @@ MIIBAAIBADANINVALIDKEY==
 				Expect(err).To(BeNil())
 				Expect(file).ToNot(BeNil())
 			})
-			It("should return error for valid base64 data when file name is not passed", func() {
+			It("should not return error for valid base64 data when file name is not passed", func() {
 				data := "SGVsbG8sIFdvcmxkIQ==" // base64 for "Hello, World!"
 				file, err := GetFileForFileUpload(common.FileUploadRequest{Base64: data})
+				Expect(err).To(BeNil())
+				Expect(file).ToNot(BeNil())
+				type namer interface{ Name() string }
+				named, ok := file.(namer)
+				Expect(ok).To(BeTrue())
+				Expect(named.Name()).To(Equal(""))
+			})
+			It("should return namedReader with correct Name() for valid base64 data", func() {
+				data := "SGVsbG8sIFdvcmxkIQ==" // base64 for "Hello, World!"
+				file, err := GetFileForFileUpload(common.FileUploadRequest{Base64: data, FileName: "hello.txt"})
+				Expect(err).To(BeNil())
+				Expect(file).ToNot(BeNil())
+				type namer interface{ Name() string }
+				named, ok := file.(namer)
+				Expect(ok).To(BeTrue())
+				Expect(named.Name()).To(Equal("hello.txt"))
+			})
+			It("should return namedReader with correct content for valid base64 data", func() {
+				data := "SGVsbG8sIFdvcmxkIQ==" // base64 for "Hello, World!"
+				file, err := GetFileForFileUpload(common.FileUploadRequest{Base64: data, FileName: "hello.txt"})
+				Expect(err).To(BeNil())
+				Expect(file).ToNot(BeNil())
+				content, readErr := io.ReadAll(file)
+				Expect(readErr).To(BeNil())
+				Expect(string(content)).To(Equal("Hello, World!"))
+			})
+			It("should close namedReader without error", func() {
+				data := "SGVsbG8sIFdvcmxkIQ==" // base64 for "Hello, World!"
+				file, err := GetFileForFileUpload(common.FileUploadRequest{Base64: data, FileName: "hello.txt"})
+				Expect(err).To(BeNil())
+				Expect(file).ToNot(BeNil())
+				Expect(file.Close()).To(BeNil())
+			})
+			It("should return error containing failed to decode for invalid base64 data", func() {
+				_, err := GetFileForFileUpload(common.FileUploadRequest{Base64: "!!!invalid!!!", FileName: "test.txt"})
 				Expect(err).ToNot(BeNil())
-				Expect(file).To(BeNil())
+				Expect(err.Error()).To(ContainSubstring("failed to decode base64"))
 			})
 			It("should not return error for valid file object", func() {
 				tmpfile, err := os.Open("../../../credentials.json")
@@ -853,6 +889,124 @@ MIIBAAIBADANINVALIDKEY==
 			})
 		})
 
+		Context("ValidateAndResolveCtx", func() {
+			It("should return nil, nil when input is nil", func() {
+				result, err := ValidateAndResolveCtx(nil)
+				Expect(err).To(BeNil())
+				Expect(result).To(BeNil())
+			})
+
+			It("should return nil, nil when input is an empty string", func() {
+				result, err := ValidateAndResolveCtx("")
+				Expect(err).To(BeNil())
+				Expect(result).To(BeNil())
+			})
+
+			It("should return the string when input is a valid non-empty string", func() {
+				result, err := ValidateAndResolveCtx("testContext")
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal("testContext"))
+			})
+
+			It("should return nil, nil when input is an empty map", func() {
+				result, err := ValidateAndResolveCtx(map[string]interface{}{})
+				Expect(err).To(BeNil())
+				Expect(result).To(BeNil())
+			})
+
+			It("should return the map when input is a valid map with simple keys", func() {
+				input := map[string]interface{}{"key1": "value1", "key2": "value2"}
+				result, err := ValidateAndResolveCtx(input)
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(input))
+			})
+
+			It("should return the map when keys contain alphanumeric characters and underscores", func() {
+				input := map[string]interface{}{"abc_123": "val", "ABC_XYZ": "val2", "a1_B2_c3": "val3"}
+				result, err := ValidateAndResolveCtx(input)
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(input))
+			})
+
+			It("should return error when map key contains a hyphen", func() {
+				input := map[string]interface{}{"invalid-key": "value"}
+				result, err := ValidateAndResolveCtx(input)
+				Expect(err).ToNot(BeNil())
+				Expect(result).To(BeNil())
+				Expect(err.GetCode()).To(Equal("Code: 400"))
+				Expect(err.GetMessage()).To(ContainSubstring("invalid-key"))
+			})
+
+			It("should return error when map key contains a space", func() {
+				input := map[string]interface{}{"invalid key": "value"}
+				result, err := ValidateAndResolveCtx(input)
+				Expect(err).ToNot(BeNil())
+				Expect(result).To(BeNil())
+				Expect(err.GetCode()).To(Equal("Code: 400"))
+				Expect(err.GetMessage()).To(ContainSubstring("invalid key"))
+			})
+
+			It("should return error when map key contains a dot", func() {
+				input := map[string]interface{}{"invalid.key": "value"}
+				result, err := ValidateAndResolveCtx(input)
+				Expect(err).ToNot(BeNil())
+				Expect(result).To(BeNil())
+				Expect(err.GetCode()).To(Equal("Code: 400"))
+				Expect(err.GetMessage()).To(ContainSubstring("invalid.key"))
+			})
+
+			It("should return float64 when input is an int", func() {
+				result, err := ValidateAndResolveCtx(42)
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(float64(42)))
+			})
+
+			It("should return float64 when input is a float64", func() {
+				result, err := ValidateAndResolveCtx(3.14)
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(3.14))
+			})
+
+			It("should return bool when input is true", func() {
+				result, err := ValidateAndResolveCtx(true)
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(true))
+			})
+
+			It("should return bool when input is false", func() {
+				result, err := ValidateAndResolveCtx(false)
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(false))
+			})
+
+			It("should return error when input is a slice (invalid type)", func() {
+				result, err := ValidateAndResolveCtx([]string{"a", "b"})
+				Expect(err).ToNot(BeNil())
+				Expect(result).To(BeNil())
+				Expect(err.GetCode()).To(Equal("Code: 400"))
+				Expect(err.GetMessage()).To(ContainSubstring(INVALID_CTX_TYPE))
+			})
+
+			It("should return the map when values are mixed types (string, int, bool)", func() {
+				input := map[string]interface{}{"name": "test", "count": 5, "active": true}
+				result, err := ValidateAndResolveCtx(input)
+				Expect(err).To(BeNil())
+				resultMap := result.(map[string]interface{})
+				Expect(resultMap["name"]).To(Equal("test"))
+				Expect(resultMap["count"]).To(Equal(5))
+				Expect(resultMap["active"]).To(Equal(true))
+			})
+
+			It("should return the map when values contain nested objects", func() {
+				input := map[string]interface{}{
+					"outer": map[string]interface{}{"inner": "value"},
+					"list":  []interface{}{1, 2, 3},
+				}
+				result, err := ValidateAndResolveCtx(input)
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(input))
+			})
+		})
 
 	})
 })

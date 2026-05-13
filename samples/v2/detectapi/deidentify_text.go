@@ -79,7 +79,7 @@ func main() {
 						common.Dob,
 					},
 				},
-			})
+			}, common.DeidentifyTextOptions{})
 			// Step 5: Handle the response and errors.
 			if deidentifyTextErr != nil {
 				fmt.Println("ERROR: ", *deidentifyTextErr)

@@ -36,6 +36,10 @@ The Skyflow Go SDK is designed to help with integrating Skyflow into a go backen
   - [Delete](#delete)
   - [Query](#query)
   - [Upload File](#upload-file)
+- [Custom Request Headers](#custom-request-headers)
+  - [Supported headers](#supported-headers)
+  - [Client-level custom headers](#client-level-custom-headers)
+  - [Request-level custom headers](#request-level-custom-headers)
 - [Detect](#detect)
   - [Deidentify Text](#deidentify-text)
   - [Reidentify Text](#reidentify-text)
@@ -1915,7 +1919,7 @@ func main() {
 - We can pass only one from file path, file object and base64 in file upload request.
 - File name is required when base64 is passed in request.
 
-#### An [example] of file upload call
+#### An [example](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v2/vaultapi/upload_file.go) of file upload call
 ```go
 package main
 
@@ -1979,6 +1983,97 @@ Sample response:
 ```json
 {
   "SkyflowId": "5b699e2c-4301-4f9f-bcff-0a8fd3057413"
+}
+```
+
+## Custom Request Headers
+
+The SDK supports passing custom HTTP headers at two levels: **client level** (applied to all requests) and **request level** (applied to a single API call).
+
+### Supported headers
+
+| Constant | Header name | Description |
+|---|---|---|
+| `common.RequestIDHeader` | `x-request-id` | Custom request identifier for tracing |
+| `common.SkyflowAccountID` | `x-skyflow-account-id` | Skyflow account identifier |
+| `common.SkyflowAccountName` | `x-skyflow-account-name` | Skyflow account name |
+
+### Client-level custom headers
+
+Use `client.WithCustomHeaders` when building the Skyflow client. These headers are sent with every request made through that client.
+
+```go
+import (
+  "github.com/skyflowapi/skyflow-go/v2/client"
+  "github.com/skyflowapi/skyflow-go/v2/utils/common"
+)
+
+customHeaders := map[common.CustomHeaderKey]string{
+    common.RequestIDHeader:    "<REQUEST_ID>",   // Replace with your request ID
+    common.SkyflowAccountID:  "<ACCOUNT_ID>",   // Replace with your account ID
+}
+
+skyflowClient, err := client.NewSkyflow(
+    client.WithVaultConfig(vaultConfig),
+    client.WithCredentials(skyflowCredentials),
+    client.WithCustomHeaders(customHeaders),
+)
+```
+
+### Request-level custom headers
+
+Pass `CustomHeaders` in the options struct for any individual operation. Request-level headers take precedence over client-level headers for that call.
+
+The following options structs support `CustomHeaders`:
+
+**Vault operations**
+| Operation | Options struct |
+|---|---|
+| `Insert` | `InsertOptions` |
+| `Detokenize` | `DetokenizeOptions` |
+| `Get` | `GetOptions` |
+| `Update` | `UpdateOptions` |
+| `Delete` | `DeleteOptions` |
+| `Query` | `QueryOptions` |
+| `Tokenize` | `TokenizeOptions` |
+| `UploadFile` | `FileUploadOptions` |
+
+**Detect operations**
+| Operation | Options struct |
+|---|---|
+| `DeidentifyText` | `DeidentifyTextOptions` |
+| `ReidentifyText` | `ReidentifyTextOptions` |
+| `DeidentifyFile` | `DeidentifyFileOptions` |
+| `GetDetectRun` | `GetDetectRunOptions` |
+
+Example — passing a custom request ID on a single insert call:
+
+```go
+import (
+  "context"
+  "fmt"
+  "github.com/skyflowapi/skyflow-go/v2/utils/common"
+)
+
+customHeaders := map[common.CustomHeaderKey]string{
+    common.RequestIDHeader: "<REQUEST_ID>", // Replace with your request ID
+}
+
+insertOptions := common.InsertOptions{
+    ReturnTokens:  true,
+    CustomHeaders: customHeaders,
+}
+
+service, serviceErr := skyflowClient.Vault("<VAULT_ID>")
+if serviceErr != nil {
+    fmt.Println("Error:", serviceErr)
+}
+
+response, err := service.Insert(context.TODO(), insertRequest, insertOptions)
+if err != nil {
+    fmt.Println("Error:", err)
+} else {
+    fmt.Println("Response:", response)
 }
 ```
 
@@ -2860,69 +2955,59 @@ func BearerTokenGenerationExample() {
 }
 ```
 ### Generate bearer tokens with context
-`Context-Aware Authorization`  embeds context values into a bearer token during its generation and so you can reference those values in your policies. This enables more flexible access controls, such as helping you track end-user identity when making API calls using service accounts, and facilitates using signed data tokens during detokenization.
+`Context-Aware Authorization` embeds context values into a bearer token during its generation so you can reference those values in your policies. This enables more flexible access controls, such as helping you track end-user identity when making API calls using service accounts, and facilitates using signed data tokens during detokenization.
+
 A service account with the `context_id` identifier generates bearer tokens containing context information, represented as a JWT claim in a Skyflow-generated bearer token. Tokens generated from such service accounts include a `context_identifier` claim, are valid for 60 minutes, and can be used to make API calls to the Data and Management APIs, depending on the service account's permissions.
 
-#### [Example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/serviceaccount/token_generation_with_context.go)
+The `Ctx` field accepts either a **string** or a **`map[string]interface{}`**:
+
+**String context** — use when your policy references a single context value:
+
 ```go
-import (
-"fmt"
-saUtil "github.com/skyflowapi/skyflow-go/v2/serviceaccount"
-"github.com/skyflowapi/skyflow-go/v2/utils/common"
-"github.com/skyflowapi/skyflow-go/v2/utils/logger"
-)
-/**
- * Example program to generate a Bearer Token using Skyflow's BearerToken utility.
- * The token is generated using two approaches:
- * 1. By providing the credentials.json file path.
- * 2. By providing the contents of credentials.json as a string.
- */
+res, err := serviceaccount.GenerateBearerToken(filePath, common.BearerTokenOptions{
+    Ctx: "user_12345",
+})
+```
 
-func BearerTokenGenerationWithContextExample() {
-    // Variable to store the generated Bearer Token
-    var bearerToken = "";
+**JSON object context** — use when your policy needs multiple context values for conditional data access. Each key in the map maps to a Skyflow CEL policy variable under `request.context.*`:
 
-    // Approach 1: Generate Bearer Token by specifying the path to the credentials.json file
-    // Replace <YOUR_CREDENTIALS_FILE_PATH> with the full path to your credentials.json file
-    var filePath = "<YOUR_CREDENTIALS_FILE_PATH>";
+```go
+ctxMap := map[string]interface{}{
+    "role":       "admin",
+    "department": "finance",
+    "user_id":    "user_12345",
+}
+res, err := serviceaccount.GenerateBearerToken(filePath, common.BearerTokenOptions{
+    Ctx: ctxMap,
+})
+```
 
-    // Create a BearerToken using the file path
-    res, err := saUtil.GenerateBearerToken(filePath, // Set credentials using a File object
-        common.BearerTokenOptions{
-	        LogLevel: logger.DEBUG, 
-	        Ctx: "<CONTEXT>" // Set context string (example: "abc")
-        })
+With the map above, your Skyflow policies can reference `request.context.role`, `request.context.department`, and `request.context.user_id` to make conditional access decisions.
 
-    if err != nil {
-        // Handle exceptions specific to Skyflow operations
-        fmt.Println("errors:", *err)
-    } else {
-        // Print the generated Bearer Token to the console
-        bearerToken = res.AccessToken
-        fmt.Println("Token", res.AccessToken)
-    }
-        // Print the generated Bearer Token to the console
-        fmt.Println(bearerToken);
+You can also set context on `Credentials` for automatic token generation:
 
-    // Approach 2: Generate Bearer Token by specifying the contents of credentials.json as a string
-	// Replace <YOUR_CREDENTIALS_FILE_CONTENTS_AS_STRING> with the actual contents of your credentials.json file
-    var fileContents = "<YOUR_CREDENTIALS_FILE_CONTENTS_AS_STRING>";
+```go
+// String context
+creds := common.Credentials{
+    Path:    "path/to/credentials.json",
+    Context: "user_12345",
+}
 
-    // Create a BearerToken object using the file contents as a string
-    res, err = saUtil.GenerateBearerTokenFromCreds(fileContents, common.BearerTokenOptions{LogLevel: logger.DEBUG, Ctx: "<CONTEXT>"})
-
-    if err != nil {
-        fmt.Println("errors:", *err)
-    } else {
-        // Retrieve the Bearer Token as a string
-        bearerToken = res.AccessToken
-        // Print the generated Bearer Token to the console
-        fmt.Println("Token", res.AccessToken)
-    }
-    // Handle exceptions specific to Skyflow operations
-    fmt.Println(bearerToken);
+// Map context
+creds := common.Credentials{
+    Path: "path/to/credentials.json",
+    Context: map[string]interface{}{
+        "role":       "admin",
+        "department": "finance",
+    },
 }
 ```
+
+Context map keys must contain only alphanumeric characters and underscores (`[a-zA-Z0-9_]`). Invalid keys will return a `SkyflowError`.
+
+[Full example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/v2/serviceaccount/token_generation_with_context.go)
+
+See Skyflow's [context-aware authorization](https://docs.skyflow.com) and [conditional data access](https://docs.skyflow.com) docs for policy variable syntax like `request.context.*`.
 
 ### Generate scoped bearer tokens
 A service account with multiple roles can generate bearer tokens with access limited to a specific role by specifying the appropriate `roleID`. It can be used to limit access to specific roles for services with multiple responsibilities, such as segregating access for billing vs. analytics. The generated bearer tokens are valid for 60 minutes and can only execute operations permitted by the permissions associated with the designated role.
