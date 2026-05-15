@@ -21,7 +21,7 @@ linters:
       rules:
         - name: var-naming
           arguments:
-            - ["ID", "URL", "API", "HTTP", "JSON", "UUID"]
+            - ["ID", "URL", "API", "HTTP", "JSON", "UUID", "URI", "IDS"]
             - []
             - - upper-case-const: true
                 skip-package-name-checks: true
