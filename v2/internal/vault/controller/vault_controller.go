@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+
 	constants "github.com/skyflowapi/skyflow-go/v2/internal/constants"
 	vaultapis "github.com/skyflowapi/skyflow-go/v2/internal/generated"
 	"github.com/skyflowapi/skyflow-go/v2/internal/generated/client"
@@ -36,7 +37,7 @@ func GenerateToken(credentials common.Credentials) (*string, *skyflowError.Skyfl
 	var bearerToken string
 	var options = common.BearerTokenOptions{}
 	if credentials.Roles != nil {
-		options.RoleIDs = credentials.Roles
+		options.RoleIds = credentials.Roles
 	}
 	if credentials.Context != nil {
 		options.Ctx = credentials.Context
@@ -123,8 +124,8 @@ func CreateRequestClient(v *VaultController, requestHeaders map[common.CustomHea
 	header.Set(constants.SDK_METRICS_HEADER_KEY, helpers.CreateJsonMetadata())
 
 	var baseURL string
-	if v.Config.BaseVaultURL != "" {
-		baseURL = v.Config.BaseVaultURL
+	if v.Config.BaseVaultUrl != "" {
+		baseURL = v.Config.BaseVaultUrl
 	} else {
 		baseURL = helpers.GetURLWithEnv(v.Config.Env, v.Config.ClusterId)
 	}
@@ -228,7 +229,7 @@ func (v *VaultController) Insert(ctx context.Context, request common.InsertReque
 			if parseErr != nil {
 				return nil, parseErr
 			}
-			if formattedRecord[constants.SKYFLOW_ID] != nil {
+			if formattedRecord["SkyflowId"] != nil {
 				insertedFields = append(insertedFields, formattedRecord)
 			} else {
 				formattedRecord[constants.RESPONSE_KEY_REQUEST_ID] = header.Get(constants.REQUEST_KEY)
@@ -378,8 +379,8 @@ func (v *VaultController) Get(ctx context.Context, request common.GetRequest, op
 		orderBy, _ := vaultapis.NewRecordServiceBulkGetRecordRequestOrderByFromString(string(options.OrderBy))
 		req.OrderBy = &orderBy
 	}
-	if options.DownloadURL {
-		req.DownloadUrl = &options.DownloadURL
+	if options.DownloadUrl {
+		req.DownloadUrl = &options.DownloadUrl
 	}
 	if options.ReturnTokens {
 		req.Tokenization = &options.ReturnTokens
@@ -542,7 +543,9 @@ func (v *VaultController) Update(ctx context.Context, request common.UpdateReque
 	var updatedField map[string]interface{}
 	updatedField = make(map[string]interface{})
 	updatedField = res
-	updatedField[constants.RESPONSE_KEY_SKYFLOW_ID] = *id
+	if id != nil {
+		updatedField[constants.SKYFLOW_ID] = *id
+	}
 	return &common.UpdateResponse{
 		UpdatedField: updatedField,
 		Errors:       nil,

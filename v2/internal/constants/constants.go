@@ -182,6 +182,7 @@ const (
 	
 	// Magic numbers
 	API_KEY_LENGTH = 42
+	SKYFLOW_ID             = "SkyflowId"
 	CTX_KEY_REGEX          = `^[a-zA-Z0-9_]+$`
 	METRICS_SDK_NAME       = "skyflow-go"
 )

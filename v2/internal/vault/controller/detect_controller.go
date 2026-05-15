@@ -82,10 +82,9 @@ func CreateDetectRequestClient(v *DetectController, requestHeaders map[common.Cu
 	}
 	header.Set(constants.SDK_METRICS_HEADER_KEY, helpers.CreateJsonMetadata())
 
-
 	var baseURL string
-	if v.Config.BaseVaultURL != "" {
-		baseURL = v.Config.BaseVaultURL
+	if v.Config.BaseVaultUrl != "" {
+		baseURL = v.Config.BaseVaultUrl
 	} else {
 		baseURL = helpers.GetURLWithEnv(v.Config.Env, v.Config.ClusterId)
 	}

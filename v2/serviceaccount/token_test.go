@@ -2,18 +2,20 @@ package serviceaccount_test
 
 import (
 	"fmt"
+
 	"github.com/skyflowapi/skyflow-go/v2/serviceaccount"
+
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/skyflowapi/skyflow-go/v2/internal/helpers"
 	"github.com/skyflowapi/skyflow-go/v2/utils/common"
 	skyflowError "github.com/skyflowapi/skyflow-go/v2/utils/error"
-	"net/http"
-	"net/http/httptest"
-	"os"
-	"testing"
-	"time"
 
 	"github.com/golang-jwt/jwt/v4"
 )
@@ -54,7 +56,7 @@ var _ = Describe("ServiceAccount Test Suite", func() {
 	BeforeEach(func() {
 		options = common.BearerTokenOptions{
 			Ctx:     "testContext",
-			RoleIDs: []string{"roleid1", "roleid2"},
+			RoleIds: []string{"roleid1", "roleid2"},
 		}
 		dataTokenOptions = common.SignedDataTokensOptions{
 			DataTokens: []string{"datatoken1", "datatoken2"},
@@ -72,7 +74,7 @@ var _ = Describe("ServiceAccount Test Suite", func() {
 			mockServer = mockserver("ok")
 			// Prepare valid BearerTokenOptions
 			options = common.BearerTokenOptions{
-				RoleIDs: []string{"role1"},
+				RoleIds: []string{"role1"},
 			}
 			originalGetBaseURLHelper := helpers.GetBaseURLHelper
 
@@ -96,7 +98,7 @@ var _ = Describe("ServiceAccount Test Suite", func() {
 			mockServer = mockserver("err")
 			// Prepare valid BearerTokenOptions
 			options = common.BearerTokenOptions{
-				RoleIDs: []string{"role1"},
+				RoleIds: []string{"role1"},
 			}
 			originalGetBaseURLHelper := helpers.GetBaseURLHelper
 
@@ -114,7 +116,7 @@ var _ = Describe("ServiceAccount Test Suite", func() {
 
 			// Prepare BearerTokenOptions
 			options := common.BearerTokenOptions{
-				RoleIDs: []string{"role1"},
+				RoleIds: []string{"role1"},
 			}
 
 			// Call the function under test
@@ -131,7 +133,7 @@ var _ = Describe("ServiceAccount Test Suite", func() {
 			mockServer = mockserver("ok")
 			// Prepare valid BearerTokenOptions
 			options = common.BearerTokenOptions{
-				RoleIDs: []string{"role1"},
+				RoleIds: []string{"role1"},
 			}
 			originalGetBaseURLHelper := helpers.GetBaseURLHelper
 
@@ -151,7 +153,7 @@ var _ = Describe("ServiceAccount Test Suite", func() {
 			mockServer = mockserver("err")
 			// Prepare valid BearerTokenOptions
 			options = common.BearerTokenOptions{
-				RoleIDs: []string{"role1"},
+				RoleIds: []string{"role1"},
 			}
 			originalGetBaseURLHelper := helpers.GetBaseURLHelper
 
@@ -169,7 +171,7 @@ var _ = Describe("ServiceAccount Test Suite", func() {
 
 			// Prepare BearerTokenOptions
 			options := common.BearerTokenOptions{
-				RoleIDs: []string{"role1"},
+				RoleIds: []string{"role1"},
 			}
 
 			// Call the function under test
