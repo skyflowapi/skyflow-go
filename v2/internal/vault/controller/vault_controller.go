@@ -379,8 +379,8 @@ func (v *VaultController) Get(ctx context.Context, request common.GetRequest, op
 		orderBy, _ := vaultapis.NewRecordServiceBulkGetRecordRequestOrderByFromString(string(options.OrderBy))
 		req.OrderBy = &orderBy
 	}
-	if options.DownloadURL {
-		req.DownloadUrl = &options.DownloadURL
+	if options.DownloadUrl {
+		req.DownloadUrl = &options.DownloadUrl
 	}
 	if options.ReturnTokens {
 		req.Tokenization = &options.ReturnTokens
@@ -543,7 +543,9 @@ func (v *VaultController) Update(ctx context.Context, request common.UpdateReque
 	var updatedField map[string]interface{}
 	updatedField = make(map[string]interface{})
 	updatedField = res
-	updatedField[constants.SKYFLOW_ID] = *id
+	if id != nil {
+		updatedField[constants.SKYFLOW_ID] = *id
+	}
 	return &common.UpdateResponse{
 		UpdatedField: updatedField,
 		Errors:       nil,

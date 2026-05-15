@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -42,7 +41,7 @@ func ParseCredentialsFile(credentialsFilePath string) (map[string]interface{}, *
 	}
 	defer file.Close()
 
-	bytes, err := ioutil.ReadAll(file)
+	bytes, err := io.ReadAll(file)
 	if err != nil {
 		logger.Error(fmt.Sprintf(logs.INVALID_INPUT_FILE, credentialsFilePath))
 		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(logs.INVALID_INPUT_FILE, credentialsFilePath))
@@ -164,7 +163,9 @@ func GetFormattedBatchInsertRecord(record interface{}, requestIndex int) (map[st
 }
 func GetFormattedBulkInsertRecord(record vaultapis.V1RecordMetaProperties) map[string]interface{} {
 	insertRecord := make(map[string]interface{})
-	insertRecord["SkyflowId"] = *record.GetSkyflowId()
+	if id := record.GetSkyflowId(); id != nil {
+		insertRecord["SkyflowId"] = *id
+	}
 
 	tokensMap := record.GetTokens()
 	if len(tokensMap) > 0 {
@@ -295,7 +296,9 @@ func GetURLWithEnv(env common.Env, clusterId string) string {
 func ParseTokenizeResponse(apiResponse vaultapis.V1TokenizeResponse) *common.TokenizeResponse {
 	var tokens []string
 	for _, record := range apiResponse.GetRecords() {
-		tokens = append(tokens, *record.GetToken())
+		if t := record.GetToken(); t != nil {
+			tokens = append(tokens, *t)
+		}
 	}
 	return &common.TokenizeResponse{
 		Tokens: tokens,
@@ -367,7 +370,6 @@ func GetCredentialParams(credKeys map[string]interface{}) (string, string, strin
 	}
 	tokenUri, ok2 := credKeys["tokenUri"].(string)
 	if !ok2 {
-		// CHECLK FROR tokenURI
 		tokenUri, ok2 = credKeys["tokenURI"].(string)
 		if !ok2 {
 			logger.Error(logs.TOKEN_URI_NOT_FOUND)
@@ -376,17 +378,12 @@ func GetCredentialParams(credKeys map[string]interface{}) (string, string, strin
 	}
 	keyId, ok3 := credKeys["keyId"].(string)
 	if !ok3 {
-		// CHECK FOR keyID
 		keyId, ok3 = credKeys["keyID"].(string)
 		if !ok3 {
 			logger.Error(logs.KEY_ID_NOT_FOUND)
 			return "", "", "", skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.MISSING_KEY_ID)
 		}
 	}
-	// if !ok || !ok2 || !ok3 {
-	// 	logger.Error(logs.INVALID_CREDENTIALS_FILE_FORMAT)
-	// 	return "", "", "", skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_CREDENTIALS)
-	// }
 	return clientId, tokenUri, keyId, nil
 }
 
@@ -471,34 +468,16 @@ var GetBaseURLHelper = GetBaseURL
 func GenerateBearerTokenHelper(credKeys map[string]interface{}, options common.BearerTokenOptions) (*internal.V1GetAuthTokenResponse, *skyflowError.SkyflowError) {
 	privateKey := credKeys["privateKey"]
 	if privateKey == nil {
-		logger.Error(fmt.Sprintf(logs.PRIVATE_KEY_NOT_FOUND))
+		logger.Error(logs.PRIVATE_KEY_NOT_FOUND)
 		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.MISSING_PRIVATE_KEY)
 	}
 	pvtKey, err1 := GetPrivateKeyFromPem(privateKey.(string))
 	if err1 != nil {
 		return nil, err1
 	}
-	clientId, ok := credKeys["clientId"].(string)
-	if !ok {
-		if clientId, ok = credKeys["clientID"].(string); !ok {
-			logger.Error(fmt.Sprintf(logs.CLIENT_ID_NOT_FOUND))
-			return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.MISSING_CLIENT_ID)
-		}
-	}
-
-	tokenUri, ok1 := credKeys["tokenUri"].(string)
-	if !ok1 {
-		if tokenUri, ok1 = credKeys["tokenURI"].(string); !ok1 {
-		logger.Error(fmt.Sprintf(logs.TOKEN_URI_NOT_FOUND))
-		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.MISSING_TOKEN_URI)
-		}
-	}
-	keyId, ok2 := credKeys["keyId"].(string)
-	if !ok2 {
-		if keyId, ok2 = credKeys["keyID"].(string); !ok2 {
-			logger.Error(fmt.Sprintf(logs.KEY_ID_NOT_FOUND))
-			return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.MISSING_KEY_ID)
-		}
+	clientId, tokenUri, keyId, credErr := GetCredentialParams(credKeys)
+	if credErr != nil {
+		return nil, credErr
 	}
 
 	signedUserJWT, e := GetSignedBearerUserToken(clientId, keyId, tokenUri, pvtKey, options)
@@ -619,7 +598,7 @@ func GetPrivateKeyFromPem(pemKey string) (*rsa.PrivateKey, *skyflowError.Skyflow
 	var err error
 	privPem, _ := pem.Decode([]byte(pemKey))
 	if privPem == nil {
-		logger.Error(fmt.Sprintf(logs.JWT_INVALID_FORMAT))
+		logger.Error(logs.JWT_INVALID_FORMAT)
 		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.JWT_INVALID_FORMAT)
 	}
 	if privPem.Type != "PRIVATE KEY" {

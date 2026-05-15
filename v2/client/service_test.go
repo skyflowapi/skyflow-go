@@ -77,7 +77,7 @@ var _ = Describe("Vault controller Test cases", func() {
 		)
 		BeforeEach(func() {
 			customHeader := make(map[common.CustomHeaderKey]string)
-			customHeader[common.RequestIDHeader] = "custom-header-value"
+			customHeader[common.RequestIdHeader] = "custom-header-value"
 			client, err = NewSkyflow(WithVaults(VaultConfig{
 				VaultId:   "id",
 				ClusterId: "cid",
