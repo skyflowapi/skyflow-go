@@ -468,6 +468,46 @@ func (s *Skyflow) RemoveConnectionConfig(connectionId string) *error.SkyflowErro
 	return nil
 }
 
+// Deprecated: Use GetVaultConfig instead.
+func (s *Skyflow) GetVault(vaultId string) (*vaultutils.VaultConfig, *error.SkyflowError) {
+	return s.GetVaultConfig(vaultId)
+}
+
+// Deprecated: Use GetConnectionConfig instead.
+func (s *Skyflow) GetConnection(connId string) (*vaultutils.ConnectionConfig, *error.SkyflowError) {
+	return s.GetConnectionConfig(connId)
+}
+
+// Deprecated: Use AddVaultConfig instead.
+func (s *Skyflow) AddVault(config vaultutils.VaultConfig) *error.SkyflowError {
+	return s.AddVaultConfig(config)
+}
+
+// Deprecated: Use AddConnectionConfig instead.
+func (s *Skyflow) AddConnection(config vaultutils.ConnectionConfig) *error.SkyflowError {
+	return s.AddConnectionConfig(config)
+}
+
+// Deprecated: Use UpdateVaultConfig instead.
+func (s *Skyflow) UpdateVault(updatedConfig vaultutils.VaultConfig) *error.SkyflowError {
+	return s.UpdateVaultConfig(updatedConfig)
+}
+
+// Deprecated: Use UpdateConnectionConfig instead.
+func (s *Skyflow) UpdateConnection(updatedConfig vaultutils.ConnectionConfig) *error.SkyflowError {
+	return s.UpdateConnectionConfig(updatedConfig)
+}
+
+// Deprecated: Use RemoveVaultConfig instead.
+func (s *Skyflow) RemoveVault(vaultId string) *error.SkyflowError {
+	return s.RemoveVaultConfig(vaultId)
+}
+
+// Deprecated: Use RemoveConnectionConfig instead.
+func (s *Skyflow) RemoveConnection(connectionId string) *error.SkyflowError {
+	return s.RemoveConnectionConfig(connectionId)
+}
+
 // vault utils or helper func
 func getVaultConfig(builder map[string]*vaultService, vaultID ...string) (*vaultutils.VaultConfig, *error.SkyflowError) {
 	// if vaultapi configs are empty

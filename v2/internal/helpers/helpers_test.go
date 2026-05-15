@@ -553,13 +553,25 @@ MIIBAAIBADANINVALIDKEY==
 			})
 		})
 		Context("GetSkyflowID", func() {
-			It("should return skyflow_id and true if present", func() {
+			It("should return skyflow_id and true if present (new key SkyflowId)", func() {
 				m := map[string]interface{}{"SkyflowId": "id123"}
 				id, ok := GetSkyflowID(m)
 				Expect(ok).To(BeTrue())
 				Expect(id).To(Equal("id123"))
 			})
-			It("should return empty string and false if skyflow_id not present", func() {
+			It("should return skyflow_id and true if present (old key skyflow_id — backward compat)", func() {
+				m := map[string]interface{}{"skyflow_id": "id456"}
+				id, ok := GetSkyflowID(m)
+				Expect(ok).To(BeTrue())
+				Expect(id).To(Equal("id456"))
+			})
+			It("should prefer new key SkyflowId over old key skyflow_id when both present", func() {
+				m := map[string]interface{}{"SkyflowId": "new-id", "skyflow_id": "old-id"}
+				id, ok := GetSkyflowID(m)
+				Expect(ok).To(BeTrue())
+				Expect(id).To(Equal("new-id"))
+			})
+			It("should return empty string and false if neither key is present", func() {
 				m := map[string]interface{}{"other": "val"}
 				id, ok := GetSkyflowID(m)
 				Expect(ok).To(BeFalse())
@@ -682,7 +694,7 @@ MIIBAAIBADANINVALIDKEY==
 			})
 		})
 		Context("GetFormattedBatchInsertRecord", func() {
-			It("should extract skyflow_id and tokens from valid record", func() {
+			It("should extract skyflow_id and emit both SkyflowId (new) and skyflow_id (backward compat)", func() {
 				record := map[string]interface{}{
 					"Body": map[string]interface{}{
 						"records": []interface{}{
@@ -696,6 +708,7 @@ MIIBAAIBADANINVALIDKEY==
 				result, err := GetFormattedBatchInsertRecord(record, 0)
 				Expect(err).To(BeNil())
 				Expect(result).To(HaveKeyWithValue("SkyflowId", "id123"))
+				Expect(result).To(HaveKeyWithValue("skyflow_id", "id123")) // backward compat
 				Expect(result).To(HaveKeyWithValue("field1", "token1"))
 				Expect(result).To(HaveKeyWithValue("request_index", 0))
 			})
@@ -1050,14 +1063,15 @@ var _ = Describe("GetFormattedBulkInsertRecord", func() {
 	})
 
 	Context("when SkyflowId is set", func() {
-		It("should include SkyflowId in the map", func() {
+		It("should include SkyflowId (new) and skyflow_id (backward compat) in the map", func() {
 			id := "sky-123"
 			record := vaultapis.V1RecordMetaProperties{SkyflowId: &id}
 			result := GetFormattedBulkInsertRecord(record)
 			Expect(result).To(HaveKeyWithValue("SkyflowId", "sky-123"))
+			Expect(result).To(HaveKeyWithValue("skyflow_id", "sky-123")) // backward compat
 		})
 
-		It("should include tokens alongside SkyflowId", func() {
+		It("should include tokens alongside SkyflowId and skyflow_id", func() {
 			id := "sky-456"
 			record := vaultapis.V1RecordMetaProperties{
 				SkyflowId: &id,
@@ -1065,18 +1079,20 @@ var _ = Describe("GetFormattedBulkInsertRecord", func() {
 			}
 			result := GetFormattedBulkInsertRecord(record)
 			Expect(result).To(HaveKeyWithValue("SkyflowId", "sky-456"))
+			Expect(result).To(HaveKeyWithValue("skyflow_id", "sky-456")) // backward compat
 			Expect(result).To(HaveKeyWithValue("card_number", "tok_abc"))
 			Expect(result).To(HaveKeyWithValue("cvv", "tok_xyz"))
 		})
 	})
 
 	Context("when tokens are empty", func() {
-		It("should return a map with only SkyflowId", func() {
+		It("should return a map with SkyflowId and skyflow_id (backward compat) only", func() {
 			id := "sky-789"
 			record := vaultapis.V1RecordMetaProperties{SkyflowId: &id}
 			result := GetFormattedBulkInsertRecord(record)
-			Expect(result).To(HaveLen(1))
+			Expect(result).To(HaveLen(2))
 			Expect(result).To(HaveKey("SkyflowId"))
+			Expect(result).To(HaveKey("skyflow_id")) // backward compat
 		})
 	})
 })
@@ -1090,12 +1106,12 @@ var _ = Describe("GetFormattedQueryRecord — additional paths", func() {
 			result := GetFormattedQueryRecord(record)
 			Expect(result).To(HaveKeyWithValue("SkyflowId", "rec-001"))
 			Expect(result).To(HaveKeyWithValue("name", "alice"))
-			Expect(result).ToNot(HaveKey("skyflow_id"))
+			Expect(result).To(HaveKeyWithValue("skyflow_id", "rec-001")) // backward compat
 		})
 	})
 
 	Context("when both fields and tokens are set", func() {
-		It("should include TokenizedData map alongside fields", func() {
+		It("should include TokenizedData (new) and tokenized_data (backward compat) maps", func() {
 			record := vaultapis.V1FieldRecords{
 				Fields: map[string]interface{}{"name": "bob"},
 				Tokens: map[string]interface{}{"card": "tok_card"},
@@ -1105,6 +1121,9 @@ var _ = Describe("GetFormattedQueryRecord — additional paths", func() {
 			tokenizedData, ok := result["TokenizedData"].(map[string]interface{})
 			Expect(ok).To(BeTrue())
 			Expect(tokenizedData).To(HaveKeyWithValue("card", "tok_card"))
+			tokenizedDataOld, ok2 := result["tokenized_data"].(map[string]interface{}) // backward compat
+			Expect(ok2).To(BeTrue())
+			Expect(tokenizedDataOld).To(HaveKeyWithValue("card", "tok_card"))
 		})
 	})
 })
@@ -1249,7 +1268,7 @@ var _ = Describe("GetURLWithEnv — default branch", func() {
 // ---------------------------------------------------------------------------
 
 var _ = Describe("GetFormattedGetRecord — skyflow_id remapping", func() {
-	It("should remap skyflow_id key to SkyflowId in Fields", func() {
+	It("should remap skyflow_id wire key to SkyflowId and keep skyflow_id for backward compat", func() {
 		record := vaultapis.V1FieldRecords{
 			Fields: map[string]interface{}{
 				"skyflow_id": "rec-001",
@@ -1257,8 +1276,8 @@ var _ = Describe("GetFormattedGetRecord — skyflow_id remapping", func() {
 			},
 		}
 		result := GetFormattedGetRecord(record)
-		Expect(result).To(HaveKey("SkyflowId"))
-		Expect(result["SkyflowId"]).To(Equal("rec-001"))
+		Expect(result).To(HaveKeyWithValue("SkyflowId", "rec-001"))
+		Expect(result).To(HaveKeyWithValue("skyflow_id", "rec-001")) // backward compat
 		Expect(result).To(HaveKeyWithValue("name", "alice"))
 	})
 })
@@ -1520,7 +1539,7 @@ var _ = Describe("GenerateBearerTokenHelper — all branches", func() {
 		Expect(err).ToNot(BeNil())
 	})
 
-	It("should set scope when RoleIds is provided and server returns 200", func() {
+	It("should set scope when RoleIds (new field) is provided and server returns 200", func() {
 		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
@@ -1535,6 +1554,44 @@ var _ = Describe("GenerateBearerTokenHelper — all branches", func() {
 			"keyId":      "kid",
 		}
 		resp, err := GenerateBearerTokenHelper(credKeys, common.BearerTokenOptions{RoleIds: []string{"role1", "role2"}})
+		Expect(err).To(BeNil())
+		Expect(resp).ToNot(BeNil())
+	})
+
+	It("should set scope when RoleIDs (old field — backward compat) is provided and server returns 200", func() {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = io.WriteString(w, `{"accessToken":"scoped-token","tokenType":"Bearer"}`)
+		}))
+		defer srv.Close()
+		GetBaseURLHelper = func(urlStr string) (string, *SkyflowError) { return srv.URL, nil }
+		credKeys := map[string]interface{}{
+			"privateKey": rsaPEM,
+			"clientId":   "cid",
+			"tokenUri":   "https://t.example.com",
+			"keyId":      "kid",
+		}
+		resp, err := GenerateBearerTokenHelper(credKeys, common.BearerTokenOptions{RoleIDs: []string{"role1", "role2"}})
+		Expect(err).To(BeNil())
+		Expect(resp).ToNot(BeNil())
+	})
+
+	It("should accept old credential file keys clientID/tokenURI/keyID (backward compat)", func() {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = io.WriteString(w, `{"accessToken":"old-key-token","tokenType":"Bearer"}`)
+		}))
+		defer srv.Close()
+		GetBaseURLHelper = func(urlStr string) (string, *SkyflowError) { return srv.URL, nil }
+		credKeys := map[string]interface{}{
+			"privateKey": rsaPEM,
+			"clientID":   "cid",
+			"tokenURI":   "https://t.example.com",
+			"keyID":      "kid",
+		}
+		resp, err := GenerateBearerTokenHelper(credKeys, common.BearerTokenOptions{})
 		Expect(err).To(BeNil())
 		Expect(resp).ToNot(BeNil())
 	})

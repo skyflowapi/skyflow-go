@@ -1125,4 +1125,142 @@ var _ = Describe("Skyflow Management Methods", func() {
 			Expect(err3).ToNot(BeNil())
 		})
 	})
+
+	Context("Backward compat — deprecated method wrappers", func() {
+		var bc *Skyflow
+		var bcVault common.VaultConfig
+		var bcConn common.ConnectionConfig
+
+		BeforeEach(func() {
+			bcVault = common.VaultConfig{
+				VaultId:   "bc-vault",
+				ClusterId: "bc-cluster",
+				Env:       common.PROD,
+				Credentials: common.Credentials{
+					ApiKey: "key",
+				},
+			}
+			bcConn = common.ConnectionConfig{
+				ConnectionId:  "bc-conn",
+				ConnectionUrl: "https://bc-conn.example.com",
+				Credentials:   common.Credentials{ApiKey: "key"},
+			}
+			var bcErr *error.SkyflowError
+			bc, bcErr = NewSkyflow(
+				WithVaults(bcVault),
+				WithConnections(bcConn),
+				WithCredentials(common.Credentials{CredentialsString: "some-credentials"}),
+			)
+			Expect(bcErr).To(BeNil())
+		})
+
+		It("GetVault delegates to GetVaultConfig", func() {
+			cfg, err := bc.GetVault(bcVault.VaultId)
+			Expect(err).To(BeNil())
+			Expect(cfg.VaultId).To(Equal(bcVault.VaultId))
+		})
+
+		It("GetConnection delegates to GetConnectionConfig", func() {
+			cfg, err := bc.GetConnection(bcConn.ConnectionId)
+			Expect(err).To(BeNil())
+			Expect(cfg.ConnectionId).To(Equal(bcConn.ConnectionId))
+		})
+
+		It("AddVault delegates to AddVaultConfig", func() {
+			newVault := common.VaultConfig{
+				VaultId:   "new-vault-bc",
+				ClusterId: "cluster-bc",
+				Env:       common.PROD,
+				Credentials: common.Credentials{
+					ApiKey: "key",
+				},
+			}
+			err := bc.AddVault(newVault)
+			Expect(err).To(BeNil())
+			cfg, err2 := bc.GetVaultConfig("new-vault-bc")
+			Expect(err2).To(BeNil())
+			Expect(cfg.VaultId).To(Equal("new-vault-bc"))
+		})
+
+		It("AddConnection delegates to AddConnectionConfig", func() {
+			newConn := common.ConnectionConfig{
+				ConnectionId:  "new-conn-bc",
+				ConnectionUrl: "https://conn-bc.example.com",
+				Credentials:   common.Credentials{ApiKey: "key"},
+			}
+			err := bc.AddConnection(newConn)
+			Expect(err).To(BeNil())
+			cfg, err2 := bc.GetConnectionConfig("new-conn-bc")
+			Expect(err2).To(BeNil())
+			Expect(cfg.ConnectionId).To(Equal("new-conn-bc"))
+		})
+
+		It("UpdateVault delegates to UpdateVaultConfig", func() {
+			updated := common.VaultConfig{
+				VaultId:   bcVault.VaultId,
+				ClusterId: "updated-cluster",
+				Env:       common.PROD,
+			}
+			err := bc.UpdateVault(updated)
+			Expect(err).To(BeNil())
+		})
+
+		It("UpdateConnection delegates to UpdateConnectionConfig", func() {
+			updated := common.ConnectionConfig{
+				ConnectionId:  bcConn.ConnectionId,
+				ConnectionUrl: "https://updated-conn.example.com",
+			}
+			err := bc.UpdateConnection(updated)
+			Expect(err).To(BeNil())
+		})
+
+		It("RemoveVault delegates to RemoveVaultConfig", func() {
+			err := bc.RemoveVault(bcVault.VaultId)
+			Expect(err).To(BeNil())
+			_, err2 := bc.GetVaultConfig(bcVault.VaultId)
+			Expect(err2).ToNot(BeNil())
+		})
+
+		It("RemoveConnection delegates to RemoveConnectionConfig", func() {
+			err := bc.RemoveConnection(bcConn.ConnectionId)
+			Expect(err).To(BeNil())
+			_, err2 := bc.GetConnectionConfig(bcConn.ConnectionId)
+			Expect(err2).ToNot(BeNil())
+		})
+
+		It("VaultConfig.BaseVaultURL (old field) is accepted in AddVault", func() {
+			newVault := common.VaultConfig{
+				VaultId:      "vault-old-url",
+				BaseVaultURL: "https://old-url.example.com",
+				Env:          common.PROD,
+				Credentials:  common.Credentials{ApiKey: "key"},
+			}
+			err := bc.AddVault(newVault)
+			Expect(err).To(BeNil())
+		})
+
+		It("RequestIDHeader (old constant) is accepted in WithCustomHeaders", func() {
+			newVault := common.VaultConfig{VaultId: "hdr-vault", ClusterId: "c", Env: common.PROD}
+			_, err := NewSkyflow(
+				WithVaults(newVault),
+				WithCredentials(common.Credentials{CredentialsString: "creds"}),
+				WithCustomHeaders(map[common.CustomHeaderKey]string{
+					common.RequestIDHeader: "req-123",
+				}),
+			)
+			Expect(err).To(BeNil())
+		})
+
+		It("SkyflowAccountID (old constant) is accepted in WithCustomHeaders", func() {
+			newVault := common.VaultConfig{VaultId: "acct-vault", ClusterId: "c", Env: common.PROD}
+			_, err := NewSkyflow(
+				WithVaults(newVault),
+				WithCredentials(common.Credentials{CredentialsString: "creds"}),
+				WithCustomHeaders(map[common.CustomHeaderKey]string{
+					common.SkyflowAccountID: "acct-123",
+				}),
+			)
+			Expect(err).To(BeNil())
+		})
+	})
 })

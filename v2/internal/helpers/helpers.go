@@ -87,6 +87,7 @@ func GetFormattedGetRecord(record vaultapis.V1FieldRecords) map[string]interface
 		for key, value := range sourceMap {
 			if key == "skyflow_id" {
 				getRecord[constants.SKYFLOW_ID] = value
+				getRecord["skyflow_id"] = value // backward compat
 			} else {
 				getRecord[key] = value
 			}
@@ -145,6 +146,7 @@ func GetFormattedBatchInsertRecord(record interface{}, requestIndex int) (map[st
 			}
 			if skyflowID, exists := recordObject["skyflow_id"].(string); exists {
 				insertRecord["SkyflowId"] = skyflowID
+				insertRecord["skyflow_id"] = skyflowID // backward compat
 			}
 			if tokens, exists := recordObject["tokens"].(map[string]interface{}); exists {
 				for key, value := range tokens {
@@ -165,6 +167,7 @@ func GetFormattedBulkInsertRecord(record vaultapis.V1RecordMetaProperties) map[s
 	insertRecord := make(map[string]interface{})
 	if id := record.GetSkyflowId(); id != nil {
 		insertRecord["SkyflowId"] = *id
+		insertRecord["skyflow_id"] = *id // backward compat
 	}
 
 	tokensMap := record.GetTokens()
@@ -181,6 +184,7 @@ func GetFormattedQueryRecord(record vaultapis.V1FieldRecords) map[string]interfa
 		for key, value := range record.Fields {
 			if key == "skyflow_id" {
 				queryRecord[constants.SKYFLOW_ID] = value
+				queryRecord["skyflow_id"] = value // backward compat
 			} else {
 				queryRecord[key] = value
 			}
@@ -191,6 +195,7 @@ func GetFormattedQueryRecord(record vaultapis.V1FieldRecords) map[string]interfa
 				tokens[key] = value
 			}
 			queryRecord["TokenizedData"] = tokens
+			queryRecord["tokenized_data"] = tokens // backward compat
 		}
 	}
 	return queryRecord
@@ -499,9 +504,13 @@ func GenerateBearerTokenHelper(credKeys map[string]interface{}, options common.B
 	body := internal.V1GetAuthTokenRequest{}
 	body.GrantType = constants.GRANT_TYPE
 	body.Assertion = signedUserJWT
-	if len(options.RoleIds) > 0 {
+	roleIds := options.RoleIds
+	if len(roleIds) == 0 {
+		roleIds = options.RoleIDs
+	}
+	if len(roleIds) > 0 {
 		var roles []*string
-		for _, roleID := range options.RoleIds {
+		for _, roleID := range roleIds {
 			roles = append(roles, &roleID)
 		}
 		roleString := GetScopeUsingRoles(roles)
@@ -658,6 +667,10 @@ func GetHeader(err error) (http.Header, bool) {
 
 func GetSkyflowID(data map[string]interface{}) (string, bool) {
 	if id, ok := data["SkyflowId"].(string); ok {
+		return id, true
+	}
+	// backward compat: accept old key from main branch
+	if id, ok := data["skyflow_id"].(string); ok {
 		return id, true
 	}
 	return "", false

@@ -124,8 +124,12 @@ func CreateRequestClient(v *VaultController, requestHeaders map[common.CustomHea
 	header.Set(constants.SDK_METRICS_HEADER_KEY, helpers.CreateJsonMetadata())
 
 	var baseURL string
-	if v.Config.BaseVaultUrl != "" {
-		baseURL = v.Config.BaseVaultUrl
+	baseVaultUrl := v.Config.BaseVaultUrl
+	if baseVaultUrl == "" {
+		baseVaultUrl = v.Config.BaseVaultURL
+	}
+	if baseVaultUrl != "" {
+		baseURL = baseVaultUrl
 	} else {
 		baseURL = helpers.GetURLWithEnv(v.Config.Env, v.Config.ClusterId)
 	}
@@ -379,8 +383,9 @@ func (v *VaultController) Get(ctx context.Context, request common.GetRequest, op
 		orderBy, _ := vaultapis.NewRecordServiceBulkGetRecordRequestOrderByFromString(string(options.OrderBy))
 		req.OrderBy = &orderBy
 	}
-	if options.DownloadUrl {
-		req.DownloadUrl = &options.DownloadUrl
+	downloadUrl := options.DownloadUrl || options.DownloadURL
+	if downloadUrl {
+		req.DownloadUrl = &downloadUrl
 	}
 	if options.ReturnTokens {
 		req.Tokenization = &options.ReturnTokens
@@ -545,6 +550,7 @@ func (v *VaultController) Update(ctx context.Context, request common.UpdateReque
 	updatedField = res
 	if id != nil {
 		updatedField[constants.SKYFLOW_ID] = *id
+		updatedField["skyflowId"] = *id // backward compat
 	}
 	return &common.UpdateResponse{
 		UpdatedField: updatedField,

@@ -479,15 +479,17 @@ func ValidateVaultConfig(vaultConfig common.VaultConfig) *skyflowError.SkyflowEr
 		logger.Error(logs.VAULT_ID_IS_REQUIRED)
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_VAULT_ID)
 	}
-	if vaultConfig.BaseVaultUrl == "" {
+	baseVaultUrl := vaultConfig.BaseVaultUrl
+	if baseVaultUrl == "" {
+		baseVaultUrl = vaultConfig.BaseVaultURL
+	}
+	if baseVaultUrl == "" {
 		if vaultConfig.ClusterId == "" {
 			logger.Error(logs.CLUSTER_ID_IS_REQUIRED)
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_CLUSTER_ID)
 		}
 	} else {
-		// Parse the URL
-		isValidHTTPURL := isValidHTTPURL(vaultConfig.BaseVaultUrl)
-		if !isValidHTTPURL {
+		if !isValidHTTPURL(baseVaultUrl) {
 			logger.Error(logs.VAULT_URL_IS_INVALID)
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_VAULT_URL)
 		}

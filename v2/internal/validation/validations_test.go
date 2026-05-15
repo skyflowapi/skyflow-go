@@ -486,6 +486,27 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 				err := ValidateVaultConfig(config)
 				Expect(err).To(BeNil())
 			})
+			It("should accept BaseVaultURL (old field — backward compat) as valid URL", func() {
+				config := common.VaultConfig{
+					VaultId:      "id",
+					Env:          common.PROD,
+					Credentials:  validCredentials,
+					BaseVaultURL: "https://example.com",
+				}
+				err := ValidateVaultConfig(config)
+				Expect(err).To(BeNil())
+			})
+			It("should reject invalid URL in BaseVaultURL (old field — backward compat)", func() {
+				config := common.VaultConfig{
+					VaultId:      "id",
+					Env:          common.PROD,
+					Credentials:  validCredentials,
+					BaseVaultURL: "not-a-url",
+				}
+				err := ValidateVaultConfig(config)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_VAULT_URL))
+			})
 		})
 
 		Context("Valid VaultConfig", func() {
@@ -778,6 +799,15 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 	})
 	Context("when validating update requests", func() {
 		var validData = map[string]interface{}{"SkyflowId": "123", "key": "value", "key2": "value2"}
+		It("should pass when Data uses old key skyflow_id (backward compat)", func() {
+			request := common.UpdateRequest{
+				Table:  "test_table",
+				Data:   map[string]interface{}{"skyflow_id": "abc", "key": "value"},
+				Tokens: nil,
+			}
+			err := ValidateUpdateRequest(request, common.UpdateOptions{})
+			Expect(err).To(BeNil())
+		})
 		It("should return an error if the table is empty", func() {
 			request := common.UpdateRequest{
 				Table:  "",
@@ -1675,9 +1705,16 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			Expect(err).ToNot(BeNil())
 		})
 
-		It("should return nil when only SkyflowAccountId is provided", func() {
+		It("should return nil when only SkyflowAccountId (new) is provided", func() {
 			err := ValidateCustomHeaders(map[common.CustomHeaderKey]string{
 				common.SkyflowAccountId: "account-123",
+			}, "TestTag")
+			Expect(err).To(BeNil())
+		})
+
+		It("should return nil when SkyflowAccountID (old — backward compat) is provided", func() {
+			err := ValidateCustomHeaders(map[common.CustomHeaderKey]string{
+				common.SkyflowAccountID: "account-123",
 			}, "TestTag")
 			Expect(err).To(BeNil())
 		})
@@ -1689,9 +1726,16 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			Expect(err).To(BeNil())
 		})
 
-		It("should return nil when only RequestIdHeader is provided", func() {
+		It("should return nil when only RequestIdHeader (new) is provided", func() {
 			err := ValidateCustomHeaders(map[common.CustomHeaderKey]string{
 				common.RequestIdHeader: "req-abc",
+			}, "TestTag")
+			Expect(err).To(BeNil())
+		})
+
+		It("should return nil when RequestIDHeader (old — backward compat) is provided", func() {
+			err := ValidateCustomHeaders(map[common.CustomHeaderKey]string{
+				common.RequestIDHeader: "req-abc",
 			}, "TestTag")
 			Expect(err).To(BeNil())
 		})
