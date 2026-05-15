@@ -85,7 +85,7 @@ func GetFormattedGetRecord(record vaultapis.V1FieldRecords) map[string]interface
 	// Copy elements from sourceMap to getRecord
 	if sourceMap != nil {
 		for key, value := range sourceMap {
-			if key == "skyflow_id" {
+			if key == constants.API_SKYFLOW_ID {
 				getRecord[constants.SKYFLOW_ID] = value
 			} else {
 				getRecord[key] = value
@@ -143,8 +143,8 @@ func GetFormattedBatchInsertRecord(record interface{}, requestIndex int) (map[st
 			if !isMap {
 				continue
 			}
-		if skyflowID, exists := recordObject[constants.SKYFLOW_ID].(string); exists {
-			insertRecord[constants.SKYFLOW_ID] = skyflowID
+			if skyflowID, exists := recordObject[constants.API_SKYFLOW_ID].(string); exists {
+				insertRecord[constants.SKYFLOW_ID] = skyflowID
 			}
 			if tokens, exists := recordObject[constants.JSON_KEY_TOKENS].(map[string]interface{}); exists {
 				for key, value := range tokens {
@@ -179,7 +179,7 @@ func GetFormattedQueryRecord(record vaultapis.V1FieldRecords) map[string]interfa
 	queryRecord := make(map[string]interface{})
 	if record.Fields != nil {
 		for key, value := range record.Fields {
-			if key == "skyflow_id" {
+			if key == constants.API_SKYFLOW_ID {
 				queryRecord[constants.SKYFLOW_ID] = value
 			} else {
 				queryRecord[key] = value
@@ -409,8 +409,8 @@ func GenerateSignedDataTokensHelper(clientId, keyId string, pvtKey *rsa.PrivateK
 		} else {
 			claims[constants.JWT_CLAIM_EXP] = time.Now().Add(time.Duration(60) * time.Second).Unix()
 		}
-		if options.Ctx != "" {
-			claims[constants.JWT_CLAIM_CTX] = options.Ctx
+		if resolvedCtx != "" {
+			claims[constants.JWT_CLAIM_CTX] = resolvedCtx
 		}
 
 		tokenString, err := jwt.NewWithClaims(jwt.SigningMethodRS256, claims).SignedString(pvtKey)
@@ -657,7 +657,7 @@ func GetHeader(err error) (http.Header, bool) {
 }
 
 func GetSkyflowID(data map[string]interface{}) (string, bool) {
-	if id, ok := data["SkyflowId"].(string); ok {
+	if id, ok := data[constants.SKYFLOW_ID].(string); ok {
 		return id, true
 	}
 	return "", false

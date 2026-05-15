@@ -24,6 +24,7 @@ import (
 	. "github.com/skyflowapi/skyflow-go/v2/internal/helpers"
 	"github.com/skyflowapi/skyflow-go/v2/utils/common"
 	. "github.com/skyflowapi/skyflow-go/v2/utils/error"
+	"github.com/skyflowapi/skyflow-go/v2/internal/constants"
 )
 
 func TestController(t *testing.T) {
@@ -697,7 +698,7 @@ MIIBAAIBADANINVALIDKEY==
 				Expect(err).To(BeNil())
 				Expect(result).To(HaveKeyWithValue("SkyflowId", "id123"))
 				Expect(result).To(HaveKeyWithValue("field1", "token1"))
-				Expect(result).To(HaveKeyWithValue("request_index", 0))
+				Expect(result).To(HaveKeyWithValue(internal.JSON_KEY_REQUEST_INDEX, 0))
 			})
 
 			It("should extract error field if present", func() {
@@ -710,7 +711,7 @@ MIIBAAIBADANINVALIDKEY==
 				result, err := GetFormattedBatchInsertRecord(record, 2)
 				Expect(err).To(BeNil())
 				Expect(result).To(HaveKeyWithValue("error", "some error"))
-				Expect(result).To(HaveKeyWithValue("request_index", 2))
+				Expect(result).To(HaveKeyWithValue(internal.JSON_KEY_REQUEST_INDEX, 2))
 			})
 
 			It("should return error if Body is missing", func() {
@@ -871,7 +872,7 @@ MIIBAAIBADANINVALIDKEY==
 			It("should return error containing failed to decode for invalid base64 data", func() {
 				_, err := GetFileForFileUpload(common.FileUploadRequest{Base64: "!!!invalid!!!", FileName: "test.txt"})
 				Expect(err).ToNot(BeNil())
-				Expect(err.Error()).To(ContainSubstring("failed to decode base64"))
+				Expect(err.Error()).To(ContainSubstring("Failed to decode base64"))
 			})
 			It("should not return error for valid file object", func() {
 				tmpfile, err := os.Open("../../../credentials.json")
@@ -1274,7 +1275,7 @@ var _ = Describe("GetFormattedBatchInsertRecord — non-map element in records",
 		outer := fakeOuter{Body: fakeRecords{Records: []interface{}{42, "not-a-map"}}}
 		result, err := GetFormattedBatchInsertRecord(outer, 0)
 		Expect(err).To(BeNil())
-		Expect(result).To(HaveKeyWithValue("request_index", 0))
+		Expect(result).To(HaveKeyWithValue(internal.JSON_KEY_REQUEST_INDEX, 0))
 	})
 })
 

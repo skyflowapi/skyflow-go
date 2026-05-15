@@ -634,7 +634,7 @@ func (d *DetectController) DeidentifyText(ctx context.Context, request common.De
 	if err := validation.ValidateCustomHeaders(options.CustomHeaders, "DeidentifyText"); err != nil {
 		return nil, err
 	}
-	if er := validation.ValidateCustomHeaders(d.CustomHeaders, "Client headers in"); er != nil {
+	if er := validation.ValidateCustomHeaders(d.CustomHeaders, constants.CLIENT_HEADER_MESSAGE_PREFIX); er != nil {
 		return nil, er
 	}
 	// Ensure the bearer token is valid
@@ -732,7 +732,7 @@ func (d *DetectController) ReidentifyText(ctx context.Context, request common.Re
 	if err := validation.ValidateCustomHeaders(options.CustomHeaders, "ReidentifyText"); err != nil {
 		return nil, err
 	}
-	if err := validation.ValidateCustomHeaders(d.CustomHeaders, "Client headers in"); err != nil {
+	if err := validation.ValidateCustomHeaders(d.CustomHeaders, constants.CLIENT_HEADER_MESSAGE_PREFIX); err != nil {
 		return nil, err
 	}
 	// Ensure the bearer token is valid
@@ -784,7 +784,7 @@ func (d *DetectController) DeidentifyFile(ctx context.Context, request common.De
 	if err := validation.ValidateCustomHeaders(options.CustomHeaders, "DeidentifyFile"); err != nil {
 		return nil, err
 	}
-	if err := validation.ValidateCustomHeaders(d.CustomHeaders, "Client headers in"); err != nil {
+	if err := validation.ValidateCustomHeaders(d.CustomHeaders, constants.CLIENT_HEADER_MESSAGE_PREFIX); err != nil {
 		return nil, err
 	}
 
@@ -1077,7 +1077,7 @@ func (d *DetectController) GetDetectRun(ctx context.Context, request common.GetD
 	if err := validation.ValidateCustomHeaders(options.CustomHeaders, "GetDetectRun"); err != nil {
 		return nil, err
 	}
-	if err := validation.ValidateCustomHeaders(d.CustomHeaders, "Client headers in"); err != nil {
+	if err := validation.ValidateCustomHeaders(d.CustomHeaders, constants.CLIENT_HEADER_MESSAGE_PREFIX); err != nil {
 		return nil, err
 	}
 	// Create the API client if needed
