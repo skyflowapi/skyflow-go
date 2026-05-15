@@ -85,7 +85,7 @@ func GetFormattedGetRecord(record vaultapis.V1FieldRecords) map[string]interface
 	// Copy elements from sourceMap to getRecord
 	if sourceMap != nil {
 		for key, value := range sourceMap {
-			if key == "skyflow_id" {
+			if key == constants.API_SKYFLOW_ID {
 				getRecord[constants.SKYFLOW_ID] = value
 			} else {
 				getRecord[key] = value
@@ -130,23 +130,23 @@ func GetFormattedBatchInsertRecord(record interface{}, requestIndex int) (map[st
 		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_RESPONSE)
 	}
 
-	// Extract relevant data from "Body"
-	body, bodyExists := bodyObject["Body"].(map[string]interface{})
+	// Extract relevant data from Body
+	body, bodyExists := bodyObject[constants.JSON_KEY_BODY].(map[string]interface{})
 	if !bodyExists {
 		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_RESPONSE)
 	}
 
 	// Handle extracted data
-	if records, ok := body["records"].([]interface{}); ok {
+	if records, ok := body[constants.JSON_KEY_RECORDS].([]interface{}); ok {
 		for _, rec := range records {
 			recordObject, isMap := rec.(map[string]interface{})
 			if !isMap {
 				continue
 			}
-			if skyflowID, exists := recordObject["skyflow_id"].(string); exists {
-				insertRecord["SkyflowId"] = skyflowID
+			if skyflowID, exists := recordObject[constants.API_SKYFLOW_ID].(string); exists {
+				insertRecord[constants.SKYFLOW_ID] = skyflowID
 			}
-			if tokens, exists := recordObject["tokens"].(map[string]interface{}); exists {
+			if tokens, exists := recordObject[constants.JSON_KEY_TOKENS].(map[string]interface{}); exists {
 				for key, value := range tokens {
 					insertRecord[key] = value
 				}
@@ -154,11 +154,11 @@ func GetFormattedBatchInsertRecord(record interface{}, requestIndex int) (map[st
 		}
 	}
 
-	if errorField, exists := body["error"].(string); exists {
-		insertRecord["error"] = errorField
+	if errorField, exists := body[constants.ERROR_KEY_ERROR].(string); exists {
+		insertRecord[constants.ERROR_KEY_ERROR] = errorField
 	}
 
-	insertRecord["request_index"] = requestIndex
+	insertRecord[constants.JSON_KEY_REQUEST_INDEX] = requestIndex
 	return insertRecord, nil
 }
 func GetFormattedBulkInsertRecord(record vaultapis.V1RecordMetaProperties) map[string]interface{} {
@@ -179,7 +179,7 @@ func GetFormattedQueryRecord(record vaultapis.V1FieldRecords) map[string]interfa
 	queryRecord := make(map[string]interface{})
 	if record.Fields != nil {
 		for key, value := range record.Fields {
-			if key == "skyflow_id" {
+			if key == constants.API_SKYFLOW_ID {
 				queryRecord[constants.SKYFLOW_ID] = value
 			} else {
 				queryRecord[key] = value
@@ -329,7 +329,7 @@ func GetFileForFileUpload(request common.FileUploadRequest) (io.ReadCloser, erro
 	if request.Base64 != "" {
 		data, err := base64.StdEncoding.DecodeString(request.Base64)
 		if err != nil {
-			return nil, fmt.Errorf("failed to decode base64: %w", err)
+			return nil, fmt.Errorf(logs.FAILED_TO_DECODE_BASE64, err)
 		}
 		return &namedReader{
 			Reader: bytes.NewReader(data),
@@ -397,20 +397,20 @@ func GenerateSignedDataTokensHelper(clientId, keyId string, pvtKey *rsa.PrivateK
 	var responseArray []common.SignedDataTokensResponse
 	for _, token := range options.DataTokens {
 		claims := jwt.MapClaims{
-			"iss": "sdk",
-			"key": keyId,
-			"aud": tokenUri,
-			"iat": time.Now().Unix(),
-			"sub": clientId,
-			"tok": token,
+			constants.JWT_CLAIM_ISS: constants.SDK_ISSUER,
+			constants.JWT_CLAIM_KEY: keyId,
+			constants.JWT_CLAIM_AUD: tokenUri,
+			constants.JWT_CLAIM_IAT: time.Now().Unix(),
+			constants.JWT_CLAIM_SUB: clientId,
+			constants.JWT_CLAIM_TOK: token,
 		}
 		if options.TimeToLive > 0 {
-			claims["exp"] = time.Now().Add(time.Duration(options.TimeToLive) * time.Second).Unix()
+			claims[constants.JWT_CLAIM_EXP] = time.Now().Add(time.Duration(options.TimeToLive) * time.Second).Unix()
 		} else {
-			claims["exp"] = time.Now().Add(time.Duration(60) * time.Second).Unix()
+			claims[constants.JWT_CLAIM_EXP] = time.Now().Add(time.Duration(60) * time.Second).Unix()
 		}
-		if resolvedCtx != nil {
-			claims["ctx"] = resolvedCtx
+		if resolvedCtx != "" {
+			claims[constants.JWT_CLAIM_CTX] = resolvedCtx
 		}
 
 		tokenString, err := jwt.NewWithClaims(jwt.SigningMethodRS256, claims).SignedString(pvtKey)
@@ -418,14 +418,14 @@ func GenerateSignedDataTokensHelper(clientId, keyId string, pvtKey *rsa.PrivateK
 			logger.Error(logs.PARSE_JWT_PAYLOAD)
 			return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.ERROR_OCCURRED+"%v", err))
 		}
-		responseArray = append(responseArray, common.SignedDataTokensResponse{Token: token, SignedToken: "signed_token_" + tokenString})
+		responseArray = append(responseArray, common.SignedDataTokensResponse{Token: token, SignedToken: constants.SIGNED_TOKEN_PREFIX + tokenString})
 	}
 	logger.Info(logs.GENERATE_SIGNED_DATA_TOKEN_SUCCESS)
 	return responseArray, nil
 }
 
 func GetPrivateKey(credKeys map[string]interface{}) (*rsa.PrivateKey, *skyflowError.SkyflowError) {
-	privateKeyStr, ok := credKeys["privateKey"].(string)
+	privateKeyStr, ok := credKeys[constants.CRED_KEY_PRIVATE_KEY].(string)
 	if !ok {
 		logger.Error(logs.PRIVATE_KEY_NOT_FOUND)
 		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.MISSING_PRIVATE_KEY)
@@ -440,7 +440,7 @@ func ParsePrivateKey(pemKey string) (*rsa.PrivateKey, *skyflowError.SkyflowError
 		logger.Error(logs.JWT_INVALID_FORMAT)
 		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.JWT_INVALID_FORMAT)
 	}
-	if privPem.Type != "PRIVATE KEY" {
+	if privPem.Type != constants.PRIVATE_KEY_PEM_TYPE {
 		logger.Error(fmt.Sprintf(logs.PRIVATE_KEY_TYPE, privPem.Type))
 		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.JWT_INVALID_FORMAT)
 	}
@@ -466,7 +466,7 @@ var GetBaseURLHelper = GetBaseURL
 
 // GenerateBearerTokenHelper  helper functions
 func GenerateBearerTokenHelper(credKeys map[string]interface{}, options common.BearerTokenOptions) (*internal.V1GetAuthTokenResponse, *skyflowError.SkyflowError) {
-	privateKey := credKeys["privateKey"]
+	privateKey := credKeys[constants.CRED_KEY_PRIVATE_KEY]
 	if privateKey == nil {
 		logger.Error(logs.PRIVATE_KEY_NOT_FOUND)
 		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.MISSING_PRIVATE_KEY)
@@ -526,7 +526,7 @@ func GetScopeUsingRoles(roles []*string) string {
 }
 func GetBaseURL(urlStr string) (string, *skyflowError.SkyflowError) {
 	parsedUrl, err := url.Parse(urlStr)
-	if err != nil || parsedUrl.Scheme != "https" || parsedUrl.Host == "" {
+	if err != nil || parsedUrl.Scheme != constants.HTTPS_PROTOCOL || parsedUrl.Host == "" {
 		logger.Error(logs.INVALID_TOKEN_URI)
 		return "", skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_TOKEN_URI) // return error if URL parsing fails
 	}
@@ -577,19 +577,19 @@ func GetSignedBearerUserToken(clientId, keyId, tokenUri string, pvtKey *rsa.Priv
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
-		"iss": clientId,
-		"key": keyId,
-		"aud": tokenUri,
-		"sub": clientId,
-		"exp": time.Now().Add(60 * time.Minute).Unix(),
+		constants.JWT_CLAIM_ISS: clientId,
+		constants.JWT_CLAIM_KEY: keyId,
+		constants.JWT_CLAIM_AUD: tokenUri,
+		constants.JWT_CLAIM_SUB: clientId,
+		constants.JWT_CLAIM_EXP: time.Now().Add(60 * time.Minute).Unix(),
 	})
-	if resolvedCtx != nil {
-		token.Claims.(jwt.MapClaims)["ctx"] = resolvedCtx
+	if resolvedCtx != "" {
+		token.Claims.(jwt.MapClaims)[constants.JWT_CLAIM_CTX] = resolvedCtx
 	}
 	var err error
 	signedToken, err := token.SignedString(pvtKey)
 	if err != nil {
-		logger.Error(fmt.Sprintf("%s", "unable to parse jwt payload"))
+		logger.Error(fmt.Sprintf("%s", logs.PARSE_JWT_PAYLOAD))
 		return "", skyflowError.NewSkyflowError(skyflowError.SERVER, fmt.Sprintf(skyflowError.UNKNOWN_ERROR, err))
 	}
 	return signedToken, nil
@@ -601,7 +601,7 @@ func GetPrivateKeyFromPem(pemKey string) (*rsa.PrivateKey, *skyflowError.Skyflow
 		logger.Error(logs.JWT_INVALID_FORMAT)
 		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.JWT_INVALID_FORMAT)
 	}
-	if privPem.Type != "PRIVATE KEY" {
+	if privPem.Type != constants.PRIVATE_KEY_PEM_TYPE {
 		logger.Error(logs.JWT_INVALID_FORMAT)
 		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.JWT_INVALID_FORMAT)
 	}
@@ -626,16 +626,16 @@ func GetPrivateKeyFromPem(pemKey string) (*rsa.PrivateKey, *skyflowError.Skyflow
 func CreateJsonMetadata() string {
 	// Create a map to hold the key-value pairs
 	data := map[string]string{
-		"sdk_name_version":        fmt.Sprintf("%s@%s", constants.METRICS_SDK_NAME, constants.SDK_VERSION),
-		"sdk_client_device_model": string(runtime.GOOS),
-		"sdk_client_os_details":   fmt.Sprintf("%s %s", runtime.GOOS, runtime.GOARCH),
-		"sdk_runtime_details":     runtime.Version(),
+		constants.SDK_METADATA_KEY_NAME_VERSION: fmt.Sprintf("%s@%s", constants.METRICS_SDK_NAME, constants.SDK_VERSION),
+		constants.SDK_METADATA_KEY_DEVICE_MODEL: string(runtime.GOOS),
+		constants.SDK_METADATA_KEY_OS_DETAILS:   fmt.Sprintf("%s %s", runtime.GOOS, runtime.GOARCH),
+		constants.SDK_METADATA_KEY_RUNTIME_DETAILS: runtime.Version(),
 	}
 
 	// Marshal the map into JSON format
 	jsonData, err := json.Marshal(data)
 	if err != nil {
-		logger.Debug("failed for marshalling json data in createJSONMetadata()")
+		logger.Debug(logs.FAILED_TO_MARSHALL_JSON_METADATA)
 		return ""
 	}
 	return string(jsonData)
@@ -657,7 +657,7 @@ func GetHeader(err error) (http.Header, bool) {
 }
 
 func GetSkyflowID(data map[string]interface{}) (string, bool) {
-	if id, ok := data["SkyflowId"].(string); ok {
+	if id, ok := data[constants.SKYFLOW_ID].(string); ok {
 		return id, true
 	}
 	return "", false

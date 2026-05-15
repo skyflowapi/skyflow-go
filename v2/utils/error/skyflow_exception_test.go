@@ -251,7 +251,7 @@ var _ = Describe("Skyflow Error", func() {
 			}
 			skyflowErr := SkyflowApiError(response)
 			Expect(skyflowErr).ToNot(BeNil())
-			Expect(skyflowErr.GetMessage()).To(ContainSubstring("unmarhsal"))
+			Expect(skyflowErr.GetMessage()).To(ContainSubstring("unmarshal"))
 		})
 	})
 
