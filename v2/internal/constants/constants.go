@@ -15,7 +15,6 @@ const (
 	SDK_PREFIX             = SDK_NAME + SDK_VERSION
 	ERROR_FROM_CLIENT      = "error-from-client"
 	REQUEST_KEY            = "X-Request-Id"
-	SKYFLOW_ID             = "skyflow_id"
 	// File extensions
 	FILE_EXTENSION_TXT    = "txt"
 	FILE_EXTENSION_PDF    = "pdf"
@@ -133,7 +132,7 @@ const (
 	REQUEST_ID_KEY = "request_id"
 	RESPONSE_KEY_REQUEST_ID = "RequestId"
 	RESPONSE_KEY_HTTP_CODE = "HttpCode"
-	RESPONSE_KEY_SKYFLOW_ID = "skyflowId"
+	RESPONSE_KEY_SKYFLOW_ID = "SkyflowId"
 	
 	// Other constants
 	ERROR_FAILED_TO_READ = "Failed to read error"
@@ -167,8 +166,8 @@ const (
 	JSON_KEY_BODY = "Body"
 	JSON_KEY_RECORDS = "records"
 	JSON_KEY_TOKENS = "tokens"
-	JSON_KEY_REQUEST_INDEX = "request_index"
-	JSON_KEY_TOKENIZED_DATA = "tokenized_data"
+	JSON_KEY_REQUEST_INDEX = "requestIndex"
+	JSON_KEY_TOKENIZED_DATA = "TokenizedData"
 	
 	// SDK and token generation
 	SDK_ISSUER = "sdk"
@@ -185,4 +184,6 @@ const (
 	SKYFLOW_ID             = "SkyflowId"
 	CTX_KEY_REGEX          = `^[a-zA-Z0-9_]+$`
 	METRICS_SDK_NAME       = "skyflow-go"
+	API_SKYFLOW_ID = "skyflow_id"
+	CLIENT_HEADER_MESSAGE_PREFIX = "Client headers in"
 )
