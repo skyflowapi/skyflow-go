@@ -673,11 +673,23 @@ var _ = Describe("Skyflow client — uncovered branches", func() {
 		})
 	})
 
-	Context("RemoveVaultConfig( — detect service missing branch", func() {
-		It("should return error when vault exists in vaultServices but not detectServices", func() {
-			// Remove from detectServices while keeping in vaultServices
+	Context("RemoveVaultConfig( — partial registration", func() {
+		It("should succeed when vault exists only in vaultServices", func() {
 			delete(client.detectServices, "v1")
 			err := client.RemoveVaultConfig("v1")
+			Expect(err).To(BeNil())
+			_, stillThere := client.vaultServices["v1"]
+			Expect(stillThere).To(BeFalse())
+		})
+		It("should succeed when vault exists only in detectServices", func() {
+			delete(client.vaultServices, "v1")
+			err := client.RemoveVaultConfig("v1")
+			Expect(err).To(BeNil())
+			_, stillThere := client.detectServices["v1"]
+			Expect(stillThere).To(BeFalse())
+		})
+		It("should return error when vault exists in neither service", func() {
+			err := client.RemoveVaultConfig("nonexistent")
 			Expect(err).ToNot(BeNil())
 		})
 	})
@@ -753,25 +765,17 @@ var _ = Describe("Skyflow Management Methods", func() {
 	var client *Skyflow
 	var vaultConfig common.VaultConfig
 	var connConfig common.ConnectionConfig
-	var creds common.Credentials
 
 	BeforeEach(func() {
 		vaultConfig = common.VaultConfig{
 			VaultId:   "vault1",
 			ClusterId: "cluster1",
 			Env:       common.PROD,
-			Credentials: common.Credentials{
-				ApiKey: os.Getenv("API_KEY"),
-			},
 		}
 		connConfig = common.ConnectionConfig{
 			ConnectionId:  "conn1",
 			ConnectionUrl: "https://example.com",
-			Credentials: common.Credentials{
-				ApiKey: os.Getenv("API_KEY"),
-			},
 		}
-		creds = common.Credentials{ApiKey: os.Getenv("API_KEY")}
 		client, _ = NewSkyflow()
 	})
 
@@ -803,9 +807,10 @@ var _ = Describe("Skyflow Management Methods", func() {
 
 	Context("AddSkyflowCredentials", func() {
 		It("should add credentials successfully", func() {
-			err := client.AddSkyflowCredentials(creds)
+			validCreds := common.Credentials{Token: "some-bearer-token"}
+			err := client.AddSkyflowCredentials(validCreds)
 			Expect(err).To(BeNil())
-			Expect(client.credentials).To(Equal(&creds))
+			Expect(client.credentials).To(Equal(&validCreds))
 		})
 		It("should fail with invalid credentials", func() {
 			invalidCreds := common.Credentials{}
@@ -853,13 +858,14 @@ var _ = Describe("Skyflow Management Methods", func() {
 		It("should update credentials and propagate to controllers", func() {
 			client.AddVaultConfig(vaultConfig)
 			client.AddConnectionConfig(connConfig)
-			err := client.UpdateSkyflowCredentials(creds)
+			validCreds := common.Credentials{Token: "some-bearer-token"}
+			err := client.UpdateSkyflowCredentials(validCreds)
 			Expect(err).To(BeNil())
-			Expect(client.credentials).To(Equal(&creds))
+			Expect(client.credentials).To(Equal(&validCreds))
 			// Check controllers updated
 			for _, v := range client.vaultServices {
 				if v.controller != nil {
-					Expect(v.controller.Config.Credentials).To(Equal(creds))
+					Expect(v.controller.Config.Credentials).To(Equal(validCreds))
 				}
 			}
 		})
@@ -943,6 +949,9 @@ var _ = Describe("Skyflow Management Methods", func() {
 		var vaultConfig common.VaultConfig
 		var creds common.Credentials
 		BeforeEach(func() {
+			if os.Getenv("API_KEY") == "" {
+				Skip("requires API_KEY env var")
+			}
 			vaultConfig = common.VaultConfig{
 				VaultId:   "vaultX",
 				ClusterId: "clusterX",
@@ -1006,6 +1015,9 @@ var _ = Describe("Skyflow Management Methods", func() {
 		var vaultConfig common.VaultConfig
 		var creds common.Credentials
 		BeforeEach(func() {
+			if os.Getenv("API_KEY") == "" {
+				Skip("requires API_KEY env var")
+			}
 			vaultConfig = common.VaultConfig{
 				VaultId:   "vaultDX",
 				ClusterId: "clusterDX",
@@ -1069,6 +1081,9 @@ var _ = Describe("Skyflow Management Methods", func() {
 		var connConfig common.ConnectionConfig
 		var creds common.Credentials
 		BeforeEach(func() {
+			if os.Getenv("API_KEY") == "" {
+				Skip("requires API_KEY env var")
+			}
 			connConfig = common.ConnectionConfig{
 				ConnectionId:  "connX",
 				ConnectionUrl: "https://connX.com",
@@ -1261,6 +1276,773 @@ var _ = Describe("Skyflow Management Methods", func() {
 				}),
 			)
 			Expect(err).To(BeNil())
+		})
+	})
+
+	// -----------------------------------------------------------------------
+	// UpdateVaultConfig — detect controller path
+	// -----------------------------------------------------------------------
+	Context("UpdateVaultConfig — detect controller is updated when Detect() has been called", func() {
+		var vc common.VaultConfig
+		BeforeEach(func() {
+			vc = common.VaultConfig{VaultId: "dv1", ClusterId: "c1", Env: common.PROD}
+			client, _ = NewSkyflow()
+			client.AddVaultConfig(vc)
+			// Initialise the detect controller by calling Detect()
+			_, _ = client.Detect("dv1")
+		})
+
+		It("should update detect controller credentials when non-empty creds are provided", func() {
+			updated := common.VaultConfig{
+				VaultId:     "dv1",
+				ClusterId:   "c1",
+				Credentials: common.Credentials{Token: "detect-new-token"},
+			}
+			err := client.UpdateVaultConfig(updated)
+			Expect(err).To(BeNil())
+			Expect(client.detectServices["dv1"].controller.Config.Credentials.Token).To(Equal("detect-new-token"))
+			Expect(client.detectServices["dv1"].controller.Token).To(Equal(""))
+		})
+
+		It("should update detect controller clusterId when non-empty clusterId is provided", func() {
+			updated := common.VaultConfig{VaultId: "dv1", ClusterId: "new-cluster"}
+			err := client.UpdateVaultConfig(updated)
+			Expect(err).To(BeNil())
+			Expect(client.detectServices["dv1"].controller.Config.ClusterId).To(Equal("new-cluster"))
+		})
+
+		It("should update detect controller env and skip credentials when empty creds", func() {
+			updated := common.VaultConfig{VaultId: "dv1", ClusterId: "c1", Env: common.SANDBOX}
+			err := client.UpdateVaultConfig(updated)
+			Expect(err).To(BeNil())
+			Expect(client.detectServices["dv1"].controller.Config.Env).To(Equal(common.SANDBOX))
+		})
+
+		It("should update both vault and detect controllers when both have been initialised", func() {
+			_, _ = client.Vault("dv1")
+			updated := common.VaultConfig{
+				VaultId:     "dv1",
+				ClusterId:   "shared-cluster",
+				Credentials: common.Credentials{Token: "shared-token"},
+			}
+			err := client.UpdateVaultConfig(updated)
+			Expect(err).To(BeNil())
+			Expect(client.vaultServices["dv1"].controller.Config.Credentials.Token).To(Equal("shared-token"))
+			Expect(client.detectServices["dv1"].controller.Config.Credentials.Token).To(Equal("shared-token"))
+		})
+	})
+
+	// -----------------------------------------------------------------------
+	// UpdateVaultConfig — validation failure
+	// -----------------------------------------------------------------------
+	Context("UpdateVaultConfig — validation errors", func() {
+		It("should return error when VaultId is empty", func() {
+			err := client.UpdateVaultConfig(common.VaultConfig{VaultId: ""})
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(error.INVALID_VAULT_ID))
+		})
+	})
+
+	// -----------------------------------------------------------------------
+	// UpdateConnectionConfig — validation failure + controller nil path
+	// -----------------------------------------------------------------------
+	Context("UpdateConnectionConfig — validation errors and controller-nil path", func() {
+		It("should return error when ConnectionId is empty", func() {
+			err := client.UpdateConnectionConfig(common.ConnectionConfig{ConnectionId: ""})
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(error.EMPTY_CONNECTION_ID))
+		})
+
+		It("should update config even when controller is nil (Connection() not yet called)", func() {
+			client.AddConnectionConfig(connConfig)
+			updated := common.ConnectionConfig{
+				ConnectionId:  "conn1",
+				ConnectionUrl: "https://updated-no-ctrl.example.com",
+			}
+			err := client.UpdateConnectionConfig(updated)
+			Expect(err).To(BeNil())
+			Expect(client.connectionServices["conn1"].config.ConnectionUrl).To(Equal("https://updated-no-ctrl.example.com"))
+		})
+
+		It("should not update controller credentials when empty creds supplied", func() {
+			client.AddConnectionConfig(connConfig)
+			_, _ = client.Connection("conn1")
+			client.connectionServices["conn1"].controller.Config.Credentials = common.Credentials{Token: "original"}
+
+			updated := common.ConnectionConfig{
+				ConnectionId:  "conn1",
+				ConnectionUrl: "https://new-url.com",
+				// Credentials intentionally empty — should not overwrite
+			}
+			err := client.UpdateConnectionConfig(updated)
+			Expect(err).To(BeNil())
+			Expect(client.connectionServices["conn1"].controller.Config.Credentials.Token).To(Equal("original"))
+		})
+	})
+
+	// -----------------------------------------------------------------------
+	// Vault / Connection / Detect — all error and happy paths
+	// -----------------------------------------------------------------------
+	Context("Vault() — error and happy paths", func() {
+		It("should return error when no vaults are registered", func() {
+			emptyClient, _ := NewSkyflow()
+			_, err := emptyClient.Vault()
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(error.EMPTY_VAULT_CONFIG))
+		})
+
+		It("should return error when specified vault ID is not registered", func() {
+			client.AddVaultConfig(vaultConfig)
+			_, err := client.Vault("nonexistent-id")
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(error.VAULT_ID_NOT_IN_CONFIG_LIST))
+		})
+
+		It("should return vault service for registered vault ID", func() {
+			client.AddVaultConfig(vaultConfig)
+			svc, err := client.Vault("vault1")
+			Expect(err).To(BeNil())
+			Expect(svc).ToNot(BeNil())
+			Expect(svc.config.VaultId).To(Equal("vault1"))
+		})
+
+		It("should return first vault when no ID supplied", func() {
+			client.AddVaultConfig(vaultConfig)
+			svc, err := client.Vault()
+			Expect(err).To(BeNil())
+			Expect(svc).ToNot(BeNil())
+		})
+	})
+
+	Context("Connection() — error and happy paths", func() {
+		It("should return error when no connections are registered", func() {
+			emptyClient, _ := NewSkyflow()
+			_, err := emptyClient.Connection()
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(error.EMPTY_CONNECTION_CONFIG))
+		})
+
+		It("should return error when specified connection ID is not registered", func() {
+			client.AddConnectionConfig(connConfig)
+			_, err := client.Connection("nonexistent-id")
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(error.CONNECTION_ID_NOT_IN_CONFIG_LIST))
+		})
+
+		It("should return connection service for registered connection ID", func() {
+			client.AddConnectionConfig(connConfig)
+			svc, err := client.Connection("conn1")
+			Expect(err).To(BeNil())
+			Expect(svc).ToNot(BeNil())
+			Expect(svc.config.ConnectionId).To(Equal("conn1"))
+		})
+
+		It("should return first connection when no ID supplied", func() {
+			client.AddConnectionConfig(connConfig)
+			svc, err := client.Connection()
+			Expect(err).To(BeNil())
+			Expect(svc).ToNot(BeNil())
+		})
+	})
+
+	Context("Detect() — error and happy paths", func() {
+		It("should return error when no vaults are registered", func() {
+			emptyClient, _ := NewSkyflow()
+			_, err := emptyClient.Detect()
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(error.EMPTY_VAULT_CONFIG))
+		})
+
+		It("should return error when specified vault ID is not registered for detect", func() {
+			client.AddVaultConfig(vaultConfig)
+			_, err := client.Detect("nonexistent-id")
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(error.VAULT_ID_NOT_IN_CONFIG_LIST))
+		})
+
+		It("should return detect service for registered vault ID", func() {
+			client.AddVaultConfig(vaultConfig)
+			svc, err := client.Detect("vault1")
+			Expect(err).To(BeNil())
+			Expect(svc).ToNot(BeNil())
+			Expect(svc.config.VaultId).To(Equal("vault1"))
+		})
+
+		It("should return first detect service when no ID supplied", func() {
+			client.AddVaultConfig(vaultConfig)
+			svc, err := client.Detect()
+			Expect(err).To(BeNil())
+			Expect(svc).ToNot(BeNil())
+		})
+	})
+
+	// -----------------------------------------------------------------------
+	// AddVaultConfig / AddConnectionConfig — validation errors
+	// -----------------------------------------------------------------------
+	Context("AddVaultConfig — validation errors", func() {
+		It("should return error when VaultId is empty", func() {
+			err := client.AddVaultConfig(common.VaultConfig{VaultId: "", ClusterId: "c"})
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(error.INVALID_VAULT_ID))
+		})
+
+		It("should return error when both ClusterId and BaseVaultUrl are empty", func() {
+			err := client.AddVaultConfig(common.VaultConfig{VaultId: "v"})
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(error.INVALID_CLUSTER_ID))
+		})
+
+		It("should return error when BaseVaultUrl is not a valid HTTP URL", func() {
+			err := client.AddVaultConfig(common.VaultConfig{VaultId: "v", BaseVaultUrl: "not-a-url"})
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(error.INVALID_VAULT_URL))
+		})
+
+		It("should accept BaseVaultUrl instead of ClusterId", func() {
+			err := client.AddVaultConfig(common.VaultConfig{VaultId: "v-url", BaseVaultUrl: "https://custom.example.com"})
+			Expect(err).To(BeNil())
+		})
+	})
+
+	Context("AddConnectionConfig — validation errors", func() {
+		It("should return error when ConnectionId is empty", func() {
+			err := client.AddConnectionConfig(common.ConnectionConfig{ConnectionId: "", ConnectionUrl: "https://url.com"})
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(error.EMPTY_CONNECTION_ID))
+		})
+
+		It("should return error when ConnectionUrl is empty", func() {
+			err := client.AddConnectionConfig(common.ConnectionConfig{ConnectionId: "c", ConnectionUrl: ""})
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(error.EMPTY_CONNECTION_URL))
+		})
+	})
+
+	// -----------------------------------------------------------------------
+	// WithCredentials — validation failures
+	// -----------------------------------------------------------------------
+	Context("WithCredentials — validation failures", func() {
+		It("should return error when credentials are empty", func() {
+			_, err := NewSkyflow(WithCredentials(common.Credentials{}))
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(error.NO_TOKEN_GENERATION_MEANS_PASSED))
+		})
+
+		It("should return error when multiple credential types are set simultaneously", func() {
+			_, err := NewSkyflow(WithCredentials(common.Credentials{Token: "t", ApiKey: "k"}))
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(error.MULTIPLE_TOKEN_GENERATION_MEANS_PASSED))
+		})
+	})
+
+	// -----------------------------------------------------------------------
+	// GetSkyflowCredentials — nil and set cases
+	// -----------------------------------------------------------------------
+	Context("GetSkyflowCredentials — nil and set cases", func() {
+		It("should return nil when no credentials have been set", func() {
+			emptyClient, _ := NewSkyflow()
+			Expect(emptyClient.GetSkyflowCredentials()).To(BeNil())
+		})
+
+		It("should return credentials after AddSkyflowCredentials is called", func() {
+			emptyClient, _ := NewSkyflow()
+			emptyClient.AddSkyflowCredentials(common.Credentials{Token: "my-token"})
+			Expect(emptyClient.GetSkyflowCredentials().Token).To(Equal("my-token"))
+		})
+	})
+
+	// -----------------------------------------------------------------------
+	// UpdateLogLevel — propagates to all three service maps
+	// -----------------------------------------------------------------------
+	Context("UpdateLogLevel — propagates to vault, detect, and connection services", func() {
+		It("should set the same log level on all registered services", func() {
+			client.AddVaultConfig(vaultConfig)
+			client.AddConnectionConfig(connConfig)
+			client.UpdateLogLevel(logger.DEBUG)
+			Expect(*client.vaultServices["vault1"].logLevel).To(Equal(logger.DEBUG))
+			Expect(*client.detectServices["vault1"].logLevel).To(Equal(logger.DEBUG))
+			Expect(*client.connectionServices["conn1"].logLevel).To(Equal(logger.DEBUG))
+			Expect(*client.GetLoglevel()).To(Equal(logger.DEBUG))
+		})
+	})
+
+	// -----------------------------------------------------------------------
+	// RemoveVaultConfig — verify both maps cleared on normal AddVaultConfig flow
+	// -----------------------------------------------------------------------
+	Context("RemoveVaultConfig — clears both maps after AddVaultConfig", func() {
+		It("should remove from both vaultServices and detectServices", func() {
+			client.AddVaultConfig(vaultConfig)
+			Expect(client.vaultServices).To(HaveKey("vault1"))
+			Expect(client.detectServices).To(HaveKey("vault1"))
+			err := client.RemoveVaultConfig("vault1")
+			Expect(err).To(BeNil())
+			Expect(client.vaultServices).ToNot(HaveKey("vault1"))
+			Expect(client.detectServices).ToNot(HaveKey("vault1"))
+		})
+	})
+})
+
+// =============================================================================
+// Lifecycle scenarios — controller activated, then config mutated
+// =============================================================================
+var _ = Describe("Skyflow lifecycle: after Vault/Detect/Connection activated", func() {
+	var (
+		client     *Skyflow
+		vaultCfg   common.VaultConfig
+		connCfg    common.ConnectionConfig
+	)
+
+	BeforeEach(func() {
+		vaultCfg = common.VaultConfig{VaultId: "v1", ClusterId: "cluster1", Env: common.PROD}
+		connCfg = common.ConnectionConfig{
+			ConnectionId:  "c1",
+			ConnectionUrl: "https://conn.example.com",
+		}
+		var err *error.SkyflowError
+		client, err = NewSkyflow(WithVaults(vaultCfg), WithConnections(connCfg))
+		Expect(err).To(BeNil())
+	})
+
+	// -------------------------------------------------------------------------
+	// After Vault() — UpdateVaultConfig
+	// -------------------------------------------------------------------------
+	Context("after Vault() is called — UpdateVaultConfig", func() {
+		BeforeEach(func() {
+			_, err := client.Vault("v1")
+			Expect(err).To(BeNil())
+		})
+
+		It("should reflect updated ClusterId in the vault controller config", func() {
+			err := client.UpdateVaultConfig(common.VaultConfig{VaultId: "v1", ClusterId: "new-cluster"})
+			Expect(err).To(BeNil())
+			Expect(client.vaultServices["v1"].controller.Config.ClusterId).To(Equal("new-cluster"))
+			Expect(client.vaultServices["v1"].config.ClusterId).To(Equal("new-cluster"))
+		})
+
+		It("should reflect updated credentials in the vault controller and clear cached tokens", func() {
+			err := client.UpdateVaultConfig(common.VaultConfig{
+				VaultId:     "v1",
+				Credentials: common.Credentials{Token: "updated-token"},
+			})
+			Expect(err).To(BeNil())
+			Expect(client.vaultServices["v1"].controller.Config.Credentials.Token).To(Equal("updated-token"))
+			Expect(client.vaultServices["v1"].controller.Token).To(Equal(""))
+			Expect(client.vaultServices["v1"].controller.ApiKey).To(Equal(""))
+		})
+
+		It("should leave credentials unchanged when empty creds are supplied", func() {
+			client.vaultServices["v1"].controller.Config.Credentials = common.Credentials{Token: "original"}
+			err := client.UpdateVaultConfig(common.VaultConfig{VaultId: "v1", ClusterId: "c2"})
+			Expect(err).To(BeNil())
+			Expect(client.vaultServices["v1"].controller.Config.Credentials.Token).To(Equal("original"))
+		})
+
+		It("should update env on vault controller", func() {
+			err := client.UpdateVaultConfig(common.VaultConfig{VaultId: "v1", ClusterId: "cluster1", Env: common.SANDBOX})
+			Expect(err).To(BeNil())
+			Expect(client.vaultServices["v1"].controller.Config.Env).To(Equal(common.SANDBOX))
+		})
+
+		It("subsequent Vault() call uses the updated config", func() {
+			client.UpdateVaultConfig(common.VaultConfig{VaultId: "v1", ClusterId: "refreshed-cluster"})
+			svc, err := client.Vault("v1")
+			Expect(err).To(BeNil())
+			Expect(svc.config.ClusterId).To(Equal("refreshed-cluster"))
+		})
+	})
+
+	// -------------------------------------------------------------------------
+	// After Vault() — RemoveVaultConfig
+	// -------------------------------------------------------------------------
+	Context("after Vault() is called — RemoveVaultConfig", func() {
+		BeforeEach(func() {
+			_, err := client.Vault("v1")
+			Expect(err).To(BeNil())
+		})
+
+		It("should remove the activated vault service", func() {
+			err := client.RemoveVaultConfig("v1")
+			Expect(err).To(BeNil())
+			Expect(client.vaultServices).ToNot(HaveKey("v1"))
+		})
+
+		It("Vault() should error after the vault is removed", func() {
+			client.RemoveVaultConfig("v1")
+			_, err := client.Vault("v1")
+			Expect(err).ToNot(BeNil())
+			// vaultServices map is now empty → EMPTY_VAULT_CONFIG is returned before the "not found" check
+			Expect(err.GetMessage()).To(ContainSubstring(error.EMPTY_VAULT_CONFIG))
+		})
+
+		It("AddVaultConfig with same ID should succeed after removal", func() {
+			client.RemoveVaultConfig("v1")
+			err := client.AddVaultConfig(common.VaultConfig{VaultId: "v1", ClusterId: "re-added"})
+			Expect(err).To(BeNil())
+			cfg, _ := client.GetVaultConfig("v1")
+			Expect(cfg.ClusterId).To(Equal("re-added"))
+		})
+	})
+
+	// -------------------------------------------------------------------------
+	// After Vault() — AddVaultConfig (second vault), then use both
+	// -------------------------------------------------------------------------
+	Context("after Vault() is called — AddVaultConfig adds second vault", func() {
+		BeforeEach(func() {
+			_, err := client.Vault("v1")
+			Expect(err).To(BeNil())
+		})
+
+		It("should activate both vaults independently", func() {
+			err := client.AddVaultConfig(common.VaultConfig{VaultId: "v2", ClusterId: "cluster2"})
+			Expect(err).To(BeNil())
+
+			svc1, err1 := client.Vault("v1")
+			svc2, err2 := client.Vault("v2")
+			Expect(err1).To(BeNil())
+			Expect(err2).To(BeNil())
+			Expect(svc1.config.VaultId).To(Equal("v1"))
+			Expect(svc2.config.VaultId).To(Equal("v2"))
+		})
+
+		It("removing one vault should not affect the other", func() {
+			client.AddVaultConfig(common.VaultConfig{VaultId: "v2", ClusterId: "cluster2"})
+			client.RemoveVaultConfig("v1")
+			_, err1 := client.Vault("v1")
+			Expect(err1).ToNot(BeNil())
+			svc2, err2 := client.Vault("v2")
+			Expect(err2).To(BeNil())
+			Expect(svc2.config.VaultId).To(Equal("v2"))
+		})
+	})
+
+	// -------------------------------------------------------------------------
+	// After Detect() — UpdateVaultConfig
+	// -------------------------------------------------------------------------
+	Context("after Detect() is called — UpdateVaultConfig", func() {
+		BeforeEach(func() {
+			_, err := client.Detect("v1")
+			Expect(err).To(BeNil())
+		})
+
+		It("should reflect updated ClusterId in the detect controller config", func() {
+			err := client.UpdateVaultConfig(common.VaultConfig{VaultId: "v1", ClusterId: "detect-new-cluster"})
+			Expect(err).To(BeNil())
+			Expect(client.detectServices["v1"].controller.Config.ClusterId).To(Equal("detect-new-cluster"))
+			Expect(client.detectServices["v1"].config.ClusterId).To(Equal("detect-new-cluster"))
+		})
+
+		It("should update detect controller credentials and clear cached token", func() {
+			err := client.UpdateVaultConfig(common.VaultConfig{
+				VaultId:     "v1",
+				Credentials: common.Credentials{Token: "detect-token"},
+			})
+			Expect(err).To(BeNil())
+			Expect(client.detectServices["v1"].controller.Config.Credentials.Token).To(Equal("detect-token"))
+			Expect(client.detectServices["v1"].controller.Token).To(Equal(""))
+		})
+
+		It("subsequent Detect() call uses the updated config", func() {
+			client.UpdateVaultConfig(common.VaultConfig{VaultId: "v1", ClusterId: "detect-refreshed"})
+			svc, err := client.Detect("v1")
+			Expect(err).To(BeNil())
+			Expect(svc.config.ClusterId).To(Equal("detect-refreshed"))
+		})
+	})
+
+	// -------------------------------------------------------------------------
+	// After Detect() — RemoveVaultConfig
+	// -------------------------------------------------------------------------
+	Context("after Detect() is called — RemoveVaultConfig", func() {
+		BeforeEach(func() {
+			_, err := client.Detect("v1")
+			Expect(err).To(BeNil())
+		})
+
+		It("should remove the activated detect service", func() {
+			err := client.RemoveVaultConfig("v1")
+			Expect(err).To(BeNil())
+			Expect(client.detectServices).ToNot(HaveKey("v1"))
+		})
+
+		It("Detect() should error after the vault is removed", func() {
+			client.RemoveVaultConfig("v1")
+			_, err := client.Detect("v1")
+			Expect(err).ToNot(BeNil())
+			// detectServices map is now empty → EMPTY_VAULT_CONFIG is returned before the "not found" check
+			Expect(err.GetMessage()).To(ContainSubstring(error.EMPTY_VAULT_CONFIG))
+		})
+
+		It("AddVaultConfig then Detect() should succeed after removal", func() {
+			client.RemoveVaultConfig("v1")
+			client.AddVaultConfig(common.VaultConfig{VaultId: "v1", ClusterId: "re-detect"})
+			svc, err := client.Detect("v1")
+			Expect(err).To(BeNil())
+			Expect(svc.config.ClusterId).To(Equal("re-detect"))
+		})
+	})
+
+	// -------------------------------------------------------------------------
+	// Both Vault() and Detect() activated — coordinated mutations
+	// -------------------------------------------------------------------------
+	Context("both Vault() and Detect() activated on same vault ID", func() {
+		BeforeEach(func() {
+			_, err1 := client.Vault("v1")
+			_, err2 := client.Detect("v1")
+			Expect(err1).To(BeNil())
+			Expect(err2).To(BeNil())
+		})
+
+		It("UpdateVaultConfig should update both controllers", func() {
+			err := client.UpdateVaultConfig(common.VaultConfig{
+				VaultId:     "v1",
+				ClusterId:   "both-updated",
+				Credentials: common.Credentials{Token: "both-token"},
+			})
+			Expect(err).To(BeNil())
+			Expect(client.vaultServices["v1"].controller.Config.ClusterId).To(Equal("both-updated"))
+			Expect(client.detectServices["v1"].controller.Config.ClusterId).To(Equal("both-updated"))
+			Expect(client.vaultServices["v1"].controller.Config.Credentials.Token).To(Equal("both-token"))
+			Expect(client.detectServices["v1"].controller.Config.Credentials.Token).To(Equal("both-token"))
+		})
+
+		It("RemoveVaultConfig should remove both services", func() {
+			err := client.RemoveVaultConfig("v1")
+			Expect(err).To(BeNil())
+			Expect(client.vaultServices).ToNot(HaveKey("v1"))
+			Expect(client.detectServices).ToNot(HaveKey("v1"))
+		})
+
+		It("UpdateSkyflowCredentials should propagate to both controllers", func() {
+			err := client.UpdateSkyflowCredentials(common.Credentials{Token: "global-token"})
+			Expect(err).To(BeNil())
+			Expect(client.vaultServices["v1"].controller.CommonCreds.Token).To(Equal("global-token"))
+			Expect(client.detectServices["v1"].controller.CommonCreds.Token).To(Equal("global-token"))
+		})
+
+		It("AddSkyflowCredentials should propagate to both controllers", func() {
+			err := client.AddSkyflowCredentials(common.Credentials{Token: "add-global-token"})
+			Expect(err).To(BeNil())
+			Expect(client.vaultServices["v1"].controller.CommonCreds.Token).To(Equal("add-global-token"))
+			Expect(client.detectServices["v1"].controller.CommonCreds.Token).To(Equal("add-global-token"))
+		})
+	})
+
+	// -------------------------------------------------------------------------
+	// After Connection() — UpdateConnectionConfig
+	// -------------------------------------------------------------------------
+	Context("after Connection() is called — UpdateConnectionConfig", func() {
+		BeforeEach(func() {
+			_, err := client.Connection("c1")
+			Expect(err).To(BeNil())
+		})
+
+		It("should reflect updated ConnectionUrl in the connection controller", func() {
+			err := client.UpdateConnectionConfig(common.ConnectionConfig{
+				ConnectionId:  "c1",
+				ConnectionUrl: "https://updated-conn.example.com",
+			})
+			Expect(err).To(BeNil())
+			Expect(client.connectionServices["c1"].controller.Config.ConnectionUrl).To(Equal("https://updated-conn.example.com"))
+			Expect(client.connectionServices["c1"].config.ConnectionUrl).To(Equal("https://updated-conn.example.com"))
+		})
+
+		It("should update connection controller credentials and clear cached token", func() {
+			err := client.UpdateConnectionConfig(common.ConnectionConfig{
+				ConnectionId:  "c1",
+				ConnectionUrl: "https://conn.example.com",
+				Credentials:   common.Credentials{Token: "conn-token"},
+			})
+			Expect(err).To(BeNil())
+			Expect(client.connectionServices["c1"].controller.Config.Credentials.Token).To(Equal("conn-token"))
+			Expect(client.connectionServices["c1"].controller.Token).To(Equal(""))
+		})
+
+		It("should not update credentials when empty creds supplied", func() {
+			client.connectionServices["c1"].controller.Config.Credentials = common.Credentials{Token: "original-conn"}
+			err := client.UpdateConnectionConfig(common.ConnectionConfig{
+				ConnectionId:  "c1",
+				ConnectionUrl: "https://new-url.example.com",
+			})
+			Expect(err).To(BeNil())
+			Expect(client.connectionServices["c1"].controller.Config.Credentials.Token).To(Equal("original-conn"))
+		})
+
+		It("subsequent Connection() call uses the updated URL", func() {
+			client.UpdateConnectionConfig(common.ConnectionConfig{
+				ConnectionId:  "c1",
+				ConnectionUrl: "https://refreshed-conn.example.com",
+			})
+			svc, err := client.Connection("c1")
+			Expect(err).To(BeNil())
+			Expect(svc.config.ConnectionUrl).To(Equal("https://refreshed-conn.example.com"))
+		})
+	})
+
+	// -------------------------------------------------------------------------
+	// After Connection() — RemoveConnectionConfig
+	// -------------------------------------------------------------------------
+	Context("after Connection() is called — RemoveConnectionConfig", func() {
+		BeforeEach(func() {
+			_, err := client.Connection("c1")
+			Expect(err).To(BeNil())
+		})
+
+		It("should remove the activated connection service", func() {
+			err := client.RemoveConnectionConfig("c1")
+			Expect(err).To(BeNil())
+			Expect(client.connectionServices).ToNot(HaveKey("c1"))
+		})
+
+		It("Connection() should error after the connection is removed", func() {
+			client.RemoveConnectionConfig("c1")
+			_, err := client.Connection("c1")
+			Expect(err).ToNot(BeNil())
+			// connectionServices map is now empty → EMPTY_CONNECTION_CONFIG is returned before the "not found" check
+			Expect(err.GetMessage()).To(ContainSubstring(error.EMPTY_CONNECTION_CONFIG))
+		})
+
+		It("AddConnectionConfig with same ID should succeed after removal", func() {
+			client.RemoveConnectionConfig("c1")
+			err := client.AddConnectionConfig(common.ConnectionConfig{
+				ConnectionId:  "c1",
+				ConnectionUrl: "https://re-added-conn.example.com",
+			})
+			Expect(err).To(BeNil())
+			cfg, _ := client.GetConnectionConfig("c1")
+			Expect(cfg.ConnectionUrl).To(Equal("https://re-added-conn.example.com"))
+		})
+	})
+
+	// -------------------------------------------------------------------------
+	// After Connection() — UpdateSkyflowCredentials / AddSkyflowCredentials
+	// -------------------------------------------------------------------------
+	Context("after Connection() is called — global credential updates", func() {
+		BeforeEach(func() {
+			_, err := client.Connection("c1")
+			Expect(err).To(BeNil())
+		})
+
+		It("UpdateSkyflowCredentials propagates to connection controller", func() {
+			err := client.UpdateSkyflowCredentials(common.Credentials{Token: "global-conn-token"})
+			Expect(err).To(BeNil())
+			Expect(client.connectionServices["c1"].controller.CommonCreds.Token).To(Equal("global-conn-token"))
+			Expect(client.connectionServices["c1"].controller.Token).To(Equal(""))
+		})
+
+		It("AddSkyflowCredentials propagates to connection controller", func() {
+			err := client.AddSkyflowCredentials(common.Credentials{Token: "add-conn-token"})
+			Expect(err).To(BeNil())
+			Expect(client.connectionServices["c1"].controller.CommonCreds.Token).To(Equal("add-conn-token"))
+		})
+	})
+
+	// -------------------------------------------------------------------------
+	// Full end-to-end lifecycle: init → activate → update → re-activate → remove
+	// -------------------------------------------------------------------------
+	Context("full lifecycle: init → Vault → UpdateVaultConfig → Vault → RemoveVaultConfig", func() {
+		It("controller reflects each mutation at every stage", func() {
+			// 1. Activate vault
+			svc1, err := client.Vault("v1")
+			Expect(err).To(BeNil())
+			Expect(svc1.config.ClusterId).To(Equal("cluster1"))
+
+			// 2. Update cluster
+			err = client.UpdateVaultConfig(common.VaultConfig{VaultId: "v1", ClusterId: "mid-cluster"})
+			Expect(err).To(BeNil())
+
+			// 3. Re-activate — controller should have new cluster
+			svc2, err := client.Vault("v1")
+			Expect(err).To(BeNil())
+			Expect(svc2.config.ClusterId).To(Equal("mid-cluster"))
+			Expect(svc2.controller.Config.ClusterId).To(Equal("mid-cluster"))
+
+			// 4. Remove
+			err = client.RemoveVaultConfig("v1")
+			Expect(err).To(BeNil())
+
+			// 5. Vault() must fail now
+			_, err = client.Vault("v1")
+			Expect(err).ToNot(BeNil())
+
+			// 6. Re-add and confirm fresh state
+			err = client.AddVaultConfig(common.VaultConfig{VaultId: "v1", ClusterId: "final-cluster"})
+			Expect(err).To(BeNil())
+			cfg, _ := client.GetVaultConfig("v1")
+			Expect(cfg.ClusterId).To(Equal("final-cluster"))
+		})
+	})
+
+	Context("full lifecycle: init → Connection → UpdateConnectionConfig → Connection → RemoveConnectionConfig", func() {
+		It("controller reflects each mutation at every stage", func() {
+			// 1. Activate
+			svc1, err := client.Connection("c1")
+			Expect(err).To(BeNil())
+			Expect(svc1.config.ConnectionUrl).To(Equal("https://conn.example.com"))
+
+			// 2. Update URL
+			err = client.UpdateConnectionConfig(common.ConnectionConfig{
+				ConnectionId:  "c1",
+				ConnectionUrl: "https://mid-conn.example.com",
+			})
+			Expect(err).To(BeNil())
+
+			// 3. Re-activate — controller should have updated URL
+			svc2, err := client.Connection("c1")
+			Expect(err).To(BeNil())
+			Expect(svc2.config.ConnectionUrl).To(Equal("https://mid-conn.example.com"))
+			Expect(svc2.controller.Config.ConnectionUrl).To(Equal("https://mid-conn.example.com"))
+
+			// 4. Remove
+			err = client.RemoveConnectionConfig("c1")
+			Expect(err).To(BeNil())
+
+			// 5. Connection() must fail now
+			_, err = client.Connection("c1")
+			Expect(err).ToNot(BeNil())
+
+			// 6. Re-add and confirm
+			err = client.AddConnectionConfig(common.ConnectionConfig{
+				ConnectionId:  "c1",
+				ConnectionUrl: "https://final-conn.example.com",
+			})
+			Expect(err).To(BeNil())
+			cfg, _ := client.GetConnectionConfig("c1")
+			Expect(cfg.ConnectionUrl).To(Equal("https://final-conn.example.com"))
+		})
+	})
+
+	Context("full lifecycle: Detect → UpdateVaultConfig → Detect → RemoveVaultConfig → AddVaultConfig → Detect", func() {
+		It("detect controller and config stay consistent through all mutations", func() {
+			// 1. Activate detect
+			_, err := client.Detect("v1")
+			Expect(err).To(BeNil())
+
+			// 2. Update via UpdateVaultConfig
+			err = client.UpdateVaultConfig(common.VaultConfig{
+				VaultId:     "v1",
+				ClusterId:   "detect-mid",
+				Credentials: common.Credentials{Token: "detect-mid-token"},
+			})
+			Expect(err).To(BeNil())
+			Expect(client.detectServices["v1"].controller.Config.ClusterId).To(Equal("detect-mid"))
+
+			// 3. Re-activate — picks up new config
+			svc2, err := client.Detect("v1")
+			Expect(err).To(BeNil())
+			Expect(svc2.config.ClusterId).To(Equal("detect-mid"))
+
+			// 4. Remove
+			err = client.RemoveVaultConfig("v1")
+			Expect(err).To(BeNil())
+			_, err = client.Detect("v1")
+			Expect(err).ToNot(BeNil())
+
+			// 5. Re-add and verify fresh state
+			err = client.AddVaultConfig(common.VaultConfig{VaultId: "v1", ClusterId: "detect-final"})
+			Expect(err).To(BeNil())
+			svc3, err := client.Detect("v1")
+			Expect(err).To(BeNil())
+			Expect(svc3.config.ClusterId).To(Equal("detect-final"))
 		})
 	})
 })

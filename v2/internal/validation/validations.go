@@ -383,24 +383,23 @@ func ValidateInsertRequest(request common.InsertRequest, options common.InsertOp
 	return nil
 }
 func validateValues(values []map[string]interface{}, tag string) *skyflowError.SkyflowError {
-			for _, valueMap := range values {
-			for key := range valueMap {
-				if key == "" {
-					logger.Error(fmt.Sprintf(logs.EMPTY_OR_NULL_KEY_IN_VALUES, tag))
-					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_KEY_IN_VALUES)
-				}
+	if values == nil {
+		logger.Error(fmt.Sprintf(logs.VALUES_IS_REQUIRED, tag))
+		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_VALUES)
+	}
+	if len(values) == 0 {
+		logger.Error(fmt.Sprintf(logs.EMPTY_VALUES, tag))
+		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_VALUES)
+	}
+	for _, valueMap := range values {
+		for key := range valueMap {
+			if key == "" {
+				logger.Error(fmt.Sprintf(logs.EMPTY_OR_NULL_KEY_IN_VALUES, tag))
+				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_KEY_IN_VALUES)
 			}
 		}
-			// Validate values
-		if values == nil {
-			logger.Error(fmt.Sprintf(logs.VALUES_IS_REQUIRED, tag))
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_VALUES)
-		}
-		if len(values) == 0 {
-			logger.Error(fmt.Sprintf(logs.EMPTY_VALUES, tag))
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_VALUES)
-		}
-		return nil;
+	}
+	return nil
 }
 
 func ValidateTokensForInsertRequest(tokens []map[string]interface{}, values []map[string]interface{}, mode common.BYOT) *skyflowError.SkyflowError {

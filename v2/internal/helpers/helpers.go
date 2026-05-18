@@ -117,6 +117,14 @@ func GetDetokenizePayload(request common.DetokenizeRequest, options common.Detok
 	if len(reqArray) > 0 {
 		payload.DetokenizationParameters = reqArray
 	}
+	downloadUrl := options.DownloadUrl
+	if !downloadUrl && options.DownloadURL {
+		logger.Warn(logs.DEPRECATED_FIELD_DOWNLOAD_URL)
+		downloadUrl = options.DownloadURL
+	}
+	if downloadUrl {
+		payload.DownloadUrl = &downloadUrl
+	}
 	return payload
 }
 func GetFormattedBatchInsertRecord(record interface{}, requestIndex int) (map[string]interface{}, *skyflowError.SkyflowError) {
