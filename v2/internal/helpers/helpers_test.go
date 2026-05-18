@@ -16,6 +16,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	vaultapis "github.com/skyflowapi/skyflow-go/v2/internal/generated"
@@ -33,7 +34,7 @@ func TestController(t *testing.T) {
 var _ = Describe("Helpers", func() {
 	Context("ParseCredentialsFile", func() {
 		It("should parse a valid credentials file successfully", func() {
-			credentialsContent := `{"clientID":"test-client-id", "privateKey":"test-private-key"}`
+			credentialsContent := `{"clientId":"test-client-id", "privateKey":"test-private-key"}`
 			filePath := "test_credentials.json"
 			ioutil.WriteFile(filePath, []byte(credentialsContent), 0644)
 			defer os.Remove(filePath)
@@ -41,7 +42,7 @@ var _ = Describe("Helpers", func() {
 			credKeys, err := ParseCredentialsFile(filePath)
 
 			Expect(err).To(BeNil())
-			Expect(credKeys).To(HaveKeyWithValue("clientID", "test-client-id"))
+			Expect(credKeys).To(HaveKeyWithValue("clientId", "test-client-id"))
 			Expect(credKeys).To(HaveKeyWithValue("privateKey", "test-private-key"))
 		})
 		It("should fail when invalid type of private key is passes", func() {
@@ -76,6 +77,9 @@ var _ = Describe("Helpers", func() {
 	Context("GetPrivateKey", func() {
 		It("should parse a valid private key successfully", func() {
 			pvtKey := os.Getenv("VALID_CREDS_PVT_KEY")
+			if pvtKey == "" {
+				Skip("requires VALID_CREDS_PVT_KEY env var")
+			}
 			credMap := map[string]interface{}{}
 			err := json.Unmarshal([]byte(pvtKey), &credMap)
 
@@ -201,52 +205,52 @@ MIIBAAIBADANINVALIDKEY==
 		BeforeEach(func() {
 			// Setting up valid and invalid credential maps before each test
 			validCredKeys = map[string]interface{}{
-				"clientID": "validClientID",
-				"tokenURI": "validTokenURI",
-				"keyID":    "validKeyID",
+				"clientId": "validclientId",
+				"tokenUri": "validtokenUri",
+				"keyId":    "validkeyId",
 			}
 			invalidCredKeys = map[string]interface{}{
-				"clientID": "validClientID",
-				// Missing tokenURI
-				"keyID": "validKeyID",
+				"clientId": "validclientId",
+				// Missing tokenUri
+				"keyId": "validkeyId",
 			}
 		})
 
 		Context("When all credential parameters are valid", func() {
-			It("should return clientID, tokenURI, keyID and no error", func() {
-				clientID, tokenURI, keyID, err := GetCredentialParams(validCredKeys)
+			It("should return clientId, tokenUri, keyId and no error", func() {
+				clientId, tokenUri, keyId, err := GetCredentialParams(validCredKeys)
 
-				Expect(clientID).To(Equal("validClientID"))
-				Expect(tokenURI).To(Equal("validTokenURI"))
-				Expect(keyID).To(Equal("validKeyID"))
+				Expect(clientId).To(Equal("validclientId"))
+				Expect(tokenUri).To(Equal("validtokenUri"))
+				Expect(keyId).To(Equal("validkeyId"))
 				Expect(err).To(BeNil())
 			})
 		})
 
 		Context("When one or more credential parameters are missing", func() {
 			It("should return an error", func() {
-				clientID, tokenURI, keyID, err := GetCredentialParams(invalidCredKeys)
+				clientId, tokenUri, keyId, err := GetCredentialParams(invalidCredKeys)
 
-				Expect(clientID).To(BeEmpty())
-				Expect(tokenURI).To(BeEmpty())
-				Expect(keyID).To(BeEmpty())
+				Expect(clientId).To(BeEmpty())
+				Expect(tokenUri).To(BeEmpty())
+				Expect(keyId).To(BeEmpty())
 				Expect(err).ToNot(BeNil())
 				Expect(err.GetCode()).To(Equal("Code: 400"))
-				Expect(err.GetMessage()).To(ContainSubstring(INVALID_CREDENTIALS))
+				Expect(err.GetMessage()).To(ContainSubstring(MISSING_TOKEN_URI))
 			})
 		})
 
 		Context("When all credential parameters are missing", func() {
 			It("should return an error", func() {
 				emptyCredKeys := make(map[string]interface{})
-				clientID, tokenURI, keyID, err := GetCredentialParams(emptyCredKeys)
+				clientId, tokenUri, keyId, err := GetCredentialParams(emptyCredKeys)
 
-				Expect(clientID).To(BeEmpty())
-				Expect(tokenURI).To(BeEmpty())
-				Expect(keyID).To(BeEmpty())
+				Expect(clientId).To(BeEmpty())
+				Expect(tokenUri).To(BeEmpty())
+				Expect(keyId).To(BeEmpty())
 				Expect(err).ToNot(BeNil())
 				Expect(err.GetCode()).To(Equal("Code: 400"))
-				Expect(err.GetMessage()).To(ContainSubstring(INVALID_CREDENTIALS))
+				Expect(err.GetMessage()).To(ContainSubstring(MISSING_CLIENT_ID))
 			})
 		})
 
@@ -262,9 +266,9 @@ MIIBAAIBADANINVALIDKEY==
 		BeforeEach(func() {
 			// Prepare the mock credentials map
 			credKeys = map[string]interface{}{
-				"clientID":   "client_123",
-				"keyID":      "key_456",
-				"tokenURI":   "http://example.com",
+				"clientId":   "client_123",
+				"keyId":      "key_456",
+				"tokenUri":   "http://example.com",
 				"privateKey": "mockPrivateKey", // This should be a mock or a valid private key
 			}
 
@@ -321,7 +325,7 @@ MIIBAAIBADANINVALIDKEY==
 				Expect(response).Should(BeNil())
 				Expect(err).ShouldNot(BeNil())
 				Expect(err.GetCode()).Should(Equal("Code: 400")) // Assuming a 400 error code for this case
-				Expect(err.GetMessage()).Should(ContainSubstring(INVALID_CREDENTIALS))
+				Expect(err.GetMessage()).Should(ContainSubstring(MISSING_CLIENT_ID))
 			})
 		})
 
@@ -394,18 +398,21 @@ MIIBAAIBADANINVALIDKEY==
 			BeforeEach(func() {
 				credKeys = map[string]interface{}{
 					"privateKey": "dummyPrivateKey",
-					"clientID":   "client_123",
-					"tokenURI":   "http://mock-api.com/token",
-					"keyID":      "key_456",
+					"clientId":   "client_123",
+					"tokenUri":   "http://mock-api.com/token",
+					"keyId":      "key_456",
 				}
 				options = common.BearerTokenOptions{
 					Ctx:     "testContext",
-					RoleIDs: []string{"roleid1", "roleid2"},
+					RoleIds: []string{"roleid1", "roleid2"},
 				}
 			})
 
 			AfterEach(func() {
-				mockServer.Close()
+				if mockServer != nil {
+					mockServer.Close()
+					mockServer = nil
+				}
 			})
 
 			Context("When the API call is successful", func() {
@@ -421,10 +428,8 @@ MIIBAAIBADANINVALIDKEY==
 						return mockServer.URL, nil
 					}
 
-					// Call the function under test
 					response, err := GenerateBearerTokenHelper(credKeys, options)
 
-					// Assertions
 					Expect(err).Should(BeNil())
 					Expect(response).ShouldNot(BeNil())
 					Expect(*response.AccessToken).Should(Equal("mockAccessToken"))
@@ -432,20 +437,17 @@ MIIBAAIBADANINVALIDKEY==
 				It("should return a error", func() {
 					// Set the base URL for the mock server
 					credKeys = getValidCreds()
-					credKeys["tokenURI"] = mockServer.URL
 					mockServer = mockserver("err")
+					credKeys["tokenUri"] = mockServer.URL
 					originalGetBaseURLHelper := GetBaseURLHelper
 
 					defer func() { GetBaseURLHelper = originalGetBaseURLHelper }()
-
 					GetBaseURLHelper = func(urlStr string) (string, *SkyflowError) {
 						return mockServer.URL, nil
 					}
 
-					// Call the function under test
 					response, err := GenerateBearerTokenHelper(credKeys, options)
 
-					// Assertions
 					Expect(err).ShouldNot(BeNil())
 					Expect(response).Should(BeNil())
 				})
@@ -467,40 +469,36 @@ MIIBAAIBADANINVALIDKEY==
 					Expect(err.GetCode()).Should(Equal("Code: 400"))
 					Expect(err.GetMessage()).Should(ContainSubstring(MISSING_PRIVATE_KEY))
 				})
-				It("should return an error when clientID is missing", func() {
+				It("should return an error when clientId is missing", func() {
 					// Remove privateKey from credKeys to simulate missing key
 					credKeys = getValidCreds()
 					delete(credKeys, "clientID")
 					// Call the function under test
 					response, err := GenerateBearerTokenHelper(credKeys, options)
 
-					// Assertions
 					Expect(err).ShouldNot(BeNil())
 					Expect(response).Should(BeNil())
 					Expect(err.GetCode()).Should(Equal("Code: 400"))
 					Expect(err.GetMessage()).Should(ContainSubstring(MISSING_CLIENT_ID))
 				})
-				It("should return an error when tokenURI is missing", func() {
+				It("should return an error when tokenUri is missing", func() {
 					// Remove privateKey from credKeys to simulate missing key
 					credKeys = getValidCreds()
 					delete(credKeys, "tokenURI")
 					// Call the function under test
 					response, err := GenerateBearerTokenHelper(credKeys, options)
 
-					// Assertions
 					Expect(err).ShouldNot(BeNil())
 					Expect(response).Should(BeNil())
 					Expect(err.GetCode()).Should(Equal("Code: 400"))
 					Expect(err.GetMessage()).Should(ContainSubstring(MISSING_TOKEN_URI))
 				})
-				It("should return an error when keyID is missing", func() {
-					// Remove privateKey from credKeys to simulate missing key
-					credKeys = getValidCreds()
-					delete(credKeys, "keyID")
-					// Call the function under test
+				It("should return an error when keyId is missing", func() {
+					credKeys = makeTestCredMap()
+					delete(credKeys, "keyId")
+
 					response, err := GenerateBearerTokenHelper(credKeys, options)
 
-					// Assertions
 					Expect(err).ShouldNot(BeNil())
 					Expect(response).Should(BeNil())
 					Expect(err.GetCode()).Should(Equal("Code: 400"))
@@ -552,20 +550,32 @@ MIIBAAIBADANINVALIDKEY==
 			})
 		})
 		Context("GetSkyflowID", func() {
-			It("should return skyflow_id and true if present", func() {
-				m := map[string]interface{}{"skyflow_id": "id123"}
+			It("should return skyflow_id and true if present (new key SkyflowId)", func() {
+				m := map[string]interface{}{"SkyflowId": "id123"}
 				id, ok := GetSkyflowID(m)
 				Expect(ok).To(BeTrue())
 				Expect(id).To(Equal("id123"))
 			})
-			It("should return empty string and false if skyflow_id not present", func() {
+			It("should return skyflow_id and true if present (old key skyflow_id — backward compat)", func() {
+				m := map[string]interface{}{"skyflow_id": "id456"}
+				id, ok := GetSkyflowID(m)
+				Expect(ok).To(BeTrue())
+				Expect(id).To(Equal("id456"))
+			})
+			It("should prefer new key SkyflowId over old key skyflow_id when both present", func() {
+				m := map[string]interface{}{"SkyflowId": "new-id", "skyflow_id": "old-id"}
+				id, ok := GetSkyflowID(m)
+				Expect(ok).To(BeTrue())
+				Expect(id).To(Equal("new-id"))
+			})
+			It("should return empty string and false if neither key is present", func() {
 				m := map[string]interface{}{"other": "val"}
 				id, ok := GetSkyflowID(m)
 				Expect(ok).To(BeFalse())
 				Expect(id).To(Equal(""))
 			})
 			It("should return empty string and false if skyflow_id is not a string", func() {
-				m := map[string]interface{}{"skyflow_id": 123}
+				m := map[string]interface{}{"SkyflowId": 123}
 				id, ok := GetSkyflowID(m)
 				Expect(ok).To(BeFalse())
 				Expect(id).To(Equal(""))
@@ -681,7 +691,7 @@ MIIBAAIBADANINVALIDKEY==
 			})
 		})
 		Context("GetFormattedBatchInsertRecord", func() {
-			It("should extract skyflow_id and tokens from valid record", func() {
+			It("should extract skyflow_id and emit both SkyflowId (new) and skyflow_id (backward compat)", func() {
 				record := map[string]interface{}{
 					"Body": map[string]interface{}{
 						"records": []interface{}{
@@ -694,7 +704,8 @@ MIIBAAIBADANINVALIDKEY==
 				}
 				result, err := GetFormattedBatchInsertRecord(record, 0)
 				Expect(err).To(BeNil())
-				Expect(result).To(HaveKeyWithValue("skyflow_id", "id123"))
+				Expect(result).To(HaveKeyWithValue("SkyflowId", "id123"))
+				Expect(result).To(HaveKeyWithValue("skyflow_id", "id123")) // backward compat
 				Expect(result).To(HaveKeyWithValue("field1", "token1"))
 				Expect(result).To(HaveKeyWithValue("request_index", 0))
 			})
@@ -1038,3 +1049,562 @@ func getValidCreds() map[string]interface{} {
 	_ = json.Unmarshal([]byte(pvtKey), &credMap)
 	return credMap
 }
+
+func makeTestCredMap() map[string]interface{} {
+	rsaKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		panic(err)
+	}
+	pkcs1Bytes := x509.MarshalPKCS1PrivateKey(rsaKey)
+	pemKey := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: pkcs1Bytes})
+	return map[string]interface{}{
+		"privateKey": string(pemKey),
+		"clientId":   "test-client-id",
+		"tokenUri":   "https://example.com/token",
+		"keyId":      "test-key-id",
+	}
+}
+
+var _ = Describe("GetFormattedBulkInsertRecord", func() {
+	Context("when SkyflowId is nil", func() {
+		It("should return a map without SkyflowId key", func() {
+			record := vaultapis.V1RecordMetaProperties{}
+			result := GetFormattedBulkInsertRecord(record)
+			Expect(result).ToNot(HaveKey("SkyflowId"))
+		})
+	})
+
+	Context("when SkyflowId is set", func() {
+		It("should include SkyflowId (new) and skyflow_id (backward compat) in the map", func() {
+			id := "sky-123"
+			record := vaultapis.V1RecordMetaProperties{SkyflowId: &id}
+			result := GetFormattedBulkInsertRecord(record)
+			Expect(result).To(HaveKeyWithValue("SkyflowId", "sky-123"))
+			Expect(result).To(HaveKeyWithValue("skyflow_id", "sky-123")) // backward compat
+		})
+
+		It("should include tokens alongside SkyflowId and skyflow_id", func() {
+			id := "sky-456"
+			record := vaultapis.V1RecordMetaProperties{
+				SkyflowId: &id,
+				Tokens:    map[string]interface{}{"card_number": "tok_abc", "cvv": "tok_xyz"},
+			}
+			result := GetFormattedBulkInsertRecord(record)
+			Expect(result).To(HaveKeyWithValue("SkyflowId", "sky-456"))
+			Expect(result).To(HaveKeyWithValue("skyflow_id", "sky-456")) // backward compat
+			Expect(result).To(HaveKeyWithValue("card_number", "tok_abc"))
+			Expect(result).To(HaveKeyWithValue("cvv", "tok_xyz"))
+		})
+	})
+
+	Context("when tokens are empty", func() {
+		It("should return a map with SkyflowId and skyflow_id (backward compat) only", func() {
+			id := "sky-789"
+			record := vaultapis.V1RecordMetaProperties{SkyflowId: &id}
+			result := GetFormattedBulkInsertRecord(record)
+			Expect(result).To(HaveLen(2))
+			Expect(result).To(HaveKey("SkyflowId"))
+			Expect(result).To(HaveKey("skyflow_id")) // backward compat
+		})
+	})
+})
+
+var _ = Describe("GetFormattedQueryRecord — additional paths", func() {
+	Context("when fields contain skyflow_id wire key", func() {
+		It("should remap skyflow_id to SkyflowId", func() {
+			record := vaultapis.V1FieldRecords{
+				Fields: map[string]interface{}{"skyflow_id": "rec-001", "name": "alice"},
+			}
+			result := GetFormattedQueryRecord(record)
+			Expect(result).To(HaveKeyWithValue("SkyflowId", "rec-001"))
+			Expect(result).To(HaveKeyWithValue("name", "alice"))
+			Expect(result).To(HaveKeyWithValue("skyflow_id", "rec-001")) // backward compat
+		})
+	})
+
+	Context("when both fields and tokens are set", func() {
+		It("should include TokenizedData (new) and tokenized_data (backward compat) maps", func() {
+			record := vaultapis.V1FieldRecords{
+				Fields: map[string]interface{}{"name": "bob"},
+				Tokens: map[string]interface{}{"card": "tok_card"},
+			}
+			result := GetFormattedQueryRecord(record)
+			Expect(result).To(HaveKeyWithValue("name", "bob"))
+			tokenizedData, ok := result["TokenizedData"].(map[string]interface{})
+			Expect(ok).To(BeTrue())
+			Expect(tokenizedData).To(HaveKeyWithValue("card", "tok_card"))
+			tokenizedDataOld, ok2 := result["tokenized_data"].(map[string]interface{}) // backward compat
+			Expect(ok2).To(BeTrue())
+			Expect(tokenizedDataOld).To(HaveKeyWithValue("card", "tok_card"))
+		})
+	})
+})
+
+// ---------------------------------------------------------------------------
+// Additional branch-coverage tests
+// ---------------------------------------------------------------------------
+
+var _ = Describe("GetCredentialParams — alternate key names", func() {
+	It("should accept clientID (capital D) as fallback", func() {
+		credKeys := map[string]interface{}{
+			"clientID": "client-id-value",
+			"tokenUri": "https://token.example.com",
+			"keyId":    "key-id-value",
+		}
+		clientId, tokenUri, keyId, err := GetCredentialParams(credKeys)
+		Expect(err).To(BeNil())
+		Expect(clientId).To(Equal("client-id-value"))
+		Expect(tokenUri).To(Equal("https://token.example.com"))
+		Expect(keyId).To(Equal("key-id-value"))
+	})
+
+	It("should accept tokenURI (capital URI) as fallback", func() {
+		credKeys := map[string]interface{}{
+			"clientId": "cid",
+			"tokenURI": "https://token2.example.com",
+			"keyId":    "kid",
+		}
+		_, tokenUri, _, err := GetCredentialParams(credKeys)
+		Expect(err).To(BeNil())
+		Expect(tokenUri).To(Equal("https://token2.example.com"))
+	})
+
+	It("should accept keyID (capital D) as fallback", func() {
+		credKeys := map[string]interface{}{
+			"clientId": "cid",
+			"tokenUri": "https://token3.example.com",
+			"keyID":    "key-id-capital",
+		}
+		_, _, keyId, err := GetCredentialParams(credKeys)
+		Expect(err).To(BeNil())
+		Expect(keyId).To(Equal("key-id-capital"))
+	})
+})
+
+var _ = Describe("ParsePrivateKey — wrong PEM type", func() {
+	It("should return error when PEM type is not PRIVATE KEY", func() {
+		rsaKey, err := rsa.GenerateKey(rand.Reader, 2048)
+		Expect(err).To(BeNil())
+		pkcs1Bytes := x509.MarshalPKCS1PrivateKey(rsaKey)
+		pemData := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: pkcs1Bytes})
+		_, parseErr := ParsePrivateKey(string(pemData))
+		Expect(parseErr).ToNot(BeNil())
+		Expect(parseErr.GetMessage()).To(ContainSubstring(JWT_INVALID_FORMAT))
+	})
+})
+
+var _ = Describe("GetPrivateKeyFromPem and GetSignedBearerUserToken", func() {
+	var rsaPEM string
+
+	BeforeEach(func() {
+		rsaKey, err := rsa.GenerateKey(rand.Reader, 2048)
+		Expect(err).To(BeNil())
+		pkcs8Bytes, err := x509.MarshalPKCS8PrivateKey(rsaKey)
+		Expect(err).To(BeNil())
+		rsaPEM = string(pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: pkcs8Bytes}))
+	})
+
+	It("GetPrivateKeyFromPem should parse a valid RSA PKCS8 PEM", func() {
+		key, err := GetPrivateKeyFromPem(rsaPEM)
+		Expect(err).To(BeNil())
+		Expect(key).ToNot(BeNil())
+	})
+
+	It("GetPrivateKeyFromPem should return error for invalid PEM", func() {
+		_, err := GetPrivateKeyFromPem("not-a-pem")
+		Expect(err).ToNot(BeNil())
+	})
+
+	It("GetPrivateKeyFromPem should return error for wrong PEM type", func() {
+		rsaKey, goErr := rsa.GenerateKey(rand.Reader, 2048)
+		Expect(goErr).To(BeNil())
+		pkcs1Bytes := x509.MarshalPKCS1PrivateKey(rsaKey)
+		wrongTypePEM := string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: pkcs1Bytes}))
+		_, err := GetPrivateKeyFromPem(wrongTypePEM)
+		Expect(err).ToNot(BeNil())
+	})
+
+	It("GetSignedBearerUserToken should succeed with valid RSA key", func() {
+		key, err := GetPrivateKeyFromPem(rsaPEM)
+		Expect(err).To(BeNil())
+		token, skyErr := GetSignedBearerUserToken("client-id", "key-id", "https://token.example.com", key, common.BearerTokenOptions{})
+		Expect(skyErr).To(BeNil())
+		Expect(token).ToNot(BeEmpty())
+	})
+
+	It("GetSignedBearerUserToken should include ctx claim when ctx is set", func() {
+		key, err := GetPrivateKeyFromPem(rsaPEM)
+		Expect(err).To(BeNil())
+		token, skyErr := GetSignedBearerUserToken("cid", "kid", "https://tok.example.com", key, common.BearerTokenOptions{Ctx: "myContext"})
+		Expect(skyErr).To(BeNil())
+		Expect(token).ToNot(BeEmpty())
+	})
+
+	It("GenerateSignedDataTokensHelper should succeed with valid RSA key", func() {
+		key, err := GetPrivateKeyFromPem(rsaPEM)
+		Expect(err).To(BeNil())
+		options := common.SignedDataTokensOptions{
+			DataTokens: []string{"tok1", "tok2"},
+			TimeToLive: 60,
+			Ctx:        "ctx-value",
+		}
+		resp, skyErr := GenerateSignedDataTokensHelper("client-id", "key-id", key, options, "https://token.example.com")
+		Expect(skyErr).To(BeNil())
+		Expect(resp).To(HaveLen(2))
+		Expect(resp[0].Token).To(Equal("tok1"))
+		Expect(resp[0].SignedToken).To(ContainSubstring("signed_token_"))
+	})
+
+	It("GenerateSignedDataTokensHelper should succeed when TimeToLive is 0 (uses default 60s)", func() {
+		key, err := GetPrivateKeyFromPem(rsaPEM)
+		Expect(err).To(BeNil())
+		options := common.SignedDataTokensOptions{
+			DataTokens: []string{"tok3"},
+			TimeToLive: 0,
+		}
+		resp, skyErr := GenerateSignedDataTokensHelper("cid", "kid", key, options, "https://tok.example.com")
+		Expect(skyErr).To(BeNil())
+		Expect(resp).To(HaveLen(1))
+	})
+})
+
+var _ = Describe("GetURLWithEnv — default branch", func() {
+	It("should return a URL for an unknown Env using the default case", func() {
+		url := GetURLWithEnv(common.Env(99), "mycluster")
+		Expect(url).To(ContainSubstring("mycluster"))
+	})
+})
+
+// ---------------------------------------------------------------------------
+// Branch-coverage batch 2 — uncovered lines
+// ---------------------------------------------------------------------------
+
+var _ = Describe("GetFormattedGetRecord — skyflow_id remapping", func() {
+	It("should remap skyflow_id wire key to SkyflowId and keep skyflow_id for backward compat", func() {
+		record := vaultapis.V1FieldRecords{
+			Fields: map[string]interface{}{
+				"skyflow_id": "rec-001",
+				"name":       "alice",
+			},
+		}
+		result := GetFormattedGetRecord(record)
+		Expect(result).To(HaveKeyWithValue("SkyflowId", "rec-001"))
+		Expect(result).To(HaveKeyWithValue("skyflow_id", "rec-001")) // backward compat
+		Expect(result).To(HaveKeyWithValue("name", "alice"))
+	})
+})
+
+var _ = Describe("GetFormattedBatchInsertRecord — non-map element in records", func() {
+	It("should skip non-map elements (continues) without error", func() {
+		type fakeRecords struct {
+			Records []interface{} `json:"records"`
+		}
+		type fakeOuter struct {
+			Body fakeRecords `json:"Body"`
+		}
+		outer := fakeOuter{Body: fakeRecords{Records: []interface{}{42, "not-a-map"}}}
+		result, err := GetFormattedBatchInsertRecord(outer, 0)
+		Expect(err).To(BeNil())
+		Expect(result).To(HaveKeyWithValue("request_index", 0))
+	})
+})
+
+var _ = Describe("CreateInsertBulkBodyRequest — tokens branch", func() {
+	It("should assign tokens to fields when Tokens slice is provided", func() {
+		req := &common.InsertRequest{
+			Table:  "test_table",
+			Values: []map[string]interface{}{{"name": "alice"}, {"name": "bob"}},
+		}
+		opts := &common.InsertOptions{
+			TokenMode: common.DISABLE,
+			Tokens:    []map[string]interface{}{{"name": "tok_alice"}, {"name": "tok_bob"}},
+		}
+		body, skyErr := CreateInsertBulkBodyRequest(req, opts)
+		Expect(skyErr).To(BeNil())
+		Expect(body).ToNot(BeNil())
+	})
+})
+
+var _ = Describe("CreateInsertBatchBodyRequest — tokens branch", func() {
+	It("should assign tokens to batch records when Tokens slice is provided", func() {
+		req := &common.InsertRequest{
+			Table:  "test_table",
+			Values: []map[string]interface{}{{"name": "alice"}, {"name": "bob"}},
+		}
+		opts := &common.InsertOptions{
+			TokenMode: common.DISABLE,
+			Tokens:    []map[string]interface{}{{"name": "tok_alice"}, {"name": "tok_bob"}},
+		}
+		body, err := CreateInsertBatchBodyRequest(req, opts)
+		Expect(err).To(BeNil())
+		Expect(body).ToNot(BeNil())
+	})
+})
+
+var _ = Describe("GetCredentialParams — missing both keyId and keyID", func() {
+	It("should return error when neither keyId nor keyID is present", func() {
+		credKeys := map[string]interface{}{
+			"clientId": "cid",
+			"tokenUri": "https://token.example.com",
+			// keyId / keyID absent deliberately
+		}
+		_, _, _, err := GetCredentialParams(credKeys)
+		Expect(err).ToNot(BeNil())
+	})
+})
+
+var _ = Describe("ParsePrivateKey — PKCS8 RSA key success path", func() {
+	It("should parse a PKCS8 RSA PEM and return the private key (covers ok branch)", func() {
+		rsaKey, goErr := rsa.GenerateKey(rand.Reader, 2048)
+		Expect(goErr).To(BeNil())
+		pkcs8Bytes, goErr := x509.MarshalPKCS8PrivateKey(rsaKey)
+		Expect(goErr).To(BeNil())
+		pemData := string(pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: pkcs8Bytes}))
+		key, err := ParsePrivateKey(pemData)
+		Expect(err).To(BeNil())
+		Expect(key).ToNot(BeNil())
+	})
+})
+
+var _ = Describe("GenerateSignedDataTokensHelper — invalid ctx type", func() {
+	It("should return error when Ctx is an unsupported type", func() {
+		rsaKey, _ := rsa.GenerateKey(rand.Reader, 2048)
+		pkcs8Bytes, _ := x509.MarshalPKCS8PrivateKey(rsaKey)
+		rsaPEM := string(pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: pkcs8Bytes}))
+		key, skyErr := GetPrivateKeyFromPem(rsaPEM)
+		Expect(skyErr).To(BeNil())
+		opts := common.SignedDataTokensOptions{
+			DataTokens: []string{"tok1"},
+			Ctx:        []int{1, 2, 3}, // unsupported type → ValidateAndResolveCtx error
+		}
+		_, err := GenerateSignedDataTokensHelper("cid", "kid", key, opts, "https://tok.example.com")
+		Expect(err).ToNot(BeNil())
+	})
+})
+
+var _ = Describe("GetSignedDataTokens — full credKeys path", func() {
+	var rsaPEM string
+
+	BeforeEach(func() {
+		rsaKey, _ := rsa.GenerateKey(rand.Reader, 2048)
+		pkcs8Bytes, _ := x509.MarshalPKCS8PrivateKey(rsaKey)
+		rsaPEM = string(pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: pkcs8Bytes}))
+	})
+
+	It("should succeed with a valid credKeys map including a PEM private key", func() {
+		credKeys := map[string]interface{}{
+			"privateKey": rsaPEM,
+			"clientId":   "client-123",
+			"tokenUri":   "https://token.example.com",
+			"keyId":      "key-123",
+		}
+		opts := common.SignedDataTokensOptions{DataTokens: []string{"tok1", "tok2"}, TimeToLive: 60}
+		resp, err := GetSignedDataTokens(credKeys, opts)
+		Expect(err).To(BeNil())
+		Expect(resp).To(HaveLen(2))
+	})
+
+	It("should return error from GetCredentialParams when clientId is missing after valid private key", func() {
+		credKeys := map[string]interface{}{
+			"privateKey": rsaPEM,
+			// clientId intentionally missing
+		}
+		opts := common.SignedDataTokensOptions{DataTokens: []string{"tok1"}}
+		_, err := GetSignedDataTokens(credKeys, opts)
+		Expect(err).ToNot(BeNil())
+	})
+})
+
+var _ = Describe("GetSignedBearerUserToken — ctx error path", func() {
+	It("should return error when Ctx is an unsupported type", func() {
+		rsaKey, _ := rsa.GenerateKey(rand.Reader, 2048)
+		pkcs8Bytes, _ := x509.MarshalPKCS8PrivateKey(rsaKey)
+		rsaPEM := string(pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: pkcs8Bytes}))
+		key, skyErr := GetPrivateKeyFromPem(rsaPEM)
+		Expect(skyErr).To(BeNil())
+		_, err := GetSignedBearerUserToken("cid", "kid", "https://tok.example.com", key, common.BearerTokenOptions{
+			Ctx: []int{1, 2}, // unsupported type
+		})
+		Expect(err).ToNot(BeNil())
+	})
+})
+
+var _ = Describe("GetPrivateKeyFromPem — additional error branches", func() {
+	It("should return error when PKCS8 bytes are corrupt (ParsePKCS8 fails after PKCS1 fails)", func() {
+		corruptPEM := string(pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: []byte("corrupt-bytes")}))
+		_, err := GetPrivateKeyFromPem(corruptPEM)
+		Expect(err).ToNot(BeNil())
+	})
+
+	It("should return error when PKCS8 key is an EC key (not *rsa.PrivateKey)", func() {
+		ecKey, goErr := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		Expect(goErr).To(BeNil())
+		pkcs8Bytes, goErr := x509.MarshalPKCS8PrivateKey(ecKey)
+		Expect(goErr).To(BeNil())
+		ecPEM := string(pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: pkcs8Bytes}))
+		_, err := GetPrivateKeyFromPem(ecPEM)
+		Expect(err).ToNot(BeNil())
+	})
+})
+
+var _ = Describe("GenerateBearerTokenHelper — all branches", func() {
+	var rsaPEM string
+	var savedHelper func(string) (string, *SkyflowError)
+
+	BeforeEach(func() {
+		rsaKey, _ := rsa.GenerateKey(rand.Reader, 2048)
+		pkcs8Bytes, _ := x509.MarshalPKCS8PrivateKey(rsaKey)
+		rsaPEM = string(pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: pkcs8Bytes}))
+		savedHelper = GetBaseURLHelper
+	})
+
+	AfterEach(func() {
+		GetBaseURLHelper = savedHelper
+	})
+
+	It("should return error when privateKey is absent from credKeys", func() {
+		credKeys := map[string]interface{}{"clientId": "cid", "tokenUri": "https://t.example.com", "keyId": "kid"}
+		_, err := GenerateBearerTokenHelper(credKeys, common.BearerTokenOptions{})
+		Expect(err).ToNot(BeNil())
+	})
+
+	It("should return error when privateKey is an invalid PEM string", func() {
+		credKeys := map[string]interface{}{
+			"privateKey": "not-a-pem",
+			"clientId":   "cid",
+			"tokenUri":   "https://t.example.com",
+			"keyId":      "kid",
+		}
+		_, err := GenerateBearerTokenHelper(credKeys, common.BearerTokenOptions{})
+		Expect(err).ToNot(BeNil())
+	})
+
+	It("should return error when clientId is missing from credKeys (GetCredentialParams fails)", func() {
+		credKeys := map[string]interface{}{
+			"privateKey": rsaPEM,
+			"tokenUri":   "https://t.example.com",
+			"keyId":      "kid",
+		}
+		_, err := GenerateBearerTokenHelper(credKeys, common.BearerTokenOptions{})
+		Expect(err).ToNot(BeNil())
+	})
+
+	It("should return error when Ctx is an invalid type (GetSignedBearerUserToken fails)", func() {
+		credKeys := map[string]interface{}{
+			"privateKey": rsaPEM,
+			"clientId":   "cid",
+			"tokenUri":   "https://t.example.com",
+			"keyId":      "kid",
+		}
+		_, err := GenerateBearerTokenHelper(credKeys, common.BearerTokenOptions{Ctx: []int{1}})
+		Expect(err).ToNot(BeNil())
+	})
+
+	It("should return error when GetBaseURLHelper returns an error", func() {
+		GetBaseURLHelper = func(urlStr string) (string, *SkyflowError) {
+			return "", NewSkyflowError(INVALID_INPUT_CODE, "mock base url error")
+		}
+		credKeys := map[string]interface{}{
+			"privateKey": rsaPEM,
+			"clientId":   "cid",
+			"tokenUri":   "https://t.example.com",
+			"keyId":      "kid",
+		}
+		_, err := GenerateBearerTokenHelper(credKeys, common.BearerTokenOptions{})
+		Expect(err).ToNot(BeNil())
+	})
+
+	It("should return access token when server responds with 200", func() {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = io.WriteString(w, `{"accessToken":"mock-access-token","tokenType":"Bearer"}`)
+		}))
+		defer srv.Close()
+		GetBaseURLHelper = func(urlStr string) (string, *SkyflowError) { return srv.URL, nil }
+		credKeys := map[string]interface{}{
+			"privateKey": rsaPEM,
+			"clientId":   "cid",
+			"tokenUri":   "https://t.example.com",
+			"keyId":      "kid",
+		}
+		resp, err := GenerateBearerTokenHelper(credKeys, common.BearerTokenOptions{})
+		Expect(err).To(BeNil())
+		Expect(resp).ToNot(BeNil())
+	})
+
+	It("should return error when server responds with 401", func() {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnauthorized)
+			_, _ = io.WriteString(w, `{"error":"unauthorized"}`)
+		}))
+		defer srv.Close()
+		GetBaseURLHelper = func(urlStr string) (string, *SkyflowError) { return srv.URL, nil }
+		credKeys := map[string]interface{}{
+			"privateKey": rsaPEM,
+			"clientId":   "cid",
+			"tokenUri":   "https://t.example.com",
+			"keyId":      "kid",
+		}
+		_, err := GenerateBearerTokenHelper(credKeys, common.BearerTokenOptions{})
+		Expect(err).ToNot(BeNil())
+	})
+
+	It("should set scope when RoleIds (new field) is provided and server returns 200", func() {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = io.WriteString(w, `{"accessToken":"scoped-token","tokenType":"Bearer"}`)
+		}))
+		defer srv.Close()
+		GetBaseURLHelper = func(urlStr string) (string, *SkyflowError) { return srv.URL, nil }
+		credKeys := map[string]interface{}{
+			"privateKey": rsaPEM,
+			"clientId":   "cid",
+			"tokenUri":   "https://t.example.com",
+			"keyId":      "kid",
+		}
+		resp, err := GenerateBearerTokenHelper(credKeys, common.BearerTokenOptions{RoleIds: []string{"role1", "role2"}})
+		Expect(err).To(BeNil())
+		Expect(resp).ToNot(BeNil())
+	})
+
+	It("should set scope when RoleIDs (old field — backward compat) is provided and server returns 200", func() {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = io.WriteString(w, `{"accessToken":"scoped-token","tokenType":"Bearer"}`)
+		}))
+		defer srv.Close()
+		GetBaseURLHelper = func(urlStr string) (string, *SkyflowError) { return srv.URL, nil }
+		credKeys := map[string]interface{}{
+			"privateKey": rsaPEM,
+			"clientId":   "cid",
+			"tokenUri":   "https://t.example.com",
+			"keyId":      "kid",
+		}
+		resp, err := GenerateBearerTokenHelper(credKeys, common.BearerTokenOptions{RoleIDs: []string{"role1", "role2"}})
+		Expect(err).To(BeNil())
+		Expect(resp).ToNot(BeNil())
+	})
+
+	It("should accept old credential file keys clientID/tokenURI/keyID (backward compat)", func() {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = io.WriteString(w, `{"accessToken":"old-key-token","tokenType":"Bearer"}`)
+		}))
+		defer srv.Close()
+		GetBaseURLHelper = func(urlStr string) (string, *SkyflowError) { return srv.URL, nil }
+		credKeys := map[string]interface{}{
+			"privateKey": rsaPEM,
+			"clientID":   "cid",
+			"tokenURI":   "https://t.example.com",
+			"keyID":      "kid",
+		}
+		resp, err := GenerateBearerTokenHelper(credKeys, common.BearerTokenOptions{})
+		Expect(err).To(BeNil())
+		Expect(resp).ToNot(BeNil())
+	})
+})

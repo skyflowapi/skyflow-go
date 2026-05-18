@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -119,7 +118,7 @@ func (v *ConnectionController) Invoke(ctx context.Context, request common.Invoke
 		return nil, errors.NewSkyflowError(errors.INVALID_INPUT_CODE, fmt.Sprintf(errors.UNKNOWN_ERROR, invokeErr.Error()))
 	}
 	metaData := map[string]interface{}{
-		"request_id": requestId,
+		"RequestId": requestId,
 	}
 
 	logger.Info(logs.INVOKE_CONNECTION_REQUEST_RESOLVED)
@@ -277,7 +276,7 @@ func sendRequest(request *http.Request) (*http.Response, string, error) {
 	return response, requestId, nil
 }
 func parseResponse(response *http.Response) (map[string]interface{}, *errors.SkyflowError) {
-	data, err := ioutil.ReadAll(response.Body)
+	data, err := io.ReadAll(response.Body)
 	if err != nil {
 		return nil, errors.NewSkyflowError(errors.INVALID_INPUT_CODE, errors.INVALID_RESPONSE)
 	}

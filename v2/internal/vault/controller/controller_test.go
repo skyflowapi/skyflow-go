@@ -68,7 +68,7 @@ var _ = Describe("Vault controller Test cases", func() {
 
 		BeforeEach(func() {
 			customHeader := make(map[CustomHeaderKey]string)
-			customHeader[RequestIDHeader] = "custom-header-value"
+			customHeader[RequestIdHeader] = "custom-header-value"
 			response = make(map[string]interface{})
 			ts = nil
 			contrl = VaultController{
@@ -136,7 +136,7 @@ var _ = Describe("Vault controller Test cases", func() {
 
 				Expect(insertError).To(BeNil())
 				Expect(len(res.InsertedFields)).To(Equal(1))
-				Expect(res.InsertedFields[0]["skyflow_id"]).To(Equal("skyflowid"))
+				Expect(res.InsertedFields[0]["SkyflowId"]).To(Equal("skyflowid"))
 			})
 		})
 		Context("Insert with ContinueOnError True - Error Case", func() {
@@ -268,7 +268,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				}
 				options := InsertOptions{
 					CustomHeaders: map[CustomHeaderKey]string{
-						SkyflowAccountID: "",
+						SkyflowAccountId: "",
 					},
 				}
 				ctx := context.Background()
@@ -336,7 +336,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				Expect(insertError).To(BeNil(), "Expected no error during insert operation")
 				Expect(res).ToNot(BeNil(), "Expected valid response")
 				Expect(len(res.InsertedFields)).To(Equal(1), "Expected exactly 1 inserted field")
-				Expect(res.InsertedFields[0]["skyflow_id"]).To(Equal("skyflowid"), "Expected the inserted field to have skyflow_id 'skyflowid'")
+				Expect(res.InsertedFields[0]["SkyflowId"]).To(Equal("skyflowid"), "Expected the inserted field to have skyflow_id 'skyflowid'")
 				Expect(len(res.Errors)).To(Equal(1), "Expected exactly 1 error field")
 			})
 		})
@@ -384,8 +384,8 @@ var _ = Describe("Vault controller Test cases", func() {
 				Expect(insertError).To(BeNil(), "Expected no error during insert operation")
 				Expect(res).ToNot(BeNil(), "Expected valid response from insert operation")
 				Expect(len(res.InsertedFields)).To(Equal(2), "Expected exactly 2 inserted fields")
-				Expect(res.InsertedFields[0]["skyflow_id"]).To(Equal("skyflowid1"), "Expected first inserted field to have skyflow_id 'skyflowid1'")
-				Expect(res.InsertedFields[1]["skyflow_id"]).To(Equal("skyflowid2"), "Expected second inserted field to have skyflow_id 'skyflowid2'")
+				Expect(res.InsertedFields[0]["SkyflowId"]).To(Equal("skyflowid1"), "Expected first inserted field to have skyflow_id 'skyflowid1'")
+				Expect(res.InsertedFields[1]["SkyflowId"]).To(Equal("skyflowid2"), "Expected second inserted field to have skyflow_id 'skyflowid2'")
 			})
 		})
 		Context("Insert with ContinueOnError False - Error Case", func() {
@@ -506,7 +506,7 @@ var _ = Describe("Vault controller Test cases", func() {
 					},
 					Env:          PROD,
 					ClusterId:    "clusterID",
-					BaseVaultURL: "http://127.0.0.1",
+					BaseVaultUrl: "http://127.0.0.1",
 				},
 			}
 
@@ -667,7 +667,7 @@ var _ = Describe("Vault controller Test cases", func() {
 			It("should return error when custom headers has empty value in Detokenize", func() {
 				opts := DetokenizeOptions{
 					CustomHeaders: map[CustomHeaderKey]string{
-						SkyflowAccountID: "",
+						SkyflowAccountId: "",
 					},
 				}
 				res, err := vaultController.Detokenize(ctx, request, opts)
@@ -765,7 +765,7 @@ var _ = Describe("Vault controller Test cases", func() {
 					Table: "table1",
 				}
 				response := make(map[string]interface{})
-				mockJSONResponse := `{"records":[{"fields":{"name":"name1", "skyflow_id":"id1"}, "tokens":null}]}`
+				mockJSONResponse := `{"records":[{"fields":{"name":"name1", "SkyflowId":"id1"}, "tokens":null}]}`
 				_ = json.Unmarshal([]byte(mockJSONResponse), &response)
 				ts := setupMockServer(response, "ok", "/vaults/v1/vaults/")
 				// Set the mock server URL in the controller's client
@@ -814,7 +814,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				opts := GetOptions{
 					RedactionType: REDACTED,
 					CustomHeaders: map[CustomHeaderKey]string{
-						SkyflowAccountID: "",
+						SkyflowAccountId: "",
 					},
 				}
 				res, err := vaultController.Get(ctx, req, opts)
@@ -932,7 +932,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				req := DeleteRequest{Table: "table", Ids: []string{"id1"}}
 				opts := common.DeleteOptions{
 					CustomHeaders: map[CustomHeaderKey]string{
-						SkyflowAccountID: "",
+						SkyflowAccountId: "",
 					},
 				}
 				res, err := vaultController.Delete(ctx, req, opts)
@@ -1050,7 +1050,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				req := QueryRequest{Query: "SELECT * FROM persons WHERE skyflow_id='id'"}
 				opts := common.QueryOptions{
 					CustomHeaders: map[CustomHeaderKey]string{
-						SkyflowAccountID: "",
+						SkyflowAccountId: "",
 					},
 				}
 				res, err := vaultController.Query(ctx, req, opts)
@@ -1079,7 +1079,7 @@ var _ = Describe("Vault controller Test cases", func() {
 		Context("Test the success and error case", func() {
 			request := UpdateRequest{
 				Table:  "demo",
-				Data:   map[string]interface{}{"skyflow_id": "123", "name": "john"},
+				Data:   map[string]interface{}{"SkyflowId": "123", "name": "john"},
 				Tokens: nil,
 			}
 			It("should return success response when valid ids passed in Update", func() {
@@ -1151,7 +1151,7 @@ var _ = Describe("Vault controller Test cases", func() {
 			It("should return error when custom headers map is empty in Update", func() {
 				req := UpdateRequest{
 					Table: "demo",
-					Data:  map[string]interface{}{"skyflow_id": "123", "name": "john"},
+					Data:  map[string]interface{}{"SkyflowId": "123", "name": "john"},
 				}
 				opts := UpdateOptions{
 					TokenMode:     DISABLE,
@@ -1165,7 +1165,7 @@ var _ = Describe("Vault controller Test cases", func() {
 			It("should return error when custom headers has invalid key in Update", func() {
 				req := UpdateRequest{
 					Table: "demo",
-					Data:  map[string]interface{}{"skyflow_id": "123", "name": "john"},
+					Data:  map[string]interface{}{"SkyflowId": "123", "name": "john"},
 				}
 				opts := UpdateOptions{
 					TokenMode: DISABLE,
@@ -1181,12 +1181,12 @@ var _ = Describe("Vault controller Test cases", func() {
 			It("should return error when custom headers has empty value in Update", func() {
 				req := UpdateRequest{
 					Table: "demo",
-					Data:  map[string]interface{}{"skyflow_id": "123", "name": "john"},
+					Data:  map[string]interface{}{"SkyflowId": "123", "name": "john"},
 				}
 				opts := UpdateOptions{
 					TokenMode: DISABLE,
 					CustomHeaders: map[CustomHeaderKey]string{
-						SkyflowAccountID: "",
+						SkyflowAccountId: "",
 					},
 				}
 				res, err := vaultController.Update(ctx, req, opts)
@@ -1305,7 +1305,7 @@ var _ = Describe("Vault controller Test cases", func() {
 				req := []TokenizeRequest{{ColumnGroup: "group_name", Value: "41111111111111"}}
 				opts := common.TokenizeOptions{
 					CustomHeaders: map[CustomHeaderKey]string{
-						SkyflowAccountID: "",
+						SkyflowAccountId: "",
 					},
 				}
 				res, err := vaultController.Tokenize(ctx, req, opts)
@@ -1452,7 +1452,7 @@ var _ = Describe("Vault controller Test cases", func() {
 			}
 			opts := common.FileUploadOptions{
 				CustomHeaders: map[CustomHeaderKey]string{
-					SkyflowAccountID: "",
+					SkyflowAccountId: "",
 				},
 			}
 			res, err := vaultController.UploadFile(ctx, request, opts)
@@ -1941,7 +1941,7 @@ var _ = Describe("VaultController", func() {
 			vaultController.Config.Credentials.ApiKey = "test-api-key"
 
 			requestHeaders := map[CustomHeaderKey]string{
-				RequestIDHeader:                    "req-123",
+				RequestIdHeader:                   "req-123",
 				CustomHeaderKey("x-trace-header"): "trace-value",
 			}
 
@@ -1981,11 +1981,11 @@ var _ = Describe("VaultController", func() {
 			Expect(vaultController.Token).To(Equal(tokenString))
 			Expect(vaultController.ApiClient).ToNot(BeNil())
 		})
-		It("should use BaseVaultURL when set instead of constructing from Env and ClusterId", func() {
+		It("should use BaseVaultUrl when set instead of constructing from Env and ClusterId", func() {
 			vaultController.Config.Credentials.Token = ""
 			vaultController.Config.Credentials.Path = ""
 			vaultController.Config.Credentials.ApiKey = "test-api-key"
-			vaultController.Config.BaseVaultURL = "https://custom.vault.example.com"
+			vaultController.Config.BaseVaultUrl = "https://custom.vault.example.com"
 
 			err := CreateRequestClient(vaultController, nil)
 			Expect(err).To(BeNil())
@@ -2015,7 +2015,7 @@ var _ = Describe("VaultController", func() {
 			vaultController.Config.Credentials.Path = ""
 			vaultController.Config.Credentials.ApiKey = "test-api-key"
 			vaultController.Config.VaultId = "vault-id"
-			vaultController.Config.BaseVaultURL = ts.URL
+			vaultController.Config.BaseVaultUrl = ts.URL
 			vaultController.CustomHeaders = map[CustomHeaderKey]string{
 				CustomHeaderKey("x-priority"): "controller-value",
 			}
@@ -2158,9 +2158,9 @@ var _ = Describe("DetectController", func() {
 
 				detectController.Config.Env = DEV
 				detectController.Config.ClusterId = "test-cluster"
-                detectController.CustomHeaders = map[CustomHeaderKey]string{
+				detectController.CustomHeaders = map[CustomHeaderKey]string{
 					CustomHeaderKey("x-request-id"): "test-value",
-				}	
+				}
 				err := CreateDetectRequestClient(detectController, nil)
 				Expect(err).ToNot(BeNil())
 			})
@@ -2620,7 +2620,7 @@ var _ = Describe("DetectController", func() {
 			It("should return error when custom headers has empty value in DeidentifyText", func() {
 				opts := common.DeidentifyTextOptions{
 					CustomHeaders: map[CustomHeaderKey]string{
-						SkyflowAccountID: "",
+						SkyflowAccountId: "",
 					},
 				}
 				result, err := detectController.DeidentifyText(ctx, mockRequest, opts)
@@ -2884,7 +2884,7 @@ var _ = Describe("DetectController", func() {
 			It("should return error when custom headers has empty value in ReidentifyText", func() {
 				opts := common.ReidentifyTextOptions{
 					CustomHeaders: map[CustomHeaderKey]string{
-						SkyflowAccountID: "",
+						SkyflowAccountId: "",
 					},
 				}
 				result, err := detectController.ReidentifyText(ctx, mockRequest, opts)
@@ -3505,7 +3505,7 @@ var _ = Describe("DetectController", func() {
 				}
 				opts := common.DeidentifyFileOptions{
 					CustomHeaders: map[CustomHeaderKey]string{
-						SkyflowAccountID: "",
+						SkyflowAccountId: "",
 					},
 				}
 				result, err := detectController.DeidentifyFile(ctx, req, opts)
@@ -3831,7 +3831,7 @@ var _ = Describe("DetectController", func() {
 				req := GetDetectRunRequest{RunId: "run123"}
 				opts := common.GetDetectRunOptions{
 					CustomHeaders: map[CustomHeaderKey]string{
-						SkyflowAccountID: "",
+						SkyflowAccountId: "",
 					},
 				}
 				result, err := detectController.GetDetectRun(ctx, req, opts)
@@ -3859,7 +3859,7 @@ var _ = Describe("applyCustomHeaders edge cases", func() {
 				VaultId:      "vault-id",
 				ClusterId:    "cluster-id",
 				Env:          PROD,
-				BaseVaultURL: ts.URL,
+				BaseVaultUrl: ts.URL,
 				Credentials: Credentials{
 					ApiKey: "test-api-key",
 				},
@@ -3917,9 +3917,9 @@ var _ = Describe("applyCustomHeaders edge cases", func() {
 		}))
 		defer ts2.Close()
 
-		vaultCtrl.Config.BaseVaultURL = ts2.URL
+		vaultCtrl.Config.BaseVaultUrl = ts2.URL
 		vaultCtrl.CustomHeaders = map[CustomHeaderKey]string{
-			RequestIDHeader: "my-request-id",
+			RequestIdHeader: "my-request-id",
 		}
 		err := CreateRequestClient(vaultCtrl, nil)
 		Expect(err).To(BeNil())
@@ -3935,7 +3935,7 @@ var _ = Describe("applyCustomHeaders edge cases", func() {
 		)
 
 		Expect(capturedHeader).ToNot(BeNil())
-		Expect(capturedHeader.Get(string(RequestIDHeader))).To(Equal("my-request-id"))
+		Expect(capturedHeader.Get(string(RequestIdHeader))).To(Equal("my-request-id"))
 	})
 
 	It("should not panic when CustomHeaders map is nil", func() {
@@ -3947,7 +3947,7 @@ var _ = Describe("applyCustomHeaders edge cases", func() {
 
 	It("should not panic when requestHeaders map is nil", func() {
 		vaultCtrl.CustomHeaders = map[CustomHeaderKey]string{
-			RequestIDHeader: "req-id",
+			RequestIdHeader: "req-id",
 		}
 		Expect(func() {
 			_ = CreateRequestClient(vaultCtrl, nil)
@@ -3964,12 +3964,12 @@ var _ = Describe("applyCustomHeaders edge cases", func() {
 		}))
 		defer ts2.Close()
 
-		vaultCtrl.Config.BaseVaultURL = ts2.URL
+		vaultCtrl.Config.BaseVaultUrl = ts2.URL
 		vaultCtrl.CustomHeaders = map[CustomHeaderKey]string{
-			RequestIDHeader: "controller-value",
+			RequestIdHeader: "controller-value",
 		}
 		requestHeaders := map[CustomHeaderKey]string{
-			RequestIDHeader: "request-value",
+			RequestIdHeader: "request-value",
 		}
 
 		err := CreateRequestClient(vaultCtrl, requestHeaders)
@@ -3986,7 +3986,7 @@ var _ = Describe("applyCustomHeaders edge cases", func() {
 		)
 
 		Expect(capturedHeader).ToNot(BeNil())
-		Expect(capturedHeader.Get(string(RequestIDHeader))).To(Equal("request-value"),
+		Expect(capturedHeader.Get(string(RequestIdHeader))).To(Equal("request-value"),
 			"request-level header should override controller-level header for same key")
 	})
 
@@ -3999,7 +3999,7 @@ var _ = Describe("applyCustomHeaders edge cases", func() {
 		}))
 		defer ts2.Close()
 
-		vaultCtrl.Config.BaseVaultURL = ts2.URL
+		vaultCtrl.Config.BaseVaultUrl = ts2.URL
 		vaultCtrl.CustomHeaders = map[CustomHeaderKey]string{
 			CustomHeaderKey("authorization"): "sneaky-token",
 		}
@@ -4030,7 +4030,7 @@ var _ = Describe("applyCustomHeaders edge cases", func() {
 		}))
 		defer ts2.Close()
 
-		vaultCtrl.Config.BaseVaultURL = ts2.URL
+		vaultCtrl.Config.BaseVaultUrl = ts2.URL
 		vaultCtrl.CustomHeaders = map[CustomHeaderKey]string{
 			CustomHeaderKey("AUTHORIZATION"): "sneaky-token",
 		}
@@ -4061,9 +4061,9 @@ var _ = Describe("applyCustomHeaders edge cases", func() {
 		}))
 		defer ts2.Close()
 
-		vaultCtrl.Config.BaseVaultURL = ts2.URL
+		vaultCtrl.Config.BaseVaultUrl = ts2.URL
 		vaultCtrl.CustomHeaders = map[CustomHeaderKey]string{
-			RequestIDHeader: "",
+			RequestIdHeader: "",
 		}
 		err := CreateRequestClient(vaultCtrl, nil)
 		Expect(err).To(BeNil())
@@ -4079,7 +4079,7 @@ var _ = Describe("applyCustomHeaders edge cases", func() {
 		)
 
 		Expect(capturedHeader).ToNot(BeNil())
-		_, present := capturedHeader[http.CanonicalHeaderKey(string(RequestIDHeader))]
+		_, present := capturedHeader[http.CanonicalHeaderKey(string(RequestIdHeader))]
 		Expect(present).To(BeTrue(), "header key with empty value should still be present in the request")
 	})
 
@@ -4092,10 +4092,10 @@ var _ = Describe("applyCustomHeaders edge cases", func() {
 		}))
 		defer ts2.Close()
 
-		vaultCtrl.Config.BaseVaultURL = ts2.URL
+		vaultCtrl.Config.BaseVaultUrl = ts2.URL
 		// controller sets "x-request-id", request-level sets "X-REQUEST-ID" — both canonicalise to X-Request-Id
 		vaultCtrl.CustomHeaders = map[CustomHeaderKey]string{
-			RequestIDHeader: "from-controller",
+			RequestIdHeader: "from-controller",
 		}
 		requestHeaders := map[CustomHeaderKey]string{
 			CustomHeaderKey("X-REQUEST-ID"): "from-request",
@@ -4114,7 +4114,7 @@ var _ = Describe("applyCustomHeaders edge cases", func() {
 		)
 
 		Expect(capturedHeader).ToNot(BeNil())
-		vals := capturedHeader[http.CanonicalHeaderKey(string(RequestIDHeader))]
+		vals := capturedHeader[http.CanonicalHeaderKey(string(RequestIdHeader))]
 		Expect(vals).To(HaveLen(1), "both keys normalise to the same header — only one value should be present")
 		Expect(vals[0]).To(Equal("from-request"), "request-level value should win")
 	})
@@ -4132,7 +4132,7 @@ var _ = Describe("Custom Headers Tests", func() {
 
 				// Create controller with custom headers
 				customHeaders := make(map[CustomHeaderKey]string)
-				customHeaders[SkyflowAccountID] = "custom-account-id"
+				customHeaders[SkyflowAccountId] = "custom-account-id"
 				customHeaders[SkyflowAccountName] = "custom-account-name"
 
 				contrl := VaultController{
@@ -4192,7 +4192,7 @@ var _ = Describe("Custom Headers Tests", func() {
 				// Assertions
 				Expect(insertError).To(BeNil())
 				Expect(res).ToNot(BeNil())
-				Expect(capturedHeader.Get(string(SkyflowAccountID))).To(Equal("custom-account-id"))
+				Expect(capturedHeader.Get(string(SkyflowAccountId))).To(Equal("custom-account-id"))
 				Expect(capturedHeader.Get(string(SkyflowAccountName))).To(Equal("custom-account-name"))
 			})
 		})
@@ -4251,7 +4251,7 @@ var _ = Describe("Custom Headers Tests", func() {
 				}
 
 				requestHeaders := make(map[CustomHeaderKey]string)
-				requestHeaders[RequestIDHeader] = "request-value"
+				requestHeaders[RequestIdHeader] = "request-value"
 
 				options := InsertOptions{
 					ContinueOnError: false,
@@ -4264,7 +4264,7 @@ var _ = Describe("Custom Headers Tests", func() {
 				// Assertions
 				Expect(insertError).To(BeNil())
 				Expect(res).ToNot(BeNil())
-				Expect(capturedHeader.Get(string(RequestIDHeader))).To(Equal("request-value"))
+				Expect(capturedHeader.Get(string(RequestIdHeader))).To(Equal("request-value"))
 			})
 		})
 
@@ -4278,8 +4278,8 @@ var _ = Describe("Custom Headers Tests", func() {
 
 				// Create controller with custom headers
 				customHeaders := make(map[CustomHeaderKey]string)
-				customHeaders[SkyflowAccountID] = "controller-value"
-				customHeaders[RequestIDHeader] = "controller-common"
+				customHeaders[SkyflowAccountId] = "controller-value"
+				customHeaders[RequestIdHeader] = "controller-common"
 
 				contrl := VaultController{
 					Config: &VaultConfig{
@@ -4330,7 +4330,7 @@ var _ = Describe("Custom Headers Tests", func() {
 
 				requestHeaders := make(map[CustomHeaderKey]string)
 				requestHeaders[SkyflowAccountName] = "request-value"
-				requestHeaders[RequestIDHeader] = "request-common" // This should override controller header
+				requestHeaders[RequestIdHeader] = "request-common" // This should override controller header
 
 				options := InsertOptions{
 					ContinueOnError: false,
@@ -4344,11 +4344,11 @@ var _ = Describe("Custom Headers Tests", func() {
 				Expect(insertError).To(BeNil())
 				Expect(res).ToNot(BeNil())
 				// Controller header should be present
-				Expect(capturedHeader.Get(string(SkyflowAccountID))).To(Equal("controller-value"))
+				Expect(capturedHeader.Get(string(SkyflowAccountId))).To(Equal("controller-value"))
 				// Request header should be present
 				Expect(capturedHeader.Get(string(SkyflowAccountName))).To(Equal("request-value"))
 				// Request header should override controller header with same key
-				Expect(capturedHeader.Get(string(RequestIDHeader))).To(Equal("request-common"))
+				Expect(capturedHeader.Get(string(RequestIdHeader))).To(Equal("request-common"))
 			})
 		})
 
@@ -4361,7 +4361,7 @@ var _ = Describe("Custom Headers Tests", func() {
 				defer ts.Close()
 
 				customHeaders := make(map[CustomHeaderKey]string)
-				customHeaders[RequestIDHeader] = "trace-123"
+				customHeaders[RequestIdHeader] = "trace-123"
 
 				vaultController := &VaultController{
 					Config: &VaultConfig{
@@ -4371,7 +4371,7 @@ var _ = Describe("Custom Headers Tests", func() {
 						},
 						Env:          PROD,
 						ClusterId:    "clusterID",
-						BaseVaultURL: "http://127.0.0.1",
+						BaseVaultUrl: "http://127.0.0.1",
 					},
 					CustomHeaders: customHeaders,
 				}
@@ -4413,7 +4413,7 @@ var _ = Describe("Custom Headers Tests", func() {
 
 				Expect(err).To(BeNil())
 				Expect(res).ToNot(BeNil())
-				Expect(capturedHeader.Get(string(RequestIDHeader))).To(Equal("trace-123"))
+				Expect(capturedHeader.Get(string(RequestIdHeader))).To(Equal("trace-123"))
 			})
 		})
 
@@ -4426,7 +4426,7 @@ var _ = Describe("Custom Headers Tests", func() {
 				defer ts.Close()
 
 				customHeaders := make(map[CustomHeaderKey]string)
-				customHeaders[RequestIDHeader] = "corr-456"
+				customHeaders[RequestIdHeader] = "corr-456"
 
 				vaultController := VaultController{
 					Config: &VaultConfig{
@@ -4599,9 +4599,9 @@ var _ = Describe("Custom Headers Tests", func() {
 				defer ts.Close()
 
 				customHeaders := make(map[CustomHeaderKey]string)
-				customHeaders[SkyflowAccountID] = "account-id-123"
+				customHeaders[SkyflowAccountId] = "account-id-123"
 				customHeaders[SkyflowAccountName] = "account-name-456"
-				customHeaders[RequestIDHeader] = "req-456"
+				customHeaders[RequestIdHeader] = "req-456"
 
 				contrl := VaultController{
 					Config: &VaultConfig{
@@ -4650,9 +4650,9 @@ var _ = Describe("Custom Headers Tests", func() {
 
 				Expect(insertError).To(BeNil())
 				Expect(res).ToNot(BeNil())
-				Expect(capturedHeader.Get(string(SkyflowAccountID))).To(Equal("account-id-123"))
+				Expect(capturedHeader.Get(string(SkyflowAccountId))).To(Equal("account-id-123"))
 				Expect(capturedHeader.Get(string(SkyflowAccountName))).To(Equal("account-name-456"))
-				Expect(capturedHeader.Get(string(RequestIDHeader))).To(Equal("req-456"))
+				Expect(capturedHeader.Get(string(RequestIdHeader))).To(Equal("req-456"))
 			})
 		})
 	})
@@ -4685,8 +4685,8 @@ func setupMockServer(mockResponse map[string]interface{}, status string, path st
 // Missing edge-case tests
 // ---------------------------------------------------------------------------
 
-// 1. Request-level reserved headers (Authorization, sky-metadata) must be blocked
-//    even when supplied as per-request headers (second arg to CreateRequestClient).
+//  1. Request-level reserved headers (Authorization, sky-metadata) must be blocked
+//     even when supplied as per-request headers (second arg to CreateRequestClient).
 var _ = Describe("Request-level reserved header blocking", func() {
 	var vaultCtrl *VaultController
 	var ts *httptest.Server
@@ -4705,7 +4705,7 @@ var _ = Describe("Request-level reserved header blocking", func() {
 				VaultId:      "vault-id",
 				ClusterId:    "cluster-id",
 				Env:          PROD,
-				BaseVaultURL: ts.URL,
+				BaseVaultUrl: ts.URL,
 				Credentials: Credentials{
 					ApiKey: "test-api-key",
 				},
@@ -4753,13 +4753,13 @@ var _ = Describe("Request-level reserved header blocking", func() {
 
 	It("should allow a non-reserved request-level header through", func() {
 		requestHeaders := map[CustomHeaderKey]string{
-			RequestIDHeader: "req-999",
+			RequestIdHeader: "req-999",
 		}
 		err := CreateRequestClient(vaultCtrl, requestHeaders)
 		Expect(err).To(BeNil())
 		makeDetokenizeCall()
 		Expect(capturedHeader).ToNot(BeNil())
-		Expect(capturedHeader.Get(string(RequestIDHeader))).To(Equal("req-999"))
+		Expect(capturedHeader.Get(string(RequestIdHeader))).To(Equal("req-999"))
 	})
 })
 
@@ -4809,7 +4809,7 @@ var _ = Describe("Per-request CustomHeaders for remaining operations", func() {
 
 			opts := common.QueryOptions{
 				CustomHeaders: map[CustomHeaderKey]string{
-					RequestIDHeader: "query-req-123",
+					RequestIdHeader: "query-req-123",
 				},
 			}
 			res, err := baseCtrl.Query(ctx, QueryRequest{
@@ -4818,7 +4818,7 @@ var _ = Describe("Per-request CustomHeaders for remaining operations", func() {
 
 			Expect(err).To(BeNil())
 			Expect(res).ToNot(BeNil())
-			Expect(capturedReqHeaders[RequestIDHeader]).To(Equal("query-req-123"),
+			Expect(capturedReqHeaders[RequestIdHeader]).To(Equal("query-req-123"),
 				"QueryOptions.CustomHeaders must be forwarded to CreateRequestClientFunc")
 		})
 	})
@@ -4836,14 +4836,14 @@ var _ = Describe("Per-request CustomHeaders for remaining operations", func() {
 			arrReq := []TokenizeRequest{{ColumnGroup: "group_name", Value: "41111111111111"}}
 			opts := common.TokenizeOptions{
 				CustomHeaders: map[CustomHeaderKey]string{
-					SkyflowAccountID: "acct-abc",
+					SkyflowAccountId: "acct-abc",
 				},
 			}
 			res, err := baseCtrl.Tokenize(ctx, arrReq, opts)
 
 			Expect(err).To(BeNil())
 			Expect(res).ToNot(BeNil())
-			Expect(capturedReqHeaders[SkyflowAccountID]).To(Equal("acct-abc"),
+			Expect(capturedReqHeaders[SkyflowAccountId]).To(Equal("acct-abc"),
 				"TokenizeOptions.CustomHeaders must be forwarded to CreateRequestClientFunc")
 		})
 	})
@@ -4867,7 +4867,7 @@ var _ = Describe("Per-request CustomHeaders for remaining operations", func() {
 			}
 			res, err := baseCtrl.Update(ctx, UpdateRequest{
 				Table: "demo",
-				Data:  map[string]interface{}{"skyflow_id": "123", "name": "john"},
+				Data:  map[string]interface{}{"SkyflowId": "123", "name": "john"},
 			}, opts)
 
 			Expect(err).To(BeNil())
@@ -4889,7 +4889,7 @@ var _ = Describe("Per-request CustomHeaders for remaining operations", func() {
 
 			opts := common.FileUploadOptions{
 				CustomHeaders: map[CustomHeaderKey]string{
-					RequestIDHeader: "upload-req-456",
+					RequestIdHeader: "upload-req-456",
 				},
 			}
 			res, err := baseCtrl.UploadFile(ctx, common.FileUploadRequest{
@@ -4901,14 +4901,14 @@ var _ = Describe("Per-request CustomHeaders for remaining operations", func() {
 
 			Expect(err).To(BeNil())
 			Expect(res).ToNot(BeNil())
-			Expect(capturedReqHeaders[RequestIDHeader]).To(Equal("upload-req-456"),
+			Expect(capturedReqHeaders[RequestIdHeader]).To(Equal("upload-req-456"),
 				"FileUploadOptions.CustomHeaders must be forwarded to CreateRequestClientFunc")
 		})
 	})
 })
 
-// 3. SkyflowAccountID and SkyflowAccountName enum constants end-to-end
-var _ = Describe("SkyflowAccountID and SkyflowAccountName constants", func() {
+// 3. SkyflowAccountId and SkyflowAccountName enum constants end-to-end
+var _ = Describe("SkyflowAccountId and SkyflowAccountName constants", func() {
 	var vaultCtrl *VaultController
 	var ts *httptest.Server
 	var capturedHeader http.Header
@@ -4926,7 +4926,7 @@ var _ = Describe("SkyflowAccountID and SkyflowAccountName constants", func() {
 				VaultId:      "vault-id",
 				ClusterId:    "cluster-id",
 				Env:          PROD,
-				BaseVaultURL: ts.URL,
+				BaseVaultUrl: ts.URL,
 				Credentials: Credentials{
 					ApiKey: "test-api-key",
 				},
@@ -4948,15 +4948,15 @@ var _ = Describe("SkyflowAccountID and SkyflowAccountName constants", func() {
 		)
 	}
 
-	It("should send SkyflowAccountID header set at controller level", func() {
+	It("should send SkyflowAccountId header set at controller level", func() {
 		vaultCtrl.CustomHeaders = map[CustomHeaderKey]string{
-			SkyflowAccountID: "acct-001",
+			SkyflowAccountId: "acct-001",
 		}
 		err := CreateRequestClient(vaultCtrl, nil)
 		Expect(err).To(BeNil())
 		makeDetokenizeCall()
 		Expect(capturedHeader).ToNot(BeNil())
-		Expect(capturedHeader.Get(string(SkyflowAccountID))).To(Equal("acct-001"))
+		Expect(capturedHeader.Get(string(SkyflowAccountId))).To(Equal("acct-001"))
 	})
 
 	It("should send SkyflowAccountName header set at controller level", func() {
@@ -4970,31 +4970,192 @@ var _ = Describe("SkyflowAccountID and SkyflowAccountName constants", func() {
 		Expect(capturedHeader.Get(string(SkyflowAccountName))).To(Equal("my-org"))
 	})
 
-	It("should send SkyflowAccountID and SkyflowAccountName together as request-level headers", func() {
+	It("should send SkyflowAccountId and SkyflowAccountName together as request-level headers", func() {
 		requestHeaders := map[CustomHeaderKey]string{
-			SkyflowAccountID:   "acct-002",
+			SkyflowAccountId:   "acct-002",
 			SkyflowAccountName: "partner-org",
 		}
 		err := CreateRequestClient(vaultCtrl, requestHeaders)
 		Expect(err).To(BeNil())
 		makeDetokenizeCall()
 		Expect(capturedHeader).ToNot(BeNil())
-		Expect(capturedHeader.Get(string(SkyflowAccountID))).To(Equal("acct-002"))
+		Expect(capturedHeader.Get(string(SkyflowAccountId))).To(Equal("acct-002"))
 		Expect(capturedHeader.Get(string(SkyflowAccountName))).To(Equal("partner-org"))
 	})
 
-	It("request-level SkyflowAccountID should override controller-level value", func() {
+	It("request-level SkyflowAccountId should override controller-level value", func() {
 		vaultCtrl.CustomHeaders = map[CustomHeaderKey]string{
-			SkyflowAccountID: "controller-acct",
+			SkyflowAccountId: "controller-acct",
 		}
 		requestHeaders := map[CustomHeaderKey]string{
-			SkyflowAccountID: "request-acct",
+			SkyflowAccountId: "request-acct",
 		}
 		err := CreateRequestClient(vaultCtrl, requestHeaders)
 		Expect(err).To(BeNil())
 		makeDetokenizeCall()
 		Expect(capturedHeader).ToNot(BeNil())
-		Expect(capturedHeader.Get(string(SkyflowAccountID))).To(Equal("request-acct"),
+		Expect(capturedHeader.Get(string(SkyflowAccountId))).To(Equal("request-acct"),
 			"request-level value must override controller-level value for the same key")
+	})
+})
+
+var _ = Describe("GenerateToken", func() {
+	Context("when credentials contain a bearer token", func() {
+		It("should return the token directly without any network call", func() {
+			creds := Credentials{Token: "my-bearer-token"}
+			token, err := GenerateToken(creds)
+			Expect(err).To(BeNil())
+			Expect(token).ToNot(BeNil())
+			Expect(*token).To(Equal("my-bearer-token"))
+		})
+	})
+
+	Context("when credentials contain an API key", func() {
+		It("should return the API key directly without any network call", func() {
+			creds := Credentials{ApiKey: "sky-api-key"}
+			token, err := GenerateToken(creds)
+			Expect(err).To(BeNil())
+			Expect(token).ToNot(BeNil())
+			Expect(*token).To(Equal("sky-api-key"))
+		})
+	})
+
+	Context("when no credential fields are set", func() {
+		It("should return INVALID_CREDENTIALS error", func() {
+			creds := Credentials{}
+			token, err := GenerateToken(creds)
+			Expect(token).To(BeNil())
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(skyflowError.INVALID_CREDENTIALS))
+		})
+	})
+})
+
+var _ = Describe("setBearerTokenForConnectionController (via SetBearerTokenForConnectionControllerFunc)", func() {
+	var originalFunc func(*ConnectionController) *skyflowError.SkyflowError
+
+	BeforeEach(func() {
+		originalFunc = SetBearerTokenForConnectionControllerFunc
+		SetBearerTokenForConnectionControllerFunc = setBearerTokenForConnectionControllerReal
+	})
+	AfterEach(func() {
+		SetBearerTokenForConnectionControllerFunc = originalFunc
+	})
+
+	It("should set token when config has token credentials", func() {
+		ctrl := &ConnectionController{
+			Config: &ConnectionConfig{
+				ConnectionId:  "conn1",
+				ConnectionUrl: "https://example.com",
+				Credentials:   Credentials{Token: "my-token"},
+			},
+		}
+		err := SetBearerTokenForConnectionControllerFunc(ctrl)
+		Expect(err).To(BeNil())
+		Expect(ctrl.Token).To(Equal("my-token"))
+	})
+
+	It("should set token from builder creds when config creds are empty", func() {
+		builderCreds := Credentials{Token: "builder-token"}
+		ctrl := &ConnectionController{
+			Config: &ConnectionConfig{
+				ConnectionId:  "conn1",
+				ConnectionUrl: "https://example.com",
+				Credentials:   Credentials{},
+			},
+			CommonCreds: &builderCreds,
+		}
+		err := SetBearerTokenForConnectionControllerFunc(ctrl)
+		Expect(err).To(BeNil())
+		Expect(ctrl.Token).To(Equal("builder-token"))
+	})
+
+	It("should set token from builder creds when config is nil", func() {
+		builderCreds := Credentials{Token: "builder-token"}
+		ctrl := &ConnectionController{
+			Config:      nil,
+			CommonCreds: &builderCreds,
+		}
+		err := SetBearerTokenForConnectionControllerFunc(ctrl)
+		Expect(err).To(BeNil())
+		Expect(ctrl.Token).To(Equal("builder-token"))
+	})
+
+	It("should return error when no credentials are available", func() {
+		ctrl := &ConnectionController{
+			Config: &ConnectionConfig{
+				ConnectionId:  "conn1",
+				ConnectionUrl: "https://example.com",
+				Credentials:   Credentials{},
+			},
+			CommonCreds: nil,
+		}
+		err := SetBearerTokenForConnectionControllerFunc(ctrl)
+		Expect(err).ToNot(BeNil())
+		Expect(err.GetMessage()).To(ContainSubstring(skyflowError.EMPTY_CREDENTIALS))
+	})
+
+	It("should reuse existing non-expired token", func() {
+		expiryTime := time.Now().Add(1 * time.Hour).Unix()
+		claims := jwt.MapClaims{"exp": float64(expiryTime)}
+		tok := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+		tokenString, _ := tok.SignedString([]byte("secret"))
+
+		ctrl := &ConnectionController{
+			Config: &ConnectionConfig{
+				ConnectionId:  "conn1",
+				ConnectionUrl: "https://example.com",
+				Credentials:   Credentials{Token: "fresh-token"},
+			},
+			Token: tokenString,
+		}
+		err := SetBearerTokenForConnectionControllerFunc(ctrl)
+		Expect(err).To(BeNil())
+		Expect(ctrl.Token).To(Equal(tokenString))
+	})
+
+	It("should refresh token when existing token is expired", func() {
+		expiryTime := time.Now().Add(-1 * time.Hour).Unix()
+		claims := jwt.MapClaims{"exp": float64(expiryTime)}
+		tok := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+		tokenString, _ := tok.SignedString([]byte("secret"))
+
+		ctrl := &ConnectionController{
+			Config: &ConnectionConfig{
+				ConnectionId:  "conn1",
+				ConnectionUrl: "https://example.com",
+				Credentials:   Credentials{Token: "new-token"},
+			},
+			Token: tokenString,
+		}
+		err := SetBearerTokenForConnectionControllerFunc(ctrl)
+		Expect(err).To(BeNil())
+		Expect(ctrl.Token).To(Equal("new-token"))
+	})
+})
+
+// setBearerTokenForConnectionControllerReal is the real (non-mocked) implementation,
+// accessed via the exported var so tests can call it directly.
+var setBearerTokenForConnectionControllerReal = SetBearerTokenForConnectionControllerFunc
+
+var _ = Describe("CreateGenericFileRequest", func() {
+	It("should build a DeidentifyFileRequest with no entities", func() {
+		req := &common.DeidentifyFileRequest{}
+		result := CreateGenericFileRequest(req, "base64content", "vault123", "png")
+		Expect(result).ToNot(BeNil())
+		Expect(result.VaultId).To(Equal("vault123"))
+		Expect(result.File.Base64).To(Equal("base64content"))
+		Expect(string(result.File.DataFormat)).To(Equal("PNG"))
+		Expect(result.EntityTypes).To(BeNil())
+	})
+
+	It("should build a DeidentifyFileRequest with entities", func() {
+		req := &common.DeidentifyFileRequest{
+			Entities: []common.DetectEntities{"PERSON", "DATE"},
+		}
+		result := CreateGenericFileRequest(req, "b64", "v1", "jpg")
+		Expect(result).ToNot(BeNil())
+		Expect(result.EntityTypes).ToNot(BeNil())
+		Expect(len(result.EntityTypes)).To(Equal(2))
 	})
 })

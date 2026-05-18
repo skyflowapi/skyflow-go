@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+
 	constants "github.com/skyflowapi/skyflow-go/v2/internal/constants"
 	vaultapis "github.com/skyflowapi/skyflow-go/v2/internal/generated"
 	"github.com/skyflowapi/skyflow-go/v2/internal/generated/client"
@@ -36,7 +37,7 @@ func GenerateToken(credentials common.Credentials) (*string, *skyflowError.Skyfl
 	var bearerToken string
 	var options = common.BearerTokenOptions{}
 	if credentials.Roles != nil {
-		options.RoleIDs = credentials.Roles
+		options.RoleIds = credentials.Roles
 	}
 	if credentials.Context != nil {
 		options.Ctx = credentials.Context
@@ -123,8 +124,13 @@ func CreateRequestClient(v *VaultController, requestHeaders map[common.CustomHea
 	header.Set(constants.SDK_METRICS_HEADER_KEY, helpers.CreateJsonMetadata())
 
 	var baseURL string
-	if v.Config.BaseVaultURL != "" {
-		baseURL = v.Config.BaseVaultURL
+	baseVaultUrl := v.Config.BaseVaultUrl
+	if baseVaultUrl == "" && v.Config.BaseVaultURL != "" {
+		logger.Warn(logs.DEPRECATED_FIELD_BASE_VAULT_URL)
+		baseVaultUrl = v.Config.BaseVaultURL
+	}
+	if baseVaultUrl != "" {
+		baseURL = baseVaultUrl
 	} else {
 		baseURL = helpers.GetURLWithEnv(v.Config.Env, v.Config.ClusterId)
 	}
@@ -228,7 +234,7 @@ func (v *VaultController) Insert(ctx context.Context, request common.InsertReque
 			if parseErr != nil {
 				return nil, parseErr
 			}
-			if formattedRecord["skyflow_id"] != nil {
+			if formattedRecord["SkyflowId"] != nil {
 				insertedFields = append(insertedFields, formattedRecord)
 			} else {
 				formattedRecord["RequestId"] = header.Get(constants.REQUEST_KEY)
@@ -378,8 +384,13 @@ func (v *VaultController) Get(ctx context.Context, request common.GetRequest, op
 		orderBy, _ := vaultapis.NewRecordServiceBulkGetRecordRequestOrderByFromString(string(options.OrderBy))
 		req.OrderBy = &orderBy
 	}
-	if options.DownloadURL {
-		req.DownloadUrl = &options.DownloadURL
+	downloadUrl := options.DownloadUrl
+	if !downloadUrl && options.DownloadURL {
+		logger.Warn(logs.DEPRECATED_FIELD_DOWNLOAD_URL)
+		downloadUrl = options.DownloadURL
+	}
+	if downloadUrl {
+		req.DownloadUrl = &downloadUrl
 	}
 	if options.ReturnTokens {
 		req.Tokenization = &options.ReturnTokens
@@ -518,6 +529,7 @@ func (v *VaultController) Update(ctx context.Context, request common.UpdateReque
 	record := vaultapis.V1FieldRecords{}
 	skyflowId, _ := helpers.GetSkyflowID(request.Data)
 	delete(request.Data, constants.SKYFLOW_ID)
+	delete(request.Data, "skyflow_id") // backward compat
 	record.Fields = request.Data
 	if request.Tokens != nil {
 		record.Tokens = request.Tokens
@@ -542,7 +554,11 @@ func (v *VaultController) Update(ctx context.Context, request common.UpdateReque
 	var updatedField map[string]interface{}
 	updatedField = make(map[string]interface{})
 	updatedField = res
-	updatedField["skyflowId"] = *id
+	if id != nil {
+		updatedField[constants.SKYFLOW_ID] = *id
+		updatedField["skyflowId"] = *id // backward compat
+		logger.Warn(logs.DEPRECATED_RESPONSE_KEY_SKYFLOW_ID_UPDATE)
+	}
 	return &common.UpdateResponse{
 		UpdatedField: updatedField,
 		Errors:       nil,
