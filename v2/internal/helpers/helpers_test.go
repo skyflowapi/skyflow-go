@@ -77,6 +77,9 @@ var _ = Describe("Helpers", func() {
 	Context("GetPrivateKey", func() {
 		It("should parse a valid private key successfully", func() {
 			pvtKey := os.Getenv("VALID_CREDS_PVT_KEY")
+			if pvtKey == "" {
+				Skip("requires VALID_CREDS_PVT_KEY env var")
+			}
 			credMap := map[string]interface{}{}
 			err := json.Unmarshal([]byte(pvtKey), &credMap)
 
@@ -434,8 +437,8 @@ MIIBAAIBADANINVALIDKEY==
 				It("should return a error", func() {
 					// Set the base URL for the mock server
 					credKeys = getValidCreds()
-					credKeys["tokenUri"] = mockServer.URL
 					mockServer = mockserver("err")
+					credKeys["tokenUri"] = mockServer.URL
 					originalGetBaseURLHelper := GetBaseURLHelper
 
 					defer func() { GetBaseURLHelper = originalGetBaseURLHelper }()
@@ -473,7 +476,6 @@ MIIBAAIBADANINVALIDKEY==
 					// Call the function under test
 					response, err := GenerateBearerTokenHelper(credKeys, options)
 
-					// Assertions
 					Expect(err).ShouldNot(BeNil())
 					Expect(response).Should(BeNil())
 					Expect(err.GetCode()).Should(Equal("Code: 400"))
@@ -492,13 +494,11 @@ MIIBAAIBADANINVALIDKEY==
 					Expect(err.GetMessage()).Should(ContainSubstring(MISSING_TOKEN_URI))
 				})
 				It("should return an error when keyId is missing", func() {
-					// Remove privateKey from credKeys to simulate missing key
-					credKeys = getValidCreds()
-					delete(credKeys, "keyID")
-					// Call the function under test
+					credKeys = makeTestCredMap()
+					delete(credKeys, "keyId")
+
 					response, err := GenerateBearerTokenHelper(credKeys, options)
 
-					// Assertions
 					Expect(err).ShouldNot(BeNil())
 					Expect(response).Should(BeNil())
 					Expect(err.GetCode()).Should(Equal("Code: 400"))
@@ -1048,6 +1048,21 @@ func getValidCreds() map[string]interface{} {
 	credMap := map[string]interface{}{}
 	_ = json.Unmarshal([]byte(pvtKey), &credMap)
 	return credMap
+}
+
+func makeTestCredMap() map[string]interface{} {
+	rsaKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		panic(err)
+	}
+	pkcs1Bytes := x509.MarshalPKCS1PrivateKey(rsaKey)
+	pemKey := pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: pkcs1Bytes})
+	return map[string]interface{}{
+		"privateKey": string(pemKey),
+		"clientId":   "test-client-id",
+		"tokenUri":   "https://example.com/token",
+		"keyId":      "test-key-id",
+	}
 }
 
 var _ = Describe("GetFormattedBulkInsertRecord", func() {

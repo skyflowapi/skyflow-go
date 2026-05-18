@@ -410,8 +410,10 @@ func CreateAudioRequest(request *common.DeidentifyFileRequest, base64Content, va
 
 func CreateGenericFileRequest(request *common.DeidentifyFileRequest, base64Content, vaultID, fileExtension string) *vaultapis.DeidentifyFileRequest {
 	var entityTypes []vaultapis.DeidentifyFileRequestEntityTypesItem
-	if result := CreateEntityTypesRef(request.Entities, "generic").([]vaultapis.DeidentifyFileRequestEntityTypesItem); result != nil {
-		entityTypes = result
+	if raw := CreateEntityTypesRef(request.Entities, "generic"); raw != nil {
+		if result, ok := raw.([]vaultapis.DeidentifyFileRequestEntityTypesItem); ok {
+			entityTypes = result
+		}
 	}
 	return &vaultapis.DeidentifyFileRequest{
 		VaultId: vaultID,

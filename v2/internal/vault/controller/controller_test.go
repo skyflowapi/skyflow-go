@@ -5030,3 +5030,132 @@ var _ = Describe("GenerateToken", func() {
 		})
 	})
 })
+
+var _ = Describe("setBearerTokenForConnectionController (via SetBearerTokenForConnectionControllerFunc)", func() {
+	var originalFunc func(*ConnectionController) *skyflowError.SkyflowError
+
+	BeforeEach(func() {
+		originalFunc = SetBearerTokenForConnectionControllerFunc
+		SetBearerTokenForConnectionControllerFunc = setBearerTokenForConnectionControllerReal
+	})
+	AfterEach(func() {
+		SetBearerTokenForConnectionControllerFunc = originalFunc
+	})
+
+	It("should set token when config has token credentials", func() {
+		ctrl := &ConnectionController{
+			Config: &ConnectionConfig{
+				ConnectionId:  "conn1",
+				ConnectionUrl: "https://example.com",
+				Credentials:   Credentials{Token: "my-token"},
+			},
+		}
+		err := SetBearerTokenForConnectionControllerFunc(ctrl)
+		Expect(err).To(BeNil())
+		Expect(ctrl.Token).To(Equal("my-token"))
+	})
+
+	It("should set token from builder creds when config creds are empty", func() {
+		builderCreds := Credentials{Token: "builder-token"}
+		ctrl := &ConnectionController{
+			Config: &ConnectionConfig{
+				ConnectionId:  "conn1",
+				ConnectionUrl: "https://example.com",
+				Credentials:   Credentials{},
+			},
+			CommonCreds: &builderCreds,
+		}
+		err := SetBearerTokenForConnectionControllerFunc(ctrl)
+		Expect(err).To(BeNil())
+		Expect(ctrl.Token).To(Equal("builder-token"))
+	})
+
+	It("should set token from builder creds when config is nil", func() {
+		builderCreds := Credentials{Token: "builder-token"}
+		ctrl := &ConnectionController{
+			Config:      nil,
+			CommonCreds: &builderCreds,
+		}
+		err := SetBearerTokenForConnectionControllerFunc(ctrl)
+		Expect(err).To(BeNil())
+		Expect(ctrl.Token).To(Equal("builder-token"))
+	})
+
+	It("should return error when no credentials are available", func() {
+		ctrl := &ConnectionController{
+			Config: &ConnectionConfig{
+				ConnectionId:  "conn1",
+				ConnectionUrl: "https://example.com",
+				Credentials:   Credentials{},
+			},
+			CommonCreds: nil,
+		}
+		err := SetBearerTokenForConnectionControllerFunc(ctrl)
+		Expect(err).ToNot(BeNil())
+		Expect(err.GetMessage()).To(ContainSubstring(skyflowError.EMPTY_CREDENTIALS))
+	})
+
+	It("should reuse existing non-expired token", func() {
+		expiryTime := time.Now().Add(1 * time.Hour).Unix()
+		claims := jwt.MapClaims{"exp": float64(expiryTime)}
+		tok := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+		tokenString, _ := tok.SignedString([]byte("secret"))
+
+		ctrl := &ConnectionController{
+			Config: &ConnectionConfig{
+				ConnectionId:  "conn1",
+				ConnectionUrl: "https://example.com",
+				Credentials:   Credentials{Token: "fresh-token"},
+			},
+			Token: tokenString,
+		}
+		err := SetBearerTokenForConnectionControllerFunc(ctrl)
+		Expect(err).To(BeNil())
+		Expect(ctrl.Token).To(Equal(tokenString))
+	})
+
+	It("should refresh token when existing token is expired", func() {
+		expiryTime := time.Now().Add(-1 * time.Hour).Unix()
+		claims := jwt.MapClaims{"exp": float64(expiryTime)}
+		tok := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+		tokenString, _ := tok.SignedString([]byte("secret"))
+
+		ctrl := &ConnectionController{
+			Config: &ConnectionConfig{
+				ConnectionId:  "conn1",
+				ConnectionUrl: "https://example.com",
+				Credentials:   Credentials{Token: "new-token"},
+			},
+			Token: tokenString,
+		}
+		err := SetBearerTokenForConnectionControllerFunc(ctrl)
+		Expect(err).To(BeNil())
+		Expect(ctrl.Token).To(Equal("new-token"))
+	})
+})
+
+// setBearerTokenForConnectionControllerReal is the real (non-mocked) implementation,
+// accessed via the exported var so tests can call it directly.
+var setBearerTokenForConnectionControllerReal = SetBearerTokenForConnectionControllerFunc
+
+var _ = Describe("CreateGenericFileRequest", func() {
+	It("should build a DeidentifyFileRequest with no entities", func() {
+		req := &common.DeidentifyFileRequest{}
+		result := CreateGenericFileRequest(req, "base64content", "vault123", "png")
+		Expect(result).ToNot(BeNil())
+		Expect(result.VaultId).To(Equal("vault123"))
+		Expect(result.File.Base64).To(Equal("base64content"))
+		Expect(string(result.File.DataFormat)).To(Equal("PNG"))
+		Expect(result.EntityTypes).To(BeNil())
+	})
+
+	It("should build a DeidentifyFileRequest with entities", func() {
+		req := &common.DeidentifyFileRequest{
+			Entities: []common.DetectEntities{"PERSON", "DATE"},
+		}
+		result := CreateGenericFileRequest(req, "b64", "v1", "jpg")
+		Expect(result).ToNot(BeNil())
+		Expect(result.EntityTypes).ToNot(BeNil())
+		Expect(len(result.EntityTypes)).To(Equal(2))
+	})
+})

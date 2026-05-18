@@ -210,6 +210,48 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			Expect(err).ToNot(BeNil())
 			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_TOKENS))
 		})
+		It("should return error when Values is nil in BYOT ENABLE mode", func() {
+			request := common.InsertRequest{
+				Table:  "testTable",
+				Values: nil,
+			}
+			options := common.InsertOptions{
+				TokenMode: common.ENABLE,
+				Tokens:    []map[string]interface{}{{"key": "token"}},
+			}
+
+			err := ValidateInsertRequest(request, options)
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_VALUES))
+		})
+		It("should return error when Values is empty slice in BYOT ENABLE mode", func() {
+			request := common.InsertRequest{
+				Table:  "testTable",
+				Values: []map[string]interface{}{},
+			}
+			options := common.InsertOptions{
+				TokenMode: common.ENABLE,
+				Tokens:    []map[string]interface{}{{"key": "token"}},
+			}
+
+			err := ValidateInsertRequest(request, options)
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_VALUES))
+		})
+		It("should return error when Values contains empty key in BYOT ENABLE mode", func() {
+			request := common.InsertRequest{
+				Table:  "testTable",
+				Values: []map[string]interface{}{{"": "value"}},
+			}
+			options := common.InsertOptions{
+				TokenMode: common.ENABLE,
+				Tokens:    []map[string]interface{}{{"key": "token"}},
+			}
+
+			err := ValidateInsertRequest(request, options)
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_KEY_IN_VALUES))
+		})
 		It("should not return error when tokens are not passed for all values object in BYOT ENABLE mode", func() {
 			request := common.InsertRequest{
 				Table: "testTable",
@@ -565,6 +607,32 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 				})
 			})
 		})
+		Describe("ValidateUpdateConnectionConfig", func() {
+			It("should return an error if ConnectionId is empty", func() {
+				config := common.ConnectionConfig{
+					ConnectionId:  "",
+					ConnectionUrl: "https://valid.url",
+				}
+				err := ValidateUpdateConnectionConfig(config)
+				Expect(err).To(HaveOccurred())
+				Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_CONNECTION_ID))
+			})
+			It("should return nil when only ConnectionId is provided", func() {
+				config := common.ConnectionConfig{
+					ConnectionId: "valid-id",
+				}
+				err := ValidateUpdateConnectionConfig(config)
+				Expect(err).To(BeNil())
+			})
+			It("should return nil when ConnectionId and valid ConnectionUrl are provided", func() {
+				config := common.ConnectionConfig{
+					ConnectionId:  "valid-id",
+					ConnectionUrl: "https://valid.url",
+				}
+				err := ValidateUpdateConnectionConfig(config)
+				Expect(err).To(BeNil())
+			})
+		})
 		Describe("ValidateCredentials", func() {
 			Context("Invalid Credentials", func() {
 				It("should return an error if no token generation means are passed", func() {
@@ -646,6 +714,9 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 				})
 
 				It("should return nil for valid API key", func() {
+					if os.Getenv("API_KEY") == "" {
+						Skip("requires API_KEY env var")
+					}
 					credentials := common.Credentials{
 						ApiKey: os.Getenv("API_KEY"),
 					}
@@ -1412,6 +1483,17 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			Expect(validationErr).To(BeNil())
 		})
 
+		It("should return error when FilePath is whitespace only", func() {
+			req := common.DeidentifyFileRequest{
+				File: common.FileInput{
+					FilePath: "   ",
+				},
+			}
+			validationErr := ValidateDeidentifyFileRequest(req)
+			Expect(validationErr).ToNot(BeNil())
+			Expect(validationErr.GetMessage()).To(ContainSubstring(errors.INVALID_FILE_PATH))
+		})
+
 		It("should return nil when File is valid", func() {
 			// First create and write to the test file
 			testFilePath := filepath.Join(tempDir, "detect.txt")
@@ -1430,6 +1512,22 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			}
 			validationErr := ValidateDeidentifyFileRequest(req)
 			Expect(validationErr).To(BeNil())
+		})
+
+		It("should return error when File is empty (zero bytes)", func() {
+			emptyPath := filepath.Join(tempDir, "empty.txt")
+			emptyFile, err := os.Create(emptyPath)
+			Expect(err).To(BeNil())
+			defer func() { emptyFile.Close(); os.Remove(emptyPath) }()
+
+			req := common.DeidentifyFileRequest{
+				File: common.FileInput{
+					File: emptyFile,
+				},
+			}
+			validationErr := ValidateDeidentifyFileRequest(req)
+			Expect(validationErr).ToNot(BeNil())
+			Expect(validationErr.GetMessage()).To(ContainSubstring("empty"))
 		})
 
 		It("should return error when both FilePath and File are provided", func() {
