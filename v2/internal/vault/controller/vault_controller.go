@@ -125,7 +125,8 @@ func CreateRequestClient(v *VaultController, requestHeaders map[common.CustomHea
 
 	var baseURL string
 	baseVaultUrl := v.Config.BaseVaultUrl
-	if baseVaultUrl == "" {
+	if baseVaultUrl == "" && v.Config.BaseVaultURL != "" {
+		logger.Warn(logs.DEPRECATED_FIELD_BASE_VAULT_URL)
 		baseVaultUrl = v.Config.BaseVaultURL
 	}
 	if baseVaultUrl != "" {
@@ -383,7 +384,11 @@ func (v *VaultController) Get(ctx context.Context, request common.GetRequest, op
 		orderBy, _ := vaultapis.NewRecordServiceBulkGetRecordRequestOrderByFromString(string(options.OrderBy))
 		req.OrderBy = &orderBy
 	}
-	downloadUrl := options.DownloadUrl || options.DownloadURL
+	downloadUrl := options.DownloadUrl
+	if !downloadUrl && options.DownloadURL {
+		logger.Warn(logs.DEPRECATED_FIELD_DOWNLOAD_URL)
+		downloadUrl = options.DownloadURL
+	}
 	if downloadUrl {
 		req.DownloadUrl = &downloadUrl
 	}
@@ -551,6 +556,7 @@ func (v *VaultController) Update(ctx context.Context, request common.UpdateReque
 	if id != nil {
 		updatedField[constants.SKYFLOW_ID] = *id
 		updatedField["skyflowId"] = *id // backward compat
+		logger.Warn(logs.DEPRECATED_RESPONSE_KEY_SKYFLOW_ID_UPDATE)
 	}
 	return &common.UpdateResponse{
 		UpdatedField: updatedField,

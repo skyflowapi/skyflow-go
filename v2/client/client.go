@@ -470,41 +470,49 @@ func (s *Skyflow) RemoveConnectionConfig(connectionId string) *error.SkyflowErro
 
 // Deprecated: Use GetVaultConfig instead.
 func (s *Skyflow) GetVault(vaultId string) (*vaultutils.VaultConfig, *error.SkyflowError) {
+	logger.Warn(logs.DEPRECATED_METHOD_GET_VAULT)
 	return s.GetVaultConfig(vaultId)
 }
 
 // Deprecated: Use GetConnectionConfig instead.
 func (s *Skyflow) GetConnection(connId string) (*vaultutils.ConnectionConfig, *error.SkyflowError) {
+	logger.Warn(logs.DEPRECATED_METHOD_GET_CONNECTION)
 	return s.GetConnectionConfig(connId)
 }
 
 // Deprecated: Use AddVaultConfig instead.
 func (s *Skyflow) AddVault(config vaultutils.VaultConfig) *error.SkyflowError {
+	logger.Warn(logs.DEPRECATED_METHOD_ADD_VAULT)
 	return s.AddVaultConfig(config)
 }
 
 // Deprecated: Use AddConnectionConfig instead.
 func (s *Skyflow) AddConnection(config vaultutils.ConnectionConfig) *error.SkyflowError {
+	logger.Warn(logs.DEPRECATED_METHOD_ADD_CONNECTION)
 	return s.AddConnectionConfig(config)
 }
 
 // Deprecated: Use UpdateVaultConfig instead.
 func (s *Skyflow) UpdateVault(updatedConfig vaultutils.VaultConfig) *error.SkyflowError {
+	logger.Warn(logs.DEPRECATED_METHOD_UPDATE_VAULT)
 	return s.UpdateVaultConfig(updatedConfig)
 }
 
 // Deprecated: Use UpdateConnectionConfig instead.
 func (s *Skyflow) UpdateConnection(updatedConfig vaultutils.ConnectionConfig) *error.SkyflowError {
+	logger.Warn(logs.DEPRECATED_METHOD_UPDATE_CONNECTION)
 	return s.UpdateConnectionConfig(updatedConfig)
 }
 
 // Deprecated: Use RemoveVaultConfig instead.
 func (s *Skyflow) RemoveVault(vaultId string) *error.SkyflowError {
+	logger.Warn(logs.DEPRECATED_METHOD_REMOVE_VAULT)
 	return s.RemoveVaultConfig(vaultId)
 }
 
 // Deprecated: Use RemoveConnectionConfig instead.
 func (s *Skyflow) RemoveConnection(connectionId string) *error.SkyflowError {
+	logger.Warn(logs.DEPRECATED_METHOD_REMOVE_CONNECTION)
 	return s.RemoveConnectionConfig(connectionId)
 }
 

@@ -83,5 +83,28 @@ const (
 	UPLOAD_FILE_TRIGGERED               = SDK_LOG_PREFIX + "Upload file method triggered."
 	VALIDATE_FILE_UPLOAD_INPUT          = SDK_LOG_PREFIX + "Validating file upload request."
 	VALIDATE_UPLOAD_INPUT               = SDK_LOG_PREFIX + "Validating upload file request."
-	UPLOAD_FILE_REQUEST_RESOLVED       = SDK_LOG_PREFIX + "Upload file request is resolved."
+	UPLOAD_FILE_REQUEST_RESOLVED        = SDK_LOG_PREFIX + "Upload file request is resolved."
+
+	// Deprecation warnings
+	DEPRECATED_METHOD_GET_VAULT          = SDK_LOG_PREFIX + "Deprecated: GetVault is deprecated and will be removed in a future version. Use GetVaultConfig instead."
+	DEPRECATED_METHOD_GET_CONNECTION     = SDK_LOG_PREFIX + "Deprecated: GetConnection is deprecated and will be removed in a future version. Use GetConnectionConfig instead."
+	DEPRECATED_METHOD_ADD_VAULT          = SDK_LOG_PREFIX + "Deprecated: AddVault is deprecated and will be removed in a future version. Use AddVaultConfig instead."
+	DEPRECATED_METHOD_ADD_CONNECTION     = SDK_LOG_PREFIX + "Deprecated: AddConnection is deprecated and will be removed in a future version. Use AddConnectionConfig instead."
+	DEPRECATED_METHOD_UPDATE_VAULT       = SDK_LOG_PREFIX + "Deprecated: UpdateVault is deprecated and will be removed in a future version. Use UpdateVaultConfig instead."
+	DEPRECATED_METHOD_UPDATE_CONNECTION  = SDK_LOG_PREFIX + "Deprecated: UpdateConnection is deprecated and will be removed in a future version. Use UpdateConnectionConfig instead."
+	DEPRECATED_METHOD_REMOVE_VAULT       = SDK_LOG_PREFIX + "Deprecated: RemoveVault is deprecated and will be removed in a future version. Use RemoveVaultConfig instead."
+	DEPRECATED_METHOD_REMOVE_CONNECTION  = SDK_LOG_PREFIX + "Deprecated: RemoveConnection is deprecated and will be removed in a future version. Use RemoveConnectionConfig instead."
+
+	DEPRECATED_FIELD_ROLE_IDS       = SDK_LOG_PREFIX + "Deprecated: BearerTokenOptions.RoleIDs is deprecated and will be removed in a future version. Use RoleIds instead."
+	DEPRECATED_FIELD_BASE_VAULT_URL = SDK_LOG_PREFIX + "Deprecated: VaultConfig.BaseVaultURL is deprecated and will be removed in a future version. Use BaseVaultUrl instead."
+	DEPRECATED_FIELD_DOWNLOAD_URL   = SDK_LOG_PREFIX + "Deprecated: DownloadURL is deprecated and will be removed in a future version. Use DownloadUrl instead."
+
+	DEPRECATED_CRED_KEY_CLIENT_ID  = SDK_LOG_PREFIX + "Deprecated: credential key 'clientID' is deprecated and will be removed in a future version. Use 'clientId' instead."
+	DEPRECATED_CRED_KEY_TOKEN_URI  = SDK_LOG_PREFIX + "Deprecated: credential key 'tokenURI' is deprecated and will be removed in a future version. Use 'tokenUri' instead."
+	DEPRECATED_CRED_KEY_KEY_ID     = SDK_LOG_PREFIX + "Deprecated: credential key 'keyID' is deprecated and will be removed in a future version. Use 'keyId' instead."
+	DEPRECATED_DATA_KEY_SKYFLOW_ID = SDK_LOG_PREFIX + "Deprecated: data key 'skyflow_id' is deprecated and will be removed in a future version. Use 'SkyflowId' instead."
+
+	DEPRECATED_RESPONSE_KEY_SKYFLOW_ID        = SDK_LOG_PREFIX + "Deprecated: response key 'skyflow_id' is deprecated and will be removed in a future version. Use 'SkyflowId' instead."
+	DEPRECATED_RESPONSE_KEY_SKYFLOW_ID_UPDATE = SDK_LOG_PREFIX + "Deprecated: response key 'skyflowId' is deprecated and will be removed in a future version. Use 'SkyflowId' instead."
+	DEPRECATED_RESPONSE_KEY_TOKENIZED_DATA    = SDK_LOG_PREFIX + "Deprecated: response key 'tokenized_data' is deprecated and will be removed in a future version. Use 'TokenizedData' instead."
 )
