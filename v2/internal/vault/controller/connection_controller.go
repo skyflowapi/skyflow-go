@@ -118,7 +118,7 @@ func (v *ConnectionController) Invoke(ctx context.Context, request common.Invoke
 		return nil, errors.NewSkyflowError(errors.INVALID_INPUT_CODE, fmt.Sprintf(errors.UNKNOWN_ERROR, invokeErr.Error()))
 	}
 	metaData := map[string]interface{}{
-		"request_id": requestId,
+		"RequestId": requestId,
 	}
 
 	logger.Info(logs.INVOKE_CONNECTION_REQUEST_RESOLVED)
