@@ -406,7 +406,10 @@ MIIBAAIBADANINVALIDKEY==
 			})
 
 			AfterEach(func() {
-				mockServer.Close()
+				if mockServer != nil {
+					mockServer.Close()
+					mockServer = nil
+				}
 			})
 
 			Context("When the API call is successful", func() {
@@ -422,10 +425,8 @@ MIIBAAIBADANINVALIDKEY==
 						return mockServer.URL, nil
 					}
 
-					// Call the function under test
 					response, err := GenerateBearerTokenHelper(credKeys, options)
 
-					// Assertions
 					Expect(err).Should(BeNil())
 					Expect(response).ShouldNot(BeNil())
 					Expect(*response.AccessToken).Should(Equal("mockAccessToken"))
@@ -438,15 +439,12 @@ MIIBAAIBADANINVALIDKEY==
 					originalGetBaseURLHelper := GetBaseURLHelper
 
 					defer func() { GetBaseURLHelper = originalGetBaseURLHelper }()
-
 					GetBaseURLHelper = func(urlStr string) (string, *SkyflowError) {
 						return mockServer.URL, nil
 					}
 
-					// Call the function under test
 					response, err := GenerateBearerTokenHelper(credKeys, options)
 
-					// Assertions
 					Expect(err).ShouldNot(BeNil())
 					Expect(response).Should(BeNil())
 				})
@@ -488,7 +486,6 @@ MIIBAAIBADANINVALIDKEY==
 					// Call the function under test
 					response, err := GenerateBearerTokenHelper(credKeys, options)
 
-					// Assertions
 					Expect(err).ShouldNot(BeNil())
 					Expect(response).Should(BeNil())
 					Expect(err.GetCode()).Should(Equal("Code: 400"))

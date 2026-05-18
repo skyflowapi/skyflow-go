@@ -529,6 +529,7 @@ func (v *VaultController) Update(ctx context.Context, request common.UpdateReque
 	record := vaultapis.V1FieldRecords{}
 	skyflowId, _ := helpers.GetSkyflowID(request.Data)
 	delete(request.Data, constants.SKYFLOW_ID)
+	delete(request.Data, "skyflow_id") // backward compat
 	record.Fields = request.Data
 	if request.Tokens != nil {
 		record.Tokens = request.Tokens
