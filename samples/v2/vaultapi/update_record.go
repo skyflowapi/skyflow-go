@@ -49,7 +49,7 @@ func main() {
 			resUpdate, errUpdate := service.Update(ctx, common.UpdateRequest{
 				Table: "<TABLE_NAME>",
 				Data: map[string]interface{}{
-					"skyflow_id": "<SKYFLOW_ID>", // Replace with the actual id of the record to be updated
+					"SkyflowId": "<SKYFLOW_ID>", // Replace with the actual id of the record to be updated
 					"<FIELD1>":   "<VALUE1>",     // Replace with the actual field and value to be updated
 					"<FIELD2>":   "<VALUE2>",     // Replace with the actual field and value to be updated
 				},

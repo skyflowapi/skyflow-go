@@ -210,6 +210,48 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			Expect(err).ToNot(BeNil())
 			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_TOKENS))
 		})
+		It("should return error when Values is nil in BYOT ENABLE mode", func() {
+			request := common.InsertRequest{
+				Table:  "testTable",
+				Values: nil,
+			}
+			options := common.InsertOptions{
+				TokenMode: common.ENABLE,
+				Tokens:    []map[string]interface{}{{"key": "token"}},
+			}
+
+			err := ValidateInsertRequest(request, options)
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_VALUES))
+		})
+		It("should return error when Values is empty slice in BYOT ENABLE mode", func() {
+			request := common.InsertRequest{
+				Table:  "testTable",
+				Values: []map[string]interface{}{},
+			}
+			options := common.InsertOptions{
+				TokenMode: common.ENABLE,
+				Tokens:    []map[string]interface{}{{"key": "token"}},
+			}
+
+			err := ValidateInsertRequest(request, options)
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_VALUES))
+		})
+		It("should return error when Values contains empty key in BYOT ENABLE mode", func() {
+			request := common.InsertRequest{
+				Table:  "testTable",
+				Values: []map[string]interface{}{{"": "value"}},
+			}
+			options := common.InsertOptions{
+				TokenMode: common.ENABLE,
+				Tokens:    []map[string]interface{}{{"key": "token"}},
+			}
+
+			err := ValidateInsertRequest(request, options)
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_KEY_IN_VALUES))
+		})
 		It("should not return error when tokens are not passed for all values object in BYOT ENABLE mode", func() {
 			request := common.InsertRequest{
 				Table: "testTable",
@@ -486,6 +528,27 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 				err := ValidateVaultConfig(config)
 				Expect(err).To(BeNil())
 			})
+			It("should accept BaseVaultURL (old field — backward compat) as valid URL", func() {
+				config := common.VaultConfig{
+					VaultId:      "id",
+					Env:          common.PROD,
+					Credentials:  validCredentials,
+					BaseVaultURL: "https://example.com",
+				}
+				err := ValidateVaultConfig(config)
+				Expect(err).To(BeNil())
+			})
+			It("should reject invalid URL in BaseVaultURL (old field — backward compat)", func() {
+				config := common.VaultConfig{
+					VaultId:      "id",
+					Env:          common.PROD,
+					Credentials:  validCredentials,
+					BaseVaultURL: "not-a-url",
+				}
+				err := ValidateVaultConfig(config)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_VAULT_URL))
+			})
 		})
 
 		Context("Valid VaultConfig", func() {
@@ -542,6 +605,32 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 					err := ValidateConnectionConfig(config)
 					Expect(err).To(BeNil())
 				})
+			})
+		})
+		Describe("ValidateUpdateConnectionConfig", func() {
+			It("should return an error if ConnectionId is empty", func() {
+				config := common.ConnectionConfig{
+					ConnectionId:  "",
+					ConnectionUrl: "https://valid.url",
+				}
+				err := ValidateUpdateConnectionConfig(config)
+				Expect(err).To(HaveOccurred())
+				Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_CONNECTION_ID))
+			})
+			It("should return nil when only ConnectionId is provided", func() {
+				config := common.ConnectionConfig{
+					ConnectionId: "valid-id",
+				}
+				err := ValidateUpdateConnectionConfig(config)
+				Expect(err).To(BeNil())
+			})
+			It("should return nil when ConnectionId and valid ConnectionUrl are provided", func() {
+				config := common.ConnectionConfig{
+					ConnectionId:  "valid-id",
+					ConnectionUrl: "https://valid.url",
+				}
+				err := ValidateUpdateConnectionConfig(config)
+				Expect(err).To(BeNil())
 			})
 		})
 		Describe("ValidateCredentials", func() {
@@ -625,6 +714,9 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 				})
 
 				It("should return nil for valid API key", func() {
+					if os.Getenv("API_KEY") == "" {
+						Skip("requires API_KEY env var")
+					}
 					credentials := common.Credentials{
 						ApiKey: os.Getenv("API_KEY"),
 					}
@@ -778,6 +870,15 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 	})
 	Context("when validating update requests", func() {
 		var validData = map[string]interface{}{"SkyflowId": "123", "key": "value", "key2": "value2"}
+		It("should pass when Data uses old key skyflow_id (backward compat)", func() {
+			request := common.UpdateRequest{
+				Table:  "test_table",
+				Data:   map[string]interface{}{"skyflow_id": "abc", "key": "value"},
+				Tokens: nil,
+			}
+			err := ValidateUpdateRequest(request, common.UpdateOptions{})
+			Expect(err).To(BeNil())
+		})
 		It("should return an error if the table is empty", func() {
 			request := common.UpdateRequest{
 				Table:  "",
@@ -1382,6 +1483,17 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			Expect(validationErr).To(BeNil())
 		})
 
+		It("should return error when FilePath is whitespace only", func() {
+			req := common.DeidentifyFileRequest{
+				File: common.FileInput{
+					FilePath: "   ",
+				},
+			}
+			validationErr := ValidateDeidentifyFileRequest(req)
+			Expect(validationErr).ToNot(BeNil())
+			Expect(validationErr.GetMessage()).To(ContainSubstring(errors.INVALID_FILE_PATH))
+		})
+
 		It("should return nil when File is valid", func() {
 			// First create and write to the test file
 			testFilePath := filepath.Join(tempDir, "detect.txt")
@@ -1400,6 +1512,22 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			}
 			validationErr := ValidateDeidentifyFileRequest(req)
 			Expect(validationErr).To(BeNil())
+		})
+
+		It("should return error when File is empty (zero bytes)", func() {
+			emptyPath := filepath.Join(tempDir, "empty.txt")
+			emptyFile, err := os.Create(emptyPath)
+			Expect(err).To(BeNil())
+			defer func() { emptyFile.Close(); os.Remove(emptyPath) }()
+
+			req := common.DeidentifyFileRequest{
+				File: common.FileInput{
+					File: emptyFile,
+				},
+			}
+			validationErr := ValidateDeidentifyFileRequest(req)
+			Expect(validationErr).ToNot(BeNil())
+			Expect(validationErr.GetMessage()).To(ContainSubstring("empty"))
 		})
 
 		It("should return error when both FilePath and File are provided", func() {
@@ -1675,9 +1803,16 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			Expect(err).ToNot(BeNil())
 		})
 
-		It("should return nil when only SkyflowAccountId is provided", func() {
+		It("should return nil when only SkyflowAccountId (new) is provided", func() {
 			err := ValidateCustomHeaders(map[common.CustomHeaderKey]string{
 				common.SkyflowAccountId: "account-123",
+			}, "TestTag")
+			Expect(err).To(BeNil())
+		})
+
+		It("should return nil when SkyflowAccountID (old — backward compat) is provided", func() {
+			err := ValidateCustomHeaders(map[common.CustomHeaderKey]string{
+				common.SkyflowAccountID: "account-123",
 			}, "TestTag")
 			Expect(err).To(BeNil())
 		})
@@ -1689,9 +1824,16 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			Expect(err).To(BeNil())
 		})
 
-		It("should return nil when only RequestIdHeader is provided", func() {
+		It("should return nil when only RequestIdHeader (new) is provided", func() {
 			err := ValidateCustomHeaders(map[common.CustomHeaderKey]string{
 				common.RequestIdHeader: "req-abc",
+			}, "TestTag")
+			Expect(err).To(BeNil())
+		})
+
+		It("should return nil when RequestIDHeader (old — backward compat) is provided", func() {
+			err := ValidateCustomHeaders(map[common.CustomHeaderKey]string{
+				common.RequestIDHeader: "req-abc",
 			}, "TestTag")
 			Expect(err).To(BeNil())
 		})

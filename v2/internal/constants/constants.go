@@ -186,4 +186,7 @@ const (
 	METRICS_SDK_NAME       = "skyflow-go"
 	API_SKYFLOW_ID = "skyflow_id"
 	CLIENT_HEADER_MESSAGE_PREFIX = "Client headers in"
+	API_TOKENIZED_DATA         = "tokenized_data"
+	TOKENIZED_DATA         = "TokenizedData"
+	UPDATE_SKYFLOW_ID	   = "skyflowId"
 )

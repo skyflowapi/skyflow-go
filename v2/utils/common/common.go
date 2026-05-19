@@ -174,6 +174,8 @@ const (
 type BearerTokenOptions struct {
 	Ctx      interface{}
 	RoleIds  []string
+	// Deprecated: Use RoleIds instead.
+	RoleIDs  []string
 	LogLevel logger.LogLevel
 }
 
@@ -193,6 +195,8 @@ type VaultConfig struct {
 	VaultId      string
 	ClusterId    string
 	BaseVaultUrl string
+	// Deprecated: Use BaseVaultUrl instead.
+	BaseVaultURL string
 	Env          Env
 	Credentials  Credentials
 }
@@ -396,6 +400,11 @@ const (
 	SkyflowAccountId   CustomHeaderKey = "x-skyflow-account-id"
 	SkyflowAccountName CustomHeaderKey = "x-skyflow-account-name"
 	RequestIdHeader    CustomHeaderKey = "x-request-id"
+
+	// Deprecated: Use SkyflowAccountId instead.
+	SkyflowAccountID = SkyflowAccountId
+	// Deprecated: Use RequestIdHeader instead.
+	RequestIDHeader = RequestIdHeader
 )
 
 type InsertOptions struct {
@@ -430,6 +439,8 @@ type DetokenizeData struct {
 type DetokenizeOptions struct {
 	ContinueOnError bool
 	DownloadUrl     bool
+	// Deprecated: Use DownloadUrl instead.
+	DownloadURL     bool
 	CustomHeaders   map[CustomHeaderKey]string
 }
 
@@ -490,6 +501,8 @@ type GetOptions struct {
 	Offset        string
 	Limit         string
 	DownloadUrl   bool
+	// Deprecated: Use DownloadUrl instead.
+	DownloadURL   bool
 	ColumnName    string
 	ColumnValues  []string
 	OrderBy       OrderByEnum

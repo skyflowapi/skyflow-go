@@ -129,6 +129,7 @@ func (v *ConnectionController) Invoke(ctx context.Context, request common.Invoke
 	
 	metaData := map[string]interface{}{
 		constants.REQUEST_ID_KEY: requestId,
+		"RequestId": requestId,
 	}
 
 	logger.Info(logs.INVOKE_CONNECTION_REQUEST_RESOLVED)

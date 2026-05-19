@@ -87,6 +87,7 @@ func GetFormattedGetRecord(record vaultapis.V1FieldRecords) map[string]interface
 		for key, value := range sourceMap {
 			if key == constants.API_SKYFLOW_ID {
 				getRecord[constants.SKYFLOW_ID] = value
+				getRecord[constants.API_SKYFLOW_ID] = value // backward compat
 			} else {
 				getRecord[key] = value
 			}
@@ -114,6 +115,14 @@ func GetDetokenizePayload(request common.DetokenizeRequest, options common.Detok
 	}
 	if len(reqArray) > 0 {
 		payload.DetokenizationParameters = reqArray
+	}
+	downloadUrl := options.DownloadUrl
+	if !downloadUrl && options.DownloadURL {
+		logger.Warn(logs.DEPRECATED_FIELD_DOWNLOAD_URL)
+		downloadUrl = options.DownloadURL
+	}
+	if downloadUrl {
+		payload.DownloadUrl = &downloadUrl
 	}
 	return payload
 }
@@ -145,6 +154,7 @@ func GetFormattedBatchInsertRecord(record interface{}, requestIndex int) (map[st
 			}
 			if skyflowID, exists := recordObject[constants.API_SKYFLOW_ID].(string); exists {
 				insertRecord[constants.SKYFLOW_ID] = skyflowID
+				insertRecord[constants.API_SKYFLOW_ID] = skyflowID // backward compat
 			}
 			if tokens, exists := recordObject[constants.JSON_KEY_TOKENS].(map[string]interface{}); exists {
 				for key, value := range tokens {
@@ -159,12 +169,15 @@ func GetFormattedBatchInsertRecord(record interface{}, requestIndex int) (map[st
 	}
 
 	insertRecord[constants.JSON_KEY_REQUEST_INDEX] = requestIndex
+	insertRecord["RequestIndex"] = requestIndex
+	insertRecord["request_index"] = requestIndex
 	return insertRecord, nil
 }
 func GetFormattedBulkInsertRecord(record vaultapis.V1RecordMetaProperties) map[string]interface{} {
 	insertRecord := make(map[string]interface{})
 	if id := record.GetSkyflowId(); id != nil {
-		insertRecord["SkyflowId"] = *id
+		insertRecord[constants.SKYFLOW_ID] = *id
+		insertRecord[constants.API_SKYFLOW_ID] = *id // backward compat
 	}
 
 	tokensMap := record.GetTokens()
@@ -181,6 +194,7 @@ func GetFormattedQueryRecord(record vaultapis.V1FieldRecords) map[string]interfa
 		for key, value := range record.Fields {
 			if key == constants.API_SKYFLOW_ID {
 				queryRecord[constants.SKYFLOW_ID] = value
+				queryRecord[constants.API_SKYFLOW_ID] = value // backward compat
 			} else {
 				queryRecord[key] = value
 			}
@@ -190,7 +204,8 @@ func GetFormattedQueryRecord(record vaultapis.V1FieldRecords) map[string]interfa
 			for key, value := range record.Tokens {
 				tokens[key] = value
 			}
-			queryRecord["TokenizedData"] = tokens
+			queryRecord[constants.TOKENIZED_DATA] = tokens
+			queryRecord[constants.API_TOKENIZED_DATA] = tokens // backward compat
 		}
 	}
 	return queryRecord
@@ -361,12 +376,12 @@ func GetSignedDataTokens(credKeys map[string]interface{}, options common.SignedD
 func GetCredentialParams(credKeys map[string]interface{}) (string, string, string, *skyflowError.SkyflowError) {
 	clientId, ok := credKeys["clientId"].(string)
 	if !ok {
-		// check for clientID
 		clientId, ok = credKeys["clientID"].(string)
 		if !ok {
 			logger.Error(logs.CLIENT_ID_NOT_FOUND)
 			return "", "", "", skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.MISSING_CLIENT_ID)
 		}
+		logger.Warn(logs.DEPRECATED_CRED_KEY_CLIENT_ID)
 	}
 	tokenUri, ok2 := credKeys["tokenUri"].(string)
 	if !ok2 {
@@ -375,6 +390,7 @@ func GetCredentialParams(credKeys map[string]interface{}) (string, string, strin
 			logger.Error(logs.TOKEN_URI_NOT_FOUND)
 			return "", "", "", skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.MISSING_TOKEN_URI)
 		}
+		logger.Warn(logs.DEPRECATED_CRED_KEY_TOKEN_URI)
 	}
 	keyId, ok3 := credKeys["keyId"].(string)
 	if !ok3 {
@@ -383,6 +399,7 @@ func GetCredentialParams(credKeys map[string]interface{}) (string, string, strin
 			logger.Error(logs.KEY_ID_NOT_FOUND)
 			return "", "", "", skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.MISSING_KEY_ID)
 		}
+		logger.Warn(logs.DEPRECATED_CRED_KEY_KEY_ID)
 	}
 	return clientId, tokenUri, keyId, nil
 }
@@ -499,9 +516,14 @@ func GenerateBearerTokenHelper(credKeys map[string]interface{}, options common.B
 	body := internal.V1GetAuthTokenRequest{}
 	body.GrantType = constants.GRANT_TYPE
 	body.Assertion = signedUserJWT
-	if len(options.RoleIds) > 0 {
+	roleIds := options.RoleIds
+	if len(roleIds) == 0 && len(options.RoleIDs) > 0 {
+		logger.Warn(logs.DEPRECATED_FIELD_ROLE_IDS)
+		roleIds = options.RoleIDs
+	}
+	if len(roleIds) > 0 {
 		var roles []*string
-		for _, roleID := range options.RoleIds {
+		for _, roleID := range roleIds {
 			roles = append(roles, &roleID)
 		}
 		roleString := GetScopeUsingRoles(roles)
@@ -658,6 +680,10 @@ func GetHeader(err error) (http.Header, bool) {
 
 func GetSkyflowID(data map[string]interface{}) (string, bool) {
 	if id, ok := data[constants.SKYFLOW_ID].(string); ok {
+		return id, true
+	}
+	// backward compat: accept old key from main branch
+	if id, ok := data[constants.API_SKYFLOW_ID].(string); ok {
 		return id, true
 	}
 	return "", false

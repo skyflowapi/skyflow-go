@@ -66,7 +66,7 @@ func SkyflowApiError(responseHeaders http.Response) *SkyflowError {
 		// Parse JSON into a struct
 		var apiError map[string]interface{}
 		if err := json.Unmarshal(bodyBytes, &apiError); err != nil {
-			return NewSkyflowError(INVALID_INPUT_CODE, FAILED_TO_UNMARSHAL_ERROR)
+			return NewSkyflowError(INVALID_INPUT_CODE, "Failed to unmarshal error")
 		}
 		if errorBody, ok := apiError[constants.ERROR_KEY_ERROR].(map[string]interface{}); ok {
 			if httpCode, exists := errorBody[constants.ERROR_KEY_HTTP_CODE].(float64); exists {

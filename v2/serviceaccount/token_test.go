@@ -1,6 +1,11 @@
 package serviceaccount_test
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/json"
+	"encoding/pem"
 	"fmt"
 
 	"github.com/skyflowapi/skyflow-go/v2/serviceaccount"
@@ -66,7 +71,10 @@ var _ = Describe("ServiceAccount Test Suite", func() {
 		}
 	})
 	AfterEach(func() {
-		mockServer.Close()
+		if mockServer != nil {
+			mockServer.Close()
+			mockServer = nil
+		}
 	})
 
 	Context("GenerateBearerToken success/error response", func() {
@@ -126,6 +134,34 @@ var _ = Describe("ServiceAccount Test Suite", func() {
 			Expect(err).ToNot(BeNil())
 			Expect(tokenResp).To(BeNil())
 			Expect(err.GetMessage()).To(ContainSubstring(fmt.Sprintf(skyflowError.FILE_NOT_FOUND, "credentials.json")))
+		})
+		It("should return error for empty credentials file path", func() {
+			tokenResp, err := serviceaccount.GenerateBearerToken("", options)
+			Expect(err).ToNot(BeNil())
+			Expect(tokenResp).To(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(skyflowError.EMPTY_CREDENTIAL_FILE_PATH))
+		})
+		It("should return a valid token from a credential file using a local RSA key", func() {
+			credsJSON, srv := makeTestCredsJSONAndServer("ok")
+			mockServer = srv
+
+			tmpFile, fileErr := os.CreateTemp("", "creds_*.json")
+			Expect(fileErr).To(BeNil())
+			_, _ = tmpFile.WriteString(credsJSON)
+			tmpFile.Close()
+			defer os.Remove(tmpFile.Name())
+
+			originalGetBaseURLHelper := helpers.GetBaseURLHelper
+			defer func() { helpers.GetBaseURLHelper = originalGetBaseURLHelper }()
+			helpers.GetBaseURLHelper = func(_ string) (string, *skyflowError.SkyflowError) {
+				return srv.URL, nil
+			}
+
+			opts := common.BearerTokenOptions{RoleIds: []string{"role1"}}
+			tokenResp, err := serviceaccount.GenerateBearerToken(tmpFile.Name(), opts)
+			Expect(err).To(BeNil())
+			Expect(tokenResp).ToNot(BeNil())
+			Expect(tokenResp.AccessToken).To(Equal("mockAccessToken"))
 		})
 	})
 	Context("GenerateBearerTokenCreds success/error response", func() {
@@ -202,6 +238,12 @@ var _ = Describe("ServiceAccount Test Suite", func() {
 			Expect(err).ToNot(BeNil())
 			Expect(tokenResp).To(BeNil())
 		})
+		It("should return error when credentials string is empty", func() {
+			tokenResp, err := serviceaccount.GenerateSignedDataTokensFromCreds("", dataTokenOptions)
+			Expect(err).ToNot(BeNil())
+			Expect(tokenResp).To(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(skyflowError.EMPTY_CREDENTIALS_STRING))
+		})
 	})
 	Context("GenerateSignedToken success/error response", func() {
 		It("should return a valid token when credentials are valid", func() {
@@ -236,6 +278,38 @@ var _ = Describe("ServiceAccount Test Suite", func() {
 			// Assert the token response
 			Expect(err).ToNot(BeNil())
 			Expect(tokenResp).To(BeNil())
+		})
+		It("should return a error when datatokens are empty but file path is valid", func() {
+			// Create a temp credentials file so we get past the path check
+			tmpFile, fileErr := os.CreateTemp("", "creds_*.json")
+			Expect(fileErr).To(BeNil())
+			tmpFile.WriteString(`{"clientId":"x","privateKey":"y","tokenUri":"z","keyId":"k"}`)
+			tmpFile.Close()
+			defer os.Remove(tmpFile.Name())
+
+			opts := common.SignedDataTokensOptions{DataTokens: nil}
+			tokenResp, err := serviceaccount.GenerateSignedDataTokens(tmpFile.Name(), opts)
+			Expect(err).ToNot(BeNil())
+			Expect(tokenResp).To(BeNil())
+		})
+		It("should return signed tokens from a credential file using a local RSA key", func() {
+			credsJSON, srv := makeTestCredsJSONAndServer("ok")
+			mockServer = srv
+
+			tmpFile, fileErr := os.CreateTemp("", "creds_*.json")
+			Expect(fileErr).To(BeNil())
+			_, _ = tmpFile.WriteString(credsJSON)
+			tmpFile.Close()
+			defer os.Remove(tmpFile.Name())
+
+			opts := common.SignedDataTokensOptions{
+				DataTokens: []string{"tok1", "tok2"},
+				TimeToLive: 60,
+			}
+			tokenResp, err := serviceaccount.GenerateSignedDataTokens(tmpFile.Name(), opts)
+			Expect(err).To(BeNil())
+			Expect(tokenResp).ToNot(BeNil())
+			Expect(len(tokenResp)).To(Equal(2))
 		})
 
 	})
@@ -295,4 +369,76 @@ var _ = Describe("ServiceAccount Test Suite", func() {
 			})
 		})
 	})
+
+	Describe("GenerateBearerTokenFromCreds success path (local RSA key)", func() {
+		It("should return an access token when credentials are valid JSON with a real RSA key", func() {
+			credsJSON, srv := makeTestCredsJSONAndServer("ok")
+			defer srv.Close()
+
+			originalGetBaseURLHelper := helpers.GetBaseURLHelper
+			defer func() { helpers.GetBaseURLHelper = originalGetBaseURLHelper }()
+			helpers.GetBaseURLHelper = func(_ string) (string, *skyflowError.SkyflowError) {
+				return srv.URL, nil
+			}
+
+			opts := common.BearerTokenOptions{RoleIds: []string{"role1"}}
+			tokenResp, err := serviceaccount.GenerateBearerTokenFromCreds(credsJSON, opts)
+			Expect(err).To(BeNil())
+			Expect(tokenResp).ToNot(BeNil())
+			Expect(tokenResp.AccessToken).To(Equal("mockAccessToken"))
+		})
+
+		It("should return error when HTTP call fails", func() {
+			credsJSON, srv := makeTestCredsJSONAndServer("err")
+			defer srv.Close()
+
+			originalGetBaseURLHelper := helpers.GetBaseURLHelper
+			defer func() { helpers.GetBaseURLHelper = originalGetBaseURLHelper }()
+			helpers.GetBaseURLHelper = func(_ string) (string, *skyflowError.SkyflowError) {
+				return srv.URL, nil
+			}
+
+			opts := common.BearerTokenOptions{RoleIds: []string{"role1"}}
+			tokenResp, err := serviceaccount.GenerateBearerTokenFromCreds(credsJSON, opts)
+			Expect(err).ToNot(BeNil())
+			Expect(tokenResp).To(BeNil())
+		})
+	})
+
+	Describe("GenerateSignedDataTokensFromCreds success path (local RSA key)", func() {
+		It("should return signed tokens when credentials are valid JSON with a real RSA key", func() {
+			credsJSON, srv := makeTestCredsJSONAndServer("ok")
+			defer srv.Close()
+
+			opts := common.SignedDataTokensOptions{
+				DataTokens: []string{"tok1", "tok2"},
+				TimeToLive: 60,
+			}
+			tokenResp, err := serviceaccount.GenerateSignedDataTokensFromCreds(credsJSON, opts)
+			Expect(err).To(BeNil())
+			Expect(tokenResp).ToNot(BeNil())
+			Expect(len(tokenResp)).To(Equal(2))
+		})
+	})
 })
+
+// makeTestCredsJSONAndServer generates a local RSA key, encodes it as a credentials JSON
+// string, and starts an httptest server responding as specified by res ("ok" or "err").
+func makeTestCredsJSONAndServer(res string) (string, *httptest.Server) {
+	rsaKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		panic(err)
+	}
+	pkcs1Bytes := x509.MarshalPKCS1PrivateKey(rsaKey)
+	pemKey := string(pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: pkcs1Bytes}))
+
+	srv := mockserver(res)
+	credsMap := map[string]interface{}{
+		"clientId":   "test-client",
+		"keyId":      "test-key",
+		"tokenUri":   srv.URL + "/v1/auth/sa/oauth/token",
+		"privateKey": pemKey,
+	}
+	b, _ := json.Marshal(credsMap)
+	return string(b), srv
+}

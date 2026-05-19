@@ -382,24 +382,23 @@ func ValidateInsertRequest(request common.InsertRequest, options common.InsertOp
 	return nil
 }
 func validateValues(values []map[string]interface{}, tag string) *skyflowError.SkyflowError {
-			for _, valueMap := range values {
-			for key := range valueMap {
-				if key == "" {
-					logger.Error(fmt.Sprintf(logs.EMPTY_OR_NULL_KEY_IN_VALUES, tag))
-					return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_KEY_IN_VALUES)
-				}
+	if values == nil {
+		logger.Error(fmt.Sprintf(logs.VALUES_IS_REQUIRED, tag))
+		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_VALUES)
+	}
+	if len(values) == 0 {
+		logger.Error(fmt.Sprintf(logs.EMPTY_VALUES, tag))
+		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_VALUES)
+	}
+	for _, valueMap := range values {
+		for key := range valueMap {
+			if key == "" {
+				logger.Error(fmt.Sprintf(logs.EMPTY_OR_NULL_KEY_IN_VALUES, tag))
+				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_KEY_IN_VALUES)
 			}
 		}
-			// Validate values
-		if values == nil {
-			logger.Error(fmt.Sprintf(logs.VALUES_IS_REQUIRED, tag))
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_VALUES)
-		}
-		if len(values) == 0 {
-			logger.Error(fmt.Sprintf(logs.EMPTY_VALUES, tag))
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_VALUES)
-		}
-		return nil;
+	}
+	return nil
 }
 
 func ValidateTokensForInsertRequest(tokens []map[string]interface{}, values []map[string]interface{}, mode common.BYOT) *skyflowError.SkyflowError {
@@ -478,15 +477,18 @@ func ValidateVaultConfig(vaultConfig common.VaultConfig) *skyflowError.SkyflowEr
 		logger.Error(logs.VAULT_ID_IS_REQUIRED)
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_VAULT_ID)
 	}
-	if vaultConfig.BaseVaultUrl == "" {
+	baseVaultUrl := vaultConfig.BaseVaultUrl
+	if baseVaultUrl == "" && vaultConfig.BaseVaultURL != "" {
+		logger.Warn(logs.DEPRECATED_FIELD_BASE_VAULT_URL)
+		baseVaultUrl = vaultConfig.BaseVaultURL
+	}
+	if baseVaultUrl == "" {
 		if vaultConfig.ClusterId == "" {
 			logger.Error(logs.CLUSTER_ID_IS_REQUIRED)
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_CLUSTER_ID)
 		}
 	} else {
-		// Parse the URL
-		isValidHTTPURL := isValidHTTPURL(vaultConfig.BaseVaultUrl)
-		if !isValidHTTPURL {
+		if !isValidHTTPURL(baseVaultUrl) {
 			logger.Error(logs.VAULT_URL_IS_INVALID)
 			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_VAULT_URL)
 		}

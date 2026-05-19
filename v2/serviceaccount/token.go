@@ -2,7 +2,6 @@ package serviceaccount
 
 import (
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -93,7 +92,7 @@ func GenerateSignedDataTokensFromCreds(credentials string, options common.Signed
 
 func IsExpired(tokenString string) bool {
 	if tokenString == "" {
-		logger.Info(fmt.Sprintf(logs.EMPTY_BEARER_TOKEN))
+		logger.Info(logs.EMPTY_BEARER_TOKEN)
 		return true
 	}
 	token, _, err := new(jwt.Parser).ParseUnverified(tokenString, jwt.MapClaims{})

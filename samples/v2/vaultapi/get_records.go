@@ -6,6 +6,7 @@ package main
 import (
 	"context"
 	"fmt"
+
 	"github.com/skyflowapi/skyflow-go/v2/client"
 	"github.com/skyflowapi/skyflow-go/v2/utils/common"
 	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
@@ -32,8 +33,7 @@ func main() {
 	// Step 2: Configure the skyflow client
 	skyflowInstance, err := client.NewSkyflow(
 		client.WithVaults(arr...),
-		client.WithCredentials(common.Credentials{}), // Pass credentials if not provided in vault config
-		client.WithLogLevel(logger.ERROR),            // Use LogLevel.ERROR in production
+		client.WithLogLevel(logger.DEBUG),            // Use LogLevel.ERROR in production
 	)
 	if err != nil {
 		fmt.Println(*err)
@@ -53,6 +53,7 @@ func main() {
 				},
 			}, common.GetOptions{
 				ReturnTokens: true,
+				DownloadUrl:  true,
 			})
 			// Step 5: Handle the response and errors
 			if getErr != nil {

@@ -124,8 +124,13 @@ func CreateRequestClient(v *VaultController, requestHeaders map[common.CustomHea
 	header.Set(constants.SDK_METRICS_HEADER_KEY, helpers.CreateJsonMetadata())
 
 	var baseURL string
-	if v.Config.BaseVaultUrl != "" {
-		baseURL = v.Config.BaseVaultUrl
+	baseVaultUrl := v.Config.BaseVaultUrl
+	if baseVaultUrl == "" && v.Config.BaseVaultURL != "" {
+		logger.Warn(logs.DEPRECATED_FIELD_BASE_VAULT_URL)
+		baseVaultUrl = v.Config.BaseVaultURL
+	}
+	if baseVaultUrl != "" {
+		baseURL = baseVaultUrl
 	} else {
 		baseURL = helpers.GetURLWithEnv(v.Config.Env, v.Config.ClusterId)
 	}
@@ -229,7 +234,7 @@ func (v *VaultController) Insert(ctx context.Context, request common.InsertReque
 			if parseErr != nil {
 				return nil, parseErr
 			}
-			if formattedRecord["SkyflowId"] != nil {
+			if formattedRecord[constants.SKYFLOW_ID] != nil {
 				insertedFields = append(insertedFields, formattedRecord)
 			} else {
 				formattedRecord[constants.RESPONSE_KEY_REQUEST_ID] = header.Get(constants.REQUEST_KEY)
@@ -237,6 +242,8 @@ func (v *VaultController) Insert(ctx context.Context, request common.InsertReque
 				errors = append(errors, formattedRecord)
 			}
 		}
+		logger.Warn(logs.DEPRECATED_RESPONSE_KEY_SKYFLOW_ID)
+		logger.Warn(logs.DEPRECATED_FIELD_REQUEST_INDEX)
 		resp = common.InsertResponse{
 			InsertedFields: insertedFields,
 			Errors:         errors,
@@ -259,6 +266,7 @@ func (v *VaultController) Insert(ctx context.Context, request common.InsertReque
 			formattedRes := helpers.GetFormattedBulkInsertRecord(*record)
 			insertedFields = append(insertedFields, formattedRes)
 		}
+		logger.Warn(logs.DEPRECATED_RESPONSE_KEY_SKYFLOW_ID)
 		resp = common.InsertResponse{InsertedFields: insertedFields}
 	}
 	logger.Info(logs.INSERT_DATA_SUCCESS)
@@ -379,8 +387,13 @@ func (v *VaultController) Get(ctx context.Context, request common.GetRequest, op
 		orderBy, _ := vaultapis.NewRecordServiceBulkGetRecordRequestOrderByFromString(string(options.OrderBy))
 		req.OrderBy = &orderBy
 	}
-	if options.DownloadUrl {
-		req.DownloadUrl = &options.DownloadUrl
+	downloadUrl := options.DownloadUrl
+	if !downloadUrl && options.DownloadURL {
+		logger.Warn(logs.DEPRECATED_FIELD_DOWNLOAD_URL)
+		downloadUrl = options.DownloadURL
+	}
+	if downloadUrl {
+		req.DownloadUrl = &downloadUrl
 	}
 	if options.ReturnTokens {
 		req.Tokenization = &options.ReturnTokens
@@ -405,6 +418,7 @@ func (v *VaultController) Get(ctx context.Context, request common.GetRequest, op
 		return nil, skyflowError.SkyflowErrorApi(apiErr, header)
 	}
 	logger.Info(logs.GET_REQUEST_RESOLVED)
+	logger.Warn(logs.DEPRECATED_RESPONSE_KEY_SKYFLOW_ID)
 	if getApiRes != nil && getApiRes.Body != nil {
 		records := getApiRes.Body.GetRecords()
 		if len(records) > 0 {
@@ -487,6 +501,8 @@ func (v *VaultController) Query(ctx context.Context, queryRequest common.QueryRe
 		}
 		queryRes.Fields = fields
 	}
+	logger.Warn(logs.DEPRECATED_RESPONSE_KEY_SKYFLOW_ID)
+	logger.Warn(logs.DEPRECATED_RESPONSE_KEY_TOKENIZED_DATA)
 	logger.Info(logs.QUERY_REQUEST_RESOLVED)
 	logger.Info(logs.QUERY_SUCCESS)
 	return queryRes, nil
@@ -518,7 +534,9 @@ func (v *VaultController) Update(ctx context.Context, request common.UpdateReque
 	payload.Tokenization = &options.ReturnTokens
 	record := vaultapis.V1FieldRecords{}
 	skyflowId, _ := helpers.GetSkyflowID(request.Data)
+	logger.Warn(logs.DEPRECATED_DATA_KEY_SKYFLOW_ID)
 	delete(request.Data, constants.SKYFLOW_ID)
+	delete(request.Data, constants.API_SKYFLOW_ID) // backward compat
 	record.Fields = request.Data
 	if request.Tokens != nil {
 		record.Tokens = request.Tokens
@@ -545,6 +563,8 @@ func (v *VaultController) Update(ctx context.Context, request common.UpdateReque
 	updatedField = res
 	if id != nil {
 		updatedField[constants.SKYFLOW_ID] = *id
+		updatedField[constants.UPDATE_SKYFLOW_ID] = *id // backward compat
+		logger.Warn(logs.DEPRECATED_RESPONSE_KEY_SKYFLOW_ID_UPDATE)
 	}
 	return &common.UpdateResponse{
 		UpdatedField: updatedField,
