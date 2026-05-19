@@ -24,7 +24,6 @@ import (
 	. "github.com/skyflowapi/skyflow-go/v2/internal/helpers"
 	"github.com/skyflowapi/skyflow-go/v2/utils/common"
 	. "github.com/skyflowapi/skyflow-go/v2/utils/error"
-	"github.com/skyflowapi/skyflow-go/v2/internal/constants"
 )
 
 func TestController(t *testing.T) {
