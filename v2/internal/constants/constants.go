@@ -18,4 +18,8 @@ const (
 	SKYFLOW_ID             = "SkyflowId"
 	CTX_KEY_REGEX          = `^[a-zA-Z0-9_]+$`
 	METRICS_SDK_NAME       = "skyflow-go"
+	API_SKYFLOW_ID         = "skyflow_id"
+	API_TOKENIZED_DATA         = "tokenized_data"
+	TOKENIZED_DATA         = "TokenizedData"
+	UPDATE_SKYFLOW_ID	   = "skyflowId"
 )

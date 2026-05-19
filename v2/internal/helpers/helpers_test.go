@@ -707,7 +707,9 @@ MIIBAAIBADANINVALIDKEY==
 				Expect(result).To(HaveKeyWithValue("SkyflowId", "id123"))
 				Expect(result).To(HaveKeyWithValue("skyflow_id", "id123")) // backward compat
 				Expect(result).To(HaveKeyWithValue("field1", "token1"))
+				Expect(result).To(HaveKeyWithValue("RequestIndex", 0))
 				Expect(result).To(HaveKeyWithValue("request_index", 0))
+
 			})
 
 			It("should extract error field if present", func() {
@@ -720,7 +722,9 @@ MIIBAAIBADANINVALIDKEY==
 				result, err := GetFormattedBatchInsertRecord(record, 2)
 				Expect(err).To(BeNil())
 				Expect(result).To(HaveKeyWithValue("error", "some error"))
+				Expect(result).To(HaveKeyWithValue("RequestIndex", 2))
 				Expect(result).To(HaveKeyWithValue("request_index", 2))
+
 			})
 
 			It("should return error if Body is missing", func() {
@@ -1305,6 +1309,7 @@ var _ = Describe("GetFormattedBatchInsertRecord — non-map element in records",
 		outer := fakeOuter{Body: fakeRecords{Records: []interface{}{42, "not-a-map"}}}
 		result, err := GetFormattedBatchInsertRecord(outer, 0)
 		Expect(err).To(BeNil())
+		Expect(result).To(HaveKeyWithValue("RequestIndex", 0))
 		Expect(result).To(HaveKeyWithValue("request_index", 0))
 	})
 })

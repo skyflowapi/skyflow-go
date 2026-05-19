@@ -85,10 +85,9 @@ func GetFormattedGetRecord(record vaultapis.V1FieldRecords) map[string]interface
 	// Copy elements from sourceMap to getRecord
 	if sourceMap != nil {
 		for key, value := range sourceMap {
-			if key == "skyflow_id" {
+			if key == constants.API_SKYFLOW_ID {
 				getRecord[constants.SKYFLOW_ID] = value
-				getRecord["skyflow_id"] = value // backward compat
-				logger.Warn(logs.DEPRECATED_RESPONSE_KEY_SKYFLOW_ID)
+				getRecord[constants.API_SKYFLOW_ID] = value // backward compat
 			} else {
 				getRecord[key] = value
 			}
@@ -153,10 +152,9 @@ func GetFormattedBatchInsertRecord(record interface{}, requestIndex int) (map[st
 			if !isMap {
 				continue
 			}
-			if skyflowID, exists := recordObject["skyflow_id"].(string); exists {
-				insertRecord["SkyflowId"] = skyflowID
-				insertRecord["skyflow_id"] = skyflowID // backward compat
-				logger.Warn(logs.DEPRECATED_RESPONSE_KEY_SKYFLOW_ID)
+			if skyflowID, exists := recordObject[constants.API_SKYFLOW_ID].(string); exists {
+				insertRecord[constants.SKYFLOW_ID] = skyflowID
+				insertRecord[constants.API_SKYFLOW_ID] = skyflowID // backward compat
 			}
 			if tokens, exists := recordObject["tokens"].(map[string]interface{}); exists {
 				for key, value := range tokens {
@@ -170,15 +168,15 @@ func GetFormattedBatchInsertRecord(record interface{}, requestIndex int) (map[st
 		insertRecord["error"] = errorField
 	}
 
+	insertRecord["RequestIndex"] = requestIndex
 	insertRecord["request_index"] = requestIndex
 	return insertRecord, nil
 }
 func GetFormattedBulkInsertRecord(record vaultapis.V1RecordMetaProperties) map[string]interface{} {
 	insertRecord := make(map[string]interface{})
 	if id := record.GetSkyflowId(); id != nil {
-		insertRecord["SkyflowId"] = *id
-		insertRecord["skyflow_id"] = *id // backward compat
-		logger.Warn(logs.DEPRECATED_RESPONSE_KEY_SKYFLOW_ID)
+		insertRecord[constants.SKYFLOW_ID] = *id
+		insertRecord[constants.API_SKYFLOW_ID] = *id // backward compat
 	}
 
 	tokensMap := record.GetTokens()
@@ -193,10 +191,9 @@ func GetFormattedQueryRecord(record vaultapis.V1FieldRecords) map[string]interfa
 	queryRecord := make(map[string]interface{})
 	if record.Fields != nil {
 		for key, value := range record.Fields {
-			if key == "skyflow_id" {
+			if key == constants.API_SKYFLOW_ID {
 				queryRecord[constants.SKYFLOW_ID] = value
-				queryRecord["skyflow_id"] = value // backward compat
-				logger.Warn(logs.DEPRECATED_RESPONSE_KEY_SKYFLOW_ID)
+				queryRecord[constants.API_SKYFLOW_ID] = value // backward compat
 			} else {
 				queryRecord[key] = value
 			}
@@ -206,9 +203,8 @@ func GetFormattedQueryRecord(record vaultapis.V1FieldRecords) map[string]interfa
 			for key, value := range record.Tokens {
 				tokens[key] = value
 			}
-			queryRecord["TokenizedData"] = tokens
-			queryRecord["tokenized_data"] = tokens // backward compat
-			logger.Warn(logs.DEPRECATED_RESPONSE_KEY_TOKENIZED_DATA)
+			queryRecord[constants.TOKENIZED_DATA] = tokens
+			queryRecord[constants.API_TOKENIZED_DATA] = tokens // backward compat
 		}
 	}
 	return queryRecord
@@ -682,12 +678,11 @@ func GetHeader(err error) (http.Header, bool) {
 }
 
 func GetSkyflowID(data map[string]interface{}) (string, bool) {
-	if id, ok := data["SkyflowId"].(string); ok {
+	if id, ok := data[constants.SKYFLOW_ID].(string); ok {
 		return id, true
 	}
 	// backward compat: accept old key from main branch
-	if id, ok := data["skyflow_id"].(string); ok {
-		logger.Warn(logs.DEPRECATED_DATA_KEY_SKYFLOW_ID)
+	if id, ok := data[constants.API_SKYFLOW_ID].(string); ok {
 		return id, true
 	}
 	return "", false

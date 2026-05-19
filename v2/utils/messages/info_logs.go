@@ -107,4 +107,5 @@ const (
 	DEPRECATED_RESPONSE_KEY_SKYFLOW_ID        = SDK_LOG_PREFIX + "Deprecated: response key 'skyflow_id' is deprecated and will be removed in a future version. Use 'SkyflowId' instead."
 	DEPRECATED_RESPONSE_KEY_SKYFLOW_ID_UPDATE = SDK_LOG_PREFIX + "Deprecated: response key 'skyflowId' is deprecated and will be removed in a future version. Use 'SkyflowId' instead."
 	DEPRECATED_RESPONSE_KEY_TOKENIZED_DATA    = SDK_LOG_PREFIX + "Deprecated: response key 'tokenized_data' is deprecated and will be removed in a future version. Use 'TokenizedData' instead."
+	DEPRECATED_FIELD_REQUEST_INDEX 		 = SDK_LOG_PREFIX + "Deprecated: field 'request_index' is deprecated and will be removed in a future version. Use 'RequestIndex' instead."
 )
