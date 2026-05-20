@@ -283,7 +283,7 @@ if serviceError != nil {
         {
             "table": "cards",
             "fields": {
-                "skyflow_id": "16419435-aa63-4823-aae7-19c6a2d6a19f",
+                "SkyflowId": "16419435-aa63-4823-aae7-19c6a2d6a19f",
                 "cardNumber": "f3907186-e7e2-466f-91e5-48e12c2bcbc1",
                 "cvv": "1989cb56-63da-4482-a2df-1f74cd0dd1a5"
             }
@@ -297,8 +297,8 @@ if serviceError != nil {
     "InsertedFields": [
           {
                "card_number": "5484-7829-1702-9110",
-               "request_index": "0",
-               "skyflow_id": "9fac9201-7b8a-4446-93f8-5244e1213bd1",
+               "RequestIndex": "0",
+               "SkyflowId": "9fac9201-7b8a-4446-93f8-5244e1213bd1",
                "cardholder_name": "b2308e2a-c1f5-469b-97b7-1f193159399b"
           }
      ],
@@ -535,8 +535,8 @@ Skyflow returns tokens for the record that was just inserted.
 Insert Response: {
 	"InsertedFields": [{
 		"card_number": "5484-7829-1702-9110",
-		"request_index": "0",
-		"skyflow_id": "9fac9201-7b8a-4446-93f8-5244e1213bd1",
+		"RequestIndex": "0",
+		"SkyflowId": "9fac9201-7b8a-4446-93f8-5244e1213bd1",
 		"cardholder_name": "b2308e2a-c1f5-469b-97b7-1f193159399b",
 	}],
 	"Errors": []
@@ -695,12 +695,12 @@ Sample response :
 {
   "insertedFields": [{
     "card_number": "5484-7829-1702-9110",
-    "request_index": "0",
-    "skyflow_id": "9fac9201-7b8a-4446-93f8-5244e1213bd1",
+    "RequestIndex": "0",
+    "SkyflowId": "9fac9201-7b8a-4446-93f8-5244e1213bd1",
     "cardholder_name": "b2308e2a-c1f5-469b-97b7-1f193159399b",
   }],
   "errors": [{
-    "request_index": "1",
+    "RequestIndex": "1",
     "error": "Insert failed. Column card_numbe is invalid. Specify a valid column."
   }]
 }
@@ -776,7 +776,7 @@ Sample response :
 ```json
 {
   "InsertedFields": [{
-    "skyflowId": "9fac9201-7b8a-4446-93f8-5244e1213bd1",
+    "SkyflowId": "9fac9201-7b8a-4446-93f8-5244e1213bd1",
     "cardholder_name": "73ce45ce-20fd-490e-9310-c1d4f603ee83"
   }],
   "Errors": []
@@ -1284,12 +1284,12 @@ Sample response:
     "card_number": "4555555555555553",
     "email": "john.doe@gmail.com",
     "name": "john doe",
-    "skyflow_id": "a581d205-1969-4350-acbe-a2a13eb871a6",
+    "SkyflowId": "a581d205-1969-4350-acbe-a2a13eb871a6",
   }, {
     "card_number": "4555555555555559",
     "email": "jane.doe@gmail.com",
     "name": "jane doe",
-    "skyflow_id": "5ff887c3-b334-4294-9acc-70e78ae5164a",
+    "SkyflowId": "5ff887c3-b334-4294-9acc-70e78ae5164a",
   }],
   "Errors": []
 }
@@ -1357,12 +1357,12 @@ Sample response:
     "card_number": "3998-2139-0328-0697",
     "email": "c9a6c9555060@82c092e7.bd52",
     "name": "82c092e7-74c0-4e60-bd52-c9a6c9555060",
-    "skyflow_id": "a581d205-1969-4350-acbe-a2a13eb871a6",
+    "SkyflowId": "a581d205-1969-4350-acbe-a2a13eb871a6",
   }, {
     "card_number": "3562-0140-8820-7499",
     "email": "6174366e2bc6@59f82e89.93fc",
     "name": "59f82e89-138e-4f9b-93fc-6174366e2bc6",
-    "skyflow_id": "5ff887c3-b334-4294-9acc-70e78ae5164a",
+    "SkyflowId": "5ff887c3-b334-4294-9acc-70e78ae5164a",
   }],
   "Errors": []
 }
@@ -1437,12 +1437,12 @@ Sample response:
     "card_number": "4555555555555553",
     "email": "john.doe@gmail.com",
     "name": "john doe",
-    "skyflow_id": "a581d205-1969-4350-acbe-a2a13eb871a6",
+    "SkyflowId": "a581d205-1969-4350-acbe-a2a13eb871a6",
   }, {
     "card_number": "4555555555555559",
     "email": "jane.doe@gmail.com",
     "name": "jane doe",
-    "skyflow_id": "5ff887c3-b334-4294-9acc-70e78ae5164a",
+    "SkyflowId": "5ff887c3-b334-4294-9acc-70e78ae5164a",
   }],
   "Errors": []
 }
@@ -1484,7 +1484,7 @@ func main() {
   // Step 1: Prepare the data to update in the vault
   // Use a map to store the data that will be updated in the specified table
   data := map[string]interface{}{
-    "skyflow_id": "<SKYFLOW_ID>", // Skyflow ID for identifying the record to update
+    "SkyflowId": "<SKYFLOW_ID>", // Skyflow ID for identifying the record to update
     "<COLUMN_NAME_1>": "<COLUMN_VALUE_1>", // Example of a column name and its value to update
     "<COLUMN_NAME_2>": "<COLUMN_VALUE_2>", // Another example of a column name and its value to update
   }
@@ -1551,7 +1551,7 @@ func main() {
   // Step 1: Prepare the data to update in the vault
   // Use a map to store the data that will be updated in the specified table
   data := map[string]interface{}{
-    "skyflow_id":  "5b699e2c-4301-4f9f-bcff-0a8fd3057413",   // Skyflow ID identifies the record to update
+    "SkyflowId":  "5b699e2c-4301-4f9f-bcff-0a8fd3057413",   // Skyflow ID identifies the record to update
     "name":        "john doe",       // Updating the "name" column with a new value
     "card_number": "4111111111111115", // Updating the "card_number" column with a new value
   }
@@ -1565,8 +1565,10 @@ func main() {
   // The request specifies the table name, token mode, data, and tokens for the update
   updateRequest := common.UpdateRequest{
     Table:  "table1",  // Replace with the actual table name
-    Id:     "5b699e2c-4301-4f9f-bcff-0a8fd3057413",  // Skyflow ID to identify the record to update
-    Values: data,            // The data to update in the record
+    Data:  map[string]interface{}{
+					"SkyflowId": "d0b49698-caea-4ce8-afce-3f8aef5da851", // Replace with the actual id of the record to be updated
+					"name":   "bharti sagar",     // Replace with the actual field and value to be updated
+				},
   }
   // Define update options, including tokenization mode
   updateOptions := common.UpdateOptions{
@@ -1598,7 +1600,7 @@ Sample response:
 When `ReturnTokens` is set to `true`
 ```json
 {
-  "skyflowId": "5b699e2c-4301-4f9f-bcff-0a8fd3057413",
+  "SkyflowId": "5b699e2c-4301-4f9f-bcff-0a8fd3057413",
   "name": "72b8ffe3-c8d3-4b4f-8052-38b2a7405b5a",
   "card_number": "4315-7650-1359-9681"
 }
@@ -1608,7 +1610,7 @@ Sample response
 
 ```json
 {
-  "skyflowId": "5b699e2c-4301-4f9f-bcff-0a8fd3057413"
+  "SkyflowId": "5b699e2c-4301-4f9f-bcff-0a8fd3057413"
 }
 ```
 
@@ -1850,7 +1852,7 @@ Sample response:
   "fields": [{
     "card_number": "XXXXXXXXXXXX1112",
     "name": "S***ar",
-    "skyflow_id": "3ea3861-x107-40w8-la98-106sp08ea83f",
+    "SkyflowId": "3ea3861-x107-40w8-la98-106sp08ea83f",
     "tokenizedData": null
   }]
 }
@@ -1994,9 +1996,11 @@ The SDK supports passing custom HTTP headers at two levels: **client level** (ap
 
 | Constant | Header name | Description |
 |---|---|---|
-| `common.RequestIDHeader` | `x-request-id` | Custom request identifier for tracing |
-| `common.SkyflowAccountID` | `x-skyflow-account-id` | Skyflow account identifier |
+| `common.RequestIdHeader` | `x-request-id` | Custom request identifier for tracing |
+| `common.SkyflowAccountId` | `x-skyflow-account-id` | Skyflow account identifier |
 | `common.SkyflowAccountName` | `x-skyflow-account-name` | Skyflow account name |
+
+> **Note:** `common.RequestIDHeader` and `common.SkyflowAccountID` are deprecated aliases kept for backward compatibility. Use `common.RequestIdHeader` and `common.SkyflowAccountId` instead.
 
 ### Client-level custom headers
 
@@ -2009,8 +2013,8 @@ import (
 )
 
 customHeaders := map[common.CustomHeaderKey]string{
-    common.RequestIDHeader:    "<REQUEST_ID>",   // Replace with your request ID
-    common.SkyflowAccountID:  "<ACCOUNT_ID>",   // Replace with your account ID
+    common.RequestIdHeader:   "<REQUEST_ID>",   // Replace with your request ID
+    common.SkyflowAccountId:  "<ACCOUNT_ID>",   // Replace with your account ID
 }
 
 skyflowClient, err := client.NewSkyflow(
@@ -2056,7 +2060,7 @@ import (
 )
 
 customHeaders := map[common.CustomHeaderKey]string{
-    common.RequestIDHeader: "<REQUEST_ID>", // Replace with your request ID
+    common.RequestIdHeader: "<REQUEST_ID>", // Replace with your request ID
 }
 
 insertOptions := common.InsertOptions{
@@ -2777,7 +2781,9 @@ func main() {
 - PATCH
 - DELETE
 
-**`PathParams`, `QueryParams`, `RequestHeader`, `RequestBody`** are the objects represented as map, that will be sent through the connection integration url.
+**`PathParams`, `QueryParams`, `RequestHeader`** are objects represented as maps sent through the connection integration URL.
+
+**`Body`** accepts any value (`interface{}`), allowing you to pass a `map[string]interface{}`, a struct, a string, or any other type depending on the endpoint's content type.
 
 #### An [example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/vaultapi/invoke_connection.go) of invokeConnection
 ```go
@@ -3038,7 +3044,7 @@ func ScopedTokenGenerationExample() {
     var filePath = "<YOUR_CREDENTIALS_FILE_PATH>"
 
     // Create a BearerToken using the credentials file and associated roles
-    res, err := saUtil.GenerateBearerToken(filePath, common.BearerTokenOptions{LogLevel: logger.DEBUG, RoleIDs: roles}) // Set the roles that the token should be scoped to
+    res, err := saUtil.GenerateBearerToken(filePath, common.BearerTokenOptions{LogLevel: logger.DEBUG, RoleIds: roles}) // Set the roles that the token should be scoped to
 
     if err != nil {
         fmt.Println("Errors", *err)
@@ -3245,6 +3251,50 @@ func main(){
 	}
 }
 ```
+
+## Deprecated APIs
+The following identifiers were renamed for consistency with Go naming conventions (acronyms in the middle of a name are lower-cased). The old names are kept as aliases and will continue to compile, but they emit a deprecation warning in IDEs and will be removed in a future major version. **Migrate to the new names at your earliest convenience.**
+
+### Client methods
+
+| Deprecated | Replacement |
+|---|---|
+| `(*Skyflow).GetVault(vaultId)` | `(*Skyflow).GetVaultConfig(vaultId)` |
+| `(*Skyflow).GetConnection(connId)` | `(*Skyflow).GetConnectionConfig(connId)` |
+| `(*Skyflow).AddVault(config)` | `(*Skyflow).AddVaultConfig(config)` |
+| `(*Skyflow).AddConnection(config)` | `(*Skyflow).AddConnectionConfig(config)` |
+| `(*Skyflow).UpdateVault(config)` | `(*Skyflow).UpdateVaultConfig(config)` |
+| `(*Skyflow).UpdateConnection(config)` | `(*Skyflow).UpdateConnectionConfig(config)` |
+| `(*Skyflow).RemoveVault(vaultId)` | `(*Skyflow).RemoveVaultConfig(vaultId)` |
+| `(*Skyflow).RemoveConnection(connId)` | `(*Skyflow).RemoveConnectionConfig(connId)` |
+
+### Struct fields
+
+| Struct | Deprecated field | Replacement field |
+|---|---|---|
+| `common.VaultConfig` | `BaseVaultURL` | `BaseVaultUrl` |
+| `common.BearerTokenOptions` | `RoleIDs` | `RoleIds` |
+| `common.DetokenizeOptions` | `DownloadURL` | `DownloadUrl` |
+| `common.GetOptions` | `DownloadURL` | `DownloadUrl` |
+
+### Constants
+
+| Deprecated | Replacement |
+|---|---|
+| `common.SkyflowAccountID` | `common.SkyflowAccountId` |
+| `common.RequestIDHeader` | `common.RequestIdHeader` |
+
+### Response JSON keys
+
+These are keys in the map/struct fields returned by vault operations. The old keys are still included in responses alongside the new ones for backward compatibility, but will be removed in a future major version.
+
+| Operation | Deprecated key | Replacement key |
+|---|---|---|
+| Insert, Get, Query, Detokenize | `"skyflow_id"` | `"SkyflowId"` |
+| Update | `"skyflowId"` | `"SkyflowId"` |
+| Insert | `"request_index"` | `"RequestIndex"` |
+
+---
 
 ## Logging
 The Skyflow Go SDK provides useful logging using go's built-in logging library. By default, the SDK's logging level is set to `LogLevel.ERROR`. This can be changed using the UpdateLogLevel(logLevel) method, as shown below:
