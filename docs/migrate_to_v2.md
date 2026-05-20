@@ -257,3 +257,28 @@ The error response now includes:
   "details": ["<details>"]
 }
 ```
+
+## Credential field names (v2.1+)
+
+The credentials JSON file field names are updated to follow camelCase conventions. Both old and new forms are permanently accepted.
+
+| Old form (still accepted) | New form (preferred) |
+|---|---|
+| `clientID` | `clientId` |
+| `keyID` | `keyId` |
+| `tokenURI` | `tokenUri` |
+
+---
+
+## Response field names (v2.1+)
+
+Response maps now use `SkyflowId` (PascalCase). The legacy keys are still present for backward compatibility but are deprecated.
+
+| Deprecated (still returned) | Preferred |
+|---|---|
+| `skyflow_id` | `SkyflowId` |
+| `request_index` | `RequestIndex` |
+
+---
+
+For the full list of changes see [CHANGELOG.md](../CHANGELOG.md).
