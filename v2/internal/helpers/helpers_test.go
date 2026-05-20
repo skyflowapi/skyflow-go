@@ -885,7 +885,7 @@ MIIBAAIBADANINVALIDKEY==
 			It("should return error containing failed to decode for invalid base64 data", func() {
 				_, err := GetFileForFileUpload(common.FileUploadRequest{Base64: "!!!invalid!!!", FileName: "test.txt"})
 				Expect(err).ToNot(BeNil())
-				Expect(err.Error()).To(ContainSubstring("failed to decode base64"))
+				Expect(err.Error()).To(ContainSubstring("Failed to decode base64"))
 			})
 			It("should not return error for valid file object", func() {
 				tmpfile, err := os.Open("../../../credentials.json")

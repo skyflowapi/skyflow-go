@@ -3,6 +3,7 @@ package logs
 import . "github.com/skyflowapi/skyflow-go/v2/internal/constants"
 
 const (
+	    INVALID_XML_FORMAT =  SDK_LOG_PREFIX + " Validation error. Invalid XML format. Specify a valid XML format as string."
 	CLIENT_ID_NOT_FOUND   = SDK_LOG_PREFIX + "Invalid credentials. Client ID cannot be empty."
 	TOKEN_URI_NOT_FOUND   = SDK_LOG_PREFIX + "Invalid credentials. Token URI cannot be empty."
 	KEY_ID_NOT_FOUND      = SDK_LOG_PREFIX + "Invalid credentials. Key ID cannot be empty."
@@ -67,6 +68,9 @@ const (
 	BEARER_TOKEN_REJECTED                                    = SDK_LOG_PREFIX + "Bearer token request resulted in failure."
 	PRIVATE_KEY_TYPE                                         = SDK_LOG_PREFIX + "RSA private key is of the wrong type Pem Type: %s"
 	PARSE_JWT_PAYLOAD                                        = SDK_LOG_PREFIX + "Unable to parse jwt payload"
+	FAILED_TO_MARSHALL_JSON_METADATA                         = SDK_LOG_PREFIX + "Failed to marshal json data in createJSONMetadata()."
+	FAILED_TO_DECODE_BASE64                                  = SDK_LOG_PREFIX + "Failed to decode base64: %v"
+	FAILED_TO_CREATE_FILE                                    = SDK_LOG_PREFIX + "Failed to create file: %v"
 	EMPTY_REQUEST_HEADERS                                    = SDK_LOG_PREFIX + "Invalid %s request. Request headers can not be empty."
 	INVALID_REQUEST_HEADERS                                  = SDK_LOG_PREFIX + "Invalid %s request. Request header can not be nil or empty in request headers."
 	EMPTY_PATH_PARAMS                                        = SDK_LOG_PREFIX + "Invalid %s request. Path params can not be empty."

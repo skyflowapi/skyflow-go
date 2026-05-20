@@ -230,7 +230,7 @@ const (
 )
 
 type InvokeConnectionResponse struct {
-	Data     map[string]interface{}
+	Data     interface{}
 	Metadata map[string]interface{}
 	Errors   map[string]interface{}
 }
@@ -361,7 +361,7 @@ type InvokeConnectionRequest struct {
 	Method      RequestMethod
 	QueryParams map[string]interface{}
 	PathParams  map[string]string
-	Body        map[string]interface{}
+	Body        interface{}
 	Headers     map[string]string
 }
 type ContentType string
@@ -372,6 +372,8 @@ const (
 	FORMURLENCODED    ContentType = "application/x-www-form-urlencoded"
 	FORMDATA          ContentType = "multipart/form-data"
 	TEXTORXML         ContentType = "text/xml"
+	APPLICATIONXML	  ContentType = "application/xml"
+	TEXTHTML        ContentType = "text/html"
 )
 
 type OrderByEnum string
