@@ -380,7 +380,6 @@ func GetCredentialParams(credKeys map[string]interface{}) (string, string, strin
 			logger.Error(logs.CLIENT_ID_NOT_FOUND)
 			return "", "", "", skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.MISSING_CLIENT_ID)
 		}
-		logger.Warn(logs.DEPRECATED_CRED_KEY_CLIENT_ID)
 	}
 	tokenUri, ok2 := credKeys["tokenUri"].(string)
 	if !ok2 {
@@ -389,7 +388,6 @@ func GetCredentialParams(credKeys map[string]interface{}) (string, string, strin
 			logger.Error(logs.TOKEN_URI_NOT_FOUND)
 			return "", "", "", skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.MISSING_TOKEN_URI)
 		}
-		logger.Warn(logs.DEPRECATED_CRED_KEY_TOKEN_URI)
 	}
 	keyId, ok3 := credKeys["keyId"].(string)
 	if !ok3 {
@@ -398,7 +396,6 @@ func GetCredentialParams(credKeys map[string]interface{}) (string, string, strin
 			logger.Error(logs.KEY_ID_NOT_FOUND)
 			return "", "", "", skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.MISSING_KEY_ID)
 		}
-		logger.Warn(logs.DEPRECATED_CRED_KEY_KEY_ID)
 	}
 	return clientId, tokenUri, keyId, nil
 }

@@ -99,9 +99,6 @@ const (
 	DEPRECATED_FIELD_BASE_VAULT_URL = SDK_LOG_PREFIX + "Deprecated: VaultConfig.BaseVaultURL is deprecated and will be removed in a future version. Use BaseVaultUrl instead."
 	DEPRECATED_FIELD_DOWNLOAD_URL   = SDK_LOG_PREFIX + "Deprecated: DownloadURL is deprecated and will be removed in a future version. Use DownloadUrl instead."
 
-	DEPRECATED_CRED_KEY_CLIENT_ID  = SDK_LOG_PREFIX + "Deprecated: credential key 'clientID' is deprecated and will be removed in a future version. Use 'clientId' instead."
-	DEPRECATED_CRED_KEY_TOKEN_URI  = SDK_LOG_PREFIX + "Deprecated: credential key 'tokenURI' is deprecated and will be removed in a future version. Use 'tokenUri' instead."
-	DEPRECATED_CRED_KEY_KEY_ID     = SDK_LOG_PREFIX + "Deprecated: credential key 'keyID' is deprecated and will be removed in a future version. Use 'keyId' instead."
 	DEPRECATED_DATA_KEY_SKYFLOW_ID = SDK_LOG_PREFIX + "Deprecated: data key 'skyflow_id' is deprecated and will be removed in a future version. Use 'SkyflowId' instead."
 
 	DEPRECATED_RESPONSE_KEY_SKYFLOW_ID        = SDK_LOG_PREFIX + "Deprecated: response key 'skyflow_id' is deprecated and will be removed in a future version. Use 'SkyflowId' instead."
