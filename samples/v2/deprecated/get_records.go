@@ -1,7 +1,7 @@
 /*
 Copyright (c) 2022 Skyflow, Inc.
 */
-package main
+package deprecated
 
 import (
 	"context"
@@ -12,15 +12,15 @@ import (
 )
 
 /**
- * This example demonstrates how to use the Skyflow Go SDK to retrieve specific column values
- * from records in your vault using column names and record IDs.
+ * This example demonstrates how to use the Skyflow Go SDK to retrieve records
+ * from your vault using record IDs and table names.
  * <p>
  * Steps include:
  * 1. Set up Skyflow vault credentials.
  * 2. Configure the skyflow client.
  * 3. Configure the vault.
- * 4. Retrieve specific column values using column names and record identifiers.
- * 5. Handling the response and errors.
+ * 4. Retrieve records using record IDs and table names.
+ * 5. Handle the response and errors.
  */
 
 func main() {
@@ -32,9 +32,7 @@ func main() {
 	// Step 2: Configure the skyflow client
 	skyflowInstance, err := client.NewSkyflow(
 		client.WithVaults(arr...),
-		client.WithCredentials(common.Credentials{
-			Token: "<BEARER_TOKEN>",
-		}), // Pass credentials if not provided in vault config
+		client.WithCredentials(common.Credentials{}), // Pass credentials if not provided in vault config
 		client.WithLogLevel(logger.ERROR),            // Use LogLevel.ERROR in production
 	)
 	if err != nil {
@@ -46,22 +44,23 @@ func main() {
 			fmt.Println(*serviceError)
 		} else {
 			ctx := context.TODO()
-			// Step 4: Retrieve specific column values using column names and record identifiers
-			getByColumnRes, getErr := service.Get(ctx, common.GetRequest{
-				Table: "<TABLE_NAME>",
+			// Step 4: Retrieve records using record IDs and table names
+			getRes, getErr := service.Get(ctx, common.GetRequest{
+				Table: "<TABLE_NAME>", // Name of the table
+				Ids: []string{
+					"<SKYFLOW_ID_1>", // List of Skyflow IDs to be fetched
+					"<SKYFLOW_ID_2>",
+				},
 			}, common.GetOptions{
-				RedactionType: common.PLAIN_TEXT,                                // Redaction type to be applied
-				ColumnValues:  []string{"<COLUMN_VALUE_1>", "<COLUMN_VALUE_2>"}, // List of column values to be fetched
-				ColumnName:    "<COLUMN_NAME>",                                  // Column name configured as unique in the schema
+				ReturnTokens: true,
 			})
-			// Step 5: Handling the response and errors
+			// Step 5: Handle the response and errors
 			if getErr != nil {
 				fmt.Println("ERROR: ", *getErr)
 			} else {
-				fmt.Println("RESPONSE: ", getByColumnRes.Data)
+				fmt.Println("RESPONSE: ", getRes.Data)
 			}
 		}
-
 	}
 
 }

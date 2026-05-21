@@ -409,15 +409,13 @@ func (v *VaultController) Get(ctx context.Context, request common.GetRequest, op
 		orderBy, _ := vaultapis.NewRecordServiceBulkGetRecordRequestOrderByFromString(string(options.OrderBy))
 		req.OrderBy = &orderBy
 	}
-	if options.DownloadURL {
+	if options.DownloadUrl {
+		t := true
+		req.DownloadUrl = &t
+	} else if options.DownloadURL {
 		logger.Warn(logs.DEPRECATED_FIELD_DOWNLOAD_URL)
-		if options.DownloadUrl == nil {
-			t := true
-			options.DownloadUrl = &t
-		}
-	}
-	if options.DownloadUrl != nil {
-		req.DownloadUrl = options.DownloadUrl
+		t := true
+		req.DownloadUrl = &t
 	}
 	if options.ReturnTokens {
 		req.Tokenization = &options.ReturnTokens

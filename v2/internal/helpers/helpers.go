@@ -116,15 +116,13 @@ func GetDetokenizePayload(request common.DetokenizeRequest, options common.Detok
 	if len(reqArray) > 0 {
 		payload.DetokenizationParameters = reqArray
 	}
-	if options.DownloadURL {
+	if options.DownloadUrl {
+		t := true
+		payload.DownloadUrl = &t
+	} else if options.DownloadURL {
 		logger.Warn(logs.DEPRECATED_FIELD_DOWNLOAD_URL)
-		if options.DownloadUrl == nil {
-			t := true
-			payload.DownloadUrl = &t
-		}
-	}
-	if options.DownloadUrl != nil {
-		payload.DownloadUrl = options.DownloadUrl
+		t := true
+		payload.DownloadUrl = &t
 	}
 	return payload
 }

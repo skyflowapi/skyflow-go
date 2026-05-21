@@ -1755,38 +1755,33 @@ var _ = Describe("GetDetokenizePayload — DownloadUrl backward compat", func() 
 	})
 
 	Context("new field only", func() {
-		It("DownloadUrl=&true sets downloadUrl on the payload", func() {
-			t := true
-			payload := GetDetokenizePayload(req, common.DetokenizeOptions{DownloadUrl: &t})
+		It("DownloadUrl=true sets downloadUrl on the payload", func() {
+			payload := GetDetokenizePayload(req, common.DetokenizeOptions{DownloadUrl: true})
 			Expect(payload.DownloadUrl).ToNot(BeNil())
 			Expect(*payload.DownloadUrl).To(BeTrue())
 		})
 
-		It("DownloadUrl=&false sets downloadUrl=false on the payload", func() {
-			f := false
-			payload := GetDetokenizePayload(req, common.DetokenizeOptions{DownloadUrl: &f})
-			Expect(payload.DownloadUrl).ToNot(BeNil())
-			Expect(*payload.DownloadUrl).To(BeFalse())
+		It("DownloadUrl=false (unset) — downloadUrl is absent from the payload", func() {
+			payload := GetDetokenizePayload(req, common.DetokenizeOptions{DownloadUrl: false})
+			Expect(payload.DownloadUrl).To(BeNil())
 		})
 	})
 
 	Context("both old and new set together", func() {
-		It("DownloadUrl=&true wins over deprecated DownloadURL=true", func() {
-			t := true
-			payload := GetDetokenizePayload(req, common.DetokenizeOptions{DownloadUrl: &t, DownloadURL: true})
+		It("DownloadUrl=true wins over deprecated DownloadURL=true", func() {
+			payload := GetDetokenizePayload(req, common.DetokenizeOptions{DownloadUrl: true, DownloadURL: true})
 			Expect(payload.DownloadUrl).ToNot(BeNil())
 			Expect(*payload.DownloadUrl).To(BeTrue())
 		})
 
-		It("DownloadUrl=&false suppresses the deprecated DownloadURL=true fallback", func() {
-			f := false
-			payload := GetDetokenizePayload(req, common.DetokenizeOptions{DownloadUrl: &f, DownloadURL: true})
+		It("DownloadUrl=true wins when deprecated DownloadURL=false", func() {
+			payload := GetDetokenizePayload(req, common.DetokenizeOptions{DownloadUrl: true, DownloadURL: false})
 			Expect(payload.DownloadUrl).ToNot(BeNil())
-			Expect(*payload.DownloadUrl).To(BeFalse())
+			Expect(*payload.DownloadUrl).To(BeTrue())
 		})
 
-		It("DownloadUrl=nil falls back to deprecated DownloadURL=true", func() {
-			payload := GetDetokenizePayload(req, common.DetokenizeOptions{DownloadUrl: nil, DownloadURL: true})
+		It("DownloadUrl=false falls back to deprecated DownloadURL=true", func() {
+			payload := GetDetokenizePayload(req, common.DetokenizeOptions{DownloadUrl: false, DownloadURL: true})
 			Expect(payload.DownloadUrl).ToNot(BeNil())
 			Expect(*payload.DownloadUrl).To(BeTrue())
 		})
@@ -1863,14 +1858,12 @@ var _ = Describe("Deprecation warning logs", func() {
 			GetDetokenizePayload(req, common.DetokenizeOptions{DownloadURL: true})
 			Expect(buf.String()).To(ContainSubstring(logs.DEPRECATED_FIELD_DOWNLOAD_URL))
 		})
-		It("warns when both DownloadUrl and deprecated DownloadURL are set", func() {
-			t := true
-			GetDetokenizePayload(req, common.DetokenizeOptions{DownloadUrl: &t, DownloadURL: true})
-			Expect(buf.String()).To(ContainSubstring(logs.DEPRECATED_FIELD_DOWNLOAD_URL))
+		It("does not warn when DownloadUrl=true takes precedence over deprecated DownloadURL", func() {
+			GetDetokenizePayload(req, common.DetokenizeOptions{DownloadUrl: true, DownloadURL: true})
+			Expect(buf.String()).ToNot(ContainSubstring(logs.DEPRECATED_FIELD_DOWNLOAD_URL))
 		})
 		It("does not warn when only new DownloadUrl is set", func() {
-			t := true
-			GetDetokenizePayload(req, common.DetokenizeOptions{DownloadUrl: &t})
+			GetDetokenizePayload(req, common.DetokenizeOptions{DownloadUrl: true})
 			Expect(buf.String()).ToNot(ContainSubstring(logs.DEPRECATED_FIELD_DOWNLOAD_URL))
 		})
 	})

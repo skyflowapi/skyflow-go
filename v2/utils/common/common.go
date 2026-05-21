@@ -441,7 +441,7 @@ type DetokenizeData struct {
 
 type DetokenizeOptions struct {
 	ContinueOnError bool
-	DownloadUrl     *bool
+	DownloadUrl     bool
 	// Deprecated: Use DownloadUrl instead.
 	DownloadURL     bool
 	CustomHeaders   map[CustomHeaderKey]string
@@ -503,7 +503,7 @@ type GetOptions struct {
 	Fields        []string
 	Offset        string
 	Limit         string
-	DownloadUrl   *bool
+	DownloadUrl   bool
 	// Deprecated: Use DownloadUrl instead.
 	DownloadURL   bool
 	ColumnName    string

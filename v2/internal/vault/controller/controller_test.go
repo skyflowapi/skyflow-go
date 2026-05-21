@@ -4408,35 +4408,33 @@ var _ = Describe("VaultController — deprecated field fallbacks", func() {
 		})
 
 		Context("new field only", func() {
-			It("DownloadUrl=&true is forwarded as downloadURL query param", func() {
+			It("DownloadUrl=true is forwarded as downloadURL query param", func() {
 				var rawQuery string
 				makeGetMock(&rawQuery)
-				t := true
 				vc := &VaultController{Config: &VaultConfig{VaultId: "vault1", Credentials: Credentials{ApiKey: "k"}}}
 				_, _ = vc.Get(ctx,
 					GetRequest{Table: "table", Ids: []string{"id1"}},
-					GetOptions{RedactionType: PLAIN_TEXT, DownloadUrl: &t},
+					GetOptions{RedactionType: PLAIN_TEXT, DownloadUrl: true},
 				)
 				Expect(rawQuery).To(ContainSubstring("downloadURL=true"),
 					"new DownloadUrl should be forwarded as downloadURL query param")
 			})
 
-			It("DownloadUrl=&false suppresses the downloadURL query param", func() {
+			It("DownloadUrl=false — downloadURL is absent from query params", func() {
 				var rawQuery string
 				makeGetMock(&rawQuery)
-				f := false
 				vc := &VaultController{Config: &VaultConfig{VaultId: "vault1", Credentials: Credentials{ApiKey: "k"}}}
 				_, _ = vc.Get(ctx,
 					GetRequest{Table: "table", Ids: []string{"id1"}},
-					GetOptions{RedactionType: PLAIN_TEXT, DownloadUrl: &f},
+					GetOptions{RedactionType: PLAIN_TEXT, DownloadUrl: false},
 				)
 				Expect(rawQuery).ToNot(ContainSubstring("downloadURL=true"),
-					"explicit DownloadUrl=false should not send downloadURL query param")
+					"DownloadUrl=false should not send downloadURL query param")
 			})
 		})
 
 		Context("both old and new set together", func() {
-			runGet := func(newVal *bool, oldVal bool) string {
+			runGet := func(newVal bool, oldVal bool) string {
 				var rawQuery string
 				makeGetMock(&rawQuery)
 				vc := &VaultController{Config: &VaultConfig{VaultId: "vault1", Credentials: Credentials{ApiKey: "k"}}}
@@ -4447,28 +4445,18 @@ var _ = Describe("VaultController — deprecated field fallbacks", func() {
 				return rawQuery
 			}
 
-			// DownloadUrl (*bool) | DownloadURL (bool) | result in request
-			It("new=&true,  old=true  → downloadURL=true (new wins)", func() {
-				t := true
-				Expect(runGet(&t, true)).To(ContainSubstring("downloadURL=true"))
+			// DownloadUrl (bool) | DownloadURL (bool) | result in request
+			It("new=true,  old=true  → downloadURL=true (new wins)", func() {
+				Expect(runGet(true, true)).To(ContainSubstring("downloadURL=true"))
 			})
-			It("new=&true,  old=false → downloadURL=true (new wins over no-op old)", func() {
-				t := true
-				Expect(runGet(&t, false)).To(ContainSubstring("downloadURL=true"))
+			It("new=true,  old=false → downloadURL=true (new wins over no-op old)", func() {
+				Expect(runGet(true, false)).To(ContainSubstring("downloadURL=true"))
 			})
-			It("new=&false, old=true  → no downloadURL   (new wins, blocks deprecated fallback)", func() {
-				f := false
-				Expect(runGet(&f, true)).ToNot(ContainSubstring("downloadURL=true"))
+			It("new=false, old=true  → downloadURL=true (deprecated fallback activates)", func() {
+				Expect(runGet(false, true)).To(ContainSubstring("downloadURL=true"))
 			})
-			It("new=&false, old=false → no downloadURL   (both off)", func() {
-				f := false
-				Expect(runGet(&f, false)).ToNot(ContainSubstring("downloadURL=true"))
-			})
-			It("new=nil,    old=true  → downloadURL=true (deprecated fallback activates)", func() {
-				Expect(runGet(nil, true)).To(ContainSubstring("downloadURL=true"))
-			})
-			It("new=nil,    old=false → no downloadURL   (neither active)", func() {
-				Expect(runGet(nil, false)).ToNot(ContainSubstring("downloadURL=true"))
+			It("new=false, old=false → no downloadURL   (neither active)", func() {
+				Expect(runGet(false, false)).ToNot(ContainSubstring("downloadURL=true"))
 			})
 		})
 	})
@@ -4532,27 +4520,25 @@ var _ = Describe("VaultController — deprecated field fallbacks", func() {
 		})
 
 		Context("new field only", func() {
-			It("DownloadUrl=&true → downloadURL:true in request body", func() {
+			It("DownloadUrl=true → downloadURL:true in request body", func() {
 				var body map[string]interface{}
 				makeDetokenizeMock(&body)
-				t := true
 				vc := &VaultController{Config: &VaultConfig{VaultId: "vault1", Credentials: Credentials{ApiKey: "k"}}}
-				_, _ = vc.Detokenize(ctx, detokenizeReq(), DetokenizeOptions{DownloadUrl: &t})
+				_, _ = vc.Detokenize(ctx, detokenizeReq(), DetokenizeOptions{DownloadUrl: true})
 				Expect(body).To(HaveKeyWithValue("downloadURL", true))
 			})
 
-			It("DownloadUrl=&false → downloadURL:false in request body (distinguishable from nil)", func() {
+			It("DownloadUrl=false — downloadURL absent from request body", func() {
 				var body map[string]interface{}
 				makeDetokenizeMock(&body)
-				f := false
 				vc := &VaultController{Config: &VaultConfig{VaultId: "vault1", Credentials: Credentials{ApiKey: "k"}}}
-				_, _ = vc.Detokenize(ctx, detokenizeReq(), DetokenizeOptions{DownloadUrl: &f})
-				Expect(body).To(HaveKeyWithValue("downloadURL", false))
+				_, _ = vc.Detokenize(ctx, detokenizeReq(), DetokenizeOptions{DownloadUrl: false})
+				Expect(body).ToNot(HaveKey("downloadURL"))
 			})
 		})
 
 		Context("both old and new set together", func() {
-			runDetokenize := func(newVal *bool, oldVal bool) map[string]interface{} {
+			runDetokenize := func(newVal bool, oldVal bool) map[string]interface{} {
 				var body map[string]interface{}
 				makeDetokenizeMock(&body)
 				vc := &VaultController{Config: &VaultConfig{VaultId: "vault1", Credentials: Credentials{ApiKey: "k"}}}
@@ -4560,28 +4546,18 @@ var _ = Describe("VaultController — deprecated field fallbacks", func() {
 				return body
 			}
 
-			// DownloadUrl (*bool) | DownloadURL (bool) | downloadURL field in request body
-			It("new=&true,  old=true  → downloadURL:true  (new wins)", func() {
-				t := true
-				Expect(runDetokenize(&t, true)).To(HaveKeyWithValue("downloadURL", true))
+			// DownloadUrl (bool) | DownloadURL (bool) | downloadURL field in request body
+			It("new=true,  old=true  → downloadURL:true  (new wins)", func() {
+				Expect(runDetokenize(true, true)).To(HaveKeyWithValue("downloadURL", true))
 			})
-			It("new=&true,  old=false → downloadURL:true  (new wins over no-op old)", func() {
-				t := true
-				Expect(runDetokenize(&t, false)).To(HaveKeyWithValue("downloadURL", true))
+			It("new=true,  old=false → downloadURL:true  (new wins over no-op old)", func() {
+				Expect(runDetokenize(true, false)).To(HaveKeyWithValue("downloadURL", true))
 			})
-			It("new=&false, old=true  → downloadURL:false (new wins, blocks deprecated fallback)", func() {
-				f := false
-				Expect(runDetokenize(&f, true)).To(HaveKeyWithValue("downloadURL", false))
+			It("new=false, old=true  → downloadURL:true  (deprecated fallback activates)", func() {
+				Expect(runDetokenize(false, true)).To(HaveKeyWithValue("downloadURL", true))
 			})
-			It("new=&false, old=false → downloadURL:false (both off)", func() {
-				f := false
-				Expect(runDetokenize(&f, false)).To(HaveKeyWithValue("downloadURL", false))
-			})
-			It("new=nil,    old=true  → downloadURL:true  (deprecated fallback activates)", func() {
-				Expect(runDetokenize(nil, true)).To(HaveKeyWithValue("downloadURL", true))
-			})
-			It("new=nil,    old=false → key absent        (neither active)", func() {
-				Expect(runDetokenize(nil, false)).ToNot(HaveKey("downloadURL"))
+			It("new=false, old=false → key absent        (neither active)", func() {
+				Expect(runDetokenize(false, false)).ToNot(HaveKey("downloadURL"))
 			})
 		})
 	})

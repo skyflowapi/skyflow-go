@@ -58,6 +58,7 @@ func main() {
 			// Step 4: Detokenize records by providing tokens and receiving original values
 			detokenizeRes, errDetokenize := service.Detokenize(ctx, req, common.DetokenizeOptions{
 				ContinueOnError: true,
+				DownloadUrl: true,
 			})
 			// Step 5: Handling the response and errors
 			if errDetokenize != nil {

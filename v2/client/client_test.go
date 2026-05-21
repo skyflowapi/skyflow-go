@@ -1337,65 +1337,43 @@ var _ = Describe("Skyflow Management Methods", func() {
 
 		// --- DetokenizeOptions.DownloadURL → DownloadUrl ---
 		Context("DetokenizeOptions.DownloadURL → DownloadUrl", func() {
-			It("old field only — deprecated DownloadURL field is set, new DownloadUrl is nil", func() {
+			It("old field only — deprecated DownloadURL field is set, new DownloadUrl is false", func() {
 				opts := common.DetokenizeOptions{DownloadURL: true}
 				Expect(opts.DownloadURL).To(BeTrue())
-				Expect(opts.DownloadUrl).To(BeNil())
+				Expect(opts.DownloadUrl).To(BeFalse())
 			})
 
-			It("new field only — DownloadUrl=&true, deprecated DownloadURL is false", func() {
-				t := true
-				opts := common.DetokenizeOptions{DownloadUrl: &t}
-				Expect(opts.DownloadUrl).ToNot(BeNil())
-				Expect(*opts.DownloadUrl).To(BeTrue())
+			It("new field only — DownloadUrl=true, deprecated DownloadURL is false", func() {
+				opts := common.DetokenizeOptions{DownloadUrl: true}
+				Expect(opts.DownloadUrl).To(BeTrue())
 				Expect(opts.DownloadURL).To(BeFalse())
 			})
 
-			It("new field only — DownloadUrl=&false distinguishable from unset (nil)", func() {
-				f := false
-				opts := common.DetokenizeOptions{DownloadUrl: &f}
-				Expect(opts.DownloadUrl).ToNot(BeNil())
-				Expect(*opts.DownloadUrl).To(BeFalse())
-			})
-
-			It("both fields set — DownloadUrl=&true takes precedence, deprecated DownloadURL is ignored", func() {
-				t := true
-				opts := common.DetokenizeOptions{DownloadURL: true, DownloadUrl: &t}
+			It("both fields set — DownloadUrl=true, deprecated DownloadURL=true", func() {
+				opts := common.DetokenizeOptions{DownloadURL: true, DownloadUrl: true}
 				Expect(opts.DownloadURL).To(BeTrue())
-				Expect(opts.DownloadUrl).ToNot(BeNil())
-				Expect(*opts.DownloadUrl).To(BeTrue())
+				Expect(opts.DownloadUrl).To(BeTrue())
 			})
 		})
 
 		// --- GetOptions.DownloadURL → DownloadUrl ---
 		Context("GetOptions.DownloadURL → DownloadUrl", func() {
-			It("old field only — deprecated DownloadURL field is set, new DownloadUrl is nil", func() {
+			It("old field only — deprecated DownloadURL field is set, new DownloadUrl is false", func() {
 				opts := common.GetOptions{DownloadURL: true}
 				Expect(opts.DownloadURL).To(BeTrue())
-				Expect(opts.DownloadUrl).To(BeNil())
+				Expect(opts.DownloadUrl).To(BeFalse())
 			})
 
-			It("new field only — DownloadUrl=&true, deprecated DownloadURL is false", func() {
-				t := true
-				opts := common.GetOptions{DownloadUrl: &t}
-				Expect(opts.DownloadUrl).ToNot(BeNil())
-				Expect(*opts.DownloadUrl).To(BeTrue())
+			It("new field only — DownloadUrl=true, deprecated DownloadURL is false", func() {
+				opts := common.GetOptions{DownloadUrl: true}
+				Expect(opts.DownloadUrl).To(BeTrue())
 				Expect(opts.DownloadURL).To(BeFalse())
 			})
 
-			It("new field only — DownloadUrl=&false distinguishable from unset (nil)", func() {
-				f := false
-				opts := common.GetOptions{DownloadUrl: &f}
-				Expect(opts.DownloadUrl).ToNot(BeNil())
-				Expect(*opts.DownloadUrl).To(BeFalse())
-			})
-
-			It("both fields set — DownloadUrl=&true takes precedence, deprecated DownloadURL is ignored", func() {
-				t := true
-				opts := common.GetOptions{DownloadURL: true, DownloadUrl: &t}
+			It("both fields set — DownloadUrl=true, deprecated DownloadURL=true", func() {
+				opts := common.GetOptions{DownloadURL: true, DownloadUrl: true}
 				Expect(opts.DownloadURL).To(BeTrue())
-				Expect(opts.DownloadUrl).ToNot(BeNil())
-				Expect(*opts.DownloadUrl).To(BeTrue())
+				Expect(opts.DownloadUrl).To(BeTrue())
 			})
 		})
 

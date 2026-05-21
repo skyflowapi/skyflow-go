@@ -33,7 +33,10 @@ func main() {
 	// Step 2: Configure the skyflow client
 	skyflowInstance, err := client.NewSkyflow(
 		client.WithVaults(arr...),
-		client.WithLogLevel(logger.DEBUG),            // Use LogLevel.ERROR in production
+		client.WithLogLevel(logger.DEBUG), 
+		client.WithCredentials(common.Credentials{
+			Token: "<BEARER_TOKEN>",
+		}), // Pass credentials if not provided in vault config
 	)
 	if err != nil {
 		fmt.Println(*err)
@@ -45,7 +48,6 @@ func main() {
 		} else {
 			ctx := context.TODO()
 			// Step 4: Retrieve records using record IDs and table names
-			downloadUrl := true
 			getRes, getErr := service.Get(ctx, common.GetRequest{
 				Table: "<TABLE_NAME>", // Name of the table
 				Ids: []string{
@@ -54,7 +56,7 @@ func main() {
 				},
 			}, common.GetOptions{
 				ReturnTokens: true,
-				DownloadUrl:  &downloadUrl,
+				DownloadUrl:  true,
 			})
 			// Step 5: Handle the response and errors
 			if getErr != nil {

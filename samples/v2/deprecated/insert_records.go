@@ -1,7 +1,7 @@
 /*
 Copyright (c) 2022 Skyflow, Inc.
 */
-package main
+package deprecated
 
 import (
 	"context"
@@ -33,10 +33,8 @@ func main() {
 	// Step 2: Configure the skyflow client
 	skyflowInstance, err := client.NewSkyflow(
 		client.WithVaults(arr...),
-		client.WithCredentials(common.Credentials{
-			Token: "<BEARER_TOKEN>",
-		}), // Pass credentials if not provided in vault config
-		client.WithLogLevel(logger.DEBUG),            // Use LogLevel.ERROR in production
+		client.WithCredentials(common.Credentials{}), // Pass credentials if not provided in vault config
+		client.WithLogLevel(logger.ERROR),            // Use LogLevel.ERROR in production
 	)
 	if err != nil {
 		fmt.Println(*err)
@@ -56,7 +54,7 @@ func main() {
 				"<FIELD_NAME_3>": "<VALUE_2>",
 			})
 			customHeader := make(map[common.CustomHeaderKey]string) // Add custom headers if needed from the options parameter in InsertOptions
-			customHeader[common.RequestIdHeader] = "123456789" // Example of adding a custom header for request ID
+			customHeader[common.RequestIDHeader] = "123456789" // Example of adding a custom header for request ID
 			// Step 4: Insert records with proper data and receive tokens
 			insert, insertErr := service.Insert(ctx, common.InsertRequest{
 				Table:  "<TABLE_NAME>", // Replace with actual table
