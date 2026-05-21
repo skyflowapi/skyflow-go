@@ -66,6 +66,12 @@ var (
 	mockGetDetectRunApiErrorJSON       = `{"error": {"message": "Invalid run ID"}}`
 )
 
+var (
+	mockInsertBatchEmptyResponseJSON    = `{}`
+	mockDetokenizeErrorMissingTokenJSON = `{"records":[{"error":"Token Not Found"}]}`
+	mockDetokenizeSuccessNullFieldsJSON = `{"records":[{}]}`
+)
+
 func TestController(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Controller Suite")
@@ -460,6 +466,36 @@ var _ = Describe("Vault controller Test cases", func() {
 				Expect(res).To(BeNil(), "Expected no response due to error in insert operation")
 			})
 		})
+		Context("Insert with ContinueOnError True - Empty batch response body", func() {
+			It("should return empty InsertResponse without panicking when server body has no records", func() {
+				response := make(map[string]interface{})
+				_ = json.Unmarshal([]byte(mockInsertBatchEmptyResponseJSON), &response)
+				ts = setupMockServer(response, "ok", "/vaults/v1/vaults/")
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
+					c := client.NewClient(
+						option.WithBaseURL(ts.URL+"/vaults"),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					v.ApiClient = *c
+					return nil
+				}
+				request := InsertRequest{
+					Table:  "test_table",
+					Values: []map[string]interface{}{{"field1": "value1"}},
+				}
+				options := InsertOptions{ContinueOnError: true}
+				ctx := context.Background()
+				res, insertError := contrl.Insert(ctx, request, options)
+				Expect(insertError).To(BeNil())
+				Expect(res).ToNot(BeNil())
+				Expect(res.InsertedFields).To(BeEmpty())
+				Expect(res.Errors).To(BeEmpty())
+			})
+		})
+
 		Context("Insert Client Creation Failed", func() {
 			It("should return an error when client creation fails", func() {
 				var response map[string]interface{}
@@ -687,6 +723,55 @@ var _ = Describe("Vault controller Test cases", func() {
 				res, err := vaultController.Detokenize(ctx, request, opts)
 				Expect(err).ToNot(BeNil())
 				Expect(res).To(BeNil())
+			})
+
+			It("should not panic when error record is missing the token field", func() {
+				response := make(map[string]interface{})
+				_ = json.Unmarshal([]byte(mockDetokenizeErrorMissingTokenJSON), &response)
+				ts := setupMockServer(response, "ok", "/vaults/v1/vaults/")
+				defer ts.Close()
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
+					c := client.NewClient(
+						option.WithBaseURL(ts.URL+"/vaults"),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					v.ApiClient = *c
+					return nil
+				}
+				res, err := vaultController.Detokenize(ctx, request, options)
+				Expect(err).To(BeNil())
+				Expect(res).ToNot(BeNil())
+				Expect(res.Errors).To(HaveLen(1))
+				Expect(res.Errors[0].Token).To(Equal(""))
+				Expect(res.Errors[0].Error).To(Equal("Token Not Found"))
+			})
+
+			It("should not panic when success record has all null fields", func() {
+				response := make(map[string]interface{})
+				_ = json.Unmarshal([]byte(mockDetokenizeSuccessNullFieldsJSON), &response)
+				ts := setupMockServer(response, "ok", "/vaults/v1/vaults/")
+				defer ts.Close()
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
+					c := client.NewClient(
+						option.WithBaseURL(ts.URL+"/vaults"),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					v.ApiClient = *c
+					return nil
+				}
+				res, err := vaultController.Detokenize(ctx, request, options)
+				Expect(err).To(BeNil())
+				Expect(res).ToNot(BeNil())
+				Expect(res.DetokenizedFields).To(HaveLen(1))
+				Expect(res.DetokenizedFields[0].Token).To(Equal(""))
+				Expect(res.DetokenizedFields[0].Value).To(Equal(""))
+				Expect(res.DetokenizedFields[0].Type).To(Equal(""))
 			})
 		})
 	})
@@ -3661,124 +3746,6 @@ var _ = Describe("ConnectionController", func() {
 
 })
 
-var _ = Describe("Connection Utility Functions", func() {
-	Describe("RUrlencode and renderKey", func() {
-		It("should handle int values", func() {
-			parents := make([]interface{}, 0)
-			pairs := make(map[string]string)
-			parents = append(parents, "count")
-			result := RUrlencode(parents, pairs, 42)
-			Expect(result["count"]).To(Equal("42"))
-		})
-
-		It("should handle float32 values", func() {
-			parents := make([]interface{}, 0)
-			pairs := make(map[string]string)
-			parents = append(parents, "price")
-			result := RUrlencode(parents, pairs, float32(19.99))
-			Expect(result["price"]).To(ContainSubstring("19.99"))
-		})
-
-		It("should handle float64 values", func() {
-			parents := make([]interface{}, 0)
-			pairs := make(map[string]string)
-			parents = append(parents, "amount")
-			result := RUrlencode(parents, pairs, float64(99.95))
-			Expect(result["amount"]).To(ContainSubstring("99.95"))
-		})
-
-		It("should handle bool values", func() {
-			parents := make([]interface{}, 0)
-			pairs := make(map[string]string)
-			parents = append(parents, "active")
-			result := RUrlencode(parents, pairs, true)
-			Expect(result["active"]).To(Equal("true"))
-		})
-
-		It("should handle string values", func() {
-			parents := make([]interface{}, 0)
-			pairs := make(map[string]string)
-			parents = append(parents, "name")
-			result := RUrlencode(parents, pairs, "John Doe")
-			Expect(result["name"]).To(Equal("John Doe"))
-		})
-
-		It("should handle nested map values", func() {
-			parents := make([]interface{}, 0)
-			pairs := make(map[string]string)
-			parents = append(parents, "user")
-			data := map[string]interface{}{
-				"name": "Alice",
-				"age":  30,
-			}
-			result := RUrlencode(parents, pairs, data)
-			Expect(result["user[name]"]).To(Equal("Alice"))
-			Expect(result["user[age]"]).To(Equal("30"))
-		})
-
-		It("should handle deeply nested map values", func() {
-			parents := make([]interface{}, 0)
-			pairs := make(map[string]string)
-			parents = append(parents, "user")
-			data := map[string]interface{}{
-				"profile": map[string]interface{}{
-					"firstName": "Bob",
-					"age":       25,
-				},
-			}
-			result := RUrlencode(parents, pairs, data)
-			Expect(result["user[profile][firstName]"]).To(Equal("Bob"))
-			Expect(result["user[profile][age]"]).To(Equal("25"))
-		})
-	})
-
-	// Describe("writeFormData", func() {
-	// 	It("should write form data with multiple types", func() {
-	// 		buffer := new(bytes.Buffer)
-	// 		writer := multipart.NewWriter(buffer)
-			
-	// 		requestBody := map[string]interface{}{
-	// 			"string": "value",
-	// 			"number": 123,
-	// 			"bool":   true,
-	// 			"nested": map[string]interface{}{
-	// 				"key": "nested_value",
-	// 			},
-	// 		}
-			
-	// 		err := writeFormData(writer, requestBody)
-	// 		Expect(err).To(BeNil())
-	// 		writer.Close()
-			
-	// 		content := buffer.String()
-	// 		Expect(content).To(ContainSubstring("string"))
-	// 		Expect(content).To(ContainSubstring("value"))
-	// 		Expect(content).To(ContainSubstring("number"))
-	// 		Expect(content).To(ContainSubstring("123"))
-	// 		Expect(content).To(ContainSubstring("bool"))
-	// 		Expect(content).To(ContainSubstring("true"))
-	// 		Expect(content).To(ContainSubstring("nested[key]"))
-	// 		Expect(content).To(ContainSubstring("nested_value"))
-	// 	})
-
-	// 	It("should handle float values in form data", func() {
-	// 		buffer := new(bytes.Buffer)
-	// 		writer := multipart.NewWriter(buffer)
-			
-	// 		requestBody := map[string]interface{}{
-	// 			"price": float64(19.99),
-	// 		}
-			
-	// 		err := writeFormData(writer, requestBody)
-	// 		Expect(err).To(BeNil())
-	// 		writer.Close()
-			
-	// 		content := buffer.String()
-	// 		Expect(content).To(ContainSubstring("price"))
-	// 		Expect(content).To(ContainSubstring("19.99"))
-	// 	})
-	// })
-})
 
 })
 var _ = Describe("VaultController", func() {
@@ -7611,3 +7578,4 @@ var _ = Describe("CreateGenericFileRequest", func() {
 		Expect(len(result.EntityTypes)).To(Equal(2))
 	})
 })
+

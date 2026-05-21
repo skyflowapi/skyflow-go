@@ -170,7 +170,6 @@ func GetFormattedBatchInsertRecord(record interface{}, requestIndex int) (map[st
 		insertRecord[constants.ERROR_KEY_ERROR] = errorField
 	}
 
-	insertRecord[constants.JSON_KEY_REQUEST_INDEX] = requestIndex
 	insertRecord["RequestIndex"] = requestIndex
 	insertRecord["request_index"] = requestIndex
 	return insertRecord, nil
@@ -208,6 +207,9 @@ func GetFormattedQueryRecord(record vaultapis.V1FieldRecords) map[string]interfa
 			}
 			queryRecord[constants.TOKENIZED_DATA] = tokens
 			queryRecord[constants.API_TOKENIZED_DATA] = tokens // backward compat
+		} else {
+			queryRecord[constants.TOKENIZED_DATA] = nil
+			queryRecord[constants.API_TOKENIZED_DATA] = nil // backward compat
 		}
 	}
 	return queryRecord

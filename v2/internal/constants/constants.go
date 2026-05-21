@@ -166,7 +166,6 @@ const (
 	JSON_KEY_BODY = "Body"
 	JSON_KEY_RECORDS = "records"
 	JSON_KEY_TOKENS = "tokens"
-	JSON_KEY_REQUEST_INDEX = "requestIndex"
 	JSON_KEY_TOKENIZED_DATA = "TokenizedData"
 	
 	// SDK and token generation

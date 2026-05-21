@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"reflect"
 	"strconv"
 	"strings"
 
@@ -378,16 +377,6 @@ func prepareRequest(request common.InvokeConnectionRequest, url string) (*http.R
 	}
 	return request1, nil
 }
-func writeFormData(writer *multipart.Writer, requestBody interface{}) error {
-	formData := RUrlencode(make([]interface{}, 0), make(map[string]string), requestBody)
-	for key, value := range formData {
-		if err := writer.WriteField(key, value); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // buildURLEncodedParams converts a map to URL encoded params matching Node.js URLSearchParams behavior
 func buildURLEncodedParams(data map[string]interface{}) *url.Values {
 	params := url.Values{}
@@ -417,43 +406,6 @@ func buildURLEncodedParams(data map[string]interface{}) *url.Values {
 	return &params
 }
 
-func RUrlencode(parents []interface{}, pairs map[string]string, data interface{}) map[string]string {
-
-	switch reflect.TypeOf(data).Kind() {
-	case reflect.Int:
-		pairs[renderKey(parents)] = fmt.Sprintf("%d", data)
-	case reflect.Float32:
-		pairs[renderKey(parents)] = fmt.Sprintf("%f", data) //nolint:revive
-	case reflect.Float64:
-		pairs[renderKey(parents)] = fmt.Sprintf("%f", data) //nolint:revive
-	case reflect.Bool:
-		pairs[renderKey(parents)] = fmt.Sprintf("%t", data)
-	case reflect.Map:
-		var mapOfdata = (data).(map[string]interface{})
-		for index, value := range mapOfdata {
-			parents = append(parents, index)
-			RUrlencode(parents, pairs, value)
-			parents = parents[:len(parents)-1]
-		}
-	default:
-		pairs[renderKey(parents)] = fmt.Sprintf("%s", data)
-	}
-	return pairs
-}
-func renderKey(parents []interface{}) string {
-	var depth = 0
-	var outputString = ""
-	for index := range parents {
-		var typeOfindex = reflect.TypeOf(parents[index]).Kind()
-		if depth > 0 || typeOfindex == reflect.Int {
-			outputString = outputString + fmt.Sprintf("["+formatValue+"]", parents[index])
-		} else {
-			outputString = outputString + (parents[index]).(string)
-		}
-		depth = depth + 1
-	}
-	return outputString
-}
 func detectContentType(headers map[string]string) string {
 	for key, value := range headers {
 		if strings.ToLower(key) == constants.HEADER_CONTENT_TYPE {

@@ -232,19 +232,21 @@ func (v *VaultController) Insert(ctx context.Context, request common.InsertReque
 			if batchResp.Header != nil {
 				header = batchResp.Header
 			}
+			if batchResp.Body != nil {
+				for index, record := range batchResp.Body.GetResponses() {
+					formattedRecord, parseErr := helpers.GetFormattedBatchInsertRecord(record, index)
+					if parseErr != nil {
+						return nil, parseErr
+					}
+					if formattedRecord[constants.SKYFLOW_ID] != nil {
+						insertedFields = append(insertedFields, formattedRecord)
+					} else {
+						formattedRecord[constants.RESPONSE_KEY_REQUEST_ID] = header.Get(constants.REQUEST_KEY)
+						formattedRecord[constants.RESPONSE_KEY_HTTP_CODE] = skyflowError.INVALID_INPUT_CODE
+						errors = append(errors, formattedRecord)
+			 	}
+			}
 		}
-		for index, record := range batchResp.Body.GetResponses() {
-			formattedRecord, parseErr := helpers.GetFormattedBatchInsertRecord(record, index)
-			if parseErr != nil {
-				return nil, parseErr
-			}
-			if formattedRecord[constants.SKYFLOW_ID] != nil {
-				insertedFields = append(insertedFields, formattedRecord)
-			} else {
-				formattedRecord[constants.RESPONSE_KEY_REQUEST_ID] = header.Get(constants.REQUEST_KEY)
-				formattedRecord[constants.RESPONSE_KEY_HTTP_CODE] = skyflowError.INVALID_INPUT_CODE
-				errors = append(errors, formattedRecord)
-			}
 		}
 		logger.Warn(logs.DEPRECATED_RESPONSE_KEY_SKYFLOW_ID)
 		logger.Warn(logs.DEPRECATED_FIELD_REQUEST_INDEX)
@@ -317,17 +319,33 @@ func (v *VaultController) Detokenize(ctx context.Context, request common.Detoken
 		records := detokenizeApiRes.Body.Records
 		for _, record := range records {
 			if record.Error != nil {
+				token := ""
+				if record.GetToken() != nil {
+					token = *record.GetToken()
+				}
 				fieldErr := common.DetokenizeRecordResponse{
-					Token:     *record.GetToken(),
+					Token:     token,
 					Error:     *record.GetError(),
 					RequestId: header.Get(constants.REQUEST_KEY),
 				}
 				errorFields = append(errorFields, fieldErr)
 			} else {
+				valueType := ""
+				if record.ValueType != nil {
+					valueType = string(*record.ValueType)
+				}
+				token := ""
+				if record.GetToken() != nil {
+					token = *record.GetToken()
+				}
+				value := ""
+				if record.GetValue() != nil {
+					value = *record.GetValue()
+				}
 				rec := common.DetokenizeRecordResponse{
-					Type:  string(*record.ValueType),
-					Token: *record.GetToken(),
-					Value: *record.GetValue(),
+					Type:  valueType,
+					Token: token,
+					Value: value,
 				}
 				detokenizedFields = append(detokenizedFields, rec)
 			}
@@ -391,12 +409,15 @@ func (v *VaultController) Get(ctx context.Context, request common.GetRequest, op
 		orderBy, _ := vaultapis.NewRecordServiceBulkGetRecordRequestOrderByFromString(string(options.OrderBy))
 		req.OrderBy = &orderBy
 	}
+	if options.DownloadURL {
+		logger.Warn(logs.DEPRECATED_FIELD_DOWNLOAD_URL)
+		if options.DownloadUrl == nil {
+			t := true
+			options.DownloadUrl = &t
+		}
+	}
 	if options.DownloadUrl != nil {
 		req.DownloadUrl = options.DownloadUrl
-	} else if options.DownloadURL {
-		logger.Warn(logs.DEPRECATED_FIELD_DOWNLOAD_URL)
-		t := true
-		req.DownloadUrl = &t
 	}
 	if options.ReturnTokens {
 		req.Tokenization = &options.ReturnTokens
