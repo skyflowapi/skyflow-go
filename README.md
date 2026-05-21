@@ -283,7 +283,7 @@ if serviceError != nil {
         {
             "table": "cards",
             "fields": {
-                "skyflow_id": "16419435-aa63-4823-aae7-19c6a2d6a19f",
+                "SkyflowId": "16419435-aa63-4823-aae7-19c6a2d6a19f",
                 "cardNumber": "f3907186-e7e2-466f-91e5-48e12c2bcbc1",
                 "cvv": "1989cb56-63da-4482-a2df-1f74cd0dd1a5"
             }
@@ -297,8 +297,8 @@ if serviceError != nil {
     "InsertedFields": [
           {
                "card_number": "5484-7829-1702-9110",
-               "request_index": "0",
-               "skyflow_id": "9fac9201-7b8a-4446-93f8-5244e1213bd1",
+               "RequestIndex": "0",
+               "SkyflowId": "9fac9201-7b8a-4446-93f8-5244e1213bd1",
                "cardholder_name": "b2308e2a-c1f5-469b-97b7-1f193159399b"
           }
      ],
@@ -535,8 +535,8 @@ Skyflow returns tokens for the record that was just inserted.
 Insert Response: {
 	"InsertedFields": [{
 		"card_number": "5484-7829-1702-9110",
-		"request_index": "0",
-		"skyflow_id": "9fac9201-7b8a-4446-93f8-5244e1213bd1",
+		"RequestIndex": "0",
+		"SkyflowId": "9fac9201-7b8a-4446-93f8-5244e1213bd1",
 		"cardholder_name": "b2308e2a-c1f5-469b-97b7-1f193159399b",
 	}],
 	"Errors": []
@@ -546,7 +546,7 @@ Insert Response: {
 
 ## Vault
 
-The [Vault](https://github.com/skyflowapi/skyflow-go/tree/main/skyflow/vaultapi) module performs operations on the vault, including inserting records, detokenizing tokens, and retrieving tokens associated with a `skyflow_id`.
+The [Vault](https://github.com/skyflowapi/skyflow-go/tree/main/skyflow/vaultapi) module performs operations on the vault, including inserting records, detokenizing tokens, and retrieving tokens associated with a `SkyflowId`.
 
 ### Insert data into the vault
 Apart from using the `Insert` method to insert data into your vault covered in [Quickstart](#quickstart), you can also specify options in `InsertRequest`, such as returning tokenized data, upserting records, or continuing the operation in case of errors.
@@ -693,14 +693,14 @@ Sample response :
 
 ```json
 {
-  "insertedFields": [{
+  "InsertedFields": [{
     "card_number": "5484-7829-1702-9110",
-    "request_index": "0",
-    "skyflow_id": "9fac9201-7b8a-4446-93f8-5244e1213bd1",
+    "RequestIndex": "0",
+    "SkyflowId": "9fac9201-7b8a-4446-93f8-5244e1213bd1",
     "cardholder_name": "b2308e2a-c1f5-469b-97b7-1f193159399b",
   }],
-  "errors": [{
-    "request_index": "1",
+  "Errors": [{
+    "RequestIndex": "1",
     "error": "Insert failed. Column card_numbe is invalid. Specify a valid column."
   }]
 }
@@ -776,7 +776,7 @@ Sample response :
 ```json
 {
   "InsertedFields": [{
-    "skyflowId": "9fac9201-7b8a-4446-93f8-5244e1213bd1",
+    "SkyflowId": "9fac9201-7b8a-4446-93f8-5244e1213bd1",
     "cardholder_name": "73ce45ce-20fd-490e-9310-c1d4f603ee83"
   }],
   "Errors": []
@@ -1146,7 +1146,7 @@ func main() {
     Ids:   ids,
   }
   options := common.GetOptions{
-    Tokens: false, // Set to false to avoid returning tokens
+    ReturnTokens: false, // Set to false to avoid returning tokens
     RedactionType: common.PLAIN_TEXT, // Redact data as plain text
   }
   
@@ -1174,7 +1174,7 @@ func main() {
     Ids:   ids, // Replace with actual Skyflow IDs
   }
   options := common.GetOptions{
-    Tokens: true, // Set to true to return tokenized values
+    ReturnTokens: true, // Set to true to return tokenized values
   }
   
   // Send the request to the Skyflow vault and retrieve the tokenized records
@@ -1209,7 +1209,7 @@ func main() {
 ```
 
 #### Get by skyflow IDs
-Retrieve specific records using `skyflow_ids`. Ideal for fetching exact records when IDs are known.
+Retrieve specific records using `SkyflowIds`. Ideal for fetching exact records when IDs are known.
 
 #### An [example](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/vaultapi/get_records.go) of a get call to retrieve data using Redaction type:
 
@@ -1284,12 +1284,12 @@ Sample response:
     "card_number": "4555555555555553",
     "email": "john.doe@gmail.com",
     "name": "john doe",
-    "skyflow_id": "a581d205-1969-4350-acbe-a2a13eb871a6",
+    "SkyflowId": "a581d205-1969-4350-acbe-a2a13eb871a6",
   }, {
     "card_number": "4555555555555559",
     "email": "jane.doe@gmail.com",
     "name": "jane doe",
-    "skyflow_id": "5ff887c3-b334-4294-9acc-70e78ae5164a",
+    "SkyflowId": "5ff887c3-b334-4294-9acc-70e78ae5164a",
   }],
   "Errors": []
 }
@@ -1325,7 +1325,7 @@ func main() {
     // Specify options for the request
     // - `returnTokens`: Set to true, meaning tokens will be included in the response	
     getOptions := common.GetOptions{
-        Tokens: true, // Tokens will be returned
+        ReturnTokens: true, // Tokens will be returned
     }
 
     // Prepare the context for the request
@@ -1357,12 +1357,12 @@ Sample response:
     "card_number": "3998-2139-0328-0697",
     "email": "c9a6c9555060@82c092e7.bd52",
     "name": "82c092e7-74c0-4e60-bd52-c9a6c9555060",
-    "skyflow_id": "a581d205-1969-4350-acbe-a2a13eb871a6",
+    "SkyflowId": "a581d205-1969-4350-acbe-a2a13eb871a6",
   }, {
     "card_number": "3562-0140-8820-7499",
     "email": "6174366e2bc6@59f82e89.93fc",
     "name": "59f82e89-138e-4f9b-93fc-6174366e2bc6",
-    "skyflow_id": "5ff887c3-b334-4294-9acc-70e78ae5164a",
+    "SkyflowId": "5ff887c3-b334-4294-9acc-70e78ae5164a",
   }],
   "Errors": []
 }
@@ -1437,12 +1437,12 @@ Sample response:
     "card_number": "4555555555555553",
     "email": "john.doe@gmail.com",
     "name": "john doe",
-    "skyflow_id": "a581d205-1969-4350-acbe-a2a13eb871a6",
+    "SkyflowId": "a581d205-1969-4350-acbe-a2a13eb871a6",
   }, {
     "card_number": "4555555555555559",
     "email": "jane.doe@gmail.com",
     "name": "jane doe",
-    "skyflow_id": "5ff887c3-b334-4294-9acc-70e78ae5164a",
+    "SkyflowId": "5ff887c3-b334-4294-9acc-70e78ae5164a",
   }],
   "Errors": []
 }
@@ -1484,7 +1484,7 @@ func main() {
   // Step 1: Prepare the data to update in the vault
   // Use a map to store the data that will be updated in the specified table
   data := map[string]interface{}{
-    "skyflow_id": "<SKYFLOW_ID>", // Skyflow ID for identifying the record to update
+    "SkyflowId": "<SKYFLOW_ID>", // Skyflow ID for identifying the record to update
     "<COLUMN_NAME_1>": "<COLUMN_VALUE_1>", // Example of a column name and its value to update
     "<COLUMN_NAME_2>": "<COLUMN_VALUE_2>", // Another example of a column name and its value to update
   }
@@ -1504,7 +1504,7 @@ func main() {
     Values: data,                   // The data to update in the record
   }
   updateOptions := common.UpdateOptions{
-    Tokens: true,             // Specify whether to return tokens in the response
+    ReturnTokens: true,             // Specify whether to return tokens in the response
     TokenMode:    common.DISABLE,   // Specify the tokenization mode (e.g., ENABLE or DISABLE)
   }
   // Set up the Skyflow vault service
@@ -1551,7 +1551,7 @@ func main() {
   // Step 1: Prepare the data to update in the vault
   // Use a map to store the data that will be updated in the specified table
   data := map[string]interface{}{
-    "skyflow_id":  "5b699e2c-4301-4f9f-bcff-0a8fd3057413",   // Skyflow ID identifies the record to update
+    "SkyflowId":  "5b699e2c-4301-4f9f-bcff-0a8fd3057413",   // Skyflow ID identifies the record to update
     "name":        "john doe",       // Updating the "name" column with a new value
     "card_number": "4111111111111115", // Updating the "card_number" column with a new value
   }
@@ -1598,9 +1598,12 @@ Sample response:
 When `ReturnTokens` is set to `true`
 ```json
 {
-  "skyflowId": "5b699e2c-4301-4f9f-bcff-0a8fd3057413",
-  "name": "72b8ffe3-c8d3-4b4f-8052-38b2a7405b5a",
-  "card_number": "4315-7650-1359-9681"
+  "UpdatedField": {
+    "SkyflowId": "5b699e2c-4301-4f9f-bcff-0a8fd3057413",
+    "name": "72b8ffe3-c8d3-4b4f-8052-38b2a7405b5a",
+    "card_number": "4315-7650-1359-9681"
+  },
+  "Errors": []
 }
 ```
 Sample response
@@ -1608,7 +1611,10 @@ Sample response
 
 ```json
 {
-  "skyflowId": "5b699e2c-4301-4f9f-bcff-0a8fd3057413"
+  "UpdatedField": {
+    "SkyflowId": "5b699e2c-4301-4f9f-bcff-0a8fd3057413"
+  },
+  "Errors": []
 }
 ```
 
@@ -1760,7 +1766,7 @@ func main() {
   // Initialize Skyflow client
   // Step 1: Define the SQL query to execute on the Skyflow vault
   // Replace "<YOUR_SQL_QUERY>" with the actual SQL query you want to run
-  query := "<YOUR_SQL_QUERY>" // Example: "SELECT * FROM demo WHERE skyflow_id='<ID>'"
+  query := "<YOUR_SQL_QUERY>" // Example: "SELECT * FROM demo WHERE SkyflowId='<ID>'"
 
   // Step 2: Create a QueryRequest with the specified SQL query
   queryRequest := common.QueryRequest{
@@ -1813,8 +1819,8 @@ import (
 func main() {
   // Initialize Skyflow client
   // Step 1: Define the SQL query to execute
-  // Example query: Retrieve all records from the "demo" table with a specific skyflow_id
-  query := "SELECT * FROM cards WHERE skyflow_id='3ea3861-x107-40w8-la98-106sp08ea83f'" // Replace with the actual Skyflow ID to filter the query 
+  // Example query: Retrieve all records from the "demo" table with a specific SkyflowId
+  query := "SELECT * FROM cards WHERE SkyflowId='3ea3861-x107-40w8-la98-106sp08ea83f'" // Replace with the actual Skyflow ID to filter the query 
 
   // Step 2: Create a QueryRequest with the SQL query
   queryRequest := common.QueryRequest{
@@ -1847,12 +1853,13 @@ func main() {
 Sample response:
 ```json
 {
-  "fields": [{
+  "Fields": [{
     "card_number": "XXXXXXXXXXXX1112",
     "name": "S***ar",
-    "skyflow_id": "3ea3861-x107-40w8-la98-106sp08ea83f",
-    "tokenizedData": null
-  }]
+    "SkyflowId": "3ea3861-x107-40w8-la98-106sp08ea83f",
+    "TokenizedData": []
+  }],
+  "Errors": []
 }
 ```
 
@@ -3038,7 +3045,7 @@ func ScopedTokenGenerationExample() {
     var filePath = "<YOUR_CREDENTIALS_FILE_PATH>"
 
     // Create a BearerToken using the credentials file and associated roles
-    res, err := saUtil.GenerateBearerToken(filePath, common.BearerTokenOptions{LogLevel: logger.DEBUG, RoleIDs: roles}) // Set the roles that the token should be scoped to
+    res, err := saUtil.GenerateBearerToken(filePath, common.BearerTokenOptions{LogLevel: logger.DEBUG, RoleIds: roles}) // Set the roles that the token should be scoped to
 
     if err != nil {
         fmt.Println("Errors", *err)
