@@ -1,6 +1,7 @@
 package validation_test
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,6 +10,8 @@ import (
 	. "github.com/skyflowapi/skyflow-go/v2/internal/validation"
 	"github.com/skyflowapi/skyflow-go/v2/utils/common"
 	errors "github.com/skyflowapi/skyflow-go/v2/utils/error"
+	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
+	logs "github.com/skyflowapi/skyflow-go/v2/utils/messages"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -2685,5 +2688,54 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			err := ValidateDeidentifyFileRequest(req)
 			Expect(err).ToNot(BeNil())
 		})
+	})
+})
+
+var _ = Describe("ValidateVaultConfig — BaseVaultURL deprecation warnings", func() {
+	var buf bytes.Buffer
+	validCredentials := common.Credentials{ApiKey: "sky-api-key"}
+
+	BeforeEach(func() {
+		buf.Reset()
+		logger.SetOutput(&buf)
+		logger.SetLogLevel(logger.WARN)
+	})
+	AfterEach(func() {
+		logger.SetOutput(os.Stderr)
+		logger.SetLogLevel(logger.ERROR)
+	})
+
+	It("warns when only deprecated BaseVaultURL is set", func() {
+		config := common.VaultConfig{
+			VaultId:      "vid",
+			Env:          common.PROD,
+			Credentials:  validCredentials,
+			BaseVaultURL: "https://example.com",
+		}
+		ValidateVaultConfig(config)
+		Expect(buf.String()).To(ContainSubstring(logs.DEPRECATED_FIELD_BASE_VAULT_URL))
+	})
+
+	It("warns when both BaseVaultUrl and deprecated BaseVaultURL are set", func() {
+		config := common.VaultConfig{
+			VaultId:      "vid",
+			Env:          common.PROD,
+			Credentials:  validCredentials,
+			BaseVaultUrl: "https://new.example.com",
+			BaseVaultURL: "https://old.example.com",
+		}
+		ValidateVaultConfig(config)
+		Expect(buf.String()).To(ContainSubstring(logs.DEPRECATED_FIELD_BASE_VAULT_URL))
+	})
+
+	It("does not warn when only new BaseVaultUrl is set", func() {
+		config := common.VaultConfig{
+			VaultId:      "vid",
+			Env:          common.PROD,
+			Credentials:  validCredentials,
+			BaseVaultUrl: "https://new.example.com",
+		}
+		ValidateVaultConfig(config)
+		Expect(buf.String()).ToNot(ContainSubstring(logs.DEPRECATED_FIELD_BASE_VAULT_URL))
 	})
 })

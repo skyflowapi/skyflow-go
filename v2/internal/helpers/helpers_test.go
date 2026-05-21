@@ -1,6 +1,7 @@
 package helpers_test
 
 import (
+	"bytes"
 	"encoding/json"
 
 	"crypto/ecdsa"
@@ -24,6 +25,8 @@ import (
 	. "github.com/skyflowapi/skyflow-go/v2/internal/helpers"
 	"github.com/skyflowapi/skyflow-go/v2/utils/common"
 	. "github.com/skyflowapi/skyflow-go/v2/utils/error"
+	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
+	logs "github.com/skyflowapi/skyflow-go/v2/utils/messages"
 )
 
 func TestController(t *testing.T) {
@@ -1837,6 +1840,38 @@ var _ = Describe("BearerTokenOptions — RoleIds/RoleIDs precedence", func() {
 				roleIds = opts.RoleIDs
 			}
 			Expect(roleIds).To(Equal([]string{"fallback-role"}))
+		})
+	})
+})
+
+var _ = Describe("Deprecation warning logs", func() {
+	var buf bytes.Buffer
+
+	BeforeEach(func() {
+		buf.Reset()
+		logger.SetOutput(&buf)
+		logger.SetLogLevel(logger.WARN)
+	})
+	AfterEach(func() {
+		logger.SetOutput(os.Stderr)
+		logger.SetLogLevel(logger.ERROR)
+	})
+
+	Context("GetDetokenizePayload — DownloadURL", func() {
+		req := common.DetokenizeRequest{}
+		It("warns when only deprecated DownloadURL is set", func() {
+			GetDetokenizePayload(req, common.DetokenizeOptions{DownloadURL: true})
+			Expect(buf.String()).To(ContainSubstring(logs.DEPRECATED_FIELD_DOWNLOAD_URL))
+		})
+		It("warns when both DownloadUrl and deprecated DownloadURL are set", func() {
+			t := true
+			GetDetokenizePayload(req, common.DetokenizeOptions{DownloadUrl: &t, DownloadURL: true})
+			Expect(buf.String()).To(ContainSubstring(logs.DEPRECATED_FIELD_DOWNLOAD_URL))
+		})
+		It("does not warn when only new DownloadUrl is set", func() {
+			t := true
+			GetDetokenizePayload(req, common.DetokenizeOptions{DownloadUrl: &t})
+			Expect(buf.String()).ToNot(ContainSubstring(logs.DEPRECATED_FIELD_DOWNLOAD_URL))
 		})
 	})
 })

@@ -116,12 +116,15 @@ func GetDetokenizePayload(request common.DetokenizeRequest, options common.Detok
 	if len(reqArray) > 0 {
 		payload.DetokenizationParameters = reqArray
 	}
+	if options.DownloadURL {
+		logger.Warn(logs.DEPRECATED_FIELD_DOWNLOAD_URL)
+		if options.DownloadUrl == nil {
+			t := true
+			payload.DownloadUrl = &t
+		}
+	}
 	if options.DownloadUrl != nil {
 		payload.DownloadUrl = options.DownloadUrl
-	} else if options.DownloadURL {
-		logger.Warn(logs.DEPRECATED_FIELD_DOWNLOAD_URL)
-		t := true
-		payload.DownloadUrl = &t
 	}
 	return payload
 }
@@ -374,29 +377,41 @@ func GetSignedDataTokens(credKeys map[string]interface{}, options common.SignedD
 // Helper for extracting credentials
 func GetCredentialParams(credKeys map[string]interface{}) (string, string, string, *skyflowError.SkyflowError) {
 	clientId, ok := credKeys["clientId"].(string)
-	if !ok {
-		clientId, ok = credKeys["clientID"].(string)
+	if oldVal, hasOld := credKeys["clientID"].(string); hasOld {
 		if !ok {
-			logger.Error(logs.CLIENT_ID_NOT_FOUND)
-			return "", "", "", skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.MISSING_CLIENT_ID)
+			clientId = oldVal
+			ok = true
 		}
 	}
+	if !ok {
+		logger.Error(logs.CLIENT_ID_NOT_FOUND)
+		return "", "", "", skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.MISSING_CLIENT_ID)
+	}
+
 	tokenUri, ok2 := credKeys["tokenUri"].(string)
-	if !ok2 {
-		tokenUri, ok2 = credKeys["tokenURI"].(string)
+	if oldVal, hasOld := credKeys["tokenURI"].(string); hasOld {
 		if !ok2 {
-			logger.Error(logs.TOKEN_URI_NOT_FOUND)
-			return "", "", "", skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.MISSING_TOKEN_URI)
+			tokenUri = oldVal
+			ok2 = true
 		}
 	}
+	if !ok2 {
+		logger.Error(logs.TOKEN_URI_NOT_FOUND)
+		return "", "", "", skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.MISSING_TOKEN_URI)
+	}
+
 	keyId, ok3 := credKeys["keyId"].(string)
-	if !ok3 {
-		keyId, ok3 = credKeys["keyID"].(string)
+	if oldVal, hasOld := credKeys["keyID"].(string); hasOld {
 		if !ok3 {
-			logger.Error(logs.KEY_ID_NOT_FOUND)
-			return "", "", "", skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.MISSING_KEY_ID)
+			keyId = oldVal
+			ok3 = true
 		}
 	}
+	if !ok3 {
+		logger.Error(logs.KEY_ID_NOT_FOUND)
+		return "", "", "", skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.MISSING_KEY_ID)
+	}
+
 	return clientId, tokenUri, keyId, nil
 }
 
@@ -513,9 +528,11 @@ func GenerateBearerTokenHelper(credKeys map[string]interface{}, options common.B
 	body.GrantType = constants.GRANT_TYPE
 	body.Assertion = signedUserJWT
 	roleIds := options.RoleIds
-	if len(roleIds) == 0 && len(options.RoleIDs) > 0 {
+	if len(options.RoleIDs) > 0 {
 		logger.Warn(logs.DEPRECATED_FIELD_ROLE_IDS)
-		roleIds = options.RoleIDs
+		if len(roleIds) == 0 {
+			roleIds = options.RoleIDs
+		}
 	}
 	if len(roleIds) > 0 {
 		var roles []*string

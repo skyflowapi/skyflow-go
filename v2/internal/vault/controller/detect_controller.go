@@ -84,9 +84,13 @@ func CreateDetectRequestClient(v *DetectController, requestHeaders map[common.Cu
 
 	var baseURL string
 	baseVaultUrl := v.Config.BaseVaultUrl
-	if baseVaultUrl == "" && v.Config.BaseVaultURL != "" {
-		logger.Warn(logs.DEPRECATED_FIELD_BASE_VAULT_URL)
-		baseVaultUrl = v.Config.BaseVaultURL
+	if v.Config.BaseVaultURL != "" {
+		if baseVaultUrl != "" {
+			logger.Warn(logs.DEPRECATED_FIELD_BASE_VAULT_URL)
+		} else {
+			logger.Warn(logs.DEPRECATED_FIELD_BASE_VAULT_URL)
+			baseVaultUrl = v.Config.BaseVaultURL
+		}
 	}
 	if baseVaultUrl != "" {
 		baseURL = baseVaultUrl
