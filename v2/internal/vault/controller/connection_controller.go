@@ -24,7 +24,9 @@ import (
 )
 
 const (
-	formatValue = "%v"
+	formatValue    = "%v"
+	intBase        = 10
+	float32BitSize = 32
 )
 
 type ConnectionController struct {
@@ -128,8 +130,8 @@ func (v *ConnectionController) Invoke(ctx context.Context, request common.Invoke
 	}
 	
 	metaData := map[string]interface{}{
-		constants.REQUEST_ID_KEY: requestId,
-		"RequestId": requestId,
+		constants.REQUEST_ID_KEY:          requestId,
+		constants.RESPONSE_KEY_REQUEST_ID: requestId,
 	}
 
 	logger.Info(logs.INVOKE_CONNECTION_REQUEST_RESOLVED)
@@ -424,25 +426,25 @@ func setQueryParams(request *http.Request, queryParams map[string]interface{}) *
 		case int:
 			query.Set(key, strconv.Itoa(v))
 		case int8:
-			query.Set(key, strconv.FormatInt(int64(v), 10))
+			query.Set(key, strconv.FormatInt(int64(v), intBase))
 		case int16:
-			query.Set(key, strconv.FormatInt(int64(v), 10))
+			query.Set(key, strconv.FormatInt(int64(v), intBase))
 		case int32:
-			query.Set(key, strconv.FormatInt(int64(v), 10))
+			query.Set(key, strconv.FormatInt(int64(v), intBase))
 		case int64:
-			query.Set(key, strconv.FormatInt(v, 10))
+			query.Set(key, strconv.FormatInt(v, intBase))
 		case uint:
-			query.Set(key, strconv.FormatUint(uint64(v), 10))
+			query.Set(key, strconv.FormatUint(uint64(v), intBase))
 		case uint8:
-			query.Set(key, strconv.FormatUint(uint64(v), 10))
+			query.Set(key, strconv.FormatUint(uint64(v), intBase))
 		case uint16:
-			query.Set(key, strconv.FormatUint(uint64(v), 10))
+			query.Set(key, strconv.FormatUint(uint64(v), intBase))
 		case uint32:
-			query.Set(key, strconv.FormatUint(uint64(v), 10))
+			query.Set(key, strconv.FormatUint(uint64(v), intBase))
 		case uint64:
-			query.Set(key, strconv.FormatUint(v, 10))
+			query.Set(key, strconv.FormatUint(v, intBase))
 		case float32:
-			query.Set(key, strconv.FormatFloat(float64(v), 'f', -1, 32))
+			query.Set(key, strconv.FormatFloat(float64(v), 'f', -1, float32BitSize))
 		case float64:
 			query.Set(key, strconv.FormatFloat(v, 'f', -1, 64))
 		case string:
