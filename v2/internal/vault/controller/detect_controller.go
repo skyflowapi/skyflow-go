@@ -814,13 +814,22 @@ func (d *DetectController) DeidentifyFile(ctx context.Context, request common.De
 	var fileName, fileExtension string
 
 	if request.File.FilePath != "" {
-		fileContent, _ = os.ReadFile(request.File.FilePath)
+		var readErr error
+		fileContent, readErr = os.ReadFile(request.File.FilePath)
+		if readErr != nil {
+			logger.Error(logs.FAILED_TO_READ_FILE)
+			return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, logs.FAILED_TO_READ_FILE)
+		}
 		fileName = filepath.Base(request.File.FilePath)
 		fileExtension = strings.ToLower(filepath.Ext(fileName))
 
 	} else if request.File.File != nil {
-		// File provided
-		fileContent, _ = io.ReadAll(request.File.File)
+		var readErr error
+		fileContent, readErr = io.ReadAll(request.File.File)
+		if readErr != nil {
+			logger.Error(logs.FAILED_TO_READ_FILE_OBJECT)
+			return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, logs.FAILED_TO_READ_FILE_OBJECT)
+		}
 		fileName = filepath.Base(request.File.File.Name())
 		fileExtension = strings.ToLower(filepath.Ext(fileName))
 	}

@@ -163,6 +163,27 @@ var _ = Describe("ServiceAccount Test Suite", func() {
 			Expect(tokenResp).ToNot(BeNil())
 			Expect(tokenResp.AccessToken).To(Equal("mockAccessToken"))
 		})
+		It("should return error when server responds with empty token body (no accessToken field)", func() {
+			credsJSON, srv := makeTestCredsJSONAndServerNullToken()
+			defer srv.Close()
+
+			tmpFile, fileErr := os.CreateTemp("", "creds_*.json")
+			Expect(fileErr).To(BeNil())
+			_, _ = tmpFile.WriteString(credsJSON)
+			tmpFile.Close()
+			defer os.Remove(tmpFile.Name())
+
+			originalGetBaseURLHelper := helpers.GetBaseURLHelper
+			defer func() { helpers.GetBaseURLHelper = originalGetBaseURLHelper }()
+			helpers.GetBaseURLHelper = func(_ string) (string, *skyflowError.SkyflowError) {
+				return srv.URL, nil
+			}
+
+			opts := common.BearerTokenOptions{RoleIds: []string{"role1"}}
+			tokenResp, err := serviceaccount.GenerateBearerToken(tmpFile.Name(), opts)
+			Expect(err).ToNot(BeNil())
+			Expect(tokenResp).To(BeNil())
+		})
 	})
 	Context("GenerateBearerTokenCreds success/error response", func() {
 		It("should return a valid token when credentials are valid", func() {
@@ -403,6 +424,21 @@ var _ = Describe("ServiceAccount Test Suite", func() {
 			Expect(err).ToNot(BeNil())
 			Expect(tokenResp).To(BeNil())
 		})
+		It("should return error when server responds with empty token body (no accessToken field)", func() {
+			credsJSON, srv := makeTestCredsJSONAndServerNullToken()
+			defer srv.Close()
+
+			originalGetBaseURLHelper := helpers.GetBaseURLHelper
+			defer func() { helpers.GetBaseURLHelper = originalGetBaseURLHelper }()
+			helpers.GetBaseURLHelper = func(_ string) (string, *skyflowError.SkyflowError) {
+				return srv.URL, nil
+			}
+
+			opts := common.BearerTokenOptions{RoleIds: []string{"role1"}}
+			tokenResp, err := serviceaccount.GenerateBearerTokenFromCreds(credsJSON, opts)
+			Expect(err).ToNot(BeNil())
+			Expect(tokenResp).To(BeNil())
+		})
 	})
 
 	Describe("GenerateSignedDataTokensFromCreds success path (local RSA key)", func() {
@@ -421,6 +457,31 @@ var _ = Describe("ServiceAccount Test Suite", func() {
 		})
 	})
 })
+
+// makeTestCredsJSONAndServerNullToken creates credentials and a server that returns 200
+// with an empty JSON body, so accessToken and tokenType are nil in the parsed response.
+func makeTestCredsJSONAndServerNullToken() (string, *httptest.Server) {
+	rsaKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		panic(err)
+	}
+	pkcs1Bytes := x509.MarshalPKCS1PrivateKey(rsaKey)
+	pemKey := string(pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: pkcs1Bytes}))
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{}`))
+	}))
+	credsMap := map[string]interface{}{
+		"clientId":   "test-client",
+		"keyId":      "test-key",
+		"tokenUri":   srv.URL + "/v1/auth/sa/oauth/token",
+		"privateKey": pemKey,
+	}
+	b, _ := json.Marshal(credsMap)
+	return string(b), srv
+}
 
 // makeTestCredsJSONAndServer generates a local RSA key, encodes it as a credentials JSON
 // string, and starts an httptest server responding as specified by res ("ok" or "err").

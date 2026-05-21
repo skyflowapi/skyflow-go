@@ -29,10 +29,16 @@ func GenerateBearerToken(credentialsFilePath string, options common.BearerTokenO
 		return nil, err1
 	}
 
+	accessToken := token.GetAccessToken()
+	tokenType := token.GetTokenType()
+	if accessToken == nil || tokenType == nil {
+		logger.Error(logs.BEARER_TOKEN_REJECTED)
+		return nil, skyflowError.NewSkyflowError(skyflowError.SERVER, logs.BEARER_TOKEN_REJECTED)
+	}
 	logger.Info(logs.GENERATE_BEARER_TOKEN_SUCCESS)
 	return &common.TokenResponse{
-		AccessToken: *token.GetAccessToken(),
-		TokenType:   *token.GetTokenType(),
+		AccessToken: *accessToken,
+		TokenType:   *tokenType,
 	}, nil
 }
 
@@ -49,10 +55,16 @@ func GenerateBearerTokenFromCreds(credentials string, options common.BearerToken
 	if err1 != nil {
 		return nil, err1
 	}
+	accessToken := token.GetAccessToken()
+	tokenType := token.GetTokenType()
+	if accessToken == nil || tokenType == nil {
+		logger.Error(logs.BEARER_TOKEN_REJECTED)
+		return nil, skyflowError.NewSkyflowError(skyflowError.SERVER, logs.BEARER_TOKEN_REJECTED)
+	}
 	logger.Info(logs.GENERATE_BEARER_TOKEN_SUCCESS)
 	return &common.TokenResponse{
-		AccessToken: *token.GetAccessToken(),
-		TokenType:   *token.GetTokenType(),
+		AccessToken: *accessToken,
+		TokenType:   *tokenType,
 	}, nil
 }
 

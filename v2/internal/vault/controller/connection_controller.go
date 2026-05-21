@@ -104,6 +104,7 @@ func (v *ConnectionController) Invoke(ctx context.Context, request common.Invoke
 		logger.Error(fmt.Sprintf(logs.INVALID_REQUEST_HEADERS, tag))
 		return nil, errors.NewSkyflowError(errors.INVALID_INPUT_CODE, fmt.Sprintf(errors.UNKNOWN_ERROR, err1.Error()))
 	}
+	requestBody = requestBody.WithContext(ctx)
 
 	// Step 4: Set Query Params
 	err2 := setQueryParams(requestBody, request.QueryParams)
@@ -234,8 +235,10 @@ func prepareRequest(request common.InvokeConnectionRequest, url string) (*http.R
 		if bodyMap, ok := request.Body.(map[string]interface{}); ok {
 			urlParams := buildURLEncodedParams(bodyMap)
 			body = strings.NewReader(urlParams.Encode())
-		} else { //need to check here
-			body = strings.NewReader("")	
+		} else if strBody, ok := request.Body.(string); ok {
+			body = strings.NewReader(strBody)
+		} else if request.Body != nil {
+			body = strings.NewReader(fmt.Sprintf(formatValue, request.Body))
 		}
 
 	case string(common.FORMDATA):
@@ -420,8 +423,28 @@ func setQueryParams(request *http.Request, queryParams map[string]interface{}) *
 		switch v := value.(type) {
 		case int:
 			query.Set(key, strconv.Itoa(v))
+		case int8:
+			query.Set(key, strconv.FormatInt(int64(v), 10))
+		case int16:
+			query.Set(key, strconv.FormatInt(int64(v), 10))
+		case int32:
+			query.Set(key, strconv.FormatInt(int64(v), 10))
+		case int64:
+			query.Set(key, strconv.FormatInt(v, 10))
+		case uint:
+			query.Set(key, strconv.FormatUint(uint64(v), 10))
+		case uint8:
+			query.Set(key, strconv.FormatUint(uint64(v), 10))
+		case uint16:
+			query.Set(key, strconv.FormatUint(uint64(v), 10))
+		case uint32:
+			query.Set(key, strconv.FormatUint(uint64(v), 10))
+		case uint64:
+			query.Set(key, strconv.FormatUint(v, 10))
+		case float32:
+			query.Set(key, strconv.FormatFloat(float64(v), 'f', -1, 32))
 		case float64:
-			query.Set(key, fmt.Sprintf("%f", v))
+			query.Set(key, strconv.FormatFloat(v, 'f', -1, 64))
 		case string:
 			query.Set(key, v)
 		case bool:

@@ -3748,6 +3748,244 @@ var _ = Describe("ConnectionController", func() {
 
 
 })
+
+var _ = Describe("ConnectionController edge cases", func() {
+	var (
+		ctrl      *ConnectionController
+		mockToken string
+		ctx       = context.TODO()
+	)
+
+	BeforeEach(func() {
+		mockToken = "mock-valid-token"
+		ctrl = &ConnectionController{
+			Config: &ConnectionConfig{
+				ConnectionUrl: "http://mockserver.com",
+				ConnectionId:  "demo",
+			},
+			Token: mockToken,
+		}
+	})
+
+	// --- setQueryParams: extended numeric types ---
+	Context("setQueryParams with extended numeric types", func() {
+		var mockServer *httptest.Server
+
+		BeforeEach(func() {
+			mockServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"status":"ok"}`))
+			}))
+			ctrl.Config.ConnectionUrl = mockServer.URL
+		})
+		AfterEach(func() { mockServer.Close() })
+
+		It("should encode int32 query param without error", func() {
+			SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError { return nil }
+			req := InvokeConnectionRequest{
+				Method:  "GET",
+				Headers: map[string]string{"Content-Type": "application/json"},
+				QueryParams: map[string]interface{}{"limit": int32(50)},
+			}
+			resp, err := ctrl.Invoke(ctx, req)
+			Expect(err).To(BeNil())
+			Expect(resp).ToNot(BeNil())
+		})
+
+		It("should encode int64 query param without error", func() {
+			SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError { return nil }
+			req := InvokeConnectionRequest{
+				Method:  "GET",
+				Headers: map[string]string{"Content-Type": "application/json"},
+				QueryParams: map[string]interface{}{"id": int64(9223372036854775807)},
+			}
+			resp, err := ctrl.Invoke(ctx, req)
+			Expect(err).To(BeNil())
+			Expect(resp).ToNot(BeNil())
+		})
+
+		It("should encode float32 query param without error", func() {
+			SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError { return nil }
+			req := InvokeConnectionRequest{
+				Method:  "GET",
+				Headers: map[string]string{"Content-Type": "application/json"},
+				QueryParams: map[string]interface{}{"ratio": float32(1.5)},
+			}
+			resp, err := ctrl.Invoke(ctx, req)
+			Expect(err).To(BeNil())
+			Expect(resp).ToNot(BeNil())
+		})
+
+		It("should encode uint query param without error", func() {
+			SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError { return nil }
+			req := InvokeConnectionRequest{
+				Method:  "GET",
+				Headers: map[string]string{"Content-Type": "application/json"},
+				QueryParams: map[string]interface{}{"count": uint(100)},
+			}
+			resp, err := ctrl.Invoke(ctx, req)
+			Expect(err).To(BeNil())
+			Expect(resp).ToNot(BeNil())
+		})
+
+		It("should return error for nil query param value", func() {
+			SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError { return nil }
+			req := InvokeConnectionRequest{
+				Method:      "GET",
+				Headers:     map[string]string{"Content-Type": "application/json"},
+				QueryParams: map[string]interface{}{"key": nil},
+			}
+			resp, err := ctrl.Invoke(ctx, req)
+			Expect(err).ToNot(BeNil())
+			Expect(resp).To(BeNil())
+		})
+	})
+
+	// --- FORMURLENCODED: raw string body ---
+	Context("FORMURLENCODED with raw string body", func() {
+		var mockServer *httptest.Server
+		var receivedBody string
+
+		BeforeEach(func() {
+			mockServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				buf, _ := io.ReadAll(r.Body)
+				receivedBody = string(buf)
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"status":"ok"}`))
+			}))
+			ctrl.Config.ConnectionUrl = mockServer.URL
+		})
+		AfterEach(func() { mockServer.Close() })
+
+		It("should send pre-encoded string body as-is for application/x-www-form-urlencoded", func() {
+			SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError { return nil }
+			req := InvokeConnectionRequest{
+				Method:  "POST",
+				Headers: map[string]string{"Content-Type": "application/x-www-form-urlencoded"},
+				Body:    "key1=value1&key2=value2",
+			}
+			resp, err := ctrl.Invoke(ctx, req)
+			Expect(err).To(BeNil())
+			Expect(resp).ToNot(BeNil())
+			Expect(receivedBody).To(Equal("key1=value1&key2=value2"))
+		})
+
+		It("should send fmt-converted body for non-map non-string FORMURLENCODED body", func() {
+			SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError { return nil }
+			req := InvokeConnectionRequest{
+				Method:  "POST",
+				Headers: map[string]string{"Content-Type": "application/x-www-form-urlencoded"},
+				Body:    42,
+			}
+			resp, err := ctrl.Invoke(ctx, req)
+			Expect(err).To(BeNil())
+			Expect(resp).ToNot(BeNil())
+			Expect(receivedBody).To(Equal("42"))
+		})
+	})
+
+	// --- Response content-type handling ---
+	Context("Response content-type handling", func() {
+		BeforeEach(func() {
+			SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError { return nil }
+		})
+
+		It("should return string data for text/xml response", func() {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "text/xml")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`<?xml version="1.0"?><root><item>test</item></root>`))
+			}))
+			defer srv.Close()
+			ctrl.Config.ConnectionUrl = srv.URL
+
+			resp, err := ctrl.Invoke(ctx, InvokeConnectionRequest{
+				Method:  "GET",
+				Headers: map[string]string{"Content-Type": "application/json"},
+			})
+			Expect(err).To(BeNil())
+			Expect(resp).ToNot(BeNil())
+			Expect(resp.Data).To(Equal(`<?xml version="1.0"?><root><item>test</item></root>`))
+		})
+
+		It("should parse JSON response with charset parameter (application/json; charset=utf-8)", func() {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json; charset=utf-8")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"parsed": true}`))
+			}))
+			defer srv.Close()
+			ctrl.Config.ConnectionUrl = srv.URL
+
+			resp, err := ctrl.Invoke(ctx, InvokeConnectionRequest{
+				Method:  "GET",
+				Headers: map[string]string{"Content-Type": "application/json"},
+			})
+			Expect(err).To(BeNil())
+			Expect(resp).ToNot(BeNil())
+			dataMap, ok := resp.Data.(map[string]interface{})
+			Expect(ok).To(BeTrue())
+			Expect(dataMap["parsed"]).To(Equal(true))
+		})
+
+		It("should return string data for text/html response and assert body value", func() {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "text/html")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`<html><body>Hello</body></html>`))
+			}))
+			defer srv.Close()
+			ctrl.Config.ConnectionUrl = srv.URL
+
+			resp, err := ctrl.Invoke(ctx, InvokeConnectionRequest{
+				Method:  "GET",
+				Headers: map[string]string{"Content-Type": "application/json"},
+			})
+			Expect(err).To(BeNil())
+			Expect(resp).ToNot(BeNil())
+			Expect(resp.Data).To(Equal("<html><body>Hello</body></html>"))
+		})
+
+		It("should return string data for unknown response content-type (e.g. application/pdf)", func() {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/pdf")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`binary-like-content`))
+			}))
+			defer srv.Close()
+			ctrl.Config.ConnectionUrl = srv.URL
+
+			resp, err := ctrl.Invoke(ctx, InvokeConnectionRequest{
+				Method:  "GET",
+				Headers: map[string]string{"Content-Type": "application/json"},
+			})
+			Expect(err).To(BeNil())
+			Expect(resp).ToNot(BeNil())
+			Expect(resp.Data).To(Equal("binary-like-content"))
+		})
+
+		It("should return string data for multipart/form-data response and assert body value", func() {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "multipart/form-data; boundary=abc")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`--abc\r\nContent-Disposition: form-data; name="field"\r\n\r\nvalue\r\n--abc--`))
+			}))
+			defer srv.Close()
+			ctrl.Config.ConnectionUrl = srv.URL
+
+			resp, err := ctrl.Invoke(ctx, InvokeConnectionRequest{
+				Method:  "GET",
+				Headers: map[string]string{"Content-Type": "application/json"},
+			})
+			Expect(err).To(BeNil())
+			Expect(resp).ToNot(BeNil())
+			Expect(resp.Data).To(BeAssignableToTypeOf(""))
+		})
+	})
+})
+
 var _ = Describe("VaultController", func() {
 	var vaultController *VaultController
 
@@ -5917,6 +6155,46 @@ var _ = Describe("DetectController", func() {
 				Expect(err).ToNot(BeNil())
 			})
 
+			It("should return error when FilePath points to a non-existent file", func() {
+				CreateDetectRequestClientFunc = func(d *DetectController, headers map[common.CustomHeaderKey]string) *skyflowError.SkyflowError {
+					return nil
+				}
+				SetBearerTokenForDetectControllerFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					return nil
+				}
+				request := DeidentifyFileRequest{
+					File:     FileInput{FilePath: "/non/existent/path/file.txt"},
+					Entities: []DetectEntities{Name},
+				}
+				result, err := detectController.DeidentifyFile(ctx, request, common.DeidentifyFileOptions{})
+				Expect(result).To(BeNil())
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetCode()).To(Equal(fmt.Sprintf("Code: %v", skyflowError.INVALID_INPUT_CODE)))
+			})
+
+			It("should return error when file object cannot be read", func() {
+				CreateDetectRequestClientFunc = func(d *DetectController, headers map[common.CustomHeaderKey]string) *skyflowError.SkyflowError {
+					return nil
+				}
+				SetBearerTokenForDetectControllerFunc = func(d *DetectController) *skyflowError.SkyflowError {
+					return nil
+				}
+				// Create and immediately close the file so io.ReadAll fails
+				closedFile, err := os.CreateTemp("", "skyflow_closed_*.txt")
+				Expect(err).To(BeNil())
+				closedFile.Close()
+				os.Remove(closedFile.Name())
+
+				request := DeidentifyFileRequest{
+					File:     FileInput{File: closedFile},
+					Entities: []DetectEntities{Name},
+				}
+				result, skyErr := detectController.DeidentifyFile(ctx, request, common.DeidentifyFileOptions{})
+				Expect(result).To(BeNil())
+				Expect(skyErr).ToNot(BeNil())
+				Expect(skyErr.GetCode()).To(Equal(fmt.Sprintf("Code: %v", skyflowError.INVALID_INPUT_CODE)))
+			})
+
 			It("should return error when custom headers has empty value in DeidentifyFile", func() {
 				req := DeidentifyFileRequest{
 					File:     FileInput{FilePath: testFiles["txt"].Name()},
@@ -7576,6 +7854,380 @@ var _ = Describe("CreateGenericFileRequest", func() {
 		Expect(result).ToNot(BeNil())
 		Expect(result.EntityTypes).ToNot(BeNil())
 		Expect(len(result.EntityTypes)).To(Equal(2))
+	})
+})
+
+// originalSetBearerTokenConnectionFunc stores the real setBearerTokenForConnectionController so
+// tests that need to invoke the actual function can restore it after other tests mock it.
+var originalSetBearerTokenConnectionFunc = SetBearerTokenForConnectionControllerFunc
+
+// ---------------------------------------------------------------------------
+// Additional coverage: 10 specific code paths in connection_controller.go
+// ---------------------------------------------------------------------------
+var _ = Describe("ConnectionController additional coverage", func() {
+	var (
+		ctrl *ConnectionController
+		ctx  = context.TODO()
+	)
+
+	BeforeEach(func() {
+		ctrl = &ConnectionController{
+			Config: &ConnectionConfig{
+				ConnectionUrl: "http://mockserver.com",
+				ConnectionId:  "demo",
+			},
+			Token: "mock-token",
+		}
+	})
+
+	// -----------------------------------------------------------------------
+	// Item 1: setBearerTokenForConnectionController — GenerateToken error path
+	// -----------------------------------------------------------------------
+	Context("setBearerTokenForConnectionController GenerateToken error path", func() {
+		It("should propagate error from GenerateToken when credentials path is invalid", func() {
+			// Use the real function (not a mock)
+			SetBearerTokenForConnectionControllerFunc = originalSetBearerTokenConnectionFunc
+			ctrl.Token = "" // force token regeneration
+			ctrl.Config.Credentials = Credentials{
+				Path: "/nonexistent/credentials-file.json",
+			}
+			ctrl.CommonCreds = nil
+			resp, err := ctrl.Invoke(ctx, InvokeConnectionRequest{
+				Method:  "GET",
+				Headers: map[string]string{"Content-Type": "application/json"},
+			})
+			Expect(err).ToNot(BeNil())
+			Expect(resp).To(BeNil())
+		})
+	})
+
+	// -----------------------------------------------------------------------
+	// Item 2: setConnectionCredentials — SKYFLOW_CREDENTIALS env var path
+	// -----------------------------------------------------------------------
+	Context("setConnectionCredentials SKYFLOW_CREDENTIALS env var path", func() {
+		It("should fall back to SKYFLOW_CREDENTIALS env var when config and builder creds are absent", func() {
+			// Use the real function so setConnectionCredentials is actually called
+			SetBearerTokenForConnectionControllerFunc = originalSetBearerTokenConnectionFunc
+			os.Setenv("SKYFLOW_CREDENTIALS", `{"clientID":"c","keyID":"k","tokenURI":"t","privateKey":"p"}`)
+			defer os.Unsetenv("SKYFLOW_CREDENTIALS")
+			ctrl.Token = "" // force token regeneration
+			ctrl.Config = &ConnectionConfig{
+				ConnectionUrl: "http://mockserver.com",
+				ConnectionId:  "demo",
+				// Credentials is zero-value → isCredentialsEmpty == true → hits env var branch
+			}
+			ctrl.CommonCreds = nil
+			// GenerateToken will fail because the JSON is not real credentials,
+			// but the env var path in setConnectionCredentials will have been taken.
+			resp, err := ctrl.Invoke(ctx, InvokeConnectionRequest{
+				Method:  "GET",
+				Headers: map[string]string{"Content-Type": "application/json"},
+			})
+			Expect(err).ToNot(BeNil())
+			Expect(resp).To(BeNil())
+		})
+	})
+
+	// -----------------------------------------------------------------------
+	// Item 3: io.ReadAll error — server closes connection prematurely
+	// -----------------------------------------------------------------------
+	Context("io.ReadAll error when server closes connection prematurely", func() {
+		It("should return error when response body cannot be fully read", func() {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				hj, ok := w.(http.Hijacker)
+				if !ok {
+					http.Error(w, "hijack unsupported", http.StatusInternalServerError)
+					return
+				}
+				conn, bufrw, _ := hj.Hijack()
+				// Advertise 1000 bytes but send only a few, then close.
+				bufrw.WriteString("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 1000\r\n\r\nhello")
+				bufrw.Flush()
+				conn.Close()
+			}))
+			defer srv.Close()
+			ctrl.Config.ConnectionUrl = srv.URL
+
+			SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError { return nil }
+			resp, err := ctrl.Invoke(ctx, InvokeConnectionRequest{
+				Method:  "GET",
+				Headers: map[string]string{"Content-Type": "application/json"},
+			})
+			Expect(err).ToNot(BeNil())
+			Expect(resp).To(BeNil())
+		})
+	})
+
+	// -----------------------------------------------------------------------
+	// Item 4: json.Marshal errors — 5 places, channels are not JSON-serialisable
+	// -----------------------------------------------------------------------
+	Context("json.Marshal errors in prepareRequest", func() {
+		It("should return error when json.Marshal fails for application/json body map", func() {
+			SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError { return nil }
+			resp, err := ctrl.Invoke(ctx, InvokeConnectionRequest{
+				Method:  "POST",
+				Headers: map[string]string{"Content-Type": "application/json"},
+				Body:    map[string]interface{}{"ch": make(chan int)},
+			})
+			Expect(err).ToNot(BeNil())
+			Expect(resp).To(BeNil())
+		})
+
+		It("should return error when json.Marshal fails for text/html body map", func() {
+			SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError { return nil }
+			resp, err := ctrl.Invoke(ctx, InvokeConnectionRequest{
+				Method:  "POST",
+				Headers: map[string]string{"Content-Type": "text/html"},
+				Body:    map[string]interface{}{"ch": make(chan int)},
+			})
+			Expect(err).ToNot(BeNil())
+			Expect(resp).To(BeNil())
+		})
+
+		It("should return error when json.Marshal fails for default content-type body map", func() {
+			SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError { return nil }
+			resp, err := ctrl.Invoke(ctx, InvokeConnectionRequest{
+				Method:  "POST",
+				Headers: map[string]string{"Content-Type": "application/custom-type"},
+				Body:    map[string]interface{}{"ch": make(chan int)},
+			})
+			Expect(err).ToNot(BeNil())
+			Expect(resp).To(BeNil())
+		})
+
+		It("should return error when json.Marshal fails for multipart/form-data nested map", func() {
+			SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError { return nil }
+			resp, err := ctrl.Invoke(ctx, InvokeConnectionRequest{
+				Method:  "POST",
+				Headers: map[string]string{"Content-Type": "multipart/form-data"},
+				Body:    map[string]interface{}{"field": map[string]interface{}{"ch": make(chan int)}},
+			})
+			Expect(err).ToNot(BeNil())
+			Expect(resp).To(BeNil())
+		})
+
+		It("should return error when json.Marshal fails for multipart/form-data array", func() {
+			SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError { return nil }
+			resp, err := ctrl.Invoke(ctx, InvokeConnectionRequest{
+				Method:  "POST",
+				Headers: map[string]string{"Content-Type": "multipart/form-data"},
+				Body:    map[string]interface{}{"arr": []interface{}{make(chan int)}},
+			})
+			Expect(err).ToNot(BeNil())
+			Expect(resp).To(BeNil())
+		})
+	})
+
+	// -----------------------------------------------------------------------
+	// Item 5: http.NewRequest error — null-byte in connection URL
+	// -----------------------------------------------------------------------
+	Context("http.NewRequest error via invalid URL in Invoke", func() {
+		It("should return error when ConnectionUrl contains a null byte", func() {
+			ctrl.Config.ConnectionUrl = "http://host\x00.example.com"
+			SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError { return nil }
+			resp, err := ctrl.Invoke(ctx, InvokeConnectionRequest{
+				Method:  "POST",
+				Headers: map[string]string{"Content-Type": "application/json"},
+				Body:    "test",
+			})
+			Expect(err).ToNot(BeNil())
+			Expect(resp).To(BeNil())
+		})
+	})
+
+	// -----------------------------------------------------------------------
+	// Item 6: buildURLEncodedParams nil continue — via Invoke
+	// -----------------------------------------------------------------------
+	Context("buildURLEncodedParams nil value via Invoke", func() {
+		It("should skip nil values in FORMURLENCODED body map", func() {
+			var receivedBody string
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				data, _ := io.ReadAll(r.Body)
+				receivedBody = string(data)
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"status":"ok"}`))
+			}))
+			defer srv.Close()
+			ctrl.Config.ConnectionUrl = srv.URL
+
+			SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError { return nil }
+			resp, err := ctrl.Invoke(ctx, InvokeConnectionRequest{
+				Method:  "POST",
+				Headers: map[string]string{"Content-Type": "application/x-www-form-urlencoded"},
+				Body:    map[string]interface{}{"key1": "value1", "nilkey": nil},
+			})
+			Expect(err).To(BeNil())
+			Expect(resp).ToNot(BeNil())
+			Expect(receivedBody).ToNot(ContainSubstring("nilkey"))
+			Expect(receivedBody).To(ContainSubstring("key1"))
+		})
+	})
+
+	// -----------------------------------------------------------------------
+	// Item 7: setQueryParams — int8, int16, uint8, uint16, uint32, uint64
+	// -----------------------------------------------------------------------
+	Context("setQueryParams with int8/int16/uint8/uint16/uint32/uint64", func() {
+		var mockServer *httptest.Server
+
+		BeforeEach(func() {
+			mockServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"status":"ok"}`))
+			}))
+			ctrl.Config.ConnectionUrl = mockServer.URL
+		})
+		AfterEach(func() { mockServer.Close() })
+
+		It("should encode int8 query param", func() {
+			SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError { return nil }
+			resp, err := ctrl.Invoke(ctx, InvokeConnectionRequest{
+				Method: "GET", Headers: map[string]string{"Content-Type": "application/json"},
+				QueryParams: map[string]interface{}{"v": int8(100)},
+			})
+			Expect(err).To(BeNil())
+			Expect(resp).ToNot(BeNil())
+		})
+
+		It("should encode int16 query param", func() {
+			SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError { return nil }
+			resp, err := ctrl.Invoke(ctx, InvokeConnectionRequest{
+				Method: "GET", Headers: map[string]string{"Content-Type": "application/json"},
+				QueryParams: map[string]interface{}{"v": int16(30000)},
+			})
+			Expect(err).To(BeNil())
+			Expect(resp).ToNot(BeNil())
+		})
+
+		It("should encode uint8 query param", func() {
+			SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError { return nil }
+			resp, err := ctrl.Invoke(ctx, InvokeConnectionRequest{
+				Method: "GET", Headers: map[string]string{"Content-Type": "application/json"},
+				QueryParams: map[string]interface{}{"v": uint8(200)},
+			})
+			Expect(err).To(BeNil())
+			Expect(resp).ToNot(BeNil())
+		})
+
+		It("should encode uint16 query param", func() {
+			SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError { return nil }
+			resp, err := ctrl.Invoke(ctx, InvokeConnectionRequest{
+				Method: "GET", Headers: map[string]string{"Content-Type": "application/json"},
+				QueryParams: map[string]interface{}{"v": uint16(60000)},
+			})
+			Expect(err).To(BeNil())
+			Expect(resp).ToNot(BeNil())
+		})
+
+		It("should encode uint32 query param", func() {
+			SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError { return nil }
+			resp, err := ctrl.Invoke(ctx, InvokeConnectionRequest{
+				Method: "GET", Headers: map[string]string{"Content-Type": "application/json"},
+				QueryParams: map[string]interface{}{"v": uint32(4000000000)},
+			})
+			Expect(err).To(BeNil())
+			Expect(resp).ToNot(BeNil())
+		})
+
+		It("should encode uint64 query param", func() {
+			SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError { return nil }
+			resp, err := ctrl.Invoke(ctx, InvokeConnectionRequest{
+				Method: "GET", Headers: map[string]string{"Content-Type": "application/json"},
+				QueryParams: map[string]interface{}{"v": uint64(18000000000000000000)},
+			})
+			Expect(err).To(BeNil())
+			Expect(resp).ToNot(BeNil())
+		})
+	})
+
+	// -----------------------------------------------------------------------
+	// Item 8: setHeaders ApiKey branch — server receives ApiKey as auth header
+	// -----------------------------------------------------------------------
+	Context("setHeaders ApiKey branch via Invoke", func() {
+		It("should use ApiKey as x-skyflow-authorization when ApiKey is set", func() {
+			var capturedAuth string
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				capturedAuth = r.Header.Get("x-skyflow-authorization")
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"status":"ok"}`))
+			}))
+			defer srv.Close()
+			ctrl.Config.ConnectionUrl = srv.URL
+			ctrl.ApiKey = "sky-test-apikey-abcde"
+			ctrl.Token = ""
+
+			SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError { return nil }
+			resp, err := ctrl.Invoke(ctx, InvokeConnectionRequest{
+				Method:  "GET",
+				Headers: map[string]string{"Content-Type": "application/json"},
+			})
+			Expect(err).To(BeNil())
+			Expect(resp).ToNot(BeNil())
+			Expect(capturedAuth).To(Equal("sky-test-apikey-abcde"))
+		})
+	})
+
+	// -----------------------------------------------------------------------
+	// Item 9: setHeaders content-type continue — boundary must not be overridden
+	// -----------------------------------------------------------------------
+	Context("setHeaders content-type continue branch via Invoke", func() {
+		It("should preserve multipart boundary even when user headers include Content-Type", func() {
+			var capturedCT string
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				capturedCT = r.Header.Get("Content-Type")
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"status":"ok"}`))
+			}))
+			defer srv.Close()
+			ctrl.Config.ConnectionUrl = srv.URL
+
+			SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError { return nil }
+			resp, err := ctrl.Invoke(ctx, InvokeConnectionRequest{
+				Method: "POST",
+				Headers: map[string]string{
+					"Content-Type": "multipart/form-data",
+					"X-Extra":      "extra-value",
+				},
+				Body: map[string]interface{}{"field": "value"},
+			})
+			Expect(err).To(BeNil())
+			Expect(resp).ToNot(BeNil())
+			// The actual content-type must contain the boundary set by the multipart writer.
+			Expect(capturedCT).To(ContainSubstring("multipart/form-data"))
+			Expect(capturedCT).To(ContainSubstring("boundary="))
+		})
+	})
+
+	// -----------------------------------------------------------------------
+	// Item 10: writeXMLElement nil — produces <tag/> via XML body map
+	// -----------------------------------------------------------------------
+	Context("writeXMLElement nil value via Invoke", func() {
+		It("should produce a self-closing XML tag for nil values in the body map", func() {
+			var receivedBody string
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				data, _ := io.ReadAll(r.Body)
+				receivedBody = string(data)
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"status":"ok"}`))
+			}))
+			defer srv.Close()
+			ctrl.Config.ConnectionUrl = srv.URL
+
+			SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError { return nil }
+			resp, err := ctrl.Invoke(ctx, InvokeConnectionRequest{
+				Method:  "POST",
+				Headers: map[string]string{"Content-Type": "application/xml"},
+				Body:    map[string]interface{}{"nullfield": nil, "realfield": "value"},
+			})
+			Expect(err).To(BeNil())
+			Expect(resp).ToNot(BeNil())
+			Expect(receivedBody).To(ContainSubstring("<nullfield/>"))
+			Expect(receivedBody).To(ContainSubstring("<realfield>value</realfield>"))
+		})
 	})
 })
 

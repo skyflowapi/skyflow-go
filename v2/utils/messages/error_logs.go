@@ -3,7 +3,7 @@ package logs
 import . "github.com/skyflowapi/skyflow-go/v2/internal/constants"
 
 const (
-	    INVALID_XML_FORMAT =  SDK_LOG_PREFIX + " Validation error. Invalid XML format. Specify a valid XML format as string."
+	INVALID_XML_FORMAT =  SDK_LOG_PREFIX + " Validation error. Invalid XML format. Specify a valid XML format as string."
 	CLIENT_ID_NOT_FOUND   = SDK_LOG_PREFIX + "Invalid credentials. Client ID cannot be empty."
 	TOKEN_URI_NOT_FOUND   = SDK_LOG_PREFIX + "Invalid credentials. Token URI cannot be empty."
 	KEY_ID_NOT_FOUND      = SDK_LOG_PREFIX + "Invalid credentials. Key ID cannot be empty."
@@ -121,6 +121,8 @@ const (
 	GET_DETECT_RUN_REQUEST_FAILED                            = SDK_LOG_PREFIX + "Get detect run request failed."
 	POLLING_FOR_RESULTS_FAILED                               = SDK_LOG_PREFIX + "Polling for results failed. Unable to retrieve the deidentified file"
 	FAILED_TO_DECODE_PROCESSED_FILE                          = SDK_LOG_PREFIX + "Failed to decode processed file."
+	FAILED_TO_READ_FILE                                      = SDK_LOG_PREFIX + "Failed to read the file at the specified path. Verify the file exists and is readable."
+	FAILED_TO_READ_FILE_OBJECT                               = SDK_LOG_PREFIX + "Failed to read the provided file object. Verify the file object is valid and readable."
 	EMPTY_DEIDENTIFY_FILE_RESPONSE                           = SDK_LOG_PREFIX + "Deidentify file response is empty or invalid."
 	EMPTY_RUN_ID                                             = SDK_LOG_PREFIX + "Invalid %s request. Run ID is required and cannot be empty."
 	INVALID_TOKENIZE_REQUEST                                 = SDK_LOG_PREFIX + "Invalid tokenize request. Specify a tokenize request."
