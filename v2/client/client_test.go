@@ -1243,39 +1243,181 @@ var _ = Describe("Skyflow Management Methods", func() {
 			Expect(err2).ToNot(BeNil())
 		})
 
-		It("VaultConfig.BaseVaultURL (old field) is accepted in AddVault", func() {
-			newVault := common.VaultConfig{
-				VaultId:      "vault-old-url",
-				BaseVaultURL: "https://old-url.example.com",
-				Env:          common.PROD,
-				Credentials:  common.Credentials{ApiKey: "key"},
-			}
-			err := bc.AddVault(newVault)
-			Expect(err).To(BeNil())
+		// --- VaultConfig.BaseVaultURL → BaseVaultUrl ---
+		Context("VaultConfig.BaseVaultURL → BaseVaultUrl", func() {
+			It("old field only — deprecated BaseVaultURL is accepted in AddVault", func() {
+				err := bc.AddVault(common.VaultConfig{
+					VaultId:      "vault-old-url",
+					BaseVaultURL: "https://old-url.example.com",
+					Env:          common.PROD,
+					Credentials:  common.Credentials{ApiKey: "key"},
+				})
+				Expect(err).To(BeNil())
+			})
+
+			It("new field only — BaseVaultUrl is accepted in AddVault", func() {
+				err := bc.AddVault(common.VaultConfig{
+					VaultId:      "vault-new-url",
+					BaseVaultUrl: "https://new-url.example.com",
+					Env:          common.PROD,
+					Credentials:  common.Credentials{ApiKey: "key"},
+				})
+				Expect(err).To(BeNil())
+			})
+
+			It("both fields set — AddVault accepts the config (new field takes precedence at resolution)", func() {
+				err := bc.AddVault(common.VaultConfig{
+					VaultId:      "vault-both-url",
+					BaseVaultUrl: "https://new-url.example.com",
+					BaseVaultURL: "https://old-url.example.com",
+					Env:          common.PROD,
+					Credentials:  common.Credentials{ApiKey: "key"},
+				})
+				Expect(err).To(BeNil())
+			})
 		})
 
-		It("RequestIDHeader (old constant) is accepted in WithCustomHeaders", func() {
-			newVault := common.VaultConfig{VaultId: "hdr-vault", ClusterId: "c", Env: common.PROD}
-			_, err := NewSkyflow(
-				WithVaults(newVault),
-				WithCredentials(common.Credentials{CredentialsString: "creds"}),
-				WithCustomHeaders(map[common.CustomHeaderKey]string{
-					common.RequestIDHeader: "req-123",
-				}),
-			)
-			Expect(err).To(BeNil())
+		// --- RequestIDHeader → RequestIdHeader ---
+		Context("RequestIDHeader → RequestIdHeader", func() {
+			It("old constant only — RequestIDHeader is accepted in WithCustomHeaders", func() {
+				_, err := NewSkyflow(
+					WithVaults(common.VaultConfig{VaultId: "hdr-old", ClusterId: "c", Env: common.PROD}),
+					WithCredentials(common.Credentials{CredentialsString: "creds"}),
+					WithCustomHeaders(map[common.CustomHeaderKey]string{
+						common.RequestIDHeader: "req-123",
+					}),
+				)
+				Expect(err).To(BeNil())
+			})
+
+			It("new constant only — RequestIdHeader is accepted in WithCustomHeaders", func() {
+				_, err := NewSkyflow(
+					WithVaults(common.VaultConfig{VaultId: "hdr-new", ClusterId: "c", Env: common.PROD}),
+					WithCredentials(common.Credentials{CredentialsString: "creds"}),
+					WithCustomHeaders(map[common.CustomHeaderKey]string{
+						common.RequestIdHeader: "req-456",
+					}),
+				)
+				Expect(err).To(BeNil())
+			})
+
+			It("both constants refer to the same header key — they are aliases", func() {
+				Expect(common.RequestIDHeader).To(Equal(common.RequestIdHeader))
+			})
 		})
 
-		It("SkyflowAccountID (old constant) is accepted in WithCustomHeaders", func() {
-			newVault := common.VaultConfig{VaultId: "acct-vault", ClusterId: "c", Env: common.PROD}
-			_, err := NewSkyflow(
-				WithVaults(newVault),
-				WithCredentials(common.Credentials{CredentialsString: "creds"}),
-				WithCustomHeaders(map[common.CustomHeaderKey]string{
-					common.SkyflowAccountID: "acct-123",
-				}),
-			)
-			Expect(err).To(BeNil())
+		// --- SkyflowAccountID → SkyflowAccountId ---
+		Context("SkyflowAccountID → SkyflowAccountId", func() {
+			It("old constant only — SkyflowAccountID is accepted in WithCustomHeaders", func() {
+				_, err := NewSkyflow(
+					WithVaults(common.VaultConfig{VaultId: "acct-old", ClusterId: "c", Env: common.PROD}),
+					WithCredentials(common.Credentials{CredentialsString: "creds"}),
+					WithCustomHeaders(map[common.CustomHeaderKey]string{
+						common.SkyflowAccountID: "acct-123",
+					}),
+				)
+				Expect(err).To(BeNil())
+			})
+
+			It("new constant only — SkyflowAccountId is accepted in WithCustomHeaders", func() {
+				_, err := NewSkyflow(
+					WithVaults(common.VaultConfig{VaultId: "acct-new", ClusterId: "c", Env: common.PROD}),
+					WithCredentials(common.Credentials{CredentialsString: "creds"}),
+					WithCustomHeaders(map[common.CustomHeaderKey]string{
+						common.SkyflowAccountId: "acct-456",
+					}),
+				)
+				Expect(err).To(BeNil())
+			})
+
+			It("both constants refer to the same header key — they are aliases", func() {
+				Expect(common.SkyflowAccountID).To(Equal(common.SkyflowAccountId))
+			})
+		})
+
+		// --- DetokenizeOptions.DownloadURL → DownloadUrl ---
+		Context("DetokenizeOptions.DownloadURL → DownloadUrl", func() {
+			It("old field only — deprecated DownloadURL field is set, new DownloadUrl is nil", func() {
+				opts := common.DetokenizeOptions{DownloadURL: true}
+				Expect(opts.DownloadURL).To(BeTrue())
+				Expect(opts.DownloadUrl).To(BeNil())
+			})
+
+			It("new field only — DownloadUrl=&true, deprecated DownloadURL is false", func() {
+				t := true
+				opts := common.DetokenizeOptions{DownloadUrl: &t}
+				Expect(opts.DownloadUrl).ToNot(BeNil())
+				Expect(*opts.DownloadUrl).To(BeTrue())
+				Expect(opts.DownloadURL).To(BeFalse())
+			})
+
+			It("new field only — DownloadUrl=&false distinguishable from unset (nil)", func() {
+				f := false
+				opts := common.DetokenizeOptions{DownloadUrl: &f}
+				Expect(opts.DownloadUrl).ToNot(BeNil())
+				Expect(*opts.DownloadUrl).To(BeFalse())
+			})
+
+			It("both fields set — DownloadUrl=&true takes precedence, deprecated DownloadURL is ignored", func() {
+				t := true
+				opts := common.DetokenizeOptions{DownloadURL: true, DownloadUrl: &t}
+				Expect(opts.DownloadURL).To(BeTrue())
+				Expect(opts.DownloadUrl).ToNot(BeNil())
+				Expect(*opts.DownloadUrl).To(BeTrue())
+			})
+		})
+
+		// --- GetOptions.DownloadURL → DownloadUrl ---
+		Context("GetOptions.DownloadURL → DownloadUrl", func() {
+			It("old field only — deprecated DownloadURL field is set, new DownloadUrl is nil", func() {
+				opts := common.GetOptions{DownloadURL: true}
+				Expect(opts.DownloadURL).To(BeTrue())
+				Expect(opts.DownloadUrl).To(BeNil())
+			})
+
+			It("new field only — DownloadUrl=&true, deprecated DownloadURL is false", func() {
+				t := true
+				opts := common.GetOptions{DownloadUrl: &t}
+				Expect(opts.DownloadUrl).ToNot(BeNil())
+				Expect(*opts.DownloadUrl).To(BeTrue())
+				Expect(opts.DownloadURL).To(BeFalse())
+			})
+
+			It("new field only — DownloadUrl=&false distinguishable from unset (nil)", func() {
+				f := false
+				opts := common.GetOptions{DownloadUrl: &f}
+				Expect(opts.DownloadUrl).ToNot(BeNil())
+				Expect(*opts.DownloadUrl).To(BeFalse())
+			})
+
+			It("both fields set — DownloadUrl=&true takes precedence, deprecated DownloadURL is ignored", func() {
+				t := true
+				opts := common.GetOptions{DownloadURL: true, DownloadUrl: &t}
+				Expect(opts.DownloadURL).To(BeTrue())
+				Expect(opts.DownloadUrl).ToNot(BeNil())
+				Expect(*opts.DownloadUrl).To(BeTrue())
+			})
+		})
+
+		// --- BearerTokenOptions.RoleIDs → RoleIds ---
+		Context("BearerTokenOptions.RoleIDs → RoleIds", func() {
+			It("old field only — deprecated RoleIDs field is set", func() {
+				opts := common.BearerTokenOptions{RoleIDs: []string{"r1"}}
+				Expect(opts.RoleIDs).To(Equal([]string{"r1"}))
+				Expect(opts.RoleIds).To(BeEmpty())
+			})
+
+			It("new field only — RoleIds field is set", func() {
+				opts := common.BearerTokenOptions{RoleIds: []string{"r1"}}
+				Expect(opts.RoleIds).To(Equal([]string{"r1"}))
+				Expect(opts.RoleIDs).To(BeEmpty())
+			})
+
+			It("both fields set — both RoleIDs and RoleIds carry their respective values", func() {
+				opts := common.BearerTokenOptions{RoleIDs: []string{"old"}, RoleIds: []string{"new"}}
+				Expect(opts.RoleIDs).To(Equal([]string{"old"}))
+				Expect(opts.RoleIds).To(Equal([]string{"new"}))
+			})
 		})
 	})
 
@@ -1587,9 +1729,9 @@ var _ = Describe("Skyflow Management Methods", func() {
 // =============================================================================
 var _ = Describe("Skyflow lifecycle: after Vault/Detect/Connection activated", func() {
 	var (
-		client     *Skyflow
-		vaultCfg   common.VaultConfig
-		connCfg    common.ConnectionConfig
+		client   *Skyflow
+		vaultCfg common.VaultConfig
+		connCfg  common.ConnectionConfig
 	)
 
 	BeforeEach(func() {

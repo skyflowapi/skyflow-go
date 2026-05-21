@@ -45,6 +45,7 @@ func main() {
 		} else {
 			ctx := context.TODO()
 			// Step 4: Retrieve records using record IDs and table names
+			downloadUrl := true
 			getRes, getErr := service.Get(ctx, common.GetRequest{
 				Table: "<TABLE_NAME>", // Name of the table
 				Ids: []string{
@@ -53,7 +54,7 @@ func main() {
 				},
 			}, common.GetOptions{
 				ReturnTokens: true,
-				DownloadUrl:  true,
+				DownloadUrl:  &downloadUrl,
 			})
 			// Step 5: Handle the response and errors
 			if getErr != nil {

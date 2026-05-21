@@ -249,6 +249,7 @@ type DeidentifyTextResponse struct {
 	Entities      []EntityInfo
 	WordCount     int
 	CharCount     int
+	Errors        []map[string]interface{}
 }
 
 type EntityInfo struct {
@@ -265,6 +266,7 @@ type TextIndex struct {
 }
 type ReidentifyTextResponse struct {
 	ProcessedText string
+	Errors		[]map[string]interface{}
 }
 
 type ReidentifyTextRequest struct {
@@ -332,6 +334,7 @@ type DeidentifyFileResponse struct {
 	Entities          []FileEntityInfo
 	RunId             string
 	Status            string
+	Errors            []map[string]interface{}
 }
 
 type GetDetectRunRequest struct {
@@ -438,7 +441,7 @@ type DetokenizeData struct {
 
 type DetokenizeOptions struct {
 	ContinueOnError bool
-	DownloadUrl     bool
+	DownloadUrl     *bool
 	// Deprecated: Use DownloadUrl instead.
 	DownloadURL     bool
 	CustomHeaders   map[CustomHeaderKey]string
@@ -500,7 +503,7 @@ type GetOptions struct {
 	Fields        []string
 	Offset        string
 	Limit         string
-	DownloadUrl   bool
+	DownloadUrl   *bool
 	// Deprecated: Use DownloadUrl instead.
 	DownloadURL   bool
 	ColumnName    string

@@ -2,12 +2,14 @@ package controller_test
 
 import (
 	// "bytes"
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	// "io"
 	// "mime/multipart"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -1119,6 +1121,36 @@ var _ = Describe("Vault controller Test cases", func() {
 				Expect(err).To(BeNil())
 				Expect(res).ToNot(BeNil())
 				Expect(res.Errors).To(BeNil())
+			})
+
+			It("Update response contains both SkyflowId (new) and skyflowId (deprecated backward compat)", func() {
+				response := make(map[string]interface{})
+				_ = json.Unmarshal([]byte(mockUpdateSuccessJSON), &response)
+				ts := setupMockServer(response, "ok", "/vaults/v1/vaults/")
+				header := http.Header{}
+				header.Set("Content-Type", "application/json")
+				CreateRequestClientFunc = func(v *VaultController, requestHeaders map[CustomHeaderKey]string) *skyflowError.SkyflowError {
+					c := client.NewClient(
+						option.WithBaseURL(ts.URL+"/vaults"),
+						option.WithToken("token"),
+						option.WithHTTPHeader(header),
+					)
+					v.ApiClient = *c
+					return nil
+				}
+				// Use a fresh request — the controller deletes SkyflowId from Data after extracting it,
+				// so reusing the shared `request` variable fails if a previous test already ran Update.
+				freshRequest := UpdateRequest{
+					Table: "demo",
+					Data:  map[string]interface{}{"SkyflowId": "123", "name": "john"},
+				}
+				res, err := vaultController.Update(ctx, freshRequest, UpdateOptions{TokenMode: DISABLE})
+				Expect(err).To(BeNil())
+				Expect(res).ToNot(BeNil())
+				Expect(res.UpdatedField).To(HaveKeyWithValue("SkyflowId", "id"),
+					"new SkyflowId key must be present in the Update response")
+				Expect(res.UpdatedField).To(HaveKeyWithValue("skyflowId", "id"),
+					"deprecated skyflowId key must be retained for backward compatibility")
 			})
 
 			It("should return error response when invalid data passed in Update", func() {
@@ -4042,6 +4074,428 @@ var _ = Describe("VaultController", func() {
 
 	})
 })
+
+var _ = Describe("VaultController — deprecated field fallbacks", func() {
+	var ts *httptest.Server
+	var ctx context.Context
+	originalCreateRequestClientFunc := CreateRequestClientFunc
+
+	BeforeEach(func() {
+		ctx = context.TODO()
+	})
+
+	AfterEach(func() {
+		CreateRequestClientFunc = originalCreateRequestClientFunc
+		if ts != nil {
+			ts.Close()
+			ts = nil
+		}
+	})
+
+	Context("VaultConfig.BaseVaultURL → BaseVaultUrl", func() {
+		makeDetokenizeCall := func(vc *VaultController) {
+			tok := "t"
+			_, _ = vc.ApiClient.Tokens.WithRawResponse.RecordServiceDetokenize(
+				ctx, "vault1", &vaultapis.V1DetokenizePayload{
+					DetokenizationParameters: []*vaultapis.V1DetokenizeRecordRequest{{Token: &tok}},
+				},
+			)
+		}
+
+		Context("old field only", func() {
+			It("CreateRequestClient succeeds when only deprecated BaseVaultURL is set", func() {
+				vc := &VaultController{
+					Config: &VaultConfig{
+						VaultId:      "vault1",
+						BaseVaultURL: "https://custom.vault.example.com",
+						Credentials:  Credentials{ApiKey: "k"},
+					},
+				}
+				err := CreateRequestClient(vc, nil)
+				Expect(err).To(BeNil())
+				Expect(vc.ApiClient).ToNot(BeZero(),
+					"ApiClient should be initialised when only BaseVaultURL (deprecated) is set")
+			})
+		})
+
+		Context("new field only", func() {
+			It("CreateRequestClient routes requests to BaseVaultUrl when only new field is set", func() {
+				var called bool
+				ts = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					called = true
+					w.WriteHeader(http.StatusOK)
+					_, _ = w.Write([]byte(`{}`))
+				}))
+				vc := &VaultController{
+					Config: &VaultConfig{
+						VaultId:      "vault1",
+						BaseVaultUrl: ts.URL,
+						Credentials:  Credentials{ApiKey: "k"},
+					},
+				}
+				err := CreateRequestClient(vc, nil)
+				Expect(err).To(BeNil())
+				makeDetokenizeCall(vc)
+				Expect(called).To(BeTrue(),
+					"request should reach the server at BaseVaultUrl (new)")
+			})
+		})
+
+		Context("both old and new set together", func() {
+			It("new BaseVaultUrl wins over deprecated BaseVaultURL", func() {
+				var called bool
+				ts = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					called = true
+					w.WriteHeader(http.StatusOK)
+					_, _ = w.Write([]byte(`{}`))
+				}))
+				vc := &VaultController{
+					Config: &VaultConfig{
+						VaultId:      "vault1",
+						BaseVaultUrl: ts.URL,
+						BaseVaultURL: "https://old.example.com",
+						Credentials:  Credentials{ApiKey: "k"},
+					},
+				}
+				err := CreateRequestClient(vc, nil)
+				Expect(err).To(BeNil())
+				makeDetokenizeCall(vc)
+				Expect(called).To(BeTrue(),
+					"request should reach the new BaseVaultUrl server, not BaseVaultURL (deprecated)")
+			})
+		})
+	})
+
+	Context("GetOptions.DownloadURL → DownloadUrl", func() {
+		makeGetMock := func(captureQuery *string) {
+			ts = setupMockServer(map[string]interface{}{
+				"records": []interface{}{
+					map[string]interface{}{"fields": map[string]interface{}{"SkyflowId": "id1"}, "tokens": nil},
+				},
+			}, "ok", "/vaults/v1/vaults/")
+			inner := ts.Config.Handler
+			ts.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				*captureQuery = r.URL.RawQuery
+				inner.ServeHTTP(w, r)
+			})
+			CreateRequestClientFunc = func(v *VaultController, _ map[CustomHeaderKey]string) *skyflowError.SkyflowError {
+				c := client.NewClient(
+					option.WithBaseURL(ts.URL+"/vaults"),
+					option.WithToken("test-token"),
+				)
+				v.ApiClient = *c
+				return nil
+			}
+		}
+
+		Context("old field only", func() {
+			It("deprecated DownloadURL=true is forwarded as downloadURL query param", func() {
+				var rawQuery string
+				makeGetMock(&rawQuery)
+				vc := &VaultController{Config: &VaultConfig{VaultId: "vault1", Credentials: Credentials{ApiKey: "k"}}}
+				_, _ = vc.Get(ctx,
+					GetRequest{Table: "table", Ids: []string{"id1"}},
+					GetOptions{RedactionType: PLAIN_TEXT, DownloadURL: true},
+				)
+				Expect(rawQuery).To(ContainSubstring("downloadURL=true"),
+					"deprecated DownloadURL should be forwarded as downloadURL query param")
+			})
+		})
+
+		Context("new field only", func() {
+			It("DownloadUrl=&true is forwarded as downloadURL query param", func() {
+				var rawQuery string
+				makeGetMock(&rawQuery)
+				t := true
+				vc := &VaultController{Config: &VaultConfig{VaultId: "vault1", Credentials: Credentials{ApiKey: "k"}}}
+				_, _ = vc.Get(ctx,
+					GetRequest{Table: "table", Ids: []string{"id1"}},
+					GetOptions{RedactionType: PLAIN_TEXT, DownloadUrl: &t},
+				)
+				Expect(rawQuery).To(ContainSubstring("downloadURL=true"),
+					"new DownloadUrl should be forwarded as downloadURL query param")
+			})
+
+			It("DownloadUrl=&false suppresses the downloadURL query param", func() {
+				var rawQuery string
+				makeGetMock(&rawQuery)
+				f := false
+				vc := &VaultController{Config: &VaultConfig{VaultId: "vault1", Credentials: Credentials{ApiKey: "k"}}}
+				_, _ = vc.Get(ctx,
+					GetRequest{Table: "table", Ids: []string{"id1"}},
+					GetOptions{RedactionType: PLAIN_TEXT, DownloadUrl: &f},
+				)
+				Expect(rawQuery).ToNot(ContainSubstring("downloadURL=true"),
+					"explicit DownloadUrl=false should not send downloadURL query param")
+			})
+		})
+
+		Context("both old and new set together", func() {
+			runGet := func(newVal *bool, oldVal bool) string {
+				var rawQuery string
+				makeGetMock(&rawQuery)
+				vc := &VaultController{Config: &VaultConfig{VaultId: "vault1", Credentials: Credentials{ApiKey: "k"}}}
+				_, _ = vc.Get(ctx,
+					GetRequest{Table: "table", Ids: []string{"id1"}},
+					GetOptions{RedactionType: PLAIN_TEXT, DownloadUrl: newVal, DownloadURL: oldVal},
+				)
+				return rawQuery
+			}
+
+			// DownloadUrl (*bool) | DownloadURL (bool) | result in request
+			It("new=&true,  old=true  → downloadURL=true (new wins)", func() {
+				t := true
+				Expect(runGet(&t, true)).To(ContainSubstring("downloadURL=true"))
+			})
+			It("new=&true,  old=false → downloadURL=true (new wins over no-op old)", func() {
+				t := true
+				Expect(runGet(&t, false)).To(ContainSubstring("downloadURL=true"))
+			})
+			It("new=&false, old=true  → no downloadURL   (new wins, blocks deprecated fallback)", func() {
+				f := false
+				Expect(runGet(&f, true)).ToNot(ContainSubstring("downloadURL=true"))
+			})
+			It("new=&false, old=false → no downloadURL   (both off)", func() {
+				f := false
+				Expect(runGet(&f, false)).ToNot(ContainSubstring("downloadURL=true"))
+			})
+			It("new=nil,    old=true  → downloadURL=true (deprecated fallback activates)", func() {
+				Expect(runGet(nil, true)).To(ContainSubstring("downloadURL=true"))
+			})
+			It("new=nil,    old=false → no downloadURL   (neither active)", func() {
+				Expect(runGet(nil, false)).ToNot(ContainSubstring("downloadURL=true"))
+			})
+		})
+	})
+
+	Context("DetokenizeOptions.DownloadURL → DownloadUrl — final request body", func() {
+		// captureBody reads the POST body and stores the parsed JSON so tests can inspect it.
+		makeDetokenizeMock := func(captureBody *map[string]interface{}) {
+			response := map[string]interface{}{
+				"records": []interface{}{
+					map[string]interface{}{
+						"token":     "tok",
+						"valueType": "STRING",
+						"value":     "v",
+					},
+				},
+			}
+			ts = setupMockServer(response, "ok", "/vaults/v1/vaults/")
+			inner := ts.Config.Handler
+			ts.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Body != nil {
+					raw, _ := io.ReadAll(r.Body)
+					r.Body = io.NopCloser(bytes.NewBuffer(raw))
+					var parsed map[string]interface{}
+					_ = json.Unmarshal(raw, &parsed)
+					*captureBody = parsed
+				}
+				inner.ServeHTTP(w, r)
+			})
+			CreateRequestClientFunc = func(v *VaultController, _ map[CustomHeaderKey]string) *skyflowError.SkyflowError {
+				c := client.NewClient(
+					option.WithBaseURL(ts.URL+"/vaults"),
+					option.WithToken("test-token"),
+				)
+				v.ApiClient = *c
+				return nil
+			}
+		}
+
+		detokenizeReq := func() DetokenizeRequest {
+			return DetokenizeRequest{
+				DetokenizeData: []common.DetokenizeData{{Token: "tok"}},
+			}
+		}
+
+		Context("old field only", func() {
+			It("deprecated DownloadURL=true → downloadURL:true in request body", func() {
+				var body map[string]interface{}
+				makeDetokenizeMock(&body)
+				vc := &VaultController{Config: &VaultConfig{VaultId: "vault1", Credentials: Credentials{ApiKey: "k"}}}
+				_, _ = vc.Detokenize(ctx, detokenizeReq(), DetokenizeOptions{DownloadURL: true})
+				Expect(body).To(HaveKeyWithValue("downloadURL", true))
+			})
+
+			It("deprecated DownloadURL=false (not set) → downloadURL absent from request body", func() {
+				var body map[string]interface{}
+				makeDetokenizeMock(&body)
+				vc := &VaultController{Config: &VaultConfig{VaultId: "vault1", Credentials: Credentials{ApiKey: "k"}}}
+				_, _ = vc.Detokenize(ctx, detokenizeReq(), DetokenizeOptions{})
+				Expect(body).ToNot(HaveKey("downloadURL"))
+			})
+		})
+
+		Context("new field only", func() {
+			It("DownloadUrl=&true → downloadURL:true in request body", func() {
+				var body map[string]interface{}
+				makeDetokenizeMock(&body)
+				t := true
+				vc := &VaultController{Config: &VaultConfig{VaultId: "vault1", Credentials: Credentials{ApiKey: "k"}}}
+				_, _ = vc.Detokenize(ctx, detokenizeReq(), DetokenizeOptions{DownloadUrl: &t})
+				Expect(body).To(HaveKeyWithValue("downloadURL", true))
+			})
+
+			It("DownloadUrl=&false → downloadURL:false in request body (distinguishable from nil)", func() {
+				var body map[string]interface{}
+				makeDetokenizeMock(&body)
+				f := false
+				vc := &VaultController{Config: &VaultConfig{VaultId: "vault1", Credentials: Credentials{ApiKey: "k"}}}
+				_, _ = vc.Detokenize(ctx, detokenizeReq(), DetokenizeOptions{DownloadUrl: &f})
+				Expect(body).To(HaveKeyWithValue("downloadURL", false))
+			})
+		})
+
+		Context("both old and new set together", func() {
+			runDetokenize := func(newVal *bool, oldVal bool) map[string]interface{} {
+				var body map[string]interface{}
+				makeDetokenizeMock(&body)
+				vc := &VaultController{Config: &VaultConfig{VaultId: "vault1", Credentials: Credentials{ApiKey: "k"}}}
+				_, _ = vc.Detokenize(ctx, detokenizeReq(), DetokenizeOptions{DownloadUrl: newVal, DownloadURL: oldVal})
+				return body
+			}
+
+			// DownloadUrl (*bool) | DownloadURL (bool) | downloadURL field in request body
+			It("new=&true,  old=true  → downloadURL:true  (new wins)", func() {
+				t := true
+				Expect(runDetokenize(&t, true)).To(HaveKeyWithValue("downloadURL", true))
+			})
+			It("new=&true,  old=false → downloadURL:true  (new wins over no-op old)", func() {
+				t := true
+				Expect(runDetokenize(&t, false)).To(HaveKeyWithValue("downloadURL", true))
+			})
+			It("new=&false, old=true  → downloadURL:false (new wins, blocks deprecated fallback)", func() {
+				f := false
+				Expect(runDetokenize(&f, true)).To(HaveKeyWithValue("downloadURL", false))
+			})
+			It("new=&false, old=false → downloadURL:false (both off)", func() {
+				f := false
+				Expect(runDetokenize(&f, false)).To(HaveKeyWithValue("downloadURL", false))
+			})
+			It("new=nil,    old=true  → downloadURL:true  (deprecated fallback activates)", func() {
+				Expect(runDetokenize(nil, true)).To(HaveKeyWithValue("downloadURL", true))
+			})
+			It("new=nil,    old=false → key absent        (neither active)", func() {
+				Expect(runDetokenize(nil, false)).ToNot(HaveKey("downloadURL"))
+			})
+		})
+	})
+})
+
+var _ = Describe("VaultController — response key backward compat", func() {
+	var ts *httptest.Server
+	var ctx context.Context
+	originalCreateRequestClientFunc := CreateRequestClientFunc
+
+	BeforeEach(func() {
+		ctx = context.TODO()
+	})
+
+	AfterEach(func() {
+		CreateRequestClientFunc = originalCreateRequestClientFunc
+		if ts != nil {
+			ts.Close()
+			ts = nil
+		}
+	})
+
+	newVC := func() *VaultController {
+		return &VaultController{
+			Config: &VaultConfig{
+				VaultId:   "id",
+				ClusterId: "clusterid",
+				Env:       PROD,
+				Credentials: Credentials{ApiKey: "sky-token"},
+			},
+		}
+	}
+
+	setMockClient := func(vc *VaultController) {
+		CreateRequestClientFunc = func(v *VaultController, _ map[CustomHeaderKey]string) *skyflowError.SkyflowError {
+			c := client.NewClient(option.WithBaseURL(ts.URL+"/vaults"), option.WithToken("test-token"))
+			v.ApiClient = *c
+			return nil
+		}
+	}
+
+	Context("Insert (ContinueOnError=false) — InsertedFields contains both SkyflowId and skyflow_id", func() {
+		It("response map contains both SkyflowId (new) and skyflow_id (deprecated) for each record", func() {
+			resp := make(map[string]interface{})
+			_ = json.Unmarshal([]byte(mockInsertContinueFalseSuccessJSON), &resp)
+			ts = setupMockServer(resp, "ok", "/vaults/v1/vaults/")
+			vc := newVC()
+			setMockClient(vc)
+			res, err := vc.Insert(ctx, InsertRequest{
+				Table:  "test_table",
+				Values: []map[string]interface{}{{"name": "john"}},
+			}, InsertOptions{ContinueOnError: false})
+			Expect(err).To(BeNil())
+			Expect(res.InsertedFields[0]).To(HaveKeyWithValue("SkyflowId", "skyflowid1"),
+				"new SkyflowId key must be present")
+			Expect(res.InsertedFields[0]).To(HaveKeyWithValue("skyflow_id", "skyflowid1"),
+				"deprecated skyflow_id key must be retained for backward compatibility")
+		})
+	})
+
+	Context("Insert (ContinueOnError=true) — InsertedFields contains both id and index keys", func() {
+		It("response contains both SkyflowId and skyflow_id, and both RequestIndex and request_index", func() {
+			resp := make(map[string]interface{})
+			_ = json.Unmarshal([]byte(mockInsertSuccessJSON), &resp)
+			ts = setupMockServer(resp, "ok", "/vaults/v1/vaults/")
+			vc := newVC()
+			setMockClient(vc)
+			res, err := vc.Insert(ctx, InsertRequest{
+				Table:  "test_table",
+				Values: []map[string]interface{}{{"name": "john"}},
+			}, InsertOptions{ContinueOnError: true})
+			Expect(err).To(BeNil())
+			Expect(res.InsertedFields[0]).To(HaveKey("SkyflowId"),
+				"new SkyflowId key must be present")
+			Expect(res.InsertedFields[0]).To(HaveKey("skyflow_id"),
+				"deprecated skyflow_id key must be retained")
+			Expect(res.InsertedFields[0]).To(HaveKey("RequestIndex"),
+				"new RequestIndex key must be present")
+			Expect(res.InsertedFields[0]).To(HaveKey("request_index"),
+				"deprecated request_index key must be retained")
+		})
+	})
+
+	Context("Get — Data contains both SkyflowId and skyflow_id", func() {
+		It("response map contains both SkyflowId (new) and skyflow_id (deprecated)", func() {
+			resp := make(map[string]interface{})
+			_ = json.Unmarshal([]byte(mockGetSuccessJSON), &resp)
+			ts = setupMockServer(resp, "ok", "/vaults/v1/vaults/")
+			vc := newVC()
+			setMockClient(vc)
+			res, err := vc.Get(ctx, GetRequest{Table: "test_table", Ids: []string{"id1"}},
+				GetOptions{RedactionType: PLAIN_TEXT})
+			Expect(err).To(BeNil())
+			Expect(res.Data[0]).To(HaveKeyWithValue("SkyflowId", "id1"),
+				"new SkyflowId key must be present")
+			Expect(res.Data[0]).To(HaveKeyWithValue("skyflow_id", "id1"),
+				"deprecated skyflow_id key must be retained for backward compatibility")
+		})
+	})
+
+	Context("Query — Fields contains both SkyflowId and skyflow_id", func() {
+		It("response map contains both SkyflowId (new) and skyflow_id (deprecated)", func() {
+			resp := make(map[string]interface{})
+			_ = json.Unmarshal([]byte(mockQuerySuccessJSON), &resp)
+			ts = setupMockServer(resp, "ok", "/vaults/v1/vaults/")
+			vc := newVC()
+			setMockClient(vc)
+			res, err := vc.Query(ctx,
+				QueryRequest{Query: "SELECT * FROM test_table WHERE skyflow_id='id'"},
+				QueryOptions{})
+			Expect(err).To(BeNil())
+			Expect(res.Fields[0]).To(HaveKeyWithValue("SkyflowId", "id"),
+				"new SkyflowId key must be present")
+			Expect(res.Fields[0]).To(HaveKeyWithValue("skyflow_id", "id"),
+				"deprecated skyflow_id key must be retained for backward compatibility")
+		})
+	})
+})
+
 var _ = Describe("DetectController", func() {
 	Describe("Detect client creation", func() {
 		var detectController *DetectController

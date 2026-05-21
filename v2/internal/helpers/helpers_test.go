@@ -1149,39 +1149,97 @@ var _ = Describe("GetFormattedQueryRecord — additional paths", func() {
 // ---------------------------------------------------------------------------
 
 var _ = Describe("GetCredentialParams — alternate key names", func() {
-	It("should accept clientID (capital D) as fallback", func() {
-		credKeys := map[string]interface{}{
-			"clientID": "client-id-value",
-			"tokenUri": "https://token.example.com",
-			"keyId":    "key-id-value",
-		}
-		clientId, tokenUri, keyId, err := GetCredentialParams(credKeys)
-		Expect(err).To(BeNil())
-		Expect(clientId).To(Equal("client-id-value"))
-		Expect(tokenUri).To(Equal("https://token.example.com"))
-		Expect(keyId).To(Equal("key-id-value"))
+	Context("old field only", func() {
+		It("should accept clientID (capital D) as fallback when clientId is absent", func() {
+			credKeys := map[string]interface{}{
+				"clientID": "client-id-value",
+				"tokenUri": "https://token.example.com",
+				"keyId":    "key-id-value",
+			}
+			clientId, tokenUri, keyId, err := GetCredentialParams(credKeys)
+			Expect(err).To(BeNil())
+			Expect(clientId).To(Equal("client-id-value"))
+			Expect(tokenUri).To(Equal("https://token.example.com"))
+			Expect(keyId).To(Equal("key-id-value"))
+		})
+
+		It("should accept tokenURI (capital URI) as fallback when tokenUri is absent", func() {
+			credKeys := map[string]interface{}{
+				"clientId": "cid",
+				"tokenURI": "https://token2.example.com",
+				"keyId":    "kid",
+			}
+			_, tokenUri, _, err := GetCredentialParams(credKeys)
+			Expect(err).To(BeNil())
+			Expect(tokenUri).To(Equal("https://token2.example.com"))
+		})
+
+		It("should accept keyID (capital D) as fallback when keyId is absent", func() {
+			credKeys := map[string]interface{}{
+				"clientId": "cid",
+				"tokenUri": "https://token3.example.com",
+				"keyID":    "key-id-capital",
+			}
+			_, _, keyId, err := GetCredentialParams(credKeys)
+			Expect(err).To(BeNil())
+			Expect(keyId).To(Equal("key-id-capital"))
+		})
 	})
 
-	It("should accept tokenURI (capital URI) as fallback", func() {
-		credKeys := map[string]interface{}{
-			"clientId": "cid",
-			"tokenURI": "https://token2.example.com",
-			"keyId":    "kid",
-		}
-		_, tokenUri, _, err := GetCredentialParams(credKeys)
-		Expect(err).To(BeNil())
-		Expect(tokenUri).To(Equal("https://token2.example.com"))
+	Context("new field only", func() {
+		It("should read clientId, tokenUri, and keyId when all new keys are set", func() {
+			credKeys := map[string]interface{}{
+				"clientId": "new-client-id",
+				"tokenUri": "https://new-token.example.com",
+				"keyId":    "new-key-id",
+			}
+			clientId, tokenUri, keyId, err := GetCredentialParams(credKeys)
+			Expect(err).To(BeNil())
+			Expect(clientId).To(Equal("new-client-id"))
+			Expect(tokenUri).To(Equal("https://new-token.example.com"))
+			Expect(keyId).To(Equal("new-key-id"))
+		})
 	})
 
-	It("should accept keyID (capital D) as fallback", func() {
-		credKeys := map[string]interface{}{
-			"clientId": "cid",
-			"tokenUri": "https://token3.example.com",
-			"keyID":    "key-id-capital",
-		}
-		_, _, keyId, err := GetCredentialParams(credKeys)
-		Expect(err).To(BeNil())
-		Expect(keyId).To(Equal("key-id-capital"))
+	Context("both old and new set together", func() {
+		It("new clientId wins over deprecated clientID", func() {
+			credKeys := map[string]interface{}{
+				"clientId": "new-client",
+				"clientID": "old-client",
+				"tokenUri": "https://token.example.com",
+				"keyId":    "kid",
+			}
+			clientId, _, _, err := GetCredentialParams(credKeys)
+			Expect(err).To(BeNil())
+			Expect(clientId).To(Equal("new-client"),
+				"new clientId must take precedence over deprecated clientID")
+		})
+
+		It("new tokenUri wins over deprecated tokenURI", func() {
+			credKeys := map[string]interface{}{
+				"clientId": "cid",
+				"tokenUri": "https://new-token.example.com",
+				"tokenURI": "https://old-token.example.com",
+				"keyId":    "kid",
+			}
+			_, tokenUri, _, err := GetCredentialParams(credKeys)
+			Expect(err).To(BeNil())
+			Expect(tokenUri).To(Equal("https://new-token.example.com"),
+				"new tokenUri must take precedence over deprecated tokenURI")
+		})
+
+		It("new keyId wins over deprecated keyID", func() {
+			credKeys := map[string]interface{}{
+				"clientId": "cid",
+				"tokenUri": "https://token.example.com",
+				"keyId":    "new-key-id",
+				"keyID":    "old-key-id",
+			}
+			_, _, keyId, err := GetCredentialParams(credKeys)
+			Expect(err).To(BeNil())
+			Expect(keyId).To(Equal("new-key-id"),
+				"new keyId must take precedence over deprecated keyID")
+		})
 	})
 })
 
@@ -1594,6 +1652,69 @@ var _ = Describe("GenerateBearerTokenHelper — all branches", func() {
 		Expect(resp).ToNot(BeNil())
 	})
 
+	It("both RoleIds and RoleIDs set — new RoleIds wins in scope sent to server", func() {
+		var capturedScope string
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			raw, _ := io.ReadAll(r.Body)
+			var body map[string]interface{}
+			_ = json.Unmarshal(raw, &body)
+			if s, ok := body["scope"].(string); ok {
+				capturedScope = s
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = io.WriteString(w, `{"accessToken":"scoped-token","tokenType":"Bearer"}`)
+		}))
+		defer srv.Close()
+		GetBaseURLHelper = func(urlStr string) (string, *SkyflowError) { return srv.URL, nil }
+		credKeys := map[string]interface{}{
+			"privateKey": rsaPEM,
+			"clientId":   "cid",
+			"tokenUri":   "https://t.example.com",
+			"keyId":      "kid",
+		}
+		resp, err := GenerateBearerTokenHelper(credKeys, common.BearerTokenOptions{
+			RoleIds: []string{"new-role"},
+			RoleIDs: []string{"old-role"},
+		})
+		Expect(err).To(BeNil())
+		Expect(resp).ToNot(BeNil())
+		Expect(capturedScope).To(ContainSubstring("new-role"),
+			"new RoleIds should be sent in the scope when both fields are set")
+		Expect(capturedScope).ToNot(ContainSubstring("old-role"),
+			"deprecated RoleIDs should be ignored when new RoleIds is non-empty")
+	})
+
+	It("only RoleIDs (deprecated) set — deprecated RoleIDs scope is sent in actual HTTP request", func() {
+		var capturedScope string
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			raw, _ := io.ReadAll(r.Body)
+			var body map[string]interface{}
+			_ = json.Unmarshal(raw, &body)
+			if s, ok := body["scope"].(string); ok {
+				capturedScope = s
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = io.WriteString(w, `{"accessToken":"scoped-token","tokenType":"Bearer"}`)
+		}))
+		defer srv.Close()
+		GetBaseURLHelper = func(urlStr string) (string, *SkyflowError) { return srv.URL, nil }
+		credKeys := map[string]interface{}{
+			"privateKey": rsaPEM,
+			"clientId":   "cid",
+			"tokenUri":   "https://t.example.com",
+			"keyId":      "kid",
+		}
+		resp, err := GenerateBearerTokenHelper(credKeys, common.BearerTokenOptions{
+			RoleIDs: []string{"old-role"},
+		})
+		Expect(err).To(BeNil())
+		Expect(resp).ToNot(BeNil())
+		Expect(capturedScope).To(ContainSubstring("old-role"),
+			"deprecated RoleIDs should be used as fallback when new RoleIds is empty")
+	})
+
 	It("should accept old credential file keys clientID/tokenURI/keyID (backward compat)", func() {
 		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
@@ -1611,5 +1732,111 @@ var _ = Describe("GenerateBearerTokenHelper — all branches", func() {
 		resp, err := GenerateBearerTokenHelper(credKeys, common.BearerTokenOptions{})
 		Expect(err).To(BeNil())
 		Expect(resp).ToNot(BeNil())
+	})
+})
+
+var _ = Describe("GetDetokenizePayload — DownloadUrl backward compat", func() {
+	req := common.DetokenizeRequest{DetokenizeData: []common.DetokenizeData{{Token: "tok"}}}
+
+	Context("old field only", func() {
+		It("deprecated DownloadURL=true sets downloadUrl on the payload", func() {
+			payload := GetDetokenizePayload(req, common.DetokenizeOptions{DownloadURL: true})
+			Expect(payload.DownloadUrl).ToNot(BeNil())
+			Expect(*payload.DownloadUrl).To(BeTrue())
+		})
+
+		It("neither field set — downloadUrl is absent from the payload", func() {
+			payload := GetDetokenizePayload(req, common.DetokenizeOptions{})
+			Expect(payload.DownloadUrl).To(BeNil())
+		})
+	})
+
+	Context("new field only", func() {
+		It("DownloadUrl=&true sets downloadUrl on the payload", func() {
+			t := true
+			payload := GetDetokenizePayload(req, common.DetokenizeOptions{DownloadUrl: &t})
+			Expect(payload.DownloadUrl).ToNot(BeNil())
+			Expect(*payload.DownloadUrl).To(BeTrue())
+		})
+
+		It("DownloadUrl=&false sets downloadUrl=false on the payload", func() {
+			f := false
+			payload := GetDetokenizePayload(req, common.DetokenizeOptions{DownloadUrl: &f})
+			Expect(payload.DownloadUrl).ToNot(BeNil())
+			Expect(*payload.DownloadUrl).To(BeFalse())
+		})
+	})
+
+	Context("both old and new set together", func() {
+		It("DownloadUrl=&true wins over deprecated DownloadURL=true", func() {
+			t := true
+			payload := GetDetokenizePayload(req, common.DetokenizeOptions{DownloadUrl: &t, DownloadURL: true})
+			Expect(payload.DownloadUrl).ToNot(BeNil())
+			Expect(*payload.DownloadUrl).To(BeTrue())
+		})
+
+		It("DownloadUrl=&false suppresses the deprecated DownloadURL=true fallback", func() {
+			f := false
+			payload := GetDetokenizePayload(req, common.DetokenizeOptions{DownloadUrl: &f, DownloadURL: true})
+			Expect(payload.DownloadUrl).ToNot(BeNil())
+			Expect(*payload.DownloadUrl).To(BeFalse())
+		})
+
+		It("DownloadUrl=nil falls back to deprecated DownloadURL=true", func() {
+			payload := GetDetokenizePayload(req, common.DetokenizeOptions{DownloadUrl: nil, DownloadURL: true})
+			Expect(payload.DownloadUrl).ToNot(BeNil())
+			Expect(*payload.DownloadUrl).To(BeTrue())
+		})
+	})
+})
+
+var _ = Describe("BearerTokenOptions — RoleIds/RoleIDs precedence", func() {
+	Context("old field only", func() {
+		It("deprecated RoleIDs only — RoleIds is empty, RoleIDs carries the value", func() {
+			opts := common.BearerTokenOptions{RoleIDs: []string{"old-role"}}
+			Expect(opts.RoleIDs).To(Equal([]string{"old-role"}))
+			Expect(opts.RoleIds).To(BeEmpty())
+			roleIds := opts.RoleIds
+			if len(roleIds) == 0 && len(opts.RoleIDs) > 0 {
+				roleIds = opts.RoleIDs
+			}
+			Expect(roleIds).To(Equal([]string{"old-role"}))
+		})
+	})
+
+	Context("new field only", func() {
+		It("RoleIds only — deprecated RoleIDs is empty, RoleIds carries the value", func() {
+			opts := common.BearerTokenOptions{RoleIds: []string{"new-role"}}
+			Expect(opts.RoleIds).To(Equal([]string{"new-role"}))
+			Expect(opts.RoleIDs).To(BeEmpty())
+		})
+	})
+
+	Context("both old and new set together", func() {
+		It("new RoleIds takes precedence — RoleIDs is ignored when RoleIds is non-empty", func() {
+			opts := common.BearerTokenOptions{
+				RoleIds: []string{"new-role"},
+				RoleIDs: []string{"old-role"},
+			}
+			Expect(opts.RoleIds).To(Equal([]string{"new-role"}))
+			Expect(opts.RoleIDs).To(Equal([]string{"old-role"}))
+			roleIds := opts.RoleIds
+			if len(roleIds) == 0 && len(opts.RoleIDs) > 0 {
+				roleIds = opts.RoleIDs
+			}
+			Expect(roleIds).To(Equal([]string{"new-role"}))
+		})
+
+		It("deprecated RoleIDs is used as fallback when new RoleIds is empty", func() {
+			opts := common.BearerTokenOptions{
+				RoleIds: []string{},
+				RoleIDs: []string{"fallback-role"},
+			}
+			roleIds := opts.RoleIds
+			if len(roleIds) == 0 && len(opts.RoleIDs) > 0 {
+				roleIds = opts.RoleIDs
+			}
+			Expect(roleIds).To(Equal([]string{"fallback-role"}))
+		})
 	})
 })
