@@ -2,7 +2,6 @@ package common
 
 import (
 	"os"
-
 	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
 )
 
@@ -174,6 +173,8 @@ const (
 
 type BearerTokenOptions struct {
 	Ctx      interface{}
+	RoleIds  []string
+	// Deprecated: Use RoleIds instead.
 	RoleIDs  []string
 	LogLevel logger.LogLevel
 }
@@ -193,6 +194,8 @@ type SignedDataTokensResponse struct {
 type VaultConfig struct {
 	VaultId      string
 	ClusterId    string
+	BaseVaultUrl string
+	// Deprecated: Use BaseVaultUrl instead.
 	BaseVaultURL string
 	Env          Env
 	Credentials  Credentials
@@ -227,7 +230,7 @@ const (
 )
 
 type InvokeConnectionResponse struct {
-	Data     map[string]interface{}
+	Data     interface{}
 	Metadata map[string]interface{}
 	Errors   map[string]interface{}
 }
@@ -246,6 +249,7 @@ type DeidentifyTextResponse struct {
 	Entities      []EntityInfo
 	WordCount     int
 	CharCount     int
+	Errors        []map[string]interface{}
 }
 
 type EntityInfo struct {
@@ -262,6 +266,7 @@ type TextIndex struct {
 }
 type ReidentifyTextResponse struct {
 	ProcessedText string
+	Errors		[]map[string]interface{}
 }
 
 type ReidentifyTextRequest struct {
@@ -329,6 +334,7 @@ type DeidentifyFileResponse struct {
 	Entities          []FileEntityInfo
 	RunId             string
 	Status            string
+	Errors            []map[string]interface{}
 }
 
 type GetDetectRunRequest struct {
@@ -358,7 +364,7 @@ type InvokeConnectionRequest struct {
 	Method      RequestMethod
 	QueryParams map[string]interface{}
 	PathParams  map[string]string
-	Body        map[string]interface{}
+	Body        interface{}
 	Headers     map[string]string
 }
 type ContentType string
@@ -369,6 +375,8 @@ const (
 	FORMURLENCODED    ContentType = "application/x-www-form-urlencoded"
 	FORMDATA          ContentType = "multipart/form-data"
 	TEXTORXML         ContentType = "text/xml"
+	APPLICATIONXML	  ContentType = "application/xml"
+	TEXTHTML        ContentType = "text/html"
 )
 
 type OrderByEnum string
@@ -392,9 +400,14 @@ const (
 type CustomHeaderKey string
 
 const (
-	SkyflowAccountID        CustomHeaderKey = "x-skyflow-account-id"
-	SkyflowAccountName      CustomHeaderKey = "x-skyflow-account-name"
-	RequestIDHeader         CustomHeaderKey = "x-request-id"
+	SkyflowAccountId   CustomHeaderKey = "x-skyflow-account-id"
+	SkyflowAccountName CustomHeaderKey = "x-skyflow-account-name"
+	RequestIdHeader    CustomHeaderKey = "x-request-id"
+
+	// Deprecated: Use SkyflowAccountId instead.
+	SkyflowAccountID = SkyflowAccountId
+	// Deprecated: Use RequestIdHeader instead.
+	RequestIDHeader = RequestIdHeader
 )
 
 type InsertOptions struct {
@@ -428,6 +441,8 @@ type DetokenizeData struct {
 
 type DetokenizeOptions struct {
 	ContinueOnError bool
+	DownloadUrl     *bool
+	// Deprecated: Use DownloadUrl instead.
 	DownloadURL     bool
 	CustomHeaders   map[CustomHeaderKey]string
 }
@@ -488,6 +503,8 @@ type GetOptions struct {
 	Fields        []string
 	Offset        string
 	Limit         string
+	DownloadUrl   *bool
+	// Deprecated: Use DownloadUrl instead.
 	DownloadURL   bool
 	ColumnName    string
 	ColumnValues  []string

@@ -2,7 +2,6 @@ package serviceaccount
 
 import (
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -30,10 +29,16 @@ func GenerateBearerToken(credentialsFilePath string, options common.BearerTokenO
 		return nil, err1
 	}
 
+	accessToken := token.GetAccessToken()
+	tokenType := token.GetTokenType()
+	if accessToken == nil || tokenType == nil {
+		logger.Error(logs.BEARER_TOKEN_REJECTED)
+		return nil, skyflowError.NewSkyflowError(skyflowError.SERVER, logs.BEARER_TOKEN_REJECTED)
+	}
 	logger.Info(logs.GENERATE_BEARER_TOKEN_SUCCESS)
 	return &common.TokenResponse{
-		AccessToken: *token.GetAccessToken(),
-		TokenType:   *token.GetTokenType(),
+		AccessToken: *accessToken,
+		TokenType:   *tokenType,
 	}, nil
 }
 
@@ -50,10 +55,16 @@ func GenerateBearerTokenFromCreds(credentials string, options common.BearerToken
 	if err1 != nil {
 		return nil, err1
 	}
+	accessToken := token.GetAccessToken()
+	tokenType := token.GetTokenType()
+	if accessToken == nil || tokenType == nil {
+		logger.Error(logs.BEARER_TOKEN_REJECTED)
+		return nil, skyflowError.NewSkyflowError(skyflowError.SERVER, logs.BEARER_TOKEN_REJECTED)
+	}
 	logger.Info(logs.GENERATE_BEARER_TOKEN_SUCCESS)
 	return &common.TokenResponse{
-		AccessToken: *token.GetAccessToken(),
-		TokenType:   *token.GetTokenType(),
+		AccessToken: *accessToken,
+		TokenType:   *tokenType,
 	}, nil
 }
 
@@ -93,7 +104,7 @@ func GenerateSignedDataTokensFromCreds(credentials string, options common.Signed
 
 func IsExpired(tokenString string) bool {
 	if tokenString == "" {
-		logger.Info(fmt.Sprintf(logs.EMPTY_BEARER_TOKEN))
+		logger.Info(logs.EMPTY_BEARER_TOKEN)
 		return true
 	}
 	token, _, err := new(jwt.Parser).ParseUnverified(tokenString, jwt.MapClaims{})
