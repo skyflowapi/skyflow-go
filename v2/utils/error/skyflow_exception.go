@@ -32,8 +32,12 @@ func (se *SkyflowError) Error() string {
 func (se *SkyflowError) GetMessage() string {
 	return fmt.Sprintf("Message: %s", se.message) //nolint:revive
 }
+// Deprecated: Use GetHttpCode instead.
 func (se *SkyflowError) GetCode() string {
 	return fmt.Sprintf("Code: %s", se.httpCode)
+}
+func (se *SkyflowError) GetHttpCode() string {
+	return se.httpCode
 }
 func (se *SkyflowError) GetRequestId() string {
 	return se.requestId

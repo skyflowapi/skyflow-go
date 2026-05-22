@@ -3125,7 +3125,7 @@ import (
 res, skyErr := service.Insert(ctx, insertRequest)
 if skyErr, ok := err.(*skyflowError.SkyflowError); ok {
     // Skyflow-specific error
-    fmt.Println("code:", skyErr.GetCode())
+    fmt.Println("code:", skyErr.GetHttpCode())
     fmt.Println("message:", skyErr.GetMessage())
 } else {
     // Generic / unexpected error

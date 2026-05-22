@@ -2365,8 +2365,8 @@ var _ = Describe("ConnectionController", func() {
 				response, err := ctrl.Invoke(ctx, request)
 				Expect(err).To(BeNil())
 				Expect(response).ToNot(BeNil())
-				// Should return as bytes when JSON parsing fails
-				Expect(response.Data).To(Equal([]byte("invalid json content")))
+				// Should return as string when JSON parsing fails
+				Expect(response.Data).To(Equal("invalid json content"))
 			})
 
 			It("should handle invalid URL-encoded response gracefully", func() {

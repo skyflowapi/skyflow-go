@@ -55,8 +55,16 @@ var _ = Describe("Skyflow Error", func() {
 			Expect(skyflowError.GetMessage()).To(Equal("Message: Invalid Input"))
 		})
 
-		It("should return the correct HTTP code", func() {
+		It("should return the correct HTTP code via deprecated GetCode", func() {
 			Expect(skyflowError.GetCode()).To(Equal("Code: 400"))
+		})
+
+		It("should return the correct HTTP code via GetHttpCode", func() {
+			Expect(skyflowError.GetHttpCode()).To(Equal("400"))
+		})
+
+		It("GetHttpCode and GetCode should return identical values", func() {
+			Expect(skyflowError.GetCode()).To(ContainSubstring(skyflowError.GetHttpCode()))
 		})
 
 		It("should return the correct request ID", func() {
@@ -77,6 +85,57 @@ var _ = Describe("Skyflow Error", func() {
 
 		It("should return the correct response body", func() {
 			Expect(len(skyflowError.GetResponseBody())).To(Equal(0))
+		})
+	})
+
+	Context("GetHttpCode", func() {
+		It("returns '400' for an error built with INVALID_INPUT_CODE", func() {
+			err := NewSkyflowError(INVALID_INPUT_CODE, "bad input")
+			Expect(err.GetHttpCode()).To(Equal("400"))
+		})
+
+		It("returns 'Code: ' when httpCode is empty (zero-value struct)", func() {
+			err := &SkyflowError{}
+			Expect(err.GetHttpCode()).To(Equal(""))
+		})
+
+		It("returns the parsed http_code from a JSON API error response", func() {
+			header := http.Header{}
+			header.Set("Content-Type", "application/json")
+			response := http.Response{
+				Header: header,
+				Body: io.NopCloser(strings.NewReader(`{
+					"error": {
+						"http_code": 403,
+						"message": "Forbidden",
+						"grpc_code": 7,
+						"http_status": "PERMISSION_DENIED"
+					}
+				}`)),
+			}
+			err := SkyflowApiError(response)
+			Expect(err.GetHttpCode()).To(Equal("403"))
+		})
+
+		It("falls back to response StatusCode when http_code is absent in JSON body", func() {
+			header := http.Header{}
+			header.Set("Content-Type", "application/json")
+			response := http.Response{
+				Header:     header,
+				StatusCode: 500,
+				Body: io.NopCloser(strings.NewReader(`{
+					"error": {
+						"message": "Internal Server Error"
+					}
+				}`)),
+			}
+			err := SkyflowApiError(response)
+			Expect(err.GetHttpCode()).To(Equal("500"))
+		})
+
+		It("returns same value as deprecated GetCode", func() {
+			err := NewSkyflowError(INVALID_INPUT_CODE, "test")
+			Expect(err.GetCode()).To(ContainSubstring(err.GetHttpCode()))
 		})
 	})
 

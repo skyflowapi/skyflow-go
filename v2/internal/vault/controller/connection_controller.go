@@ -151,7 +151,7 @@ func (v *ConnectionController) Invoke(ctx context.Context, request common.Invoke
 				var jsonData interface{}
 				err = json.Unmarshal(data, &jsonData)
 				if err != nil {
-					response.Data = data
+					response.Data = string(data)
 					return &response, nil
 				} else {
 					response.Data = jsonData
@@ -180,6 +180,7 @@ func (v *ConnectionController) Invoke(ctx context.Context, request common.Invoke
 				return &response, nil
 			} else if strings.Contains(contentType, string(common.FORMDATA)) {
 				response.Data = string(data)
+				return &response, nil
 			} else if strings.Contains(contentType, string(common.TEXTHTML)) {
 				response.Data = string(data)
 				return &response, nil
