@@ -65,9 +65,9 @@ func SkyflowApiError(responseHeaders http.Response) *SkyflowError {
 	skyflowError := SkyflowError{
 		requestId: responseHeaders.Header.Get(constants.REQUEST_KEY),
 	}
-	if responseHeaders.Header.Get(constants.HEADER_CONTENT_TYPE_CAPITAL) == constants.CONTENT_TYPE_JSON {
+	ct := responseHeaders.Header.Get(constants.HEADER_CONTENT_TYPE_CAPITAL)
+	if strings.Contains(ct, constants.CONTENT_TYPE_JSON) {
 		bodyBytes, _ := io.ReadAll(responseHeaders.Body)
-		// Parse JSON into a struct
 		var apiError map[string]interface{}
 		if err := json.Unmarshal(bodyBytes, &apiError); err != nil {
 			return NewSkyflowError(INVALID_INPUT_CODE, "Failed to unmarshal error")
@@ -90,7 +90,6 @@ func SkyflowApiError(responseHeaders http.Response) *SkyflowError {
 				skyflowError.httpStatusCode = httpStatus
 			}
 			if details, exists := errorBody[constants.ERROR_KEY_DETAILS].([]interface{}); exists {
-				// initalize details if nil
 				if skyflowError.details == nil {
 					skyflowError.details = make([]interface{}, 0)
 				}
@@ -101,7 +100,6 @@ func SkyflowApiError(responseHeaders http.Response) *SkyflowError {
 		} else {
 			skyflowError.message = string(bodyBytes)
 		}
-
 	} else if responseHeaders.Header.Get(constants.HEADER_CONTENT_TYPE_CAPITAL) == constants.CONTENT_TYPE_TEXT_PLAIN {
 		bodyBytes, err := io.ReadAll(responseHeaders.Body)
 		if err != nil {
@@ -128,10 +126,10 @@ func SkyflowApiError(responseHeaders http.Response) *SkyflowError {
 				} else {
 					skyflowError.httpCode = strconv.Itoa(responseHeaders.StatusCode)
 				}
-			if message, exists := errorBody[constants.ERROR_KEY_MESSAGE].(string); exists {
-				skyflowError.message = message
-			} else {
-				skyflowError.message = constants.UNKNOWN_ERROR
+				if message, exists := errorBody[constants.ERROR_KEY_MESSAGE].(string); exists {
+					skyflowError.message = message
+				} else {
+					skyflowError.message = constants.UNKNOWN_ERROR
 				}
 				if grpcCode, exists := errorBody[constants.ERROR_KEY_GRPC_CODE].(float64); exists {
 					skyflowError.grpcCode = strconv.FormatFloat(grpcCode, 'f', 0, 64)
@@ -140,9 +138,9 @@ func SkyflowApiError(responseHeaders http.Response) *SkyflowError {
 					skyflowError.httpStatusCode = httpStatus
 				}
 				if details, exists := errorBody[constants.ERROR_KEY_DETAILS].([]interface{}); exists {
-				   if skyflowError.details == nil {
-					skyflowError.details = make([]interface{}, 0)
-				   }
+					if skyflowError.details == nil {
+						skyflowError.details = make([]interface{}, 0)
+					}
 					skyflowError.details = details
 				}
 			} else if errBody, ok := apiError[constants.ERROR_KEY_ERROR].(string); ok {
