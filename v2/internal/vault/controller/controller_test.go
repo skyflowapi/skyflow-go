@@ -4749,6 +4749,46 @@ var _ = Describe("ConnectionController edge cases", func() {
 			Expect(resp).ToNot(BeNil())
 		})
 	})
+
+	Context("application/json with raw string body", func() {
+		var mockServer *httptest.Server
+
+		BeforeEach(func() {
+			mockServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"ok":true}`))
+			}))
+			ctrl.Config.ConnectionUrl = mockServer.URL
+		})
+		AfterEach(func() { mockServer.Close() })
+
+		It("should send a pre-serialised string body when Content-Type is application/json", func() {
+			SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError {
+				return nil
+			}
+			resp, err := ctrl.Invoke(ctx, InvokeConnectionRequest{
+				Method:  "POST",
+				Headers: map[string]string{"Content-Type": "application/json"},
+				Body:    `{"prebuilt":"true"}`,
+			})
+			Expect(err).To(BeNil())
+			Expect(resp).ToNot(BeNil())
+		})
+
+		It("should serialise a non-map non-string body via fmt.Sprintf when Content-Type is application/json", func() {
+			SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError {
+				return nil
+			}
+			resp, err := ctrl.Invoke(ctx, InvokeConnectionRequest{
+				Method:  "POST",
+				Headers: map[string]string{"Content-Type": "application/json"},
+				Body:    42, // not a string, not a map → else if request.Body != nil → fmt.Sprintf path
+			})
+			Expect(err).To(BeNil())
+			Expect(resp).ToNot(BeNil())
+		})
+	})
 })
 
 var _ = Describe("VaultController", func() {
