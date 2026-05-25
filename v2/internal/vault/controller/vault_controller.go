@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+
 	constants "github.com/skyflowapi/skyflow-go/v2/internal/constants"
 	vaultapis "github.com/skyflowapi/skyflow-go/v2/internal/generated"
 	"github.com/skyflowapi/skyflow-go/v2/internal/generated/client"
@@ -36,7 +37,7 @@ func GenerateToken(credentials common.Credentials) (*string, *skyflowError.Skyfl
 	var bearerToken string
 	var options = common.BearerTokenOptions{}
 	if credentials.Roles != nil {
-		options.RoleIDs = credentials.Roles
+		options.RoleIds = credentials.Roles
 	}
 	if credentials.Context != nil {
 		options.Ctx = credentials.Context
@@ -123,8 +124,17 @@ func CreateRequestClient(v *VaultController, requestHeaders map[common.CustomHea
 	header.Set(constants.SDK_METRICS_HEADER_KEY, helpers.CreateJsonMetadata())
 
 	var baseURL string
+	baseVaultUrl := v.Config.BaseVaultUrl
 	if v.Config.BaseVaultURL != "" {
-		baseURL = v.Config.BaseVaultURL
+		if baseVaultUrl != "" {
+			logger.Warn(logs.DEPRECATED_FIELD_BASE_VAULT_URL)
+		} else {
+			logger.Warn(logs.DEPRECATED_FIELD_BASE_VAULT_URL)
+			baseVaultUrl = v.Config.BaseVaultURL
+		}
+	}
+	if baseVaultUrl != "" {
+		baseURL = baseVaultUrl
 	} else {
 		baseURL = helpers.GetURLWithEnv(v.Config.Env, v.Config.ClusterId)
 	}
@@ -145,8 +155,8 @@ func setVaultCredentials(config *common.VaultConfig, builderCreds *common.Creden
 		// here if builder credentials are available
 		if builderCreds != nil && !isCredentialsEmpty(*builderCreds) {
 			creds = *builderCreds
-		} else if envCreds := os.Getenv("SKYFLOW_CREDENTIALS"); envCreds != "" {
-			creds.CredentialsString = os.Getenv("SKYFLOW_CREDENTIALS")
+		} else if envCreds := os.Getenv(constants.SKYFLOW_CREDENTIALS_ENV); envCreds != "" {
+			creds.CredentialsString = os.Getenv(constants.SKYFLOW_CREDENTIALS_ENV)
 		} else {
 			return nil, skyflowError.NewSkyflowError(skyflowError.ErrorCodesEnum(skyflowError.INVALID_INPUT_CODE), skyflowError.EMPTY_CREDENTIALS)
 		}
@@ -193,7 +203,7 @@ func (v *VaultController) Insert(ctx context.Context, request common.InsertReque
 	if errs = validation.ValidateCustomHeaders(options.CustomHeaders, "Insert"); errs != nil {
 		return nil, errs
 	}
-	if errs = validation.ValidateCustomHeaders(v.CustomHeaders, "Client headers in"); errs != nil {
+	if errs = validation.ValidateCustomHeaders(v.CustomHeaders, constants.CLIENT_HEADER_MESSAGE_PREFIX); errs != nil {
 		return nil, errs
 	}
 	// Initialize the response structure
@@ -222,20 +232,24 @@ func (v *VaultController) Insert(ctx context.Context, request common.InsertReque
 			if batchResp.Header != nil {
 				header = batchResp.Header
 			}
-		}
-		for index, record := range batchResp.Body.GetResponses() {
-			formattedRecord, parseErr := helpers.GetFormattedBatchInsertRecord(record, index)
-			if parseErr != nil {
-				return nil, parseErr
+			if batchResp.Body != nil {
+				for index, record := range batchResp.Body.GetResponses() {
+					formattedRecord, parseErr := helpers.GetFormattedBatchInsertRecord(record, index)
+					if parseErr != nil {
+						return nil, parseErr
+					}
+					if formattedRecord[constants.SKYFLOW_ID] != nil {
+						insertedFields = append(insertedFields, formattedRecord)
+					} else {
+						formattedRecord[constants.RESPONSE_KEY_REQUEST_ID] = header.Get(constants.REQUEST_KEY)
+						formattedRecord[constants.RESPONSE_KEY_HTTP_CODE] = skyflowError.INVALID_INPUT_CODE
+						errors = append(errors, formattedRecord)
+			 	}
 			}
-			if formattedRecord["skyflow_id"] != nil {
-				insertedFields = append(insertedFields, formattedRecord)
-			} else {
-				formattedRecord["RequestId"] = header.Get(constants.REQUEST_KEY)
-				formattedRecord["HttpCode"] = skyflowError.INVALID_INPUT_CODE
-				errors = append(errors, formattedRecord)
-			}
 		}
+		}
+		logger.Warn(logs.DEPRECATED_RESPONSE_KEY_SKYFLOW_ID)
+		logger.Warn(logs.DEPRECATED_FIELD_REQUEST_INDEX)
 		resp = common.InsertResponse{
 			InsertedFields: insertedFields,
 			Errors:         errors,
@@ -258,6 +272,7 @@ func (v *VaultController) Insert(ctx context.Context, request common.InsertReque
 			formattedRes := helpers.GetFormattedBulkInsertRecord(*record)
 			insertedFields = append(insertedFields, formattedRes)
 		}
+		logger.Warn(logs.DEPRECATED_RESPONSE_KEY_SKYFLOW_ID)
 		resp = common.InsertResponse{InsertedFields: insertedFields}
 	}
 	logger.Info(logs.INSERT_DATA_SUCCESS)
@@ -277,7 +292,7 @@ func (v *VaultController) Detokenize(ctx context.Context, request common.Detoken
 	if er = validation.ValidateCustomHeaders(options.CustomHeaders, "Detokenize"); er != nil {
 		return nil, er
 	}
-	if er = validation.ValidateCustomHeaders(v.CustomHeaders, "Client headers in"); er != nil {
+	if er = validation.ValidateCustomHeaders(v.CustomHeaders, constants.CLIENT_HEADER_MESSAGE_PREFIX); er != nil {
 		return nil, er
 	}
 
@@ -304,17 +319,33 @@ func (v *VaultController) Detokenize(ctx context.Context, request common.Detoken
 		records := detokenizeApiRes.Body.Records
 		for _, record := range records {
 			if record.Error != nil {
+				token := ""
+				if record.GetToken() != nil {
+					token = *record.GetToken()
+				}
 				fieldErr := common.DetokenizeRecordResponse{
-					Token:     *record.GetToken(),
+					Token:     token,
 					Error:     *record.GetError(),
 					RequestId: header.Get(constants.REQUEST_KEY),
 				}
 				errorFields = append(errorFields, fieldErr)
 			} else {
+				valueType := ""
+				if record.ValueType != nil {
+					valueType = string(*record.ValueType)
+				}
+				token := ""
+				if record.GetToken() != nil {
+					token = *record.GetToken()
+				}
+				value := ""
+				if record.GetValue() != nil {
+					value = *record.GetValue()
+				}
 				rec := common.DetokenizeRecordResponse{
-					Type:  string(*record.ValueType),
-					Token: *record.GetToken(),
-					Value: *record.GetValue(),
+					Type:  valueType,
+					Token: token,
+					Value: value,
 				}
 				detokenizedFields = append(detokenizedFields, rec)
 			}
@@ -337,7 +368,7 @@ func (v *VaultController) Get(ctx context.Context, request common.GetRequest, op
 	if errs = validation.ValidateCustomHeaders(options.CustomHeaders, "Get"); errs != nil {
 		return nil, errs
 	}
-	if er := validation.ValidateCustomHeaders(v.CustomHeaders, "Client headers in"); er != nil {
+	if er := validation.ValidateCustomHeaders(v.CustomHeaders, constants.CLIENT_HEADER_MESSAGE_PREFIX); er != nil {
 		return nil, er
 	}
 	var data []map[string]interface{}
@@ -378,8 +409,13 @@ func (v *VaultController) Get(ctx context.Context, request common.GetRequest, op
 		orderBy, _ := vaultapis.NewRecordServiceBulkGetRecordRequestOrderByFromString(string(options.OrderBy))
 		req.OrderBy = &orderBy
 	}
-	if options.DownloadURL {
-		req.DownloadUrl = &options.DownloadURL
+	if options.DownloadUrl {
+		t := true
+		req.DownloadUrl = &t
+	} else if options.DownloadURL {
+		logger.Warn(logs.DEPRECATED_FIELD_DOWNLOAD_URL)
+		t := true
+		req.DownloadUrl = &t
 	}
 	if options.ReturnTokens {
 		req.Tokenization = &options.ReturnTokens
@@ -404,6 +440,7 @@ func (v *VaultController) Get(ctx context.Context, request common.GetRequest, op
 		return nil, skyflowError.SkyflowErrorApi(apiErr, header)
 	}
 	logger.Info(logs.GET_REQUEST_RESOLVED)
+	logger.Warn(logs.DEPRECATED_RESPONSE_KEY_SKYFLOW_ID)
 	if getApiRes != nil && getApiRes.Body != nil {
 		records := getApiRes.Body.GetRecords()
 		if len(records) > 0 {
@@ -427,7 +464,7 @@ func (v *VaultController) Delete(ctx context.Context, request common.DeleteReque
 	if errs = validation.ValidateCustomHeaders(options.CustomHeaders, "Delete"); errs != nil {
 		return nil, errs
 	}
-	if er := validation.ValidateCustomHeaders(v.CustomHeaders, "Client headers in"); er != nil {
+	if er := validation.ValidateCustomHeaders(v.CustomHeaders, constants.CLIENT_HEADER_MESSAGE_PREFIX); er != nil {
 		return nil, er
 	}
 
@@ -463,7 +500,7 @@ func (v *VaultController) Query(ctx context.Context, queryRequest common.QueryRe
 	if errs = validation.ValidateCustomHeaders(options.CustomHeaders, "Query"); errs != nil {
 		return nil, errs
 	}
-	if er := validation.ValidateCustomHeaders(v.CustomHeaders, "Client headers in"); er != nil {
+	if er := validation.ValidateCustomHeaders(v.CustomHeaders, constants.CLIENT_HEADER_MESSAGE_PREFIX); er != nil {
 		return nil, er
 	}
 	var fields []map[string]interface{}
@@ -486,6 +523,8 @@ func (v *VaultController) Query(ctx context.Context, queryRequest common.QueryRe
 		}
 		queryRes.Fields = fields
 	}
+	logger.Warn(logs.DEPRECATED_RESPONSE_KEY_SKYFLOW_ID)
+	logger.Warn(logs.DEPRECATED_RESPONSE_KEY_TOKENIZED_DATA)
 	logger.Info(logs.QUERY_REQUEST_RESOLVED)
 	logger.Info(logs.QUERY_SUCCESS)
 	return queryRes, nil
@@ -502,7 +541,7 @@ func (v *VaultController) Update(ctx context.Context, request common.UpdateReque
 	if errs = validation.ValidateCustomHeaders(options.CustomHeaders, "Update"); errs != nil {
 		return nil, errs
 	}
-	if er := validation.ValidateCustomHeaders(v.CustomHeaders, "Client headers in"); er != nil {
+	if er := validation.ValidateCustomHeaders(v.CustomHeaders, constants.CLIENT_HEADER_MESSAGE_PREFIX); er != nil {
 		return nil, er
 	}
 	if err := CreateRequestClientFunc(v, options.CustomHeaders); err != nil {
@@ -517,7 +556,9 @@ func (v *VaultController) Update(ctx context.Context, request common.UpdateReque
 	payload.Tokenization = &options.ReturnTokens
 	record := vaultapis.V1FieldRecords{}
 	skyflowId, _ := helpers.GetSkyflowID(request.Data)
+	logger.Warn(logs.DEPRECATED_DATA_KEY_SKYFLOW_ID)
 	delete(request.Data, constants.SKYFLOW_ID)
+	delete(request.Data, constants.API_SKYFLOW_ID) // backward compat
 	record.Fields = request.Data
 	if request.Tokens != nil {
 		record.Tokens = request.Tokens
@@ -542,7 +583,11 @@ func (v *VaultController) Update(ctx context.Context, request common.UpdateReque
 	var updatedField map[string]interface{}
 	updatedField = make(map[string]interface{})
 	updatedField = res
-	updatedField["skyflowId"] = *id
+	if id != nil {
+		updatedField[constants.SKYFLOW_ID] = *id
+		updatedField[constants.UPDATE_SKYFLOW_ID] = *id // backward compat
+		logger.Warn(logs.DEPRECATED_RESPONSE_KEY_SKYFLOW_ID_UPDATE)
+	}
 	return &common.UpdateResponse{
 		UpdatedField: updatedField,
 		Errors:       nil,
@@ -560,7 +605,7 @@ func (v *VaultController) Tokenize(ctx context.Context, request []common.Tokeniz
 	if err = validation.ValidateCustomHeaders(options.CustomHeaders, "Tokenize"); err != nil {
 		return nil, err
 	}
-	if err := validation.ValidateCustomHeaders(v.CustomHeaders, "Client headers in"); err != nil {
+	if err := validation.ValidateCustomHeaders(v.CustomHeaders, constants.CLIENT_HEADER_MESSAGE_PREFIX); err != nil {
 		return nil, err
 	}
 	if err := CreateRequestClientFunc(v, options.CustomHeaders); err != nil {
@@ -593,7 +638,7 @@ func (v *VaultController) UploadFile(ctx context.Context, request common.FileUpl
 	if errs = validation.ValidateCustomHeaders(options.CustomHeaders, "UploadFile"); errs != nil {
 		return nil, errs
 	}
-	if err := validation.ValidateCustomHeaders(v.CustomHeaders, "Client headers in"); err != nil {
+	if err := validation.ValidateCustomHeaders(v.CustomHeaders, constants.CLIENT_HEADER_MESSAGE_PREFIX); err != nil {
 		return nil, err
 	}
 
@@ -622,7 +667,11 @@ func (v *VaultController) UploadFile(ctx context.Context, request common.FileUpl
 		return nil, skyflowError.SkyflowErrorApi(fileErr, header)
 	}
 	logger.Info(logs.UPLOAD_FILE_REQUEST_RESOLVED)
-	return &common.FileUploadResponse{
-		SkyflowId: *fileResp.Body.GetSkyflowId(),
-	}, nil
+	resp := &common.FileUploadResponse{}
+	if fileResp.Body != nil {
+		if id := fileResp.Body.GetSkyflowId(); id != nil {
+			resp.SkyflowId = *id
+		}
+	}
+	return resp, nil
 }

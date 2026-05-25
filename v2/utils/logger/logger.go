@@ -42,6 +42,10 @@ func Error(args ...interface{}) {
 	log.Error(args...)
 }
 
+func SetOutput(w io.Writer) {
+	log.SetOutput(w)
+}
+
 func SetLogLevel(level LogLevel) {
 	switch level {
 	case INFO:

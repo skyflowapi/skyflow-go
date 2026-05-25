@@ -1,7 +1,7 @@
 /*
 Copyright (c) 2022 Skyflow, Inc.
 */
-package main
+package deprecated
 
 import (
 	"context"
@@ -12,15 +12,15 @@ import (
 )
 
 /**
- * This example demonstrates how to use the Skyflow Go SDK to update existing records
- * in your vault using record IDs and new values.
+ * This example demonstrates how to use the Skyflow Go SDK to retrieve records
+ * from your vault using record IDs and table names.
  * <p>
  * Steps include:
  * 1. Set up Skyflow vault credentials.
  * 2. Configure the skyflow client.
  * 3. Configure the vault.
- * 4. Updating records with new values using record IDs.
- * 5. Handling the response and errors.
+ * 4. Retrieve records using record IDs and table names.
+ * 5. Handle the response and errors.
  */
 
 func main() {
@@ -29,7 +29,6 @@ func main() {
 	vaultConfig2 := common.VaultConfig{VaultId: "<VAULT_ID2>", ClusterId: "<CLUSTER_ID2>", Env: common.SANDBOX, Credentials: common.Credentials{Token: "<BEARER_TOKEN2>"}}
 	var arr []common.VaultConfig
 	arr = append(arr, vaultConfig2, vaultConfig1)
-
 	// Step 2: Configure the skyflow client
 	skyflowInstance, err := client.NewSkyflow(
 		client.WithVaults(arr...),
@@ -40,30 +39,28 @@ func main() {
 		fmt.Println(*err)
 	} else {
 		// Step 3: Configure the vault
-		service, serviceErr := skyflowInstance.Vault("<VAULT_ID>") // Replace with your vault ID from the vault config
-		if serviceErr != nil {
-			fmt.Println(*serviceErr)
+		service, serviceError := skyflowInstance.Vault("<VAULT_ID>") // Replace with your vault ID from the vault config
+		if serviceError != nil {
+			fmt.Println(*serviceError)
 		} else {
 			ctx := context.TODO()
-			// Step 4: Update records with new values using record IDs
-			resUpdate, errUpdate := service.Update(ctx, common.UpdateRequest{
-				Table: "<TABLE_NAME>",
-				Data: map[string]interface{}{
-					"SkyflowId": "<SKYFLOW_ID>", // Replace with the actual id of the record to be updated
-					"<FIELD1>":   "<VALUE1>",     // Replace with the actual field and value to be updated
-					"<FIELD2>":   "<VALUE2>",     // Replace with the actual field and value to be updated
+			// Step 4: Retrieve records using record IDs and table names
+			getRes, getErr := service.Get(ctx, common.GetRequest{
+				Table: "<TABLE_NAME>", // Name of the table
+				Ids: []string{
+					"<SKYFLOW_ID_1>", // List of Skyflow IDs to be fetched
+					"<SKYFLOW_ID_2>",
 				},
-			}, common.UpdateOptions{
+			}, common.GetOptions{
 				ReturnTokens: true,
-				TokenMode:    common.DISABLE,
 			})
-
-			// Step 5: Handling the response and errors
-			if errUpdate != nil {
-				fmt.Println("ERROR: ", *errUpdate)
+			// Step 5: Handle the response and errors
+			if getErr != nil {
+				fmt.Println("ERROR: ", *getErr)
 			} else {
-				fmt.Println("response: ", resUpdate)
+				fmt.Println("RESPONSE: ", getRes.Data)
 			}
 		}
 	}
+
 }

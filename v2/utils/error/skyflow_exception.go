@@ -24,92 +24,122 @@ type SkyflowError struct {
 }
 
 func (se *SkyflowError) Error() string {
+	if se == nil {
+		return ""
+	}
 	if se.originalError != nil {
 		return fmt.Sprintf("Message: %s, Original Error (if any): %s", se.message, se.originalError.Error())
 	}
-	return fmt.Sprintf("Message: %s", se.message)
+	return fmt.Sprintf("Message: %s", se.message) //nolint:revive
 }
 func (se *SkyflowError) GetMessage() string {
-	return fmt.Sprintf("Message: %s", se.message)
+	if se == nil {
+		return ""
+	}
+	return fmt.Sprintf("Message: %s", se.message) //nolint:revive
 }
+
+// Deprecated: Use GetHttpCode instead.
 func (se *SkyflowError) GetCode() string {
+	if se == nil {
+		return ""
+	}
 	return fmt.Sprintf("Code: %s", se.httpCode)
 }
+func (se *SkyflowError) GetHttpCode() string {
+	if se == nil {
+		return ""
+	}
+	return se.httpCode
+}
 func (se *SkyflowError) GetRequestId() string {
+	if se == nil {
+		return ""
+	}
 	return se.requestId
 }
 func (se *SkyflowError) GetGrpcCode() string {
+	if se == nil {
+		return ""
+	}
 	return se.grpcCode
 }
 func (se *SkyflowError) GetHttpStatusCode() string {
+	if se == nil {
+		return ""
+	}
 	return se.httpStatusCode
 }
 func (se *SkyflowError) GetDetails() []interface{} {
+	if se == nil {
+		return nil
+	}
 	return se.details
 }
 func (se *SkyflowError) GetResponseBody() map[string]interface{} {
+	if se == nil {
+		return nil
+	}
 	return se.responseBody
 }
 func NewSkyflowError(code ErrorCodesEnum, message string) *SkyflowError {
 	return &SkyflowError{
 		httpCode:       string(code),
 		message:        message,
-		httpStatusCode: string("Bad Request"),
+		httpStatusCode: constants.HTTP_STATUS_BAD_REQUEST,
 	}
 }
 func SkyflowApiError(responseHeaders http.Response) *SkyflowError {
 	skyflowError := SkyflowError{
 		requestId: responseHeaders.Header.Get(constants.REQUEST_KEY),
 	}
-	if responseHeaders.Header.Get("Content-Type") == "application/json" {
+	ct := responseHeaders.Header.Get(constants.HEADER_CONTENT_TYPE_CAPITAL)
+	if strings.Contains(ct, constants.CONTENT_TYPE_JSON) {
 		bodyBytes, _ := io.ReadAll(responseHeaders.Body)
-		// Parse JSON into a struct
 		var apiError map[string]interface{}
 		if err := json.Unmarshal(bodyBytes, &apiError); err != nil {
-			return NewSkyflowError(INVALID_INPUT_CODE, "Failed to unmarhsal error")
+			return NewSkyflowError(INVALID_INPUT_CODE, "Failed to unmarshal error")
 		}
-		if errorBody, ok := apiError["error"].(map[string]interface{}); ok {
-			if httpCode, exists := errorBody["http_code"].(float64); exists {
+		if errorBody, ok := apiError[constants.ERROR_KEY_ERROR].(map[string]interface{}); ok {
+			if httpCode, exists := errorBody[constants.ERROR_KEY_HTTP_CODE].(float64); exists {
 				skyflowError.httpCode = strconv.FormatFloat(httpCode, 'f', 0, 64)
 			} else {
 				skyflowError.httpCode = strconv.Itoa(responseHeaders.StatusCode)
 			}
-			if message, exists := errorBody["message"].(string); exists {
+			if message, exists := errorBody[constants.ERROR_KEY_MESSAGE].(string); exists {
 				skyflowError.message = message
 			} else {
-				skyflowError.message = "Unknown error"
+				skyflowError.message = constants.UNKNOWN_ERROR
 			}
-			if grpcCode, exists := errorBody["grpc_code"].(float64); exists {
+			if grpcCode, exists := errorBody[constants.ERROR_KEY_GRPC_CODE].(float64); exists {
 				skyflowError.grpcCode = strconv.FormatFloat(grpcCode, 'f', 0, 64)
 			}
-			if httpStatus, exists := errorBody["http_status"].(string); exists {
+			if httpStatus, exists := errorBody[constants.ERROR_KEY_HTTP_STATUS].(string); exists {
 				skyflowError.httpStatusCode = httpStatus
 			}
-			if details, exists := errorBody["details"].([]interface{}); exists {
-				// initalize details if nil
+			if details, exists := errorBody[constants.ERROR_KEY_DETAILS].([]interface{}); exists {
 				if skyflowError.details == nil {
 					skyflowError.details = make([]interface{}, 0)
 				}
 				skyflowError.details = details
 			}
-		} else if errBody, ok := apiError["error"].(string); ok {
+		} else if errBody, ok := apiError[constants.ERROR_KEY_ERROR].(string); ok {
 			skyflowError.message = errBody
 		} else {
 			skyflowError.message = string(bodyBytes)
 		}
-
-	} else if responseHeaders.Header.Get("Content-Type") == "text/plain" {
+	} else if responseHeaders.Header.Get(constants.HEADER_CONTENT_TYPE_CAPITAL) == constants.CONTENT_TYPE_TEXT_PLAIN {
 		bodyBytes, err := io.ReadAll(responseHeaders.Body)
 		if err != nil {
-			return NewSkyflowError(INVALID_INPUT_CODE, "Failed to read error")
+			return NewSkyflowError(INVALID_INPUT_CODE, constants.ERROR_FAILED_TO_READ)
 		} else {
 			skyflowError.message = string(bodyBytes)
 			skyflowError.httpStatusCode = responseHeaders.Status
 		}
-	} else if responseHeaders.Header.Get("Content-Type") == "text/plain; charset=utf-8" {
+	} else if responseHeaders.Header.Get(constants.HEADER_CONTENT_TYPE_CAPITAL) == constants.CONTENT_TYPE_TEXT_CHARSET {
 		bodyBytes, errs := io.ReadAll(responseHeaders.Body)
 		if errs != nil {
-			return NewSkyflowError(INVALID_INPUT_CODE, "Failed to read error")
+			return NewSkyflowError(INVALID_INPUT_CODE, constants.ERROR_FAILED_TO_READ)
 		}
 		// Parse JSON into a struct
 		var apiError map[string]interface{}
@@ -118,30 +148,30 @@ func SkyflowApiError(responseHeaders http.Response) *SkyflowError {
 			skyflowError.httpStatusCode = responseHeaders.Status
 		}
 		if apiError != nil {
-			if errorBody, ok := apiError["error"].(map[string]interface{}); ok {
-				if httpCode, exists := errorBody["http_code"].(float64); exists {
+			if errorBody, ok := apiError[constants.ERROR_KEY_ERROR].(map[string]interface{}); ok {
+				if httpCode, exists := errorBody[constants.ERROR_KEY_HTTP_CODE].(float64); exists {
 					skyflowError.httpCode = strconv.FormatFloat(httpCode, 'f', 0, 64)
 				} else {
 					skyflowError.httpCode = strconv.Itoa(responseHeaders.StatusCode)
 				}
-				if message, exists := errorBody["message"].(string); exists {
+				if message, exists := errorBody[constants.ERROR_KEY_MESSAGE].(string); exists {
 					skyflowError.message = message
 				} else {
-					skyflowError.message = "Unknown error"
+					skyflowError.message = constants.UNKNOWN_ERROR
 				}
-				if grpcCode, exists := errorBody["grpc_code"].(float64); exists {
+				if grpcCode, exists := errorBody[constants.ERROR_KEY_GRPC_CODE].(float64); exists {
 					skyflowError.grpcCode = strconv.FormatFloat(grpcCode, 'f', 0, 64)
 				}
-				if httpStatus, exists := errorBody["http_status"].(string); exists {
+				if httpStatus, exists := errorBody[constants.ERROR_KEY_HTTP_STATUS].(string); exists {
 					skyflowError.httpStatusCode = httpStatus
 				}
-				if details, exists := errorBody["details"].([]interface{}); exists {
-				   if skyflowError.details == nil {
-					skyflowError.details = make([]interface{}, 0)
-				   }
+				if details, exists := errorBody[constants.ERROR_KEY_DETAILS].([]interface{}); exists {
+					if skyflowError.details == nil {
+						skyflowError.details = make([]interface{}, 0)
+					}
 					skyflowError.details = details
 				}
-			} else if errBody, ok := apiError["error"].(string); ok {
+			} else if errBody, ok := apiError[constants.ERROR_KEY_ERROR].(string); ok {
 				skyflowError.message = errBody
 				skyflowError.httpStatusCode = responseHeaders.Status
 			} else {
@@ -166,7 +196,7 @@ func SkyflowApiError(responseHeaders http.Response) *SkyflowError {
 			boolValue = false
 		}
 		// set the error detail
-		errorDetail["errorFromClient"] = boolValue
+		errorDetail[constants.ERROR_KEY_FROM_CLIENT] = boolValue
 		skyflowError.details = append(skyflowError.details, errorDetail)
 	}
 	return &skyflowError
@@ -186,28 +216,28 @@ func SkyflowErrorApi(error error, header http.Header) *SkyflowError {
 	if err != nil {
 		return NewSkyflowError(INVALID_INPUT_CODE, error.Error())
 	}
-	if errorBody, ok := apiError["error"].(map[string]interface{}); ok {
-		if httpCode, exists := errorBody["http_code"].(float64); exists {
+	if errorBody, ok := apiError[constants.ERROR_KEY_ERROR].(map[string]interface{}); ok {
+		if httpCode, exists := errorBody[constants.ERROR_KEY_HTTP_CODE].(float64); exists {
 			skyflowError.httpCode = strconv.FormatFloat(httpCode, 'f', 0, 64)
 		}
-		if message, exists := errorBody["message"].(string); exists {
+		if message, exists := errorBody[constants.ERROR_KEY_MESSAGE].(string); exists {
 			skyflowError.message = message
 		} else {
-			skyflowError.message = "Unknown error"
+			skyflowError.message = constants.UNKNOWN_ERROR
 		}
-		if grpcCode, exists := errorBody["grpc_code"].(float64); exists {
+		if grpcCode, exists := errorBody[constants.ERROR_KEY_GRPC_CODE].(float64); exists {
 			skyflowError.grpcCode = strconv.FormatFloat(grpcCode, 'f', 0, 64)
 		}
-		if httpStatus, exists := errorBody["http_status"].(string); exists {
+		if httpStatus, exists := errorBody[constants.ERROR_KEY_HTTP_STATUS].(string); exists {
 			skyflowError.httpStatusCode = httpStatus
 		}
-		if details, exists := errorBody["details"].([]interface{}); exists {
+		if details, exists := errorBody[constants.ERROR_KEY_DETAILS].([]interface{}); exists {
 			if skyflowError.details == nil {
 				skyflowError.details = make([]interface{}, 0)
 			}
 			skyflowError.details = details
 		}
-	} else if errBody, ok := apiError["error"].(string); ok {
+	} else if errBody, ok := apiError[constants.ERROR_KEY_ERROR].(string); ok {
 		skyflowError.message = errBody
 	} else {
 		skyflowError.message = error.Error()

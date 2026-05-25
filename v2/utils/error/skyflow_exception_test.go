@@ -17,6 +17,11 @@ func TestServiceAccount(t *testing.T) {
 	RunSpecs(t, "Skyflow Error Suite")
 }
 
+// errReader always returns an error on Read, used to simulate body-read failures.
+type errReader struct{}
+
+func (errReader) Read([]byte) (int, error) { return 0, fmt.Errorf("forced read error") }
+
 var _ = Describe("Skyflow Error", func() {
 
 	Context("Error() Method Safe Checks", func() {
@@ -50,8 +55,16 @@ var _ = Describe("Skyflow Error", func() {
 			Expect(skyflowError.GetMessage()).To(Equal("Message: Invalid Input"))
 		})
 
-		It("should return the correct HTTP code", func() {
+		It("should return the correct HTTP code via deprecated GetCode", func() {
 			Expect(skyflowError.GetCode()).To(Equal("Code: 400"))
+		})
+
+		It("should return the correct HTTP code via GetHttpCode", func() {
+			Expect(skyflowError.GetHttpCode()).To(Equal("400"))
+		})
+
+		It("GetHttpCode and GetCode should return identical values", func() {
+			Expect(skyflowError.GetCode()).To(ContainSubstring(skyflowError.GetHttpCode()))
 		})
 
 		It("should return the correct request ID", func() {
@@ -72,6 +85,57 @@ var _ = Describe("Skyflow Error", func() {
 
 		It("should return the correct response body", func() {
 			Expect(len(skyflowError.GetResponseBody())).To(Equal(0))
+		})
+	})
+
+	Context("GetHttpCode", func() {
+		It("returns '400' for an error built with INVALID_INPUT_CODE", func() {
+			err := NewSkyflowError(INVALID_INPUT_CODE, "bad input")
+			Expect(err.GetHttpCode()).To(Equal("400"))
+		})
+
+		It("returns 'Code: ' when httpCode is empty (zero-value struct)", func() {
+			err := &SkyflowError{}
+			Expect(err.GetHttpCode()).To(Equal(""))
+		})
+
+		It("returns the parsed http_code from a JSON API error response", func() {
+			header := http.Header{}
+			header.Set("Content-Type", "application/json")
+			response := http.Response{
+				Header: header,
+				Body: io.NopCloser(strings.NewReader(`{
+					"error": {
+						"http_code": 403,
+						"message": "Forbidden",
+						"grpc_code": 7,
+						"http_status": "PERMISSION_DENIED"
+					}
+				}`)),
+			}
+			err := SkyflowApiError(response)
+			Expect(err.GetHttpCode()).To(Equal("403"))
+		})
+
+		It("falls back to response StatusCode when http_code is absent in JSON body", func() {
+			header := http.Header{}
+			header.Set("Content-Type", "application/json")
+			response := http.Response{
+				Header:     header,
+				StatusCode: 500,
+				Body: io.NopCloser(strings.NewReader(`{
+					"error": {
+						"message": "Internal Server Error"
+					}
+				}`)),
+			}
+			err := SkyflowApiError(response)
+			Expect(err.GetHttpCode()).To(Equal("500"))
+		})
+
+		It("returns same value as deprecated GetCode", func() {
+			err := NewSkyflowError(INVALID_INPUT_CODE, "test")
+			Expect(err.GetCode()).To(ContainSubstring(err.GetHttpCode()))
 		})
 	})
 
@@ -192,6 +256,340 @@ var _ = Describe("Skyflow Error", func() {
 		})
 	})
 
+	Context("SkyflowApiError — text/plain; charset=utf-8 content type", func() {
+		It("should parse plain body when body is not JSON", func() {
+			response := http.Response{
+				Header: http.Header{
+					"Content-Type": []string{"text/plain; charset=utf-8"},
+					"X-Request-Id": []string{"req-utf8"},
+				},
+				Body:   io.NopCloser(strings.NewReader("plain error message")),
+				Status: "503 Service Unavailable",
+			}
+			skyflowErr := SkyflowApiError(response)
+			Expect(skyflowErr.GetMessage()).To(ContainSubstring("plain error message"))
+			Expect(skyflowErr.GetHttpStatusCode()).To(Equal("503 Service Unavailable"))
+		})
+
+		It("should parse JSON error body when body is valid JSON", func() {
+			body := `{"error":{"http_code":403,"message":"Forbidden","grpc_code":7,"http_status":"Forbidden"}}`
+			response := http.Response{
+				Header: http.Header{
+					"Content-Type": []string{"text/plain; charset=utf-8"},
+				},
+				Body:   io.NopCloser(strings.NewReader(body)),
+				Status: "403 Forbidden",
+			}
+			skyflowErr := SkyflowApiError(response)
+			Expect(skyflowErr.GetMessage()).To(ContainSubstring("Forbidden"))
+			Expect(skyflowErr.GetCode()).To(Equal("Code: 403"))
+			Expect(skyflowErr.GetGrpcCode()).To(Equal("7"))
+		})
+
+		It("should parse string error when JSON error field is a string", func() {
+			body := `{"error":"access denied"}`
+			response := http.Response{
+				Header: http.Header{
+					"Content-Type": []string{"text/plain; charset=utf-8"},
+				},
+				Body:   io.NopCloser(strings.NewReader(body)),
+				Status: "401 Unauthorized",
+			}
+			skyflowErr := SkyflowApiError(response)
+			Expect(skyflowErr.GetMessage()).To(ContainSubstring("access denied"))
+		})
+	})
+
+	// ── application/json; charset=utf-8 ─────────────────────────────────────
+	// These tests cover the strings.Contains fix: before the fix, Content-Type
+	// "application/json; charset=utf-8" fell through all branches and returned
+	// an empty SkyflowError. After the fix it is parsed identically to plain
+	// "application/json".
+
+	Context("SkyflowApiError — application/json; charset=utf-8 content type", func() {
+		It("should parse full error body (http_code, message, grpc_code, http_status)", func() {
+			body := `{"error":{"http_code":403,"message":"Forbidden","grpc_code":7,"http_status":"PERMISSION_DENIED"}}`
+			response := http.Response{
+				Header: http.Header{
+					"Content-Type": []string{"application/json; charset=utf-8"},
+					"X-Request-Id": []string{"req-charset-1"},
+				},
+				Body: io.NopCloser(strings.NewReader(body)),
+			}
+			skyflowErr := SkyflowApiError(response)
+			Expect(skyflowErr.GetHttpCode()).To(Equal("403"))
+			Expect(skyflowErr.GetMessage()).To(ContainSubstring("Forbidden"))
+			Expect(skyflowErr.GetGrpcCode()).To(Equal("7"))
+			Expect(skyflowErr.GetHttpStatusCode()).To(Equal("PERMISSION_DENIED"))
+			Expect(skyflowErr.GetRequestId()).To(Equal("req-charset-1"))
+		})
+
+		It("should fall back to response StatusCode when http_code is absent", func() {
+			body := `{"error":{"message":"Internal Server Error"}}`
+			response := http.Response{
+				Header: http.Header{
+					"Content-Type": []string{"application/json; charset=utf-8"},
+				},
+				Body:       io.NopCloser(strings.NewReader(body)),
+				StatusCode: 500,
+			}
+			skyflowErr := SkyflowApiError(response)
+			Expect(skyflowErr.GetHttpCode()).To(Equal("500"))
+			Expect(skyflowErr.GetMessage()).To(ContainSubstring("Internal Server Error"))
+		})
+
+		It("should return Unknown error when message is absent from error body", func() {
+			body := `{"error":{"http_code":400}}`
+			response := http.Response{
+				Header: http.Header{
+					"Content-Type": []string{"application/json; charset=utf-8"},
+				},
+				Body: io.NopCloser(strings.NewReader(body)),
+			}
+			skyflowErr := SkyflowApiError(response)
+			Expect(skyflowErr.GetMessage()).To(ContainSubstring("Unknown error"))
+		})
+
+		It("should parse error as string when error field is a string", func() {
+			body := `{"error":"access denied"}`
+			response := http.Response{
+				Header: http.Header{
+					"Content-Type": []string{"application/json; charset=utf-8"},
+				},
+				Body: io.NopCloser(strings.NewReader(body)),
+			}
+			skyflowErr := SkyflowApiError(response)
+			Expect(skyflowErr.GetMessage()).To(ContainSubstring("access denied"))
+		})
+
+		It("should use raw body as message when error field is neither string nor map", func() {
+			body := `{"error":42}`
+			response := http.Response{
+				Header: http.Header{
+					"Content-Type": []string{"application/json; charset=utf-8"},
+				},
+				Body: io.NopCloser(strings.NewReader(body)),
+			}
+			skyflowErr := SkyflowApiError(response)
+			Expect(skyflowErr.GetMessage()).To(ContainSubstring(body))
+		})
+
+		It("should parse details array when present in error body", func() {
+			body := `{"error":{"http_code":400,"message":"Bad Request","grpc_code":3,"http_status":"BAD_REQUEST","details":[{"reason":"field_required"},{"reason":"invalid_value"}]}}`
+			response := http.Response{
+				Header: http.Header{
+					"Content-Type": []string{"application/json; charset=utf-8"},
+				},
+				Body: io.NopCloser(strings.NewReader(body)),
+			}
+			skyflowErr := SkyflowApiError(response)
+			Expect(skyflowErr.GetHttpCode()).To(Equal("400"))
+			Expect(skyflowErr.GetMessage()).To(ContainSubstring("Bad Request"))
+			Expect(skyflowErr.GetDetails()).To(HaveLen(2))
+		})
+
+		It("should return a parse-failure error when JSON body is malformed", func() {
+			response := http.Response{
+				Header: http.Header{
+					"Content-Type": []string{"application/json; charset=utf-8"},
+				},
+				Body: io.NopCloser(strings.NewReader(`{invalid json`)),
+			}
+			skyflowErr := SkyflowApiError(response)
+			Expect(skyflowErr).ToNot(BeNil())
+			Expect(skyflowErr.GetMessage()).To(ContainSubstring("unmarshal"))
+		})
+
+		It("should include errorFromClient flag in details when header is set", func() {
+			body := `{"error":{"http_code":401,"message":"Unauthorized"}}`
+			response := http.Response{
+				Header: http.Header{
+					"Content-Type":      []string{"application/json; charset=utf-8"},
+					"Error-From-Client": []string{"true"},
+				},
+				Body: io.NopCloser(strings.NewReader(body)),
+			}
+			skyflowErr := SkyflowApiError(response)
+			Expect(skyflowErr.GetDetails()).To(HaveLen(1))
+			Expect(skyflowErr.GetDetails()[0]).To(Equal(map[string]interface{}{"errorFromClient": true}))
+		})
+	})
+
+	Context("SkyflowApiError — application/json with invalid JSON body", func() {
+		It("should return a parse-failure error when JSON is malformed", func() {
+			response := http.Response{
+				Header: http.Header{
+					"Content-Type": []string{"application/json"},
+				},
+				Body: io.NopCloser(strings.NewReader(`{invalid json`)),
+			}
+			skyflowErr := SkyflowApiError(response)
+			Expect(skyflowErr).ToNot(BeNil())
+			Expect(skyflowErr.GetMessage()).To(ContainSubstring("unmarshal"))
+		})
+	})
+
+	Context("SkyflowApiError — application/json with details in error body", func() {
+		It("should parse details array when present in error body", func() {
+			body := `{"error":{"http_code":400,"message":"Bad Request","grpc_code":3,"http_status":"Bad Request","details":[{"type":"detail1"}]}}`
+			response := http.Response{
+				Header: http.Header{
+					"Content-Type": []string{"application/json"},
+				},
+				Body: io.NopCloser(strings.NewReader(body)),
+			}
+			skyflowErr := SkyflowApiError(response)
+			Expect(skyflowErr.GetCode()).To(Equal("Code: 400"))
+			Expect(skyflowErr.GetMessage()).To(ContainSubstring("Bad Request"))
+			Expect(skyflowErr.GetDetails()).To(HaveLen(1))
+		})
+	})
+
+	Context("SkyflowApiError — application/json with error as neither string nor map", func() {
+		It("should use raw body as message when error field is numeric", func() {
+			body := `{"error":42}`
+			response := http.Response{
+				Header: http.Header{
+					"Content-Type": []string{"application/json"},
+				},
+				Body: io.NopCloser(strings.NewReader(body)),
+			}
+			skyflowErr := SkyflowApiError(response)
+			Expect(skyflowErr.GetMessage()).To(ContainSubstring(body))
+		})
+	})
+
+	Context("SkyflowApiError — text/plain read error", func() {
+		It("should return parse-failure error when body read fails", func() {
+			response := http.Response{
+				Header: http.Header{
+					"Content-Type": []string{"text/plain"},
+				},
+				Body: io.NopCloser(errReader{}),
+			}
+			skyflowErr := SkyflowApiError(response)
+			Expect(skyflowErr).ToNot(BeNil())
+			Expect(skyflowErr.GetMessage()).To(ContainSubstring("Failed to read error"))
+		})
+	})
+
+	Context("SkyflowApiError — text/plain; charset=utf-8 read error", func() {
+		It("should return parse-failure error when body read fails", func() {
+			response := http.Response{
+				Header: http.Header{
+					"Content-Type": []string{"text/plain; charset=utf-8"},
+				},
+				Body: io.NopCloser(errReader{}),
+			}
+			skyflowErr := SkyflowApiError(response)
+			Expect(skyflowErr).ToNot(BeNil())
+			Expect(skyflowErr.GetMessage()).To(ContainSubstring("Failed to read error"))
+		})
+	})
+
+	Context("SkyflowApiError — text/plain; charset=utf-8 missing http_code in error body", func() {
+		It("should use response StatusCode when http_code is absent from error body", func() {
+			body := `{"error":{"message":"Service Unavailable","grpc_code":14,"http_status":"Service Unavailable"}}`
+			response := http.Response{
+				Header: http.Header{
+					"Content-Type": []string{"text/plain; charset=utf-8"},
+				},
+				Body:       io.NopCloser(strings.NewReader(body)),
+				Status:     "503 Service Unavailable",
+				StatusCode: 503,
+			}
+			skyflowErr := SkyflowApiError(response)
+			Expect(skyflowErr.GetCode()).To(Equal("Code: 503"))
+			Expect(skyflowErr.GetMessage()).To(ContainSubstring("Service Unavailable"))
+		})
+	})
+
+	Context("SkyflowApiError — text/plain; charset=utf-8 missing message in error body", func() {
+		It("should return Unknown error when message is absent", func() {
+			body := `{"error":{"http_code":500}}`
+			response := http.Response{
+				Header: http.Header{
+					"Content-Type": []string{"text/plain; charset=utf-8"},
+				},
+				Body:   io.NopCloser(strings.NewReader(body)),
+				Status: "500 Internal Server Error",
+			}
+			skyflowErr := SkyflowApiError(response)
+			Expect(skyflowErr.GetMessage()).To(ContainSubstring("Unknown error"))
+		})
+	})
+
+	Context("SkyflowApiError — text/plain; charset=utf-8 with details in error body", func() {
+		It("should parse details array when present", func() {
+			body := `{"error":{"http_code":403,"message":"Forbidden","grpc_code":7,"http_status":"Forbidden","details":[{"reason":"insufficient_permissions"}]}}`
+			response := http.Response{
+				Header: http.Header{
+					"Content-Type": []string{"text/plain; charset=utf-8"},
+				},
+				Body:   io.NopCloser(strings.NewReader(body)),
+				Status: "403 Forbidden",
+			}
+			skyflowErr := SkyflowApiError(response)
+			Expect(skyflowErr.GetMessage()).To(ContainSubstring("Forbidden"))
+			Expect(skyflowErr.GetDetails()).To(HaveLen(1))
+		})
+	})
+
+	Context("SkyflowApiError — text/plain; charset=utf-8 with error as neither string nor map", func() {
+		It("should use raw body as message when error field is numeric", func() {
+			body := `{"error":99}`
+			response := http.Response{
+				Header: http.Header{
+					"Content-Type": []string{"text/plain; charset=utf-8"},
+				},
+				Body:   io.NopCloser(strings.NewReader(body)),
+				Status: "500",
+			}
+			skyflowErr := SkyflowApiError(response)
+			Expect(skyflowErr.GetMessage()).To(ContainSubstring(body))
+		})
+	})
+
+	Context("nil receiver — all getters return zero/empty values", func() {
+		var se *SkyflowError // deliberately nil
+
+		It("Error() returns empty string", func() {
+			Expect(se.Error()).To(Equal(""))
+		})
+
+		It("GetMessage() returns empty string", func() {
+			Expect(se.GetMessage()).To(Equal(""))
+		})
+
+		It("GetCode() returns empty string", func() {
+			Expect(se.GetCode()).To(Equal(""))
+		})
+
+		It("GetHttpCode() returns empty string", func() {
+			Expect(se.GetHttpCode()).To(Equal(""))
+		})
+
+		It("GetRequestId() returns empty string", func() {
+			Expect(se.GetRequestId()).To(Equal(""))
+		})
+
+		It("GetGrpcCode() returns empty string", func() {
+			Expect(se.GetGrpcCode()).To(Equal(""))
+		})
+
+		It("GetHttpStatusCode() returns empty string", func() {
+			Expect(se.GetHttpStatusCode()).To(Equal(""))
+		})
+
+		It("GetDetails() returns nil", func() {
+			Expect(se.GetDetails()).To(BeNil())
+		})
+
+		It("GetResponseBody() returns nil", func() {
+			Expect(se.GetResponseBody()).To(BeNil())
+		})
+	})
+
 	Context("SkyflowErrorApi", func() {
 		var header http.Header
 		BeforeEach(func() {
@@ -251,6 +649,26 @@ var _ = Describe("Skyflow Error", func() {
 			skyflowErr := SkyflowErrorApi(err, header)
 			Expect(skyflowErr.GetRequestId()).To(Equal("req-67890"))
 			Expect(skyflowErr.GetMessage()).To(Equal("Message: Something went wrong"))
+		})
+
+		It("should parse details array when present in SkyflowErrorApi", func() {
+			errorJSON := `{"error":{"http_code":400,"message":"Bad Request","grpc_code":3,"http_status":"Bad Request","details":[{"type":"detail1"},{"type":"detail2"}]}}`
+			err := errors.New("API Error: " + errorJSON)
+
+			skyflowErr := SkyflowErrorApi(err, header)
+			Expect(skyflowErr.GetCode()).To(Equal("Code: 400"))
+			Expect(skyflowErr.GetMessage()).To(Equal("Message: Bad Request"))
+			Expect(skyflowErr.GetDetails()).To(HaveLen(2))
+			Expect(skyflowErr.GetRequestId()).To(Equal("req-67890"))
+		})
+
+		It("should use original error message when error field is neither string nor map", func() {
+			errorJSON := `{"error": 42}`
+			originalErr := errors.New("API Error: " + errorJSON)
+
+			skyflowErr := SkyflowErrorApi(originalErr, header)
+			Expect(skyflowErr).ToNot(BeNil())
+			Expect(skyflowErr.GetMessage()).To(ContainSubstring(originalErr.Error()))
 		})
 	})
 

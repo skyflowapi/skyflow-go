@@ -39,6 +39,9 @@ func main() {
 	skyflowClient, clientError := NewSkyflow(
 		WithConnections(arr...),
 		WithLogLevel(logger.DEBUG),
+		WithCredentials(Credentials{
+			Token: "<BEARER_TOKEN>",
+		}),
 	)
 	if clientError != nil {
 		fmt.Println("Error:", clientError)

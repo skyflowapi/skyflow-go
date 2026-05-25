@@ -32,7 +32,9 @@ func main() {
 	// Step 2: Configure the skyflow client
 	skyflowInstance, err := client.NewSkyflow(
 		client.WithVaults(arr...),
-		client.WithCredentials(common.Credentials{}), // Pass credentials if not provided in vault config
+		client.WithCredentials(common.Credentials{
+			Token: "<BEARER_TOKEN>",
+		}), // Pass credentials if not provided in vault config
 		client.WithLogLevel(logger.ERROR),            // Use LogLevel.ERROR in production
 	)
 	if err != nil {

@@ -131,6 +131,7 @@ func WithLogLevel(logLevel logger.LogLevel) Option {
 	}
 }
 
+// WithCustomHeaders sets custom headers sent with every request from this client.
 func WithCustomHeaders(headers map[vaultutils.CustomHeaderKey]string) Option {
 	return func(s *Skyflow) *error.SkyflowError {
 		s.customHeaders = headers
@@ -154,9 +155,9 @@ func (s *Skyflow) Vault(vaultID ...string) (*vaultService, *error.SkyflowError) 
 	}
 	// Update the config in the vaultapi service
 	vaultService.controller = &controller.VaultController{
-		Config:      config,
-		Loglevel:    &s.logLevel,
-		CommonCreds: s.credentials,
+		Config:        config,
+		Loglevel:      &s.logLevel,
+		CommonCreds:   s.credentials,
 		CustomHeaders: s.customHeaders,
 	}
 	vaultService.config = config
@@ -176,8 +177,8 @@ func (s *Skyflow) Connection(connectionId ...string) (*connectionService, *error
 		s.connectionServices[config.ConnectionId] = connectionService
 	}
 	connectionService.controller = &controller.ConnectionController{
-		Config:   config,
-		Loglevel: &s.logLevel,
+		Config:      config,
+		Loglevel:    &s.logLevel,
 		CommonCreds: s.credentials,
 	}
 	connectionService.config = config
@@ -200,16 +201,17 @@ func (s *Skyflow) Detect(vaultID ...string) (*detectService, *error.SkyflowError
 	}
 	// Update the config in the vaultapi service
 	detectService.controller = &controller.DetectController{
-		Config:   config,
-		Loglevel: &s.logLevel,
-		CommonCreds: s.credentials,
+		Config:        config,
+		Loglevel:      &s.logLevel,
+		CommonCreds:   s.credentials,
 		CustomHeaders: s.customHeaders,
 	}
 	detectService.config = config
 	return detectService, nil
 }
 
-func (s *Skyflow) GetVault(vaultId string) (*vaultutils.VaultConfig, *error.SkyflowError) {
+// GetVaultConfig returns the VaultConfig registered under vaultId, or an error if it is not found.
+func (s *Skyflow) GetVaultConfig(vaultId string) (*vaultutils.VaultConfig, *error.SkyflowError) {
 	config, exist := s.vaultServices[vaultId]
 	if !exist {
 		return nil, error.NewSkyflowError(error.INVALID_INPUT_CODE, error.VAULT_ID_NOT_IN_CONFIG_LIST)
@@ -217,7 +219,8 @@ func (s *Skyflow) GetVault(vaultId string) (*vaultutils.VaultConfig, *error.Skyf
 	return config.config, nil
 }
 
-func (s *Skyflow) GetConnection(connId string) (*vaultutils.ConnectionConfig, *error.SkyflowError) {
+// GetConnectionConfig returns the ConnectionConfig registered under connId, or an error if it is not found.
+func (s *Skyflow) GetConnectionConfig(connId string) (*vaultutils.ConnectionConfig, *error.SkyflowError) {
 	config, exist := s.connectionServices[connId]
 	if !exist {
 		return nil, error.NewSkyflowError(error.INVALID_INPUT_CODE, error.CONNECTION_ID_NOT_IN_CONFIG_LIST)
@@ -225,6 +228,7 @@ func (s *Skyflow) GetConnection(connId string) (*vaultutils.ConnectionConfig, *e
 	return config.config, nil
 }
 
+// GetSkyflowCredentials returns the client-level credentials, or nil if none are set.
 func (s *Skyflow) GetSkyflowCredentials() *vaultutils.Credentials {
 	return s.credentials
 }
@@ -281,51 +285,59 @@ func (s *Skyflow) UpdateSkyflowCredentials(credentials vaultutils.Credentials) *
 	return nil
 }
 
-func (s *Skyflow) UpdateVault(updatedConfig vaultutils.VaultConfig) *error.SkyflowError {
+// UpdateVaultConfig updates the credentials, cluster ID, or environment of an existing vault config.
+// Returns an error if vaultId is empty or the config is not registered.
+func (s *Skyflow) UpdateVaultConfig(updatedConfig vaultutils.VaultConfig) *error.SkyflowError {
 	logger.Info(logs.VALIDATING_VAULT_CONFIG)
 	e := validation.ValidateUpdateVaultConfig(updatedConfig)
 	if e != nil {
 		return e
 	}
-	if _, exists := s.vaultServices[updatedConfig.VaultId]; !exists {
-		if _, exists := s.detectServices[updatedConfig.VaultId]; !exists {
-			logger.Error(fmt.Sprintf(logs.VAULT_CONFIG_DOES_NOT_EXIST, updatedConfig.VaultId))
-			return error.NewSkyflowError(error.ErrorCodesEnum(error.INVALID_INPUT_CODE), error.VAULT_ID_NOT_IN_CONFIG_LIST)
-		}
+	vaultSvc, vaultExists := s.vaultServices[updatedConfig.VaultId]
+	detectSvc, detectExists := s.detectServices[updatedConfig.VaultId]
+	if !vaultExists && !detectExists {
+		logger.Error(fmt.Sprintf(logs.VAULT_CONFIG_DOES_NOT_EXIST, updatedConfig.VaultId))
+		return error.NewSkyflowError(error.ErrorCodesEnum(error.INVALID_INPUT_CODE), error.VAULT_ID_NOT_IN_CONFIG_LIST)
 	}
 
 	// Update the credentials in the vaultapi controller if provided
-	if s.vaultServices[updatedConfig.VaultId].controller != nil {
+	if vaultExists && vaultSvc.controller != nil {
 		if !isCredentialsEmpty(updatedConfig.Credentials) {
-			s.vaultServices[updatedConfig.VaultId].controller.Config.Credentials = updatedConfig.Credentials
-			s.vaultServices[updatedConfig.VaultId].controller.Token = ""
-			s.vaultServices[updatedConfig.VaultId].controller.ApiKey = ""
+			vaultSvc.controller.Config.Credentials = updatedConfig.Credentials
+			vaultSvc.controller.Token = ""
+			vaultSvc.controller.ApiKey = ""
 		}
 		if updatedConfig.ClusterId != "" {
-			s.vaultServices[updatedConfig.VaultId].controller.Config.ClusterId = updatedConfig.ClusterId
+			vaultSvc.controller.Config.ClusterId = updatedConfig.ClusterId
 		}
-		s.vaultServices[updatedConfig.VaultId].controller.Config.Env = updatedConfig.Env
+		vaultSvc.controller.Config.Env = updatedConfig.Env
 	}
 	// Update the credentials in the detect controller if provided
-	if s.detectServices[updatedConfig.VaultId].controller != nil {
+	if detectExists && detectSvc.controller != nil {
 		if !isCredentialsEmpty(updatedConfig.Credentials) {
-			s.detectServices[updatedConfig.VaultId].controller.Config.Credentials = updatedConfig.Credentials
-			s.detectServices[updatedConfig.VaultId].controller.Token = ""
-			s.detectServices[updatedConfig.VaultId].controller.ApiKey = ""
+			detectSvc.controller.Config.Credentials = updatedConfig.Credentials
+			detectSvc.controller.Token = ""
+			detectSvc.controller.ApiKey = ""
 		}
 		if updatedConfig.ClusterId != "" {
-			s.detectServices[updatedConfig.VaultId].controller.Config.ClusterId = updatedConfig.ClusterId
+			detectSvc.controller.Config.ClusterId = updatedConfig.ClusterId
 		}
-		s.detectServices[updatedConfig.VaultId].controller.Config.Env = updatedConfig.Env
+		detectSvc.controller.Config.Env = updatedConfig.Env
 	}
 
 	// Update the config in the vaultapi service
-	s.vaultServices[updatedConfig.VaultId].config = &updatedConfig
-	s.detectServices[updatedConfig.VaultId].config = &updatedConfig
+	if vaultExists {
+		vaultSvc.config = &updatedConfig
+	}
+	if detectExists {
+		detectSvc.config = &updatedConfig
+	}
 	return nil
 }
 
-func (s *Skyflow) UpdateConnection(updatedConfig vaultutils.ConnectionConfig) *error.SkyflowError {
+// UpdateConnectionConfig updates the credentials or URL of an existing connection config.
+// Returns an error if connectionId is empty or the config is not registered.
+func (s *Skyflow) UpdateConnectionConfig(updatedConfig vaultutils.ConnectionConfig) *error.SkyflowError {
 	logger.Info(logs.VALIDATING_CONNECTION_CONFIG)
 	err := validation.ValidateUpdateConnectionConfig(updatedConfig)
 	if err != nil {
@@ -351,6 +363,7 @@ func (s *Skyflow) UpdateConnection(updatedConfig vaultutils.ConnectionConfig) *e
 	return nil
 }
 
+// GetLoglevel returns the current log level of the client.
 func (s *Skyflow) GetLoglevel() *logger.LogLevel {
 	loglevel := s.logLevel
 	return &loglevel
@@ -368,7 +381,9 @@ func (s *Skyflow) vaultIdExists(vaultId string) *error.SkyflowError {
 	return nil
 }
 
-func (s *Skyflow) AddVault(config vaultutils.VaultConfig) *error.SkyflowError {
+// AddVaultConfig registers a new vault config with the client.
+// Returns an error if the config is invalid or the vault ID is already registered.
+func (s *Skyflow) AddVaultConfig(config vaultutils.VaultConfig) *error.SkyflowError {
 	logger.Info(logs.VALIDATING_VAULT_CONFIG)
 	if err := validation.ValidateVaultConfig(config); err != nil {
 		return err
@@ -389,6 +404,7 @@ func (s *Skyflow) AddVault(config vaultutils.VaultConfig) *error.SkyflowError {
 	return nil
 }
 
+// AddSkyflowCredentials sets or replaces client-level credentials and propagates them to all active controllers.
 func (s *Skyflow) AddSkyflowCredentials(config vaultutils.Credentials) *error.SkyflowError {
 	err := validation.ValidateCredentials(config)
 	if err != nil {
@@ -427,7 +443,9 @@ func (s *Skyflow) AddSkyflowCredentials(config vaultutils.Credentials) *error.Sk
 	return nil
 }
 
-func (s *Skyflow) AddConnection(config vaultutils.ConnectionConfig) *error.SkyflowError {
+// AddConnectionConfig registers a new connection config with the client.
+// Returns an error if the config is invalid or the connection ID is already registered.
+func (s *Skyflow) AddConnectionConfig(config vaultutils.ConnectionConfig) *error.SkyflowError {
 	logger.Info(logs.VALIDATING_CONNECTION_CONFIG)
 	if err := validation.ValidateConnectionConfig(config); err != nil {
 		return err
@@ -444,28 +462,81 @@ func (s *Skyflow) AddConnection(config vaultutils.ConnectionConfig) *error.Skyfl
 	return nil
 }
 
-func (s *Skyflow) RemoveVault(vaultId string) *error.SkyflowError {
-	if _, exists := s.vaultServices[vaultId]; !exists {
+// RemoveVaultConfig removes the vault config registered under vaultId.
+// Returns an error if the vault ID is not registered in any service.
+func (s *Skyflow) RemoveVaultConfig(vaultId string) *error.SkyflowError {
+	_, inVault := s.vaultServices[vaultId]
+	_, inDetect := s.detectServices[vaultId]
+	if !inVault && !inDetect {
 		logger.Error(fmt.Sprintf(logs.VAULT_ID_CONFIG_DOES_NOT_EXIST, vaultId))
 		return error.NewSkyflowError(error.ErrorCodesEnum(error.INVALID_INPUT_CODE), error.VAULT_ID_NOT_IN_CONFIG_LIST)
 	}
-	delete(s.vaultServices, vaultId)
-
-	if _, exists := s.detectServices[vaultId]; !exists {
-		logger.Error(fmt.Sprintf(logs.VAULT_ID_CONFIG_DOES_NOT_EXIST, vaultId))
-		return error.NewSkyflowError(error.ErrorCodesEnum(error.INVALID_INPUT_CODE), error.VAULT_ID_NOT_IN_CONFIG_LIST)
+	if inVault {
+		delete(s.vaultServices, vaultId)
 	}
-	delete(s.detectServices, vaultId)
+	if inDetect {
+		delete(s.detectServices, vaultId)
+	}
 	return nil
 }
 
-func (s *Skyflow) RemoveConnection(connectionId string) *error.SkyflowError {
+// RemoveConnectionConfig removes the connection config registered under connectionId.
+// Returns an error if the connection ID is not registered.
+func (s *Skyflow) RemoveConnectionConfig(connectionId string) *error.SkyflowError {
 	if _, exists := s.connectionServices[connectionId]; !exists {
 		logger.Error(fmt.Sprintf(logs.CONNECTION_CONFIG_DOES_NOT_EXIST, connectionId))
 		return error.NewSkyflowError(error.ErrorCodesEnum(error.INVALID_INPUT_CODE), error.CONNECTION_ID_NOT_IN_CONFIG_LIST)
 	}
 	delete(s.connectionServices, connectionId)
 	return nil
+}
+
+// Deprecated: Use GetVaultConfig instead.
+func (s *Skyflow) GetVault(vaultId string) (*vaultutils.VaultConfig, *error.SkyflowError) {
+	logger.Warn(logs.DEPRECATED_METHOD_GET_VAULT)
+	return s.GetVaultConfig(vaultId)
+}
+
+// Deprecated: Use GetConnectionConfig instead.
+func (s *Skyflow) GetConnection(connId string) (*vaultutils.ConnectionConfig, *error.SkyflowError) {
+	logger.Warn(logs.DEPRECATED_METHOD_GET_CONNECTION)
+	return s.GetConnectionConfig(connId)
+}
+
+// Deprecated: Use AddVaultConfig instead.
+func (s *Skyflow) AddVault(config vaultutils.VaultConfig) *error.SkyflowError {
+	logger.Warn(logs.DEPRECATED_METHOD_ADD_VAULT)
+	return s.AddVaultConfig(config)
+}
+
+// Deprecated: Use AddConnectionConfig instead.
+func (s *Skyflow) AddConnection(config vaultutils.ConnectionConfig) *error.SkyflowError {
+	logger.Warn(logs.DEPRECATED_METHOD_ADD_CONNECTION)
+	return s.AddConnectionConfig(config)
+}
+
+// Deprecated: Use UpdateVaultConfig instead.
+func (s *Skyflow) UpdateVault(updatedConfig vaultutils.VaultConfig) *error.SkyflowError {
+	logger.Warn(logs.DEPRECATED_METHOD_UPDATE_VAULT)
+	return s.UpdateVaultConfig(updatedConfig)
+}
+
+// Deprecated: Use UpdateConnectionConfig instead.
+func (s *Skyflow) UpdateConnection(updatedConfig vaultutils.ConnectionConfig) *error.SkyflowError {
+	logger.Warn(logs.DEPRECATED_METHOD_UPDATE_CONNECTION)
+	return s.UpdateConnectionConfig(updatedConfig)
+}
+
+// Deprecated: Use RemoveVaultConfig instead.
+func (s *Skyflow) RemoveVault(vaultId string) *error.SkyflowError {
+	logger.Warn(logs.DEPRECATED_METHOD_REMOVE_VAULT)
+	return s.RemoveVaultConfig(vaultId)
+}
+
+// Deprecated: Use RemoveConnectionConfig instead.
+func (s *Skyflow) RemoveConnection(connectionId string) *error.SkyflowError {
+	logger.Warn(logs.DEPRECATED_METHOD_REMOVE_CONNECTION)
+	return s.RemoveConnectionConfig(connectionId)
 }
 
 // vault utils or helper func
