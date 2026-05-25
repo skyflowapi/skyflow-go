@@ -66,6 +66,10 @@ func SetTokenMode(tokenMode common.BYOT) (*vaultapis.V1Byot, error) {
 	default:
 		tokenModes, tokenError = vaultapis.NewV1ByotFromString(string(common.DISABLE))
 	}
+    if tokenMode != "" && tokenMode != common.DISABLE && tokenMode != common.ENABLE_STRICT && tokenMode != common.ENABLE {
+		logger.Error(fmt.Sprintf(logs.INVALID_BYOT_MODE, tokenMode))
+		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.INVALID_BYOT_MODE, tokenMode))
+    }
 	if tokenError != nil {
 		return nil, tokenError
 	}
@@ -499,7 +503,12 @@ func GenerateBearerTokenHelper(credKeys map[string]interface{}, options common.B
 		logger.Error(logs.PRIVATE_KEY_NOT_FOUND)
 		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.MISSING_PRIVATE_KEY)
 	}
-	pvtKey, err1 := GetPrivateKeyFromPem(privateKey.(string))
+	privateKeyStr, ok := privateKey.(string)
+	if !ok {
+		logger.Error(logs.PRIVATE_KEY_NOT_FOUND)
+		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.MISSING_PRIVATE_KEY)
+	}
+	pvtKey, err1 := GetPrivateKeyFromPem(privateKeyStr)
 	if err1 != nil {
 		return nil, err1
 	}

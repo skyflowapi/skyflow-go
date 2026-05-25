@@ -73,9 +73,9 @@ const (
 type DeidentifyFileStatus string
 
 const (
-	IN_PROGRESS DeidentifyFileStatus = "in_progress"
-	FAILED      DeidentifyFileStatus = "failed"
-	SUCCESS     DeidentifyFileStatus = "success"
+	IN_PROGRESS DeidentifyFileStatus = "IN_PROGRESS"
+	FAILED      DeidentifyFileStatus = "FAILED"
+	SUCCESS     DeidentifyFileStatus = "SUCCESS"
 )
 
 type DetectEntities string

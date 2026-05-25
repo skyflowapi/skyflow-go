@@ -754,9 +754,9 @@ var _ = Describe("pollForResults — uncovered branches (via DeidentifyFile)", O
 					callCount++
 					w.Header().Set("Content-Type", "application/json")
 					if callCount == 1 {
-						// First poll: return in_progress to trigger the backoff.
+						// First poll: return IN_PROGRESS to trigger the backoff.
 						_ = json.NewEncoder(w).Encode(map[string]interface{}{
-							"status": "in_progress",
+							"status": "IN_PROGRESS",
 						})
 					} else {
 						// Second poll: return SUCCESS.
@@ -1106,7 +1106,7 @@ var _ = Describe("parseDeidentifyFileResponse + GetDetectRun — uncovered branc
 
 	Context("GetDetectRun — parseDeidentifyFileResponse returns error (invalid base64)", func() {
 		It("should return a SkyflowError wrapping the parse error", func() {
-			// Status is not in_progress; output[0] has invalid base64.
+			// Status is not IN_PROGRESS; output[0] has invalid base64.
 			response := map[string]interface{}{
 				"status": "SUCCESS",
 				"output": []map[string]interface{}{
@@ -1309,6 +1309,232 @@ var _ = Describe("GetDetectRun — client-level custom headers validation error"
 		Expect(err).ToNot(BeNil())
 	})
 	
+})
+
+// ---------------------------------------------------------------------------
+// 17. processFileByType — endpoint routing by file extension
+// ---------------------------------------------------------------------------
+
+var _ = Describe("processFileByType — endpoint routing by file extension", Ordered, func() {
+	var (
+		d       *DetectController
+		ctx     context.Context
+		tempDir string
+	)
+
+	AfterEach(func() {
+		CreateDetectRequestClientFunc = CreateDetectRequestClient
+		SetBearerTokenForDetectControllerFunc = SetBearerTokenForDetectController
+	})
+
+	BeforeAll(func() {
+		ctx = context.Background()
+		var err error
+		tempDir, err = os.MkdirTemp("", "detect_routing_*")
+		Expect(err).To(BeNil())
+	})
+
+	AfterAll(func() { _ = os.RemoveAll(tempDir) })
+
+	BeforeEach(func() {
+		d = &DetectController{
+			Config: &VaultConfig{
+				VaultId:   "vault1",
+				ClusterId: "cluster1",
+				Env:       DEV,
+				Credentials: Credentials{Token: makeValidJWT()},
+			},
+		}
+	})
+
+	DescribeTable("routes each file extension to the correct API endpoint path",
+		func(ext, expectedPath string) {
+			var capturedPath string
+
+			ts := setupDetectFileMux(
+				func(w http.ResponseWriter, r *http.Request) {
+					capturedPath = r.URL.Path
+					w.Header().Set("Content-Type", "application/json")
+					_ = json.NewEncoder(w).Encode(map[string]string{"run_id": "run-001"})
+				},
+				func(w http.ResponseWriter, r *http.Request) {
+					w.Header().Set("Content-Type", "application/json")
+					_ = json.NewEncoder(w).Encode(map[string]interface{}{
+						"status": "SUCCESS",
+						"output": []map[string]interface{}{
+							{
+								"processedFile":          "dGVzdA==",
+								"processedFileExtension": strings.TrimPrefix(ext, "."),
+								"processedFileType":      "TEXT",
+							},
+						},
+					})
+				},
+			)
+			defer ts.Close()
+
+			CreateDetectRequestClientFunc = func(ctrl *DetectController, headers map[CustomHeaderKey]string) *skyflowError.SkyflowError {
+				injectDetectFileClient(ctrl, ts.URL)
+				return nil
+			}
+			noopBearerToken()
+
+			f, ferr := os.CreateTemp(tempDir, "file.*"+ext)
+			Expect(ferr).To(BeNil())
+			_, _ = f.WriteString("test content")
+			_ = f.Close()
+
+			req := DeidentifyFileRequest{
+				File:     FileInput{FilePath: f.Name()},
+				Entities: []DetectEntities{Name},
+			}
+			result, err := d.DeidentifyFile(ctx, req, common.DeidentifyFileOptions{})
+			Expect(err).To(BeNil())
+			Expect(result).ToNot(BeNil())
+			Expect(capturedPath).To(Equal(expectedPath))
+		},
+		Entry(".txt  → text endpoint",            ".txt",  "/v1/detect/deidentify/file/text"),
+		Entry(".mp3  → audio endpoint",           ".mp3",  "/v1/detect/deidentify/file/audio"),
+		Entry(".wav  → audio endpoint",           ".wav",  "/v1/detect/deidentify/file/audio"),
+		Entry(".pdf  → pdf endpoint",             ".pdf",  "/v1/detect/deidentify/file/document/pdf"),
+		Entry(".jpg  → image endpoint",           ".jpg",  "/v1/detect/deidentify/file/image"),
+		Entry(".jpeg → image endpoint",           ".jpeg", "/v1/detect/deidentify/file/image"),
+		Entry(".png  → image endpoint",           ".png",  "/v1/detect/deidentify/file/image"),
+		Entry(".bmp  → image endpoint",           ".bmp",  "/v1/detect/deidentify/file/image"),
+		Entry(".tif  → image endpoint",           ".tif",  "/v1/detect/deidentify/file/image"),
+		Entry(".tiff → image endpoint",           ".tiff", "/v1/detect/deidentify/file/image"),
+		Entry(".ppt  → presentation endpoint",    ".ppt",  "/v1/detect/deidentify/file/presentation"),
+		Entry(".pptx → presentation endpoint",    ".pptx", "/v1/detect/deidentify/file/presentation"),
+		Entry(".csv  → spreadsheet endpoint",     ".csv",  "/v1/detect/deidentify/file/spreadsheet"),
+		Entry(".xls  → spreadsheet endpoint",     ".xls",  "/v1/detect/deidentify/file/spreadsheet"),
+		Entry(".xlsx → spreadsheet endpoint",     ".xlsx", "/v1/detect/deidentify/file/spreadsheet"),
+		Entry(".doc  → document endpoint",        ".doc",  "/v1/detect/deidentify/file/document"),
+		Entry(".docx → document endpoint",        ".docx", "/v1/detect/deidentify/file/document"),
+		Entry(".json → structured text endpoint", ".json", "/v1/detect/deidentify/file/structured_text"),
+		Entry(".xml  → structured text endpoint", ".xml",  "/v1/detect/deidentify/file/structured_text"),
+		Entry(".dat  → generic file endpoint",    ".dat",  "/v1/detect/deidentify/file"),
+	)
+})
+
+// ---------------------------------------------------------------------------
+// 18. DeidentifyFile — AllowRegexList and RestrictRegexList passthrough
+// ---------------------------------------------------------------------------
+
+var _ = Describe("DeidentifyFile — AllowRegexList and RestrictRegexList passthrough", Ordered, func() {
+	var (
+		d       *DetectController
+		ctx     context.Context
+		tempDir string
+	)
+
+	AfterEach(func() {
+		CreateDetectRequestClientFunc = CreateDetectRequestClient
+		SetBearerTokenForDetectControllerFunc = SetBearerTokenForDetectController
+	})
+
+	BeforeAll(func() {
+		ctx = context.Background()
+		var err error
+		tempDir, err = os.MkdirTemp("", "detect_regex_*")
+		Expect(err).To(BeNil())
+	})
+
+	AfterAll(func() { _ = os.RemoveAll(tempDir) })
+
+	BeforeEach(func() {
+		d = &DetectController{
+			Config: &VaultConfig{
+				VaultId:   "vault1",
+				ClusterId: "cluster1",
+				Env:       DEV,
+				Credentials: Credentials{Token: makeValidJWT()},
+			},
+		}
+	})
+
+	successPollHandler := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"status": "SUCCESS",
+			"output": []map[string]interface{}{
+				{"processedFile": "dGVzdA==", "processedFileExtension": "txt", "processedFileType": "TEXT"},
+			},
+		})
+	}
+
+	It("should include allow_regex and restrict_regex in the outgoing request body", func() {
+		var body map[string]interface{}
+
+		ts := setupDetectFileMux(
+			func(w http.ResponseWriter, r *http.Request) {
+				_ = json.NewDecoder(r.Body).Decode(&body)
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode(map[string]string{"run_id": "run-001"})
+			},
+			successPollHandler,
+		)
+		defer ts.Close()
+
+		CreateDetectRequestClientFunc = func(ctrl *DetectController, headers map[CustomHeaderKey]string) *skyflowError.SkyflowError {
+			injectDetectFileClient(ctrl, ts.URL)
+			return nil
+		}
+		noopBearerToken()
+
+		f, _ := os.CreateTemp(tempDir, "file.*.txt")
+		_, _ = f.WriteString("test content")
+		_ = f.Close()
+
+		req := DeidentifyFileRequest{
+			File:              FileInput{FilePath: f.Name()},
+			Entities:          []DetectEntities{Name},
+			AllowRegexList:    []string{`\d{3}-\d{2}-\d{4}`},
+			RestrictRegexList: []string{`^RESTRICT.*`},
+		}
+		result, err := d.DeidentifyFile(ctx, req, common.DeidentifyFileOptions{})
+		Expect(err).To(BeNil())
+		Expect(result).ToNot(BeNil())
+
+		Expect(body).To(HaveKey("allow_regex"))
+		Expect(body["allow_regex"]).To(ContainElement(`\d{3}-\d{2}-\d{4}`))
+		Expect(body).To(HaveKey("restrict_regex"))
+		Expect(body["restrict_regex"]).To(ContainElement(`^RESTRICT.*`))
+	})
+
+	It("should omit allow_regex and restrict_regex from the request body when not set", func() {
+		var body map[string]interface{}
+
+		ts := setupDetectFileMux(
+			func(w http.ResponseWriter, r *http.Request) {
+				_ = json.NewDecoder(r.Body).Decode(&body)
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode(map[string]string{"run_id": "run-001"})
+			},
+			successPollHandler,
+		)
+		defer ts.Close()
+
+		CreateDetectRequestClientFunc = func(ctrl *DetectController, headers map[CustomHeaderKey]string) *skyflowError.SkyflowError {
+			injectDetectFileClient(ctrl, ts.URL)
+			return nil
+		}
+		noopBearerToken()
+
+		f, _ := os.CreateTemp(tempDir, "file.*.txt")
+		_, _ = f.WriteString("test content")
+		_ = f.Close()
+
+		req := DeidentifyFileRequest{
+			File:     FileInput{FilePath: f.Name()},
+			Entities: []DetectEntities{Name},
+		}
+		result, err := d.DeidentifyFile(ctx, req, common.DeidentifyFileOptions{})
+		Expect(err).To(BeNil())
+		Expect(result).ToNot(BeNil())
+
+		Expect(body).ToNot(HaveKey("allow_regex"))
+		Expect(body).ToNot(HaveKey("restrict_regex"))
+	})
 })
 
 // Ensure the test file compiles even without usages of fmt and strings packages.

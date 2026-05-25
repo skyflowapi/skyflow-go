@@ -24,34 +24,62 @@ type SkyflowError struct {
 }
 
 func (se *SkyflowError) Error() string {
+	if se == nil {
+		return ""
+	}
 	if se.originalError != nil {
 		return fmt.Sprintf("Message: %s, Original Error (if any): %s", se.message, se.originalError.Error())
 	}
 	return fmt.Sprintf("Message: %s", se.message) //nolint:revive
 }
 func (se *SkyflowError) GetMessage() string {
+	if se == nil {
+		return ""
+	}
 	return fmt.Sprintf("Message: %s", se.message) //nolint:revive
 }
+
 // Deprecated: Use GetHttpCode instead.
 func (se *SkyflowError) GetCode() string {
+	if se == nil {
+		return ""
+	}
 	return fmt.Sprintf("Code: %s", se.httpCode)
 }
 func (se *SkyflowError) GetHttpCode() string {
+	if se == nil {
+		return ""
+	}
 	return se.httpCode
 }
 func (se *SkyflowError) GetRequestId() string {
+	if se == nil {
+		return ""
+	}
 	return se.requestId
 }
 func (se *SkyflowError) GetGrpcCode() string {
+	if se == nil {
+		return ""
+	}
 	return se.grpcCode
 }
 func (se *SkyflowError) GetHttpStatusCode() string {
+	if se == nil {
+		return ""
+	}
 	return se.httpStatusCode
 }
 func (se *SkyflowError) GetDetails() []interface{} {
+	if se == nil {
+		return nil
+	}
 	return se.details
 }
 func (se *SkyflowError) GetResponseBody() map[string]interface{} {
+	if se == nil {
+		return nil
+	}
 	return se.responseBody
 }
 func NewSkyflowError(code ErrorCodesEnum, message string) *SkyflowError {

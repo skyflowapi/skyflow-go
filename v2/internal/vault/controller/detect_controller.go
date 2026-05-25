@@ -224,25 +224,22 @@ func CreateReidentifyTextRequest(request common.ReidentifyTextRequest, config co
 	}
 
 	// RedactedEntities
-	if len(request.RedactedEntities) > 0 {
-		redactedEntities := CreateEntityTypes(request.RedactedEntities, constants.DETECT_REDACTION_TYPE_REDACTED).([]vaultapis.FormatRedactedItem)
-		if len(redactedEntities) > 0 {
+	if raw := CreateEntityTypes(request.RedactedEntities, constants.DETECT_REDACTION_TYPE_REDACTED); raw != nil {
+		if redactedEntities, ok := raw.([]vaultapis.FormatRedactedItem); ok && len(redactedEntities) > 0 {
 			payload.Format.Redacted = redactedEntities
 		}
 	}
 
 	// MaskedEntities
-	if len(request.MaskedEntities) > 0 {
-		maskedEntities := CreateEntityTypes(request.MaskedEntities, constants.DETECT_REDACTION_TYPE_MASKED).([]vaultapis.FormatMaskedItem)
-		if len(maskedEntities) > 0 {
+	if raw := CreateEntityTypes(request.MaskedEntities, constants.DETECT_REDACTION_TYPE_MASKED); raw != nil {
+		if maskedEntities, ok := raw.([]vaultapis.FormatMaskedItem); ok && len(maskedEntities) > 0 {
 			payload.Format.Masked = maskedEntities
 		}
 	}
 
 	// PlainTextEntities
-	if len(request.PlainTextEntities) > 0 {
-		plainTextEntities := CreateEntityTypes(request.PlainTextEntities, constants.DETECT_REDACTION_TYPE_PLAINTEXT).([]vaultapis.FormatPlaintextItem)
-		if len(plainTextEntities) > 0 {
+	if raw := CreateEntityTypes(request.PlainTextEntities, constants.DETECT_REDACTION_TYPE_PLAINTEXT); raw != nil {
+		if plainTextEntities, ok := raw.([]vaultapis.FormatPlaintextItem); ok && len(plainTextEntities) > 0 {
 			payload.Format.Plaintext = plainTextEntities
 		}
 	}
@@ -328,8 +325,8 @@ func CreatePresentationRequest(request *common.DeidentifyFileRequest, base64Cont
 
 func CreateSpreadsheetRequest(request *common.DeidentifyFileRequest, base64Content, vaultID, fileExt string) *vaultapis.DeidentifyFileRequestDeidentifySpreadsheet {
 	var entityTypes []vaultapis.DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem
-	if result := CreateEntityTypesRef(request.Entities, constants.FILE_TYPE_SPREAD).([]vaultapis.DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem); result != nil {
-		entityTypes = result
+	if result := CreateEntityTypesRef(request.Entities, constants.FILE_TYPE_SPREAD); result != nil {
+		entityTypes = result.([]vaultapis.DeidentifyFileRequestDeidentifySpreadsheetEntityTypesItem)
 	}
 	return &vaultapis.DeidentifyFileRequestDeidentifySpreadsheet{
 		VaultId: vaultID,
@@ -346,8 +343,8 @@ func CreateSpreadsheetRequest(request *common.DeidentifyFileRequest, base64Conte
 
 func CreateDocumentRequest(request *common.DeidentifyFileRequest, base64Content, vaultID, fileExt string) *vaultapis.DeidentifyFileRequestDeidentifyDocument {
 	var entityTypes []vaultapis.DeidentifyFileRequestDeidentifyDocumentEntityTypesItem
-	if result := CreateEntityTypesRef(request.Entities, constants.FILE_TYPE_DOCUMENT).([]vaultapis.DeidentifyFileRequestDeidentifyDocumentEntityTypesItem); result != nil {
-		entityTypes = result
+	if result := CreateEntityTypesRef(request.Entities, constants.FILE_TYPE_DOCUMENT); result != nil {
+		entityTypes = result.([]vaultapis.DeidentifyFileRequestDeidentifyDocumentEntityTypesItem)
 	}
 	return &vaultapis.DeidentifyFileRequestDeidentifyDocument{
 		VaultId: vaultID,
@@ -364,8 +361,8 @@ func CreateDocumentRequest(request *common.DeidentifyFileRequest, base64Content,
 
 func CreateStructuredTextRequest(request *common.DeidentifyFileRequest, base64Content, vaultID, fileExt string) *vaultapis.DeidentifyFileRequestDeidentifyStructuredText {
 	var entityTypes []vaultapis.DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem
-	if result := CreateEntityTypesRef(request.Entities, constants.FILE_TYPE_STRUCTURED).([]vaultapis.DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem); result != nil {
-		entityTypes = result
+	if result := CreateEntityTypesRef(request.Entities, constants.FILE_TYPE_STRUCTURED); result != nil {
+		entityTypes = result.([]vaultapis.DeidentifyFileRequestDeidentifyStructuredTextEntityTypesItem)
 	}
 	return &vaultapis.DeidentifyFileRequestDeidentifyStructuredText{
 		VaultId: vaultID,
@@ -383,8 +380,8 @@ func CreateStructuredTextRequest(request *common.DeidentifyFileRequest, base64Co
 
 func CreateAudioRequest(request *common.DeidentifyFileRequest, base64Content, vaultID, fileExt string) *vaultapis.DeidentifyFileAudioRequestDeidentifyAudio {
 	var entityTypes []vaultapis.DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem
-	if result := CreateEntityTypesRef(request.Entities, constants.FILE_TYPE_AUDIO).([]vaultapis.DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem); result != nil {
-		entityTypes = result
+	if result := CreateEntityTypesRef(request.Entities, constants.FILE_TYPE_AUDIO); result != nil {
+		entityTypes = result.([]vaultapis.DeidentifyFileAudioRequestDeidentifyAudioEntityTypesItem)
 	}
 	req := &vaultapis.DeidentifyFileAudioRequestDeidentifyAudio{
 		VaultId: vaultID,
@@ -893,7 +890,6 @@ func (d *DetectController) processFileByType(ctx context.Context, fileExtension,
 		apiResponse, apiErr = d.FilesApiClient.DeidentifyFile(ctx, CreateGenericFileRequest(request, base64Content, d.Config.VaultId, fileExtension))
 	}
 	if apiErr != nil {
-		logger.Error(logs.DEIDENTIFY_FILE_REQUEST_FAILED)
 		return nil, apiErr
 	}
 
@@ -998,8 +994,10 @@ func parseDeidentifyFileResponse(response *vaultapis.DetectRunsResponse, runID s
 	}
 
 	fileResponse := &common.DeidentifyFileResponse{
-		RunId:  runID,
-		Status: string(*response.Status),
+		RunId: runID,
+	}
+	if response.Status != nil {
+		fileResponse.Status = string(*response.Status)
 	}
 
 	// In case of expired/invalid run id
@@ -1032,7 +1030,7 @@ func parseDeidentifyFileResponse(response *vaultapis.DetectRunsResponse, runID s
 			if firstOutput.ProcessedFileType != nil {
 				fileResponse.Type = string(*firstOutput.ProcessedFileType)
 			} else {
-			fileResponse.Type = constants.UNKNOWN_STATUS
+				fileResponse.Type = constants.UNKNOWN_STATUS
 			}
 
 			if firstOutput.ProcessedFileExtension != nil {

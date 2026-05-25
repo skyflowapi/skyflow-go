@@ -657,9 +657,8 @@ MIIBAAIBADANINVALIDKEY==
 
 			It("should return DISABLE mode for unknown input", func() {
 				byot, err := SetTokenMode("UNKNOWN_MODE")
-				Expect(err).To(BeNil())
-				Expect(byot).ToNot(BeNil())
-				Expect(string(*byot)).To(Equal(string(common.DISABLE)))
+				Expect(err).ToNot(BeNil())
+				Expect(byot).To(BeNil())
 			})
 		})
 		Context("GetFormattedGetRecord", func() {

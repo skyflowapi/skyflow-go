@@ -667,7 +667,11 @@ func (v *VaultController) UploadFile(ctx context.Context, request common.FileUpl
 		return nil, skyflowError.SkyflowErrorApi(fileErr, header)
 	}
 	logger.Info(logs.UPLOAD_FILE_REQUEST_RESOLVED)
-	return &common.FileUploadResponse{
-		SkyflowId: *fileResp.Body.GetSkyflowId(),
-	}, nil
+	resp := &common.FileUploadResponse{}
+	if fileResp.Body != nil {
+		if id := fileResp.Body.GetSkyflowId(); id != nil {
+			resp.SkyflowId = *id
+		}
+	}
+	return resp, nil
 }

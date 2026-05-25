@@ -89,6 +89,7 @@ const (
 	EMPTY_OR_NULL_VALUE_IN_VALUES                            = SDK_LOG_PREFIX + "Invalid %s request. Value can not be null or empty in values for key %s"
 	EMPTY_OR_NULL_VALUE_IN_DATA                              = SDK_LOG_PREFIX + "Invalid %s request. Data can not be null or empty in data for key %s"
 	EMPTY_OR_NULL_KEY_IN_DATA                                = SDK_LOG_PREFIX + "Invalid %s request. Key can not be null or empty in data"
+	INVALID_BYOT_MODE                                        = SDK_LOG_PREFIX + "Invalid token mode '%s'. Specify a valid token mode: DISABLE, ENABLE, or ENABLE_STRICT."
 	TOKENS_NOT_ALLOWED_WITH_BYOT_DISABLE                     = SDK_LOG_PREFIX + "Invalid %s request. Tokens are not allowed when tokenStrict is DISABLE."
 	TOKENS_REQUIRED_WITH_BYOT                                = SDK_LOG_PREFIX + "Invalid %s request. Tokens are required when tokenMode is %s."
 	INSUFFICIENT_TOKENS_PASSED_FOR_BYOT_ENABLE               = SDK_LOG_PREFIX + "Invalid %s request. For tokenStrict as ENABLE, tokens should be passed for all fields object."
