@@ -4723,6 +4723,32 @@ var _ = Describe("ConnectionController edge cases", func() {
 			Expect(resp.Data).To(BeAssignableToTypeOf(""))
 		})
 	})
+
+	Context("detectContentType — no Content-Type header returns default JSON", func() {
+		var mockServer *httptest.Server
+
+		BeforeEach(func() {
+			mockServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				_, _ = w.Write([]byte(`{"ok":true}`))
+			}))
+			ctrl.Config.ConnectionUrl = mockServer.URL
+		})
+		AfterEach(func() { mockServer.Close() })
+
+		It("should default to application/json when no Content-Type header is provided", func() {
+			SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError {
+				return nil
+			}
+			resp, err := ctrl.Invoke(ctx, InvokeConnectionRequest{
+				Method: "POST",
+				Body:   map[string]interface{}{"key": "value"},
+			})
+			Expect(err).To(BeNil())
+			Expect(resp).ToNot(BeNil())
+		})
+	})
 })
 
 var _ = Describe("VaultController", func() {
@@ -9244,3 +9270,79 @@ var _ = Describe("setVaultCredentials — credential resolution", func() {
 	})
 })
 
+// ---------------------------------------------------------------------------
+// ConnectionController — FORMDATA multipart error branches
+// ---------------------------------------------------------------------------
+
+// failReader always returns an error on Read (used to simulate io.Copy failure).
+type failReader struct{}
+
+func (failReader) Read([]byte) (int, error) { return 0, fmt.Errorf("simulated read error") }
+
+var _ = Describe("ConnectionController — FORMDATA multipart error branches", func() {
+	var (
+		ctrl *ConnectionController
+		ctx  context.Context
+	)
+
+	BeforeEach(func() {
+		ctx = context.TODO()
+		ctrl = &ConnectionController{
+			Config: &ConnectionConfig{
+				ConnectionUrl: "http://mockserver.com",
+				ConnectionId:  "demo",
+			},
+			Token: "mock-token",
+		}
+		SetBearerTokenForConnectionControllerFunc = func(v *ConnectionController) *skyflowError.SkyflowError {
+			return nil
+		}
+	})
+
+	formDataReq := func(body map[string]interface{}) InvokeConnectionRequest {
+		return InvokeConnectionRequest{
+			Method:  POST,
+			Headers: map[string]string{"Content-Type": "multipart/form-data"},
+			Body:    body,
+		}
+	}
+
+	Context("*os.File — io.Copy fails (closed file)", func() {
+		It("should return error when the file cannot be read", func() {
+			f, ferr := os.CreateTemp("", "formdata-*.txt")
+			Expect(ferr).To(BeNil())
+			_, _ = f.WriteString("content")
+			f.Close() // closed so io.Copy fails
+
+			res, skyErr := ctrl.Invoke(ctx, formDataReq(map[string]interface{}{"file": f}))
+			Expect(skyErr).ToNot(BeNil())
+			Expect(res).To(BeNil())
+		})
+	})
+
+	Context("io.Reader — io.Copy fails (broken reader)", func() {
+		It("should return error when the reader returns an error", func() {
+			res, skyErr := ctrl.Invoke(ctx, formDataReq(map[string]interface{}{"field": failReader{}}))
+			Expect(skyErr).ToNot(BeNil())
+			Expect(res).To(BeNil())
+		})
+	})
+
+	Context("nested map — json.Marshal fails (unmarshalable value in map)", func() {
+		It("should return error when the nested map contains a channel", func() {
+			nestedMap := map[string]interface{}{"ch": make(chan int)}
+			res, skyErr := ctrl.Invoke(ctx, formDataReq(map[string]interface{}{"meta": nestedMap}))
+			Expect(skyErr).ToNot(BeNil())
+			Expect(res).To(BeNil())
+		})
+	})
+
+	Context("array — json.Marshal fails (unmarshalable value in slice)", func() {
+		It("should return error when the array contains a channel", func() {
+			arr := []interface{}{make(chan int)}
+			res, skyErr := ctrl.Invoke(ctx, formDataReq(map[string]interface{}{"items": arr}))
+			Expect(skyErr).ToNot(BeNil())
+			Expect(res).To(BeNil())
+		})
+	})
+})

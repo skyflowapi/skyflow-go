@@ -550,6 +550,46 @@ var _ = Describe("Skyflow Error", func() {
 		})
 	})
 
+	Context("nil receiver — all getters return zero/empty values", func() {
+		var se *SkyflowError // deliberately nil
+
+		It("Error() returns empty string", func() {
+			Expect(se.Error()).To(Equal(""))
+		})
+
+		It("GetMessage() returns empty string", func() {
+			Expect(se.GetMessage()).To(Equal(""))
+		})
+
+		It("GetCode() returns empty string", func() {
+			Expect(se.GetCode()).To(Equal(""))
+		})
+
+		It("GetHttpCode() returns empty string", func() {
+			Expect(se.GetHttpCode()).To(Equal(""))
+		})
+
+		It("GetRequestId() returns empty string", func() {
+			Expect(se.GetRequestId()).To(Equal(""))
+		})
+
+		It("GetGrpcCode() returns empty string", func() {
+			Expect(se.GetGrpcCode()).To(Equal(""))
+		})
+
+		It("GetHttpStatusCode() returns empty string", func() {
+			Expect(se.GetHttpStatusCode()).To(Equal(""))
+		})
+
+		It("GetDetails() returns nil", func() {
+			Expect(se.GetDetails()).To(BeNil())
+		})
+
+		It("GetResponseBody() returns nil", func() {
+			Expect(se.GetResponseBody()).To(BeNil())
+		})
+	})
+
 	Context("SkyflowErrorApi", func() {
 		var header http.Header
 		BeforeEach(func() {

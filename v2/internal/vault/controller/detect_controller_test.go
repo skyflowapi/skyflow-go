@@ -625,6 +625,70 @@ var _ = Describe("DeidentifyFile — additional uncovered branches", Ordered, fu
 			Expect(result.RunId).To(Equal("run-generic-001"))
 		})
 	})
+
+	Context("when io.ReadAll fails after validation passes (File object is closed before read)", func() {
+		It("should return FAILED_TO_READ_FILE_OBJECT error", func() {
+			// Create a temp file with content so validation (Stat + Size) passes.
+			f, ferr := os.CreateTemp(tempDir, "readall-fail.*.txt")
+			Expect(ferr).To(BeNil())
+			_, _ = f.WriteString("some content")
+			// Keep the file open so Stat() succeeds during validation,
+			// then close it inside the bearer-token hook so io.ReadAll fails.
+			defer f.Close()
+
+			// Pass the still-open handle; validation calls Stat() — succeeds.
+			SetBearerTokenForDetectControllerFunc = func(d *DetectController) *skyflowError.SkyflowError {
+				_ = f.Close() // close before io.ReadAll is called
+				return nil
+			}
+			CreateDetectRequestClientFunc = func(ctrl *DetectController, headers map[CustomHeaderKey]string) *skyflowError.SkyflowError {
+				return nil
+			}
+
+			req := DeidentifyFileRequest{
+				File:     FileInput{File: f},
+				Entities: []DetectEntities{Name},
+			}
+			result, err := d.DeidentifyFile(ctx, req, common.DeidentifyFileOptions{})
+			Expect(result).To(BeNil())
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring("Failed to read the provided file object"))
+		})
+	})
+
+	Context("when os.ReadFile fails after validation passes (FilePath becomes unreadable)", func() {
+		It("should return FAILED_TO_READ_FILE error", func() {
+			// Create a temp file with content so validation passes.
+			f, ferr := os.CreateTemp(tempDir, "unreadable.*.txt")
+			Expect(ferr).To(BeNil())
+			_, _ = f.WriteString("some content")
+			_ = f.Close()
+			tmpPath := f.Name()
+
+			// After validation the bearer-token hook runs; we use it to revoke
+			// read permission so that the subsequent os.ReadFile call fails.
+			SetBearerTokenForDetectControllerFunc = func(d *DetectController) *skyflowError.SkyflowError {
+				_ = os.Chmod(tmpPath, 0000)
+				return nil
+			}
+			CreateDetectRequestClientFunc = func(ctrl *DetectController, headers map[CustomHeaderKey]string) *skyflowError.SkyflowError {
+				return nil
+			}
+
+			defer func() {
+				_ = os.Chmod(tmpPath, 0600)
+			}()
+
+			req := DeidentifyFileRequest{
+				File:     FileInput{FilePath: tmpPath},
+				Entities: []DetectEntities{Name},
+			}
+			result, err := d.DeidentifyFile(ctx, req, common.DeidentifyFileOptions{})
+			Expect(result).To(BeNil())
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring("Failed to read the file"))
+		})
+	})
 })
 
 // ---------------------------------------------------------------------------
@@ -1086,6 +1150,15 @@ var _ = Describe("parseDeidentifyFileResponse + GetDetectRun — uncovered branc
 		}
 		noopBearerToken()
 	}
+
+	Context("ParseDeidentifyFileResponse — nil response", func() {
+		It("should return error containing EMPTY_DEIDENTIFY_FILE_RESPONSE when response is nil", func() {
+			result, err := ParseDeidentifyFileResponse(nil, "run-id")
+			Expect(result).To(BeNil())
+			Expect(err).ToNot(BeNil())
+			Expect(err.Error()).To(ContainSubstring("Deidentify file response is empty or invalid"))
+		})
+	})
 
 	Context("GetDetectRun — nil/empty API response body", func() {
 		It("should return empty DeidentifyFileResponse when server returns null body", func() {

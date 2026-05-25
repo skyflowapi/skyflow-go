@@ -859,7 +859,7 @@ func (d *DetectController) DeidentifyFile(ctx context.Context, request common.De
 		processDeidentifyFileResponse(pollResponse, request.OutputDirectory, fileName, strings.TrimSuffix(fileName, filepath.Ext(fileName)))
 	}
 
-	response, _ = parseDeidentifyFileResponse(pollResponse, *apiResponse.RunId)
+	response, _ = ParseDeidentifyFileResponse(pollResponse, *apiResponse.RunId)
 
 	logger.Info(logs.DEIDENTIFY_FILE_SUCCESS)
 	return response, nil
@@ -988,7 +988,7 @@ func processDeidentifyFileResponse(data *vaultapis.DetectRunsResponse, outputDir
 	return nil
 }
 
-func parseDeidentifyFileResponse(response *vaultapis.DetectRunsResponse, runID string) (*common.DeidentifyFileResponse, error) {
+func ParseDeidentifyFileResponse(response *vaultapis.DetectRunsResponse, runID string) (*common.DeidentifyFileResponse, error) {
 	if response == nil {
 		return nil, errors.New(string(skyflowError.SERVER) + logs.EMPTY_DEIDENTIFY_FILE_RESPONSE)
 	}
@@ -1131,7 +1131,7 @@ func (d *DetectController) GetDetectRun(ctx context.Context, request common.GetD
 			Status: string(common.IN_PROGRESS),
 		}, nil
 	}
-	parsedResponse, err := parseDeidentifyFileResponse(response.Body, request.RunId)
+	parsedResponse, err := ParseDeidentifyFileResponse(response.Body, request.RunId)
 	if err != nil {
 		return nil, skyflowError.NewSkyflowError(skyflowError.SERVER, fmt.Sprintf("%v", err))
 	}
