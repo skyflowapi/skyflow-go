@@ -16,6 +16,8 @@ import (
 	vaultapi "github.com/skyflowapi/skyflow-go/skyflow/vaultapi"
 )
 
+// Deprecated: Client is part of skyflow-go v1 which is deprecated and will reach End of Life on October 31, 2026.
+// Migrate to v2: https://github.com/skyflowapi/skyflow-go/blob/main/docs/migrate_to_v2.md
 type Client struct {
 	configuration common.Configuration
 }
