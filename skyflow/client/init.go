@@ -5,7 +5,6 @@ package client
 
 import (
 	"fmt"
-	"os"
 
 	logger "github.com/skyflowapi/skyflow-go/commonutils/logwrapper"
 	"github.com/skyflowapi/skyflow-go/commonutils/messages"
@@ -15,7 +14,7 @@ import (
 // Deprecated: Init is part of skyflow-go v1 which is deprecated and will reach End of Life on October 31, 2026.
 // Migrate to v2: https://github.com/skyflowapi/skyflow-go/blob/main/docs/migrate_to_v2.md
 func Init(configuration common.Configuration) Client {
-	fmt.Fprintln(os.Stderr, "skyflow-go v1.x is deprecated and will reach End of Life on October 31, 2026. Please migrate to v2: https://github.com/skyflowapi/skyflow-go/blob/main/docs/migrate_to_v2.md")
+	logger.Warn("skyflow-go v1.x is deprecated and will reach End of Life on October 31, 2026. Please migrate to v2: https://github.com/skyflowapi/skyflow-go/blob/main/docs/migrate_to_v2.md")
 	logger.Info(fmt.Sprintf(messages.INITIALIZING_SKYFLOW_CLIENT, clientTag))
 	return Client{configuration}
 }
