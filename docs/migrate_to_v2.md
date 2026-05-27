@@ -1,6 +1,13 @@
 
-## Migration from v1 and v2
+## Migration from v1 to v2
 Below are the steps to migrate the go sdk from v1 to v2.
+
+## Breaking Changes
+- **Client initialization:** `TokenProvider`/`VaultURL` pattern replaced by `Credentials` + `VaultConfig` passed to `client.NewSkyflow()`. `VaultURL` is now split into `VaultId` + `ClusterId`.
+- **Request/response types:** Operations like insert, get, and detokenize now use typed request/response structs (e.g., `common.InsertRequest` / `InsertResponse`) instead of raw `map[string]interface{}`.
+- **Error handling:** Error objects restructured to include `httpStatusCode`, `details`, and `requestId` for richer debugging.
+- **Logging:** Global log level replaced by per-instance log level set on the Skyflow client via `client.WithLogLevel(logger.INFO)`.
+- **Import paths:** All imports updated from `github.com/skyflowapi/skyflow-go/skyflow/...` to `github.com/skyflowapi/skyflow-go/v2/...`.
 
 ### **Authentication options**
 In V2, we have introduced multiple authentication options.
@@ -233,7 +240,7 @@ options := common.InsertOptions{ContinueOnError: false, ReturnTokens: true, Toke
 #### Error structure
 In V2, we have enriched the error details to provide better debugging capabilities.
 The error response now includes:
-- **httpStatus**: The HTTP status code.
+- **httpStatusCode**: The HTTP status code.
 - **grpcCode**: The gRPC code associated with the error.
 - **details & message**: A detailed description of the error.
 - **requestId**: A unique request identifier for easier debugging.
@@ -243,13 +250,13 @@ The error response now includes:
 ```json
 {
   "code": "<http_code>",
-  "description": "<description>",
+  "message": "<message>",
 }
 ```
 #### V2 (New): Error structure
 ```js
 {
-  "httpStatus": "<http_status>",
+  "httpStatusCode": "<http_status>",
   "grpcCode": "<grpc_code>",
   "httpCode": "<http_code>",
   "message": "<message>",
