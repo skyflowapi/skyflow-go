@@ -1,4 +1,3 @@
-
 ## Migration from v1 and v2
 Below are the steps to migrate the go sdk from v1 to v2.
 

@@ -24,7 +24,7 @@ The Skyflow Go SDK is designed to help with integrating Skyflow into a go backen
     - [Bearer Token (static)](#bearer-token-static)
   - [Initialize the client](#initialize-the-client)
   - [Insert data into the vault, get tokens back](#insert-data-into-the-vault-get-tokens-back)
-- [Upgrade from v1 to v2]()
+- [Upgrade from v1 to v2](#upgrade-from-v1-to-v2)
 - [Vault](#vault)
   - [Insert data into the vault](#insert-data-into-the-vault-1)
     - [Insert example with ContinueOnError option](#insert-example-with-continueonerror-option)
@@ -241,7 +241,6 @@ Insert Response: {
 
 ## Upgrade from v1 to v2
 Upgrade from `skyflow-go` v1 using the dedicated guide in [docs/migrate_to_v2.md](docs/migrate_to_v2.md).
-
 
 ## Vault
 
@@ -550,7 +549,7 @@ Notes:
 - `ContinueOnError` defaults to `true`.
 
 > [!TIP]
-> See the full example in the samples directory: [detokenize.go](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/vaultapi/detokenize.go)
+> See the full example in the samples directory: [detokenize.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v2/vaultapi/detokenize.go)
 
 ```go
 package vaultapi
@@ -627,7 +626,7 @@ Sample response:
 
 ```
 > [!TIP]
-> See the full example with `ContinueOnError` in the samples directory: [detokenize.go](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/vaultapi/detokenize.go)
+> See the full example with `ContinueOnError` in the samples directory: [detokenize.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v2/vaultapi/detokenize.go)
 
 ```go
 package vaultapi
@@ -766,7 +765,7 @@ func main() {
 ```
 
 > [!TIP]
-> See the full example in the samples directory: [tokenize_records.go](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/vaultapi/tokenize_records.go)
+> See the full example in the samples directory: [tokenize_records.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v2/vaultapi/tokenize_records.go)
 ```go
 import (
 "context"
@@ -923,7 +922,7 @@ func main() {
 Retrieve specific records using `SkyflowIds`. Ideal for fetching exact records when IDs are known.
 
 > [!TIP]
-> See the full example in the samples directory: [get_records.go](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/vaultapi/get_records.go)
+> See the full example in the samples directory: [get_records.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v2/vaultapi/get_records.go)
 
 ```go 
 package vaultapi
@@ -1011,7 +1010,7 @@ Sample response:
 Return tokens for records. Ideal for securely processing sensitive data while maintaining data privacy.
 
 > [!TIP]
-> See the full example in the samples directory: [get_records.go](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/vaultapi/get_records.go)
+> See the full example in the samples directory: [get_records.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v2/vaultapi/get_records.go)
 ```go
 /**
  * This example demonstrates how to retrieve data from the Skyflow vault and return tokens along with the records.
@@ -1085,7 +1084,7 @@ Sample response:
 Retrieve records by unique column values. Ideal for querying data without knowing Skyflow IDs, using alternate unique identifiers.
 
 > [!TIP]
-> See the full example in the samples directory: [get_column_values.go](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/vaultapi/get_column_values.go)
+> See the full example in the samples directory: [get_column_values.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v2/vaultapi/get_column_values.go)
 ```go
 package main
 
@@ -1241,7 +1240,7 @@ func main() {
 ```
 
 > [!TIP]
-> See the full example in the samples directory: [update_record.go](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/vaultapi/update_record.go)
+> See the full example in the samples directory: [update_record.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v2/vaultapi/update_record.go)
 ```go
 package main
 
@@ -1392,7 +1391,7 @@ func main() {
 ```
 
 > [!TIP]
-> See the full example in the samples directory: [delete.go](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/vaultapi/delete.go)
+> See the full example in the samples directory: [delete.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v2/vaultapi/delete.go)
 ```go
 package main
 
@@ -1512,7 +1511,7 @@ func main() {
 ```
 
 > [!TIP]
-> See the full example in the samples directory: [query_record.go](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/vaultapi/query_record.go)
+> See the full example in the samples directory: [query_record.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v2/vaultapi/query_record.go)
 ```go
 package main
 
@@ -2420,7 +2419,7 @@ Sample response
 
 
 ## Connections
-Skyflow Connections is a gateway service leveraging tokenization to securely send and receive data between your systems and first- or third-party services. The [connections](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/vaultapi/invoke_connection.go) module is used to invoke both INBOUND and/or OUTBOUND connections.
+Skyflow Connections is a gateway service leveraging tokenization to securely send and receive data between your systems and first- or third-party services. The [connections](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v2/vaultapi/invoke_connection.go) module is used to invoke both INBOUND and/or OUTBOUND connections.
 - **Inbound Connections**: Act as intermediaries between your client and server, tokenizing sensitive data before it reaches your backend, ensuring downstream services handle only tokenized data.
 - **Outbound Connections**: Enable secure extraction of data from the vault and transfer it to third-party services via your backend server.
 
@@ -2509,7 +2508,7 @@ func main() {
 **`PathParams`, `QueryParams`, `RequestHeader`, `RequestBody`** are the objects represented as map, that will be sent through the connection integration url.
 
 > [!TIP]
-> See the full example in the samples directory: [invoke_connection.go](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/vaultapi/invoke_connection.go)
+> See the full example in the samples directory: [invoke_connection.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v2/vaultapi/invoke_connection.go)
 > See [docs.skyflow.com](https://docs.skyflow.com) for more details on integrations with Connections, Functions, and Pipelines.
 ```go
 import (
@@ -2661,12 +2660,12 @@ Generate and manage bearer tokens to authenticate API calls. This section covers
 - **Generate signed data tokens**: Add an extra layer of security by digitally signing data tokens with the service account's private key.
 
 #### Generate a bearer token
-The [Service Account]() go module is designed to generate service account tokens using a service account credentials file, which is provided when a service account is created. The tokens generated by this module are valid for 60 minutes and can be used to make API calls to Vault services and management APIs, depending on the permissions assigned to the service account.
+The `Service Account` go module is designed to generate service account tokens using a service account credentials file, which is provided when a service account is created. The tokens generated by this module are valid for 60 minutes and can be used to make API calls to Vault services and management APIs, depending on the permissions assigned to the service account.
 
 The **GenerateBearerToken(filepath)** utility provides functionality for generating bearer tokens using a credentials JSON file. Alternatively, you can pass the credentials as a string to achieve the same result.
 
 > [!TIP]
-> See the full example in the samples directory: [service_account_token.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/serviceaccount/token/main/service_account_token.go)
+> See the full example in the samples directory: [service_account_token.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v2/serviceaccount/token_generation_example.go)
 
 ```go
 import (
@@ -2778,14 +2777,14 @@ creds := common.Credentials{
 Context map keys must contain only alphanumeric characters and underscores (`[a-zA-Z0-9_]`). Invalid keys will return a `SkyflowError`.
 
 > [!TIP]
-> See the full example in the samples directory: [token_generation_with_context.go](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/v2/serviceaccount/token_generation_with_context.go)
+> See the full example in the samples directory: [token_generation_with_context.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v2/serviceaccount/token_generation_with_context.go)
 > See Skyflow's [context-aware authorization](https://docs.skyflow.com) and [conditional data access](https://docs.skyflow.com) docs for policy variable syntax like `request.context.*`.
 
 #### Generate scoped bearer tokens
 A service account with multiple roles can generate bearer tokens with access limited to a specific role by specifying the appropriate `roleID`. It can be used to limit access to specific roles for services with multiple responsibilities, such as segregating access for billing vs. analytics. The generated bearer tokens are valid for 60 minutes and can only execute operations permitted by the permissions associated with the designated role.
 
 > [!TIP]
-> See the full example in the samples directory: [scoped_token_generation.go](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/serviceaccount/scoped_token_generation.go)
+> See the full example in the samples directory: [scoped_token_generation.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v2/serviceaccount/scoped_token_generation.go)
 > See [docs.skyflow.com](https://docs.skyflow.com) for more details on authentication, access control, and governance for Skyflow.
 ```go
 import (
@@ -2833,7 +2832,7 @@ func ScopedTokenGenerationExample() {
 Skyflow generates data tokens when sensitive data is inserted into the vault. These data tokens can be digitally signed with a service account's private key, adding an extra layer of protection. Signed tokens can only be detokenized by providing the signed data token along with a bearer token generated from the service account's credentials. The service account must have the necessary permissions and context to successfully detokenize the signed data tokens.
 
 > [!TIP]
-> See the full example in the samples directory: [signed_token_generation.go](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/serviceaccount/signed_token_generation.go)
+> See the full example in the samples directory: [signed_token_generation.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v2/serviceaccount/signed_token_generation.go)
 > See [docs.skyflow.com](https://docs.skyflow.com) for more details on authentication, access control, and governance for Skyflow.
 ```go
 import (
@@ -2926,7 +2925,7 @@ message: Authentication failed. Bearer token is expired. Use a valid bearer toke
 If you encounter this kind of error, retry the request. During the retry, the SDK detects that the previous bearer token has expired and generates a new one for the current and subsequent requests.
 
 > [!TIP]
-> See the full example in the samples directory: [bearer_token_expiry_example.go](https://github.com/skyflowapi/skyflow-go/blob/v2/samples/serviceaccount/bearer_token_expiry_example.go)
+> See the full example in the samples directory: [bearer_token_expiry_example.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v2/serviceaccount/bearer_token_expiry_example.go)
 > See [docs.skyflow.com](https://docs.skyflow.com) for more details on authentication, access control, and governance for Skyflow.
 ```go
 package serviceaccount
