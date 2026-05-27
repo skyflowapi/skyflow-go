@@ -65,7 +65,7 @@ Alternatively, `go get <package_name>` can also be used to download the required
 
 The **GenerateBearerToken(filepath)** function takes the credentials file path for token generation, alternatively, you can also send the entire credentials as string, by using **GenerateBearerTokenFromCreds(credentials)**.
 
-[Example](https://github.com/skyflowapi/skyflow-go/blob/main/samples/serviceaccount/token/main/service_account_token.go):
+[Example](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v1/serviceaccount/token/main/service_account_token.go):
 
 ```go
 package main
@@ -157,7 +157,7 @@ options = common.InsertOptions {
 res, err: = skyflowClient.Insert(records, options)
 ```
 
-[Insert call example](https://github.com/skyflowapi/skyflow-go/blob/main/samples/vaultapi/insert.go):
+[Insert call example](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v1/vaultapi/insert.go):
 
 ```go
 package main
@@ -215,7 +215,7 @@ Sample response :
 ```
 
 
-[Insert call example with ContinueOnError](https://github.com/skyflowapi/skyflow-go/blob/main/samples/vaultapi/insert_with_continueOnError.go):
+[Insert call example with ContinueOnError](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v1/vaultapi/insert_with_continueOnError.go):
 
 ```go
 package main
@@ -290,7 +290,7 @@ Sample response :
 
 ```
 
-[Upsert call example](https://github.com/skyflowapi/skyflow-go/blob/main/samples/vaultapi/upsert.go):
+[Upsert call example](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v1/vaultapi/upsert.go):
 
 ```go
 package main
@@ -385,7 +385,7 @@ res, err := skyflowClient.Detokenize(records, options)
 Note: `redaction` defaults to `common.PLAIN_TEXT`
 ```
 
-An [example](https://github.com/skyflowapi/skyflow-go/blob/main/samples/vaultapi/detokenize.go) of a Detokenize call:
+An [example](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v1/vaultapi/detokenize.go) of a Detokenize call:
 
 ```go
 package main
@@ -440,7 +440,7 @@ Sample response:
   ]
 }
 ```
-[Detokenize call with the ContinueOnError example.](https://github.com/skyflowapi/skyflow-go/blob/main/samples/vaultapi/detokenize.go):
+[Detokenize call with the ContinueOnError example.](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v1/vaultapi/detokenize.go):
 
 ```go
 package main
@@ -528,7 +528,7 @@ There are 4 accepted values in Skyflow.RedactionTypes:
 
   
 
-An [example](https://github.com/skyflowapi/skyflow-go/blob/main/samples/vaultapi/get_by_id.go) of GetById call:
+An [example](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v1/vaultapi/get_by_id.go) of GetById call:
 
 ```go
 package main
@@ -965,7 +965,7 @@ The InvokeConnection method lets you bypass handling sensitive data by integrati
 
 **pathParams, queryParams, requestHeader, requestBody**  objects will be sent through the connection integration url as shown below.
 
-An [example](https://github.com/skyflowapi/skyflow-go/blob/main/samples/vaultapi/invoke_connection.go) of InvokeConnection call:
+An [example](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v1/vaultapi/invoke_connection.go) of InvokeConnection call:
 
 ```go
 
