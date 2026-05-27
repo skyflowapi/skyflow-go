@@ -3,15 +3,11 @@
 Below are the steps to migrate the go sdk from v1 to v2.
 
 ## Breaking Changes
-
 - **Client initialization:** `TokenProvider`/`VaultURL` pattern replaced by `Credentials` + `VaultConfig` passed to `client.NewSkyflow()`. `VaultURL` is now split into `VaultId` + `ClusterId`.
 - **Request/response types:** Operations like insert, get, and detokenize now use typed request/response structs (e.g., `common.InsertRequest` / `InsertResponse`) instead of raw `map[string]interface{}`.
 - **Error handling:** Error objects restructured to include `httpStatusCode`, `details`, and `requestId` for richer debugging.
 - **Logging:** Global log level replaced by per-instance log level set on the Skyflow client via `client.WithLogLevel(logger.INFO)`.
 - **Import paths:** All imports updated from `github.com/skyflowapi/skyflow-go/skyflow/...` to `github.com/skyflowapi/skyflow-go/v2/...`.
-
----
-
 
 ### **Authentication options**
 In V2, we have introduced multiple authentication options.
