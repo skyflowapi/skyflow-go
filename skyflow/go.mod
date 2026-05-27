@@ -1,3 +1,5 @@
+// Deprecated: skyflow-go v1.x is deprecated and will reach End of Life on October 31, 2026. Please migrate to v2: https://github.com/skyflowapi/skyflow-go/blob/main/docs/migrate_to_v2.md
+
 module github.com/skyflowapi/skyflow-go/skyflow
 
 go 1.18
@@ -6,8 +8,8 @@ require (
 	github.com/cristalhq/jwt/v3 v3.1.0
 	github.com/hetiansu5/urlquery v1.2.7
 	github.com/joho/godotenv v1.4.0
-	github.com/skyflowapi/skyflow-go/commonutils v0.0.0-20260106102501-e4411ad29dfd
-	github.com/skyflowapi/skyflow-go/serviceaccount v0.0.0-20260106102501-e4411ad29dfd
+	github.com/skyflowapi/skyflow-go/commonutils v0.0.0-20260527103333-ebb507496b70
+	github.com/skyflowapi/skyflow-go/serviceaccount v0.0.0-20260527103333-ebb507496b70
 	github.com/stretchr/testify v1.7.0
 )
 
