@@ -110,6 +110,56 @@ A struct field only populated in certain code paths, nil the rest of the time. S
 
 ---
 
+### Interface Design
+
+**Interface with too many methods** — more than 5 methods on a single interface.
+Signal: violates Interface Segregation; split into narrower role interfaces.
+
+**`interface{}` / `any` where a concrete type would work**
+Using `any` as a parameter or return type loses type safety. Flag unless the function is genuinely type-agnostic (e.g. a serialiser).
+
+**Interface defined in the same package as its only implementation**
+Interfaces should be defined where they are consumed, not where they are implemented. An interface with one implementation in the same package is likely premature abstraction.
+
+---
+
+### Constructor Patterns
+
+**Exported struct with required fields but no `New*` constructor**
+Callers can construct a zero-value instance that panics at first use. Every exported struct with required fields must have a `NewXxx(...)` constructor that validates and returns an initialised value.
+
+**Constructor returning concrete type where an interface would decouple callers**
+If callers depend on the concrete type, swapping implementations requires changing all call sites. Return the narrowest interface that satisfies callers.
+
+---
+
+### Writing Functions
+
+For each changed function, apply this 5-step checklist:
+1. Can you follow what the function does in one reading? If yes, stop.
+2. High cyclomatic complexity (deep nesting, many branches)? → candidate for decomposition into named helpers.
+3. Would a common data structure (map, tree, queue) make this simpler and more robust?
+4. Hidden untested dependencies or values that could be factored into parameters?
+5. Is the function name the best possible? Brainstorm 3 alternatives; flag if the current name is weaker.
+
+---
+
+### Test Smells
+
+**`t.Skip(...)` / `Skip(...)` without a `// TODO: [ticket]` comment**
+Skipped tests silently rot with no path back. Every skip must reference a ticket.
+
+**`time.Sleep` in tests**
+Non-deterministic; use channels, `sync.WaitGroup`, or Gomega `Eventually`/`Consistently` helpers instead.
+
+**Test body with no assertions**
+A test that calls functions but never asserts results always passes and catches nothing.
+
+**100% coverage required**
+Flag any new or modified function that has uncovered statements or branches. Report as **Smell** with the specific function and line range.
+
+---
+
 ### Comments
 
 **Explains what, not why**

@@ -57,12 +57,36 @@ git diff main...HEAD --name-only | grep '\.go$' | grep -v 'vendor\|generated'
 
 ### 7. Authentication and token lifecycle (Medium)
 - Cached tokens must be checked for expiry before reuse
-- Token refresh code paths must be safe under concurrent goroutines
+- Token refresh code paths must be safe under concurrent goroutines — check for TOCTOU races on refresh
 - Signed/encrypted tokens must be validated before use — not just checked for presence
+- JWT signature algorithm must be explicitly verified — reject `alg: none` or unexpected algorithm substitution
+- JWT `exp`, `iat`, and `iss` claims must be validated on externally received tokens
+- Clock skew must be handled with a tolerance window (10–30 s) when validating `exp`/`nbf`
+- Bearer tokens must be transmitted only over TLS — never over plain HTTP
+- Tokens must be cached in memory only — never written to disk, logs, or error messages
 
 ### 8. Dependency vulnerabilities (Low)
-- Note any dependencies in `go.mod` with known CVEs
-- Check for outdated major versions of security-sensitive packages (e.g. `crypto`, `jwt`, `tls`)
+
+Run `govulncheck` from the module root:
+
+```bash
+govulncheck ./...
+```
+
+If not installed:
+```bash
+go install golang.org/x/vuln/cmd/govulncheck@latest
+```
+
+Report every vulnerability found (critical or high based on call-graph reachability). Also check:
+- New direct dependencies: reputable source, active maintainer, version pinned in `go.mod`
+- Outdated major versions of security-sensitive packages (`crypto`, `jwt`, `tls`, `net/http`)
+
+### 9a. File and OS Operations (Medium)
+- Temp files must be created with `os.CreateTemp` — never a predictable path like `/tmp/fixed-name`
+- Temp files must be cleaned up with `defer os.Remove(...)` on all paths including error paths
+- Sensitive files must use restricted permissions (`0600`) — not world-readable `0644`
+- User-supplied filenames passed to `os.Open` / `os.Create` must be sanitised against path traversal before use
 
 ### 9. Concurrency safety (Medium)
 - Shared mutable state must be protected by `sync.Mutex`, `sync.RWMutex`, or channels

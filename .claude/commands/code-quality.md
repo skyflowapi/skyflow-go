@@ -69,6 +69,24 @@ For any package below 100% coverage, identify missing scenarios:
 
 Write concrete test stubs for each gap (framework used by the project).
 
+### Step 5b — Vulnerability scan
+
+```bash
+govulncheck ./... 2>&1 | tail -30
+```
+
+If `govulncheck` is not installed: `go install golang.org/x/vuln/cmd/govulncheck@latest`
+
+Report any vulnerabilities found. Any directly reachable CVE is a **blocker**.
+
+### Step 5c — Module tidy check
+
+```bash
+go mod tidy && git diff --exit-code go.mod go.sum
+```
+
+Expected: no diff. An unclean module graph is a **blocker** — it means the committed `go.mod`/`go.sum` are out of sync with the actual dependency graph.
+
 ### Step 6 — Report
 
 ```
@@ -78,6 +96,8 @@ Write concrete test stubs for each gap (framework used by the project).
 | Lint             | ✅ / ❌   | ...                               |
 | Tests            | ✅ / ❌   | N passed, M failed                |
 | Coverage (100%)  | ✅ / ❌   | list functions with gaps          |
+| Vuln scan        | ✅ / ❌   | CVEs found / none                 |
+| Module tidy      | ✅ / ❌   | go.mod/go.sum clean               |
 ```
 
 Conclude with **READY TO MERGE** or **NEEDS FIXES** and a prioritised fix list.

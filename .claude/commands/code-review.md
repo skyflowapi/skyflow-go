@@ -116,6 +116,30 @@ Group findings by file and produce a table:
 
 ---
 
+## Step 1.5 — Runtime Safety
+
+Check every function in scope for conditions that cause panics or silent failures at runtime. These are distinct from linter findings — they require reading control flow:
+
+| Risk | Check |
+|---|---|
+| Panic | `x.(T)` type assertion without ok check — must use `x, ok := x.(T)` |
+| Panic | Nil map write: `m[k] = v` where `m` may be nil — initialize first |
+| Panic | Slice/array index access without a preceding bounds check |
+| Silent failure | Error return discarded with `_` or call result ignored entirely |
+| Resource leak | `http.Response.Body`, files, DB connections — `defer close` missing on all paths including error paths |
+| Panic | Send on a nil or already-closed channel |
+| Panic | Goroutine with no `recover()` — especially background workers spawned at startup |
+| Panic / wrong result | Integer division where denominator could be zero from user input or computed value |
+| Process exit in library | `os.Exit` or `log.Fatal` — must only appear in `main` |
+| Data race | `sync.Mutex` or `sync.WaitGroup` copied by value — pass by pointer or embed in a struct passed by pointer |
+| Timer leak | `time.After` inside a loop — leaks timers until they fire; use `time.NewTimer` + `Reset` + `Stop` |
+| Data race | `sync.WaitGroup.Add()` called inside the goroutine it counts — always call `Add` before `go` |
+| Key collision | `context.WithValue` key is a built-in or exported type — use unexported struct type to prevent cross-package collision |
+
+Report as **Edge Case** or **Bug** severity in the per-file table from Step 1.
+
+---
+
 ## Step 2 — Code Smell Analysis
 
 Read the file `.claude/commands/code-smell.md` and follow all of its instructions for the same files in scope. Produce its full output (per-file smell table + smell summary + recommendation).
