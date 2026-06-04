@@ -1,25 +1,22 @@
 ---
 name: sdk-sample
-description: Generate a Skyflow Go SDK v2 sample file for a vault feature, detect operation, or service account operation. Compile-verified after creation.
+description: Generate a Go sample/example file for a feature or operation. Compile-verified after creation.
 context: fork
 paths:
-  - "samples/v2/**/*.go"
-  - "v2/**/*.go"
+  - "**/*.go"
+  - "**/go.mod"
+  # - "**/<EXT>"       # add other extensions as needed
 exclude:
-  - "**/internal/generated/**"
   - "**/vendor/**"
+  - "**/internal/generated/**"   # replace with your generated-code path
+  # - "**/<GENERATED_DIR>/**"    # add other auto-generated dirs as needed
 ---
 
-Create a Skyflow Go SDK v2 sample file demonstrating: $ARGUMENTS
+Create a Go sample file demonstrating: $ARGUMENTS
 
 ## File placement
 
-| Feature type | Directory |
-|---|---|
-| Vault ops (insert/get/update/delete/query/tokenize/detokenize) | `samples/v2/vaultapi/` |
-| Service account auth (bearer token, signed data tokens) | `samples/v2/serviceaccount/` |
-| Detect (deidentify text/file, reidentify, get run) | `samples/v2/detectapi/` |
-| Connection (invoke) | `samples/v2/invoke_connection/` |
+Infer the correct directory from the feature described in `$ARGUMENTS` and the existing project layout. Look for a `samples/`, `examples/`, or `cmd/` directory and follow the existing naming convention. If none exists, create the file at the project root or in a `examples/<feature>/` directory.
 
 File name: `<feature_name>.go` (snake_case)
 
@@ -31,67 +28,39 @@ package main
 import (
     "context"
     "fmt"
-
-    "github.com/skyflowapi/skyflow-go/v2/client"
-    "github.com/skyflowapi/skyflow-go/v2/utils/common"
-    "github.com/skyflowapi/skyflow-go/v2/utils/logger"
+    "log"
     // add feature-specific imports as needed
 )
 
 func main() {
-    // Step 1: Set up Skyflow vault credentials
-    vaultConfig := common.VaultConfig{
-        VaultId:   "<YOUR_VAULT_ID>",
-        ClusterId: "<YOUR_CLUSTER_ID>",
-        Env:       common.PROD,
-        Credentials: common.Credentials{
-            ApiKey: "<YOUR_API_KEY>",
-            // OR: CredentialsString: "<YOUR_CREDENTIALS_STRING>"
-            // OR: Path: "credentials.json"
-        },
-    }
+    ctx := context.Background()
 
-    // Step 2: Configure the Skyflow client
-    skyflowInstance, err := client.NewSkyflow(
-        client.WithVaults(vaultConfig),
-        client.WithLogLevel(logger.ERROR), // Use logger.ERROR in production
-    )
-    if err != nil {
-        fmt.Println(*err)
-        return
-    }
-
-    // Step 3: Get the vault/detect/connection service
-    service, serviceErr := skyflowInstance.Vault("<YOUR_VAULT_ID>")
-    if serviceErr != nil {
-        fmt.Println(*serviceErr)
-        return
-    }
-
-    ctx := context.TODO()
-    // Step 4: Call the operation
+    // Step 1: Configure the client
     // ...
 
-    // Step 5: Handle the response and errors
+    // Step 2: Call the operation
     // ...
+
+    // Step 3: Handle the response
+    // ...
+    _ = ctx
 }
 ```
 
 ## Rules
 
-- Vault IDs / cluster IDs use placeholders: `"<YOUR_VAULT_ID>"`, `"<YOUR_CLUSTER_ID>"`
-- Credential values use placeholders: `"<YOUR_API_KEY>"`, `"<YOUR_CREDENTIALS_STRING>"`
-- Credentials file path: `"credentials.json"` (relative — no absolute paths)
-- Never hardcode real tokens, IDs, or file paths — placeholder strings only
-- Use `logger.ERROR` for production; comment that `logger.DEBUG` / `logger.INFO` are available for development
-- Always check `err != nil` after `NewSkyflow` and after getting the service; print `*err` and return
-- Keep under 100 lines
+- Use placeholder values for any IDs, tokens, or credentials: `"<YOUR_API_KEY>"`, `"<YOUR_CLIENT_ID>"`
+- Credentials or config read from environment: use `os.Getenv("ENV_VAR_NAME")` with a comment
+- Never hardcode real tokens, keys, or file paths — placeholder strings only
+- Always check errors and handle them (`log.Fatal` or `fmt.Fprintf(os.Stderr, ...)` is acceptable in `main`)
+- Keep under 100 lines where possible
+- Add a short comment at the top explaining what the sample demonstrates
 
 ## After creating the file
 
-Verify the sample compiles against the v2 module:
+Verify the sample compiles:
 ```bash
-cd samples/v2 && go build ./<feature-directory>/... 2>&1 | tail -20
+go build ./<sample-directory>/... 2>&1 | tail -20
 ```
 
-Report the file path and any compile errors.
+Report the file path and any compile errors. If compile errors exist, fix them before reporting completion.

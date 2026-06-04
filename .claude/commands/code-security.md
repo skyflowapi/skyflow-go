@@ -4,9 +4,11 @@ description: Security audit — credential exposure, input validation, path trav
 paths:
   - "**/*.go"
   - "**/go.mod"
+  # - "**/<EXT>"       # add other extensions as needed
 exclude:
   - "**/vendor/**"
-  - "**/internal/generated/**"
+  - "**/internal/generated/**"   # replace with your generated-code path
+  # - "**/<GENERATED_DIR>/**"    # add other auto-generated dirs as needed
 context: fork
 ---
 
