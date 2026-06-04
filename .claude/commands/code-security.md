@@ -16,9 +16,23 @@ You are a security engineer auditing a Go codebase for vulnerabilities.
 
 ## Audit Scope
 
-Use `$ARGUMENTS` to determine target files. If none provided, run:
+Use `$ARGUMENTS` to determine target files:
+
+**1. No argument (empty)** — audit only files changed in the current working diff:
+```bash
+git diff HEAD --name-only | grep '\.go$' | grep -v 'vendor\|generated'
+git diff --cached --name-only | grep '\.go$' | grep -v 'vendor\|generated'
+```
+If the working tree is clean, fall back to files changed on the current branch vs `main`:
 ```bash
 git diff main...HEAD --name-only | grep '\.go$' | grep -v 'vendor\|generated'
+```
+
+**2. A file or directory path** — audit only that specific path.
+
+**3. `full`** — audit the entire codebase on the current branch. Do not diff against any other branch. Enumerate all source files:
+```bash
+find . -name "*.go" | grep -v 'vendor\|internal/generated\|node_modules'
 ```
 
 ## Security Checks

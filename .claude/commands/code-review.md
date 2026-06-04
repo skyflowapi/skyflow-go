@@ -25,11 +25,23 @@ Before starting the review, confirm `/code-quality` has been run and passed (bui
 ## Scope
 
 Use `$ARGUMENTS` to determine scope:
-- A file or directory path — review only that path
-- Empty / default — review files changed on current branch vs `main`:
-  ```bash
-  git diff main...HEAD --name-only | grep -v 'vendor\|generated\|node_modules'
-  ```
+
+**1. No argument (empty)** — review only files changed in the current working diff (staged + unstaged) vs HEAD:
+```bash
+git diff HEAD --name-only | grep -v 'vendor\|generated\|node_modules'
+git diff --cached --name-only | grep -v 'vendor\|generated\|node_modules'
+```
+If that returns nothing (clean working tree), fall back to files changed on the current branch vs `main`:
+```bash
+git diff main...HEAD --name-only | grep -v 'vendor\|generated\|node_modules'
+```
+
+**2. A file or directory path** — review only that specific path. Do not expand scope beyond what was passed.
+
+**3. `full`** — review the entire codebase on the current branch. Do not diff against any other branch. Enumerate all source files recursively:
+```bash
+find . -name "*.go" | grep -v 'vendor\|internal/generated\|node_modules'
+```
 
 Detect the primary language(s) from the files in scope and apply the matching language-specific checks in Step 1.
 

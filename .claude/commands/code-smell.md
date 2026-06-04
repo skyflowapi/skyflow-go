@@ -18,11 +18,23 @@ You are a senior Go engineer performing a code smell analysis.
 ## Scope
 
 Use `$ARGUMENTS` to determine scope:
-- A file or directory path — analyse only that path
-- Empty / default — analyse files changed on current branch vs `main`:
-  ```bash
-  git diff main...HEAD --name-only | grep '\.go$' | grep -v 'vendor\|generated'
-  ```
+
+**1. No argument (empty)** — analyse only files changed in the current working diff:
+```bash
+git diff HEAD --name-only | grep '\.go$' | grep -v 'vendor\|generated'
+git diff --cached --name-only | grep '\.go$' | grep -v 'vendor\|generated'
+```
+If the working tree is clean, fall back to files changed on the current branch vs `main`:
+```bash
+git diff main...HEAD --name-only | grep '\.go$' | grep -v 'vendor\|generated'
+```
+
+**2. A file or directory path** — analyse only that specific path.
+
+**3. `full`** — analyse the entire codebase on the current branch. Do not diff against any other branch. Enumerate all source files:
+```bash
+find . -name "*.go" | grep -v 'vendor\|internal/generated\|node_modules'
+```
 
 ---
 

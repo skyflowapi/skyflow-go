@@ -14,7 +14,20 @@ context: fork
 
 Run the Go quality pipeline.
 
-Use `$ARGUMENTS` to target a specific package path (e.g. `./internal/validation/...`). If empty, run against all packages (`./...`).
+Use `$ARGUMENTS` to determine scope:
+
+**1. No argument (empty)** — run only against packages containing files changed in the current working diff:
+```bash
+git diff HEAD --name-only; git diff --cached --name-only
+```
+Derive unique package paths from those files (strip filename, deduplicate), then run each step against those paths only. If the working tree is clean, fall back to packages changed on the current branch vs `main`:
+```bash
+git diff main...HEAD --name-only | grep '\.go$' | grep -v 'vendor\|generated'
+```
+
+**2. A package path argument** (e.g. `./internal/validation/...`) — run all pipeline steps against that path only.
+
+**3. `full`** — run all pipeline steps against the entire codebase (`./...`), no diff filtering.
 
 > Run `go test ./... 2>&1 | grep -E "FAIL|ok"` first to capture the baseline before reporting failures.
 
