@@ -51,6 +51,11 @@ The Skyflow Go SDK is designed to help with integrating Skyflow into a go backen
   - [Get Run](#get-run)
 - [Connections](#connections)
   - [Invoke a Connection](#invoke-connection)
+- [Client management](#client-management)
+  - [Vault management](#vault-management)
+  - [Connection management](#connection-management)
+  - [Credential management](#credential-management)
+  - [Log level management](#log-level-management)
 - [Authentication & authorization](#authentication--authorization)
   - [Types of credentials](#types-of-credentials)
   - [Generate bearer tokens for authentication & authorization](#generate-bearer-tokens-for-authentication--authorization)
@@ -309,6 +314,18 @@ func main() {
 }
 ```
 
+**`InsertOptions` fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `ReturnTokens` | `bool` | Return tokens for the inserted records. |
+| `Upsert` | `string` | Column name to use for upsert (must be unique in schema). |
+| `ContinueOnError` | `bool` | Continue inserting remaining records if one fails. |
+| `Homogeneous` | `bool` | Set to `true` when all records in the batch have identical fields; enables a more efficient bulk-insert path. |
+| `TokenMode` | `BYOT` | Bring-Your-Own-Token mode: `ENABLE`, `DISABLE`, `ENABLE_STRICT`. |
+| `Tokens` | `[]map[string]interface{}` | BYOT tokens to associate with inserted records. |
+| `CustomHeaders` | `map[CustomHeaderKey]string` | Request-level custom headers for this call. |
+
 #### Insert example with `ContinueOnError` option
 
 Set the `ContinueOnError` flag to `true` to allow insert operations to proceed despite encountering partial errors.
@@ -511,16 +528,14 @@ func main() {
   // Configure the vaults and Skyflow client
   ctx := context.TODO() // Create a context for the detokenization operation.
 
-  // Step 1: Initialize a list of tokens to be detokenized (replace with actual tokens)
-  tokens := []string{"<TOKEN1>", "<TOKEN2>"} // Replace with actual token values.
-
-  // Step 2: Create the DetokenizeRequest object with the tokens and redaction type
+  // Step 1: Create the DetokenizeRequest with tokens and per-token redaction types
   detokenizeRequest := common.DetokenizeRequest{
-    ReturnTokens:        tokens,           // Provide the list of tokens to be detokenized
-    RedactionType: common.PLAIN_TEXT,    // Specify how the detokenized data should be returned (plain text)
-    ContinueOnError: true,               // Continue even if one token cannot be detokenized
+    DetokenizeData: []common.DetokenizeData{
+      {Token: "<TOKEN1>", RedactionType: common.PLAIN_TEXT},
+      {Token: "<TOKEN2>", RedactionType: common.PLAIN_TEXT},
+    },
   }
-  // Step 2: Create the DetokenizeOptions object with the ContinueOnError
+  // Step 2: Create the DetokenizeOptions object with ContinueOnError
   options := common.DetokenizeOptions{
     ContinueOnError: true, // Continue even if one token cannot be detokenized.
   }
@@ -544,8 +559,16 @@ func main() {
 }
 ```
 
+**`DetokenizeOptions` fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `ContinueOnError` | `bool` | Continue detokenizing if one token fails. Defaults to `true`. |
+| `DownloadUrl` | `bool` | Return a pre-signed download URL for file-type tokens instead of inline data. |
+| `CustomHeaders` | `map[CustomHeaderKey]string` | Request-level custom headers for this call. |
+
 Notes:
-- `RedactionType` defaults to `RedactionType.PLAIN_TEXT`.
+- `RedactionType` is set per token on `DetokenizeData`, not on the request.
 - `ContinueOnError` defaults to `true`.
 
 > [!TIP]
@@ -572,15 +595,15 @@ import (
  */
 func main() {
   // Initialize Skyflow client
-  // Step 1: Initialize a list of tokens to be detokenized (replace with actual token values)
-  tokens := []string{"9738-1683-0486-1480", "6184-6357-8409-6668", "4914-9088-2814-3840"} // Replace with actual token values.
-
   ctx := context.TODO() // Create a context for the detokenization operation.
 
-  // Step 2: Create the DetokenizeRequest object with the tokens and redaction type.
+  // Step 1: Create the DetokenizeRequest with tokens and per-token redaction types.
   detokenizeRequest := common.DetokenizeRequest{
-    ReturnTokens:        tokens,               // List of tokens to detokenize.
-    RedactionType: common.PLAIN_TEXT,    // Specify the redaction type (e.g., PLAIN_TEXT).
+    DetokenizeData: []common.DetokenizeData{
+      {Token: "9738-1683-0486-1480", RedactionType: common.PLAIN_TEXT},
+      {Token: "6184-6357-8409-6668", RedactionType: common.PLAIN_TEXT},
+      {Token: "4914-9088-2814-3840", RedactionType: common.PLAIN_TEXT},
+    },
   }
   // Step 3: Obtain a Vault service instance for performing operations.
   service, serviceError := skyflowClient.Vault("9f27764a10f7946fe56b3258e117")             // Replace "9f27764a10f7946fe56b3258e117" with your actual Skyflow vault ID
@@ -649,13 +672,13 @@ import (
  */
 func main() {
   // Initialize Skyflow client
-  // Step 1: Initialize a list of tokens to be detokenized (replace with actual token values)
-  tokens := []string{"9738-1683-0486-1480", "6184-6357-8409-6668", "4914-9088-2814-3840"} // Replace with actual token values.
-  
-  // Step 2: Create the DetokenizeRequest and  DetokenizeOptions object with the tokens and redaction type
+  // Step 1: Create the DetokenizeRequest with tokens and per-token redaction types
   request := common.DetokenizeRequest{
-    Tokens:        tokens,              // Provide the list of tokens to detokenize
-    RedactionType: common.PLAIN_TEXT,    // Specify the format for the detokenized data (plain text)
+    DetokenizeData: []common.DetokenizeData{
+      {Token: "9738-1683-0486-1480", RedactionType: common.PLAIN_TEXT},
+      {Token: "6184-6357-8409-6668", RedactionType: common.PLAIN_TEXT},
+      {Token: "4914-9088-2814-3840", RedactionType: common.PLAIN_TEXT},
+    },
   }
   options := common.DetokenizeOptions{
     ContinueOnError: false, // Continue even if one token cannot be detokenized.
@@ -897,16 +920,15 @@ func main() {
     fmt.Println("Response for tokenized records:", resWithTokens.Data)
   }
 
-  // Step 4: Create a GetRequest to retrieve records based on specific column values
-  columnValues := []string{"<COLUMN_VALUE_1>", "<COLUMN_VALUE_2>"} // Replace with the actual column value
-  getByColumnRequest := common.GetRequest{
-    Table:       "<TABLE_NAME>", // Replace with the actual table name
-    ColumnName:  "<COLUMN_NAME>", // Replace with the actual column name
-    ColumnValues: columnValues,   // Add the list of column values
-  }
-  // Send the request to the Skyflow vault and retrieve the records filtered by column values
-  getByColumnResponse, getErrByColumn := service.Get(ctx, getByColumnRequest, common.GetOptions{
-    RedactionType: common.PLAIN_TEXT, // Redact data as plain text
+  // Step 4: Retrieve records based on specific column values
+  // ColumnName and ColumnValues belong on GetOptions, not GetRequest
+  columnValues := []string{"<COLUMN_VALUE_1>", "<COLUMN_VALUE_2>"}
+  getByColumnResponse, getErrByColumn := service.Get(ctx, common.GetRequest{
+    Table: "<TABLE_NAME>",
+  }, common.GetOptions{
+    ColumnName:   "<COLUMN_NAME>",  // Column to filter by (must be unique in schema)
+    ColumnValues: columnValues,     // Values to match in that column
+    RedactionType: common.PLAIN_TEXT,
   })
   if getErrByColumn != nil {
     // Handle any errors during the retrieval process
@@ -1108,18 +1130,14 @@ func main() {
   columnValues := []string{"john.doe@gmail.com", "jane.doe@gmail.com"} // Replace with actual values
 
   // Step 2: Create a GetRequest and GetOptions to retrieve records based on column values
-  // The request specifies:
-  // - `table`: The table from which the records will be retrieved
-  // - `columnName`: The column to filter the records by (e.g., "email")
-  // - `columnValues`: The list of values to match in the specified column
-  // - `redactionType`: Defines how sensitive data should be redacted (set to PLAIN_TEXT here)
+  // ColumnName and ColumnValues are set on GetOptions, not GetRequest
   request := common.GetRequest{
-    Table:        "table1",       // Replace with the actual table name
-    ColumnName:   "email",        // The column to filter by (e.g., "email")
-    ColumnValues: columnValues,   // The list of column values to match
+    Table: "table1",  // Replace with the actual table name
   }
   options := common.GetOptions{
-    RedactionType: common.PLAIN_TEXT, // Set the redaction type (e.g., PLAIN_TEXT)
+    ColumnName:   "email",        // The column to filter by (must be unique in schema)
+    ColumnValues: columnValues,   // The list of column values to match
+    RedactionType: common.PLAIN_TEXT,
   }
   
   // Set up the Skyflow vault service
@@ -1160,6 +1178,21 @@ Sample response:
   "Errors": []
 }
 ```
+#### `GetOptions` fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `RedactionType` | `RedactionType` | How to display sensitive data (`PLAIN_TEXT`, `MASKED`, `REDACTED`, `DEFAULT`). |
+| `ReturnTokens` | `bool` | Return tokens instead of plain-text values. |
+| `ColumnName` | `string` | Filter by this column (must be unique in schema). Use with `ColumnValues`. |
+| `ColumnValues` | `[]string` | Values to match in `ColumnName`. Cannot be combined with `Ids`. |
+| `Fields` | `[]string` | Return only these specific fields. |
+| `Offset` | `string` | Pagination offset. |
+| `Limit` | `string` | Pagination limit. |
+| `OrderBy` | `OrderByEnum` | Sort order: `ASCENDING`, `DESCENDING`, or `NONE`. |
+| `DownloadUrl` | `bool` | Return a pre-signed download URL for file-type columns. |
+| `CustomHeaders` | `map[CustomHeaderKey]string` | Request-level custom headers for this call. |
+
 #### Redaction types
 Redaction types determine how sensitive data is displayed when retrieved from the vault.
 
@@ -1194,27 +1227,24 @@ import (
  */
 func main() {
   // Initialize Skyflow client
-  // Step 1: Prepare the data to update in the vault
-  // Use a map to store the data that will be updated in the specified table
+  // Step 1: Prepare the data to update in the vault — include SkyflowId as a key in the map
   data := map[string]interface{}{
-    "SkyflowId": "<SKYFLOW_ID>", // Skyflow ID for identifying the record to update
-    "<COLUMN_NAME_1>": "<COLUMN_VALUE_1>", // Example of a column name and its value to update
-    "<COLUMN_NAME_2>": "<COLUMN_VALUE_2>", // Another example of a column name and its value to update
+    "SkyflowId":        "<SKYFLOW_ID>",       // Skyflow ID for identifying the record to update
+    "<COLUMN_NAME_1>":  "<COLUMN_VALUE_1>",   // Column name and new value
+    "<COLUMN_NAME_2>":  "<COLUMN_VALUE_2>",   // Column name and new value
   }
-  // Step 2: Prepare the tokens (if necessary) for certain columns that require tokenization
-  // Use a map to specify columns that need tokens in the update request
-    tokens := map[string]interface{}{
-		"COLUMN_NAME_2": "<TOKEN_VALUE_2>",
-	}
+  // Step 2: Optionally provide BYOT tokens for specific columns
+  tokens := map[string]interface{}{
+    "<COLUMN_NAME_2>": "<TOKEN_VALUE_2>",
+  }
   // Define the context for the API call
   ctx := context.TODO() // Using context to manage the API request lifecycle
   
   // Step 3: Create an UpdateRequest to specify the update operation
-  // The request includes the table name, token mode, data, tokens, and the returnTokens flag
   updateRequest := common.UpdateRequest{
-    Table:  "<TABLE_NAME>",         // Replace with the actual table name
-    Id:     "<SKYFLOW_ID>",         // The Skyflow ID to identify the record to update
-    Values: data,                   // The data to update in the record
+    Table:  "<TABLE_NAME>",  // Replace with the actual table name
+    Data:   data,            // The data to update; SkyflowId identifies the record
+    Tokens: tokens,          // Optional: BYOT tokens for specific columns
   }
   updateOptions := common.UpdateOptions{
     ReturnTokens: true,             // Specify whether to return tokens in the response
@@ -1262,30 +1292,27 @@ import (
 
 func main() {
   // Initialize Skyflow client
-  // Step 1: Prepare the data to update in the vault
-  // Use a map to store the data that will be updated in the specified table
+  // Step 1: Prepare the data to update in the vault — include SkyflowId as a key in the map
   data := map[string]interface{}{
-    "SkyflowId":  "5b699e2c-4301-4f9f-bcff-0a8fd3057413",   // Skyflow ID identifies the record to update
-    "name":        "john doe",       // Updating the "name" column with a new value
-    "card_number": "4111111111111115", // Updating the "card_number" column with a new value
+    "SkyflowId":   "5b699e2c-4301-4f9f-bcff-0a8fd3057413",  // Skyflow ID identifies the record to update
+    "name":        "john doe",                               // New value for the "name" column
+    "card_number": "4111111111111115",                        // New value for the "card_number" column
   }
-  // Step 2: Prepare the tokens to include in the update request
-  // Tokens can be included to update sensitive data with tokenized values
+  // Step 2: Optionally provide BYOT tokens for specific columns
   tokens := map[string]interface{}{
     "name": "72b8ffe3-c8d3-4b4f-8052-38b2a7405b5a",
   }
   
   // Step 3: Create an UpdateRequest to define the update operation
-  // The request specifies the table name, token mode, data, and tokens for the update
   updateRequest := common.UpdateRequest{
     Table:  "table1",  // Replace with the actual table name
-    Id:     "5b699e2c-4301-4f9f-bcff-0a8fd3057413",  // Skyflow ID to identify the record to update
-    Values: data,            // The data to update in the record
+    Data:   data,      // The data to update; SkyflowId identifies the record
+    Tokens: tokens,    // Optional: BYOT tokens for specific columns
   }
   // Define update options, including tokenization mode
   updateOptions := common.UpdateOptions{
-    ReturnTokens: true,      // Specify whether to return tokens in the response
-    TokenMode:    common.DISABLE, // Specify tokenization mode (e.g., DISABLE means no tokenization)
+    ReturnTokens: true,            // Specify whether to return tokens in the response
+    TokenMode:    common.DISABLE,  // Specify tokenization mode (e.g., DISABLE means no tokenization)
   }
 
   
@@ -1738,7 +1765,7 @@ customHeaders := map[common.CustomHeaderKey]string{
 }
 
 skyflowClient, err := client.NewSkyflow(
-    client.WithVaultConfig(vaultConfig),
+    client.WithVaults(vaultConfig),
     client.WithCredentials(skyflowCredentials),
     client.WithCustomHeaders(customHeaders),
 )
@@ -2299,6 +2326,20 @@ Sample Response:
 - Presentations: `ppt`, `pptx`
 - Audio: `mp3`, `wav`
 
+**`MaskingMethod` values (image files):**
+
+| Value | Description |
+|-------|-------------|
+| `common.BLACKBOX` | Cover detected entities with a solid black rectangle. |
+| `common.BLUR` | Apply a gaussian blur over detected entities. |
+
+**`OutputTranscription` values (audio files):**
+
+| Value | Description |
+|-------|-------------|
+| `common.PLAINTEXT_TRANSCRIPTION` | Return transcript as plain text. |
+| `common.DIARIZED_TRANSCRIPTION` | Return transcript with speaker labels. |
+
 **Note:** 
 - Transformations cannot be applied to Documents, Images, or PDFs file formats.
 - The `waitTime` option must be ≤ 64 seconds; otherwise, an error is thrown.
@@ -2606,6 +2647,97 @@ Sample response:
 
 ```
 
+
+## Client management
+
+After the Skyflow client is initialized, you can add, update, retrieve, and remove vault and connection configurations at runtime without recreating the client.
+
+### Vault management
+
+| Method | Description |
+|--------|-------------|
+| `AddVaultConfig(config VaultConfig)` | Add a new vault after initialization |
+| `RemoveVaultConfig(vaultId string)` | Remove a vault by ID |
+| `UpdateVaultConfig(config VaultConfig)` | Update an existing vault configuration |
+| `GetVaultConfig(vaultId string)` | Retrieve a vault configuration by ID |
+
+```go
+import (
+  "fmt"
+  "github.com/skyflowapi/skyflow-go/v2/utils/common"
+)
+
+// Add a new vault
+newVault := common.VaultConfig{
+  VaultId:   "<NEW_VAULT_ID>",
+  ClusterId: "<NEW_CLUSTER_ID>",
+  Env:       common.PROD,
+  Credentials: common.Credentials{Token: "<BEARER_TOKEN>"},
+}
+if err := skyflowClient.AddVaultConfig(newVault); err != nil {
+  fmt.Println("Error adding vault:", err)
+}
+
+// Retrieve vault configuration
+vaultCfg, err := skyflowClient.GetVaultConfig("<VAULT_ID>")
+if err != nil {
+  fmt.Println("Error getting vault config:", err)
+} else {
+  fmt.Println("Vault config:", vaultCfg)
+}
+
+// Update an existing vault configuration
+updatedVault := common.VaultConfig{
+  VaultId:   "<VAULT_ID>",
+  ClusterId: "<NEW_CLUSTER_ID>",
+  Env:       common.PROD,
+}
+if err := skyflowClient.UpdateVaultConfig(updatedVault); err != nil {
+  fmt.Println("Error updating vault:", err)
+}
+
+// Remove a vault
+if err := skyflowClient.RemoveVaultConfig("<VAULT_ID>"); err != nil {
+  fmt.Println("Error removing vault:", err)
+}
+```
+
+### Connection management
+
+| Method | Description |
+|--------|-------------|
+| `AddConnectionConfig(config ConnectionConfig)` | Add a new connection after initialization |
+| `RemoveConnectionConfig(connId string)` | Remove a connection by ID |
+| `UpdateConnectionConfig(config ConnectionConfig)` | Update an existing connection configuration |
+| `GetConnectionConfig(connId string)` | Retrieve a connection configuration by ID |
+
+### Credential management
+
+| Method | Description |
+|--------|-------------|
+| `AddSkyflowCredentials(config Credentials)` | Add client-level credentials |
+| `UpdateSkyflowCredentials(credentials Credentials)` | Update client-level credentials |
+| `GetSkyflowCredentials()` | Get current client-level credentials |
+
+### Log level management
+
+| Method | Description |
+|--------|-------------|
+| `UpdateLogLevel(logLevel LogLevel)` | Update the log level at runtime |
+| `GetLoglevel()` | Get the current log level |
+
+```go
+import "github.com/skyflowapi/skyflow-go/v2/utils/logger"
+
+// Change log level at runtime
+skyflowClient.UpdateLogLevel(logger.INFO)
+
+// Get current log level
+level := skyflowClient.GetLoglevel()
+fmt.Println("Current log level:", *level)
+```
+
+---
 
 ## Authentication & authorization
 
@@ -3113,7 +3245,20 @@ func main() {
 
 ### Catching SkyflowError instances
 
-All SDK methods return `*skyflowError.SkyflowError` as the error type, so you can call its methods directly without a type assertion. Check for `nil` before accessing the error fields.
+All SDK methods return `*skyflowError.SkyflowError` as the error type. Check for `nil` before accessing the error fields.
+
+**`SkyflowError` methods:**
+
+| Method | Return type | Description |
+|--------|-------------|-------------|
+| `GetMessage()` | `string` | Human-readable error message. |
+| `GetHttpStatusCode()` | `string` | HTTP status code (e.g. `"400"`, `"401"`). Preferred over `GetCode()`. |
+| `GetHttpCode()` | `string` | Alias for `GetHttpStatusCode()`. |
+| `GetCode()` | `string` | Error code. Deprecated — use `GetHttpStatusCode()` instead. |
+| `GetRequestId()` | `string` | Request ID for tracing and support. |
+| `GetGrpcCode()` | `string` | gRPC status code when applicable. |
+| `GetDetails()` | `[]interface{}` | Structured error details array from the API response. |
+| `GetResponseBody()` | `map[string]interface{}` | Raw response body from the API. |
 
 ```go
 import (
@@ -3121,15 +3266,14 @@ import (
     skyflowError "github.com/skyflowapi/skyflow-go/v2/utils/error"
 )
 
-res, skyErr := service.Insert(ctx, insertRequest)
-if skyErr, ok := err.(*skyflowError.SkyflowError); ok {
-    // Skyflow-specific error
-    fmt.Println("code:", skyErr.GetHttpCode())
-    fmt.Println("message:", skyErr.GetMessage())
-} else {
-    // Generic / unexpected error
-    fmt.Println("unexpected error:", err)
+res, err := service.Insert(ctx, insertRequest)
+if err != nil {
+    fmt.Println("HTTP status:", err.GetHttpStatusCode())
+    fmt.Println("message:", err.GetMessage())
+    fmt.Println("request ID:", err.GetRequestId())
+    fmt.Println("details:", err.GetDetails())
 }
+_ = res
 ```
 
 ### Bearer token expiration edge cases

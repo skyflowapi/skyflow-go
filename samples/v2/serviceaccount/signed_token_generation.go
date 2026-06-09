@@ -14,7 +14,8 @@ import (
 /**
  * Example program to generate a Signed Token
  * The token can be generated in two ways:
- * Using the file path to a credentials.json file.
+ * 1. Using the file path to a credentials.json file.
+ * 2. Using the JSON content of the credentials file as a string.
  */
 
 func SignedDataTokenGenerationSample() {
@@ -35,15 +36,16 @@ func SignedDataTokenGenerationSample() {
 	}
 
 	// signed data token generation using cred string
+	var credString = "<CRED_STRING>"
 	var tokens2 []string
 	tokens2 = append(tokens2, "<TOKEN>")
-	res2, err1 := serviceaccount.GenerateSignedDataTokensFromCreds(filePath, common.SignedDataTokensOptions{
+	res2, err1 := serviceaccount.GenerateSignedDataTokensFromCreds(credString, common.SignedDataTokensOptions{
 		DataTokens: tokens2,
-		TimeToLive: 0,
+		TimeToLive: 60, // in seconds
 		LogLevel:   logger.ERROR,
 	})
 	if err1 != nil {
-		fmt.Println("ERROR: ", err)
+		fmt.Println("ERROR: ", err1)
 	} else {
 		fmt.Println("RESPONSE:", res2)
 	}
