@@ -17,7 +17,11 @@ context: fork
 
 ## Skyflow Go SDK — Repo-Specific Security Rules
 
-Apply these in addition to the generic Go security checks above. Focus exclusively on security impact. Report findings using the per-finding block format, severities, summary table, and overall risk rating defined in the generic audit above — these rules add *checks*, not a new output format.
+Apply these in addition to the generic Go security checks above, and assume the repo conventions in
+[CLAUDE.md](../../CLAUDE.md) (error handling, credential/data placement, input validation in
+`internal/validation/`). Focus exclusively on security impact. Report findings using the per-finding
+block format, severities, summary table, and overall risk rating defined in the generic audit above —
+these rules add *checks*, not a new output format.
 
 ### SkyflowError leakage
 - `SkyflowError.Message` returned to callers must not include raw server response bodies that may contain field-level data or PII.
