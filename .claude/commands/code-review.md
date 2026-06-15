@@ -29,7 +29,7 @@ Flag, on every review:
 - **Code placement & error handling** (CLAUDE.md → *Code placement*, *Error handling*): misplaced
   validation/logic, inline message/constant literals, missing `logger.Error` before a `SkyflowError`,
   raw `error`/`nil` returns.
-- **Tests** (CLAUDE.md → *Tests*): coverage, Ginkgo idioms, no mocking the struct under test,
-  `httptest.Server` for external HTTP.
+- **Tests** (CLAUDE.md → *Tests*): Ginkgo v2 idioms, no mocking the struct under test, and
+  `httptest.Server` (not patched helpers) for external HTTP — coverage itself is gated by the generic pipeline.
 - **v1 boundary:** flag new features / non-trivial refactors against the v1 (root) module.
 

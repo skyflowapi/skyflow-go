@@ -17,36 +17,18 @@ context: fork
 
 ## Skyflow Go SDK — Repo-Specific Security Rules
 
-Apply these in addition to the generic Go security checks above, and assume the repo conventions in
-[CLAUDE.md](../../CLAUDE.md) (error handling, credential/data placement, input validation in
-`internal/validation/`). Focus exclusively on security impact. Report findings using the per-finding
-block format, severities, summary table, and overall risk rating defined in the generic audit above —
-these rules add *checks*, not a new output format.
+Skyflow-specific checks layered on the generic Go audit above — which already covers credential/secret
+exposure (§1), input validation (§2), file/path handling (§3), TLS/transport (§4), error-information
+leakage (§5), token lifecycle/TOCTOU (§7), and concurrency (§10). Do not restate those; assume the
+conventions in [CLAUDE.md](../../CLAUDE.md). Use the generic audit's per-finding format and risk rating.
 
-### SkyflowError leakage
-- `SkyflowError.Message` returned to callers must not include raw server response bodies that may contain field-level data or PII.
-- Stack traces and internal system paths/DB details must not surface through `SkyflowError`.
-- Internal error codes/states must be safe to expose externally.
+These name the concrete Skyflow attack surfaces the generic checks must be applied to:
 
-### Skyflow credential and token handling
-- `Credentials` struct fields (`clientId`, `tokenUri`, `keyId`, API keys, bearer tokens, private keys) must never be logged — even at DEBUG — nor printed via `%v` / `%+v`.
-- The JWT private key used for service-account token signing must be scoped to the signing operation and not retained beyond it.
-- Cached bearer tokens must be checked for expiry before each API call and held in memory only — never written to disk, logs, or error messages.
-- If Skyflow credentials are passed through `context.Context`, the context key must be an unexported type and the scope must be controlled (flag request-scoped contexts that leak upward).
-
-### Skyflow API input handling
-- Every caller-supplied string (vault ID, table/column name, query string, file path) must be validated in `internal/validation/` before reaching an HTTP request or file operation.
-- A malformed vault ID or field name must not be able to inject path segments into the API URL (path traversal / SSRF via URL construction).
-- SQL-like parameters passed to the Skyflow Query API must be sanitised or parameterised.
-- File paths for `UploadFile` must be validated against directory traversal (`../`).
-- Caller-supplied custom headers (vault config) must be sanitised to prevent CRLF header injection.
-
-### HTTP / TLS (Skyflow specifics)
-- Bearer tokens and `Authorization` headers must be transmitted only over TLS — never plain HTTP — and never logged at any level.
-- `tls.Config.InsecureSkipVerify` must never be `true`.
-- Every HTTP client used for vault/connection calls must set a `Timeout`.
-
-### Concurrency on shared credential/token state
-- Any credential or token cache shared across goroutines must be synchronised (`sync.Mutex` / `sync.RWMutex` / atomic).
-- Guard against a TOCTOU race where two goroutines simultaneously refresh a token.
-- Vault config maps must not be mutated after the client is constructed (concurrent map read/write data race).
+- **Query API (§2):** SQL-like parameters passed to the Skyflow Query API must be sanitised or parameterised.
+- **Vault custom headers (§2):** caller-supplied vault-config headers must be sanitised against CRLF header injection.
+- **Vault URL construction (§2/§3):** a malformed vault ID or field name must not inject path segments into
+  the API URL (path traversal / SSRF via URL building) — apply the traversal checks to URL construction, not just file I/O.
+- **Token-signing key (beyond §7):** the JWT private key used for service-account token signing must be
+  scoped to the signing operation and not retained afterward (§7 covers validating *received* tokens; this is the signing side).
+- **Credentials in context:** if credentials pass through `context.Context`, the key must be an unexported
+  type and request-scoped — flag contexts that leak credential scope upward.

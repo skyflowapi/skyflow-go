@@ -17,7 +17,6 @@ context: fork
 
 ## Skyflow Go SDK — Quality Pipeline
 
-Run the generic Go pipeline above from `v2/`, applying the repo conventions in
-[CLAUDE.md](../../CLAUDE.md) (pipeline commands, module/coverage rules). This command only maps a
-repo-rule violation to a gate verdict: any coverage gap on new/modified v2 code, or any
-`golangci-lint` (`v2/.golangci.yml`) violation, is a **blocker** → `NEEDS FIXES`.
+Run the generic pipeline above from the **`v2/`** module (its own `go.mod`); the `golangci-lint`
+config is `v2/.golangci.yml`. Module layout, the v1 (root) boundary, and test/coverage rules are in
+[CLAUDE.md](../../CLAUDE.md). The generic pipeline's blocker and `NEEDS FIXES` verdict rules apply as-is.
