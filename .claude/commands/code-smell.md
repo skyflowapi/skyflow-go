@@ -23,5 +23,4 @@ Apply the placement rules in [CLAUDE.md](../../CLAUDE.md) → *Code placement* t
 
 - **Misplaced code:** logic in the data-only `utils/common/`, validation outside `v2/internal/validation/`,
   or options structs folded into request structs.
-- **v1 boundary:** new feature / non-trivial refactor under the v1 (root) module — new work belongs in `v2/`.
 - **Ginkgo focused specs:** `FIt`/`FDescribe` left in — silently narrows the suite to a subset.
