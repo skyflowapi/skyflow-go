@@ -17,7 +17,7 @@ context: fork
 
 ## Skyflow Go SDK — Repo-Specific Security Rules
 
-Apply these in addition to the generic Go security checks above. Focus exclusively on security impact. Use severity labels `[CRITICAL]`, `[HIGH]`, `[MEDIUM]`, `[LOW]`, or `[INFO]`.
+Apply these in addition to the generic Go security checks above. Focus exclusively on security impact. Report findings using the per-finding block format, severities, summary table, and overall risk rating defined in the generic audit above — these rules add *checks*, not a new output format.
 
 ### SkyflowError leakage
 - `SkyflowError.Message` returned to callers must not include raw server response bodies that may contain field-level data or PII.
@@ -39,26 +39,10 @@ Apply these in addition to the generic Go security checks above. Focus exclusive
 
 ### HTTP / TLS (Skyflow specifics)
 - Bearer tokens and `Authorization` headers must be transmitted only over TLS — never plain HTTP — and never logged at any level.
-- `tls.Config.InsecureSkipVerify` must never be `true` (`[CRITICAL]`).
+- `tls.Config.InsecureSkipVerify` must never be `true`.
 - Every HTTP client used for vault/connection calls must set a `Timeout`.
 
 ### Concurrency on shared credential/token state
 - Any credential or token cache shared across goroutines must be synchronised (`sync.Mutex` / `sync.RWMutex` / atomic).
 - Guard against a TOCTOU race where two goroutines simultaneously refresh a token.
 - Vault config maps must not be mutated after the client is constructed (concurrent map read/write data race).
-
----
-
-## Skyflow Summary Table
-
-In addition to the generic risk rating above, end with this repo-specific table:
-
-| Category | Critical | High | Medium | Low | Info |
-|---|---|---|---|---|---|
-| SkyflowError Leakage | | | | | |
-| Credential & Token Handling | | | | | |
-| Skyflow API Input Handling | | | | | |
-| HTTP / TLS | | | | | |
-| Concurrency on Shared State | | | | | |
-
-**Overall risk**: Critical / High / Medium / Low — and a one-sentence recommendation.

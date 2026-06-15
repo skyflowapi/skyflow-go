@@ -17,7 +17,7 @@ context: fork
 
 ## Skyflow Go SDK — Repo-Specific Review Rules
 
-Apply these checks on **every** review in addition to the generic Go rules above. Where a rule below conflicts with a generic rule, the repo-specific rule wins (it is part of the cross-SDK public-API contract). Flag findings as `[BLOCKER]`, `[WARNING]`, or `[SUGGESTION]`.
+Apply these checks on **every** review in addition to the generic Go rules above. Where a rule below conflicts with a generic rule, the repo-specific rule wins (it is part of the cross-SDK public-API contract). Use the severities, per-file tables, and final verdict defined in the generic review above — these rules add *checks*, not a new output format.
 
 ### Generated code boundary
 - Flag any edit to `v2/internal/generated/` — these are Fern/OpenAPI-generated and must never be edited manually.
@@ -31,7 +31,7 @@ These intentionally deviate from standard Go acronym casing. Flag any violation:
 - Use `//revive:disable-next-line:var-naming` only for genuine outliers not coverable by the allowlist in `v2/.golangci.yml`.
 
 ### Cross-SDK nomenclature (Go-specific public-API contract)
-Flag any violation as `[BLOCKER]` — these keys are part of the public API contract across all Skyflow SDKs.
+These keys are part of the public API contract across all Skyflow SDKs — treat any violation as a top-severity (contract-breaking) finding.
 
 **Credential JSON key fields** (in `Credentials` struct and related types):
 - Must use `ClientId` (not `ClientID`), `TokenUri` (not `TokenURI`), `KeyId` (not `KeyID`)
@@ -92,32 +92,13 @@ Flag any violation as `[BLOCKER]` — these keys are part of the public API cont
 - Tests compilable and passing: `cd v2 && go test ./...`
 
 ### Backward compatibility
-- Any removed or renamed exported identifier is a `[BLOCKER]` — requires a major version bump.
+- Any removed or renamed exported identifier is contract-breaking — requires a major version bump.
 - Watch struct fields that callers may embed or copy.
 
 ### v1 maintenance boundary
 - `v1/` is in maintenance mode (EOL: October 31, 2026) — security and bug fixes only.
 - Flag any new feature or non-trivial refactor proposed against `v1/`.
 - New customer-facing functionality belongs in `v2/` only.
-
----
-
-## Skyflow Summary Table
-
-In addition to the generic verdict above, end with this repo-specific table:
-
-| Category | Blockers | Warnings | Suggestions |
-|---|---|---|---|
-| Generated Code Boundary | | | |
-| Naming / Cross-SDK Nomenclature | | | |
-| Error Handling | | | |
-| Messages & Constants | | | |
-| Request/Response Patterns | | | |
-| Internal/Public Boundary | | | |
-| Input Validation | | | |
-| Test Coverage | | | |
-| Backward Compatibility | | | |
-| v1 Boundary | | | |
 
 ---
 
