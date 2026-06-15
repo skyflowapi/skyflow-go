@@ -1,40 +1,37 @@
 ---
-description: SDK-focused Go code review covering API design, idioms, backward compatibility, and test coverage
-paths: !/v2/internal/generated/
+description: Full code review for skyflow-go — runs the generic Go review then applies skyflow-go-specific rules.
+paths:
+  - "**/*.go"
+  - "**/go.mod"
+exclude:
+  - "**/vendor/**"
+  - "**/internal/generated/**"
+context: fork
 ---
 
-Perform a thorough code review from an **SDK maintainer's perspective**.
+## Instructions
 
-**Always exclude files under `internal/generated/` from the review — these are auto-generated from OpenAPI specs and must not be edited manually.**
-
-Determine the scope based on the argument `$ARGUMENTS`:
-
-- **No argument** (default): Review only the files changed on this branch. Run `git diff main...HEAD --name-only` to get the list, filter out any path containing `internal/generated/`, then run `git diff main...HEAD` for the full diff and read each non-generated changed file in full.
-- **`full review`**: Review the entire SDK codebase. Run `find v2 -name "*.go" -not -path "*/generated/*" -not -name "*_test.go"` to enumerate all non-generated source files, then read them all.
-- **A file or directory path**: Review only that path. If it is a directory, run `find <path> -name "*.go" -not -path "*/generated/*"` to list all Go files within it (excluding generated), then read them all.
-
-After reading the relevant files, apply the checklist below.
-
-Structure the review under these headings. Under each heading list findings as `[BLOCKER]`, `[WARNING]`, or `[SUGGESTION]`. Skip any heading that has no findings.
+@../../../common/.claude/commands/go/code-review.md
 
 ---
 
-## 1. Public API Surface
+## Skyflow Go SDK — Repo-Specific Review Rules
 
-- Are new exported types, functions, and methods named following Go conventions?
-  - PascalCase for exported identifiers; camelCase for unexported
-  - Acronyms fully capitalised when exported (`VaultID`, `HTTPClient`), fully lower when unexported
-  - `With*` prefix for functional option constructors
-  - Receiver names short (1-2 letters), consistent across all methods of a type
-- Does any change break existing callers? (renamed export, removed field, changed signature)
-- Are new options/params added via functional options (`With*`) rather than positional arguments?
-- Do all public operations accept `ctx context.Context` as the first parameter?
-- Are new interfaces minimal and named for behaviour (verb/noun — `TokenProvider`, not `ITokenProvider`)?
-- Do exported types have godoc comments that describe what, not how?
+Apply these checks on **every** review in addition to the generic Go rules above. Where a rule below conflicts with a generic rule, the repo-specific rule wins (it is part of the cross-SDK public-API contract). Flag findings as `[BLOCKER]`, `[WARNING]`, or `[SUGGESTION]`.
 
-## 1a. Cross-SDK Nomenclature (Go-specific)
+### Generated code boundary
+- Flag any edit to `v2/internal/generated/` — these are Fern/OpenAPI-generated and must never be edited manually.
+- If a bug exists in generated code, report it; do not patch it by hand.
 
-Verify these specific naming requirements from the cross-SDK specification. Flag any violation as `[BLOCKER]` since they are part of the public API contract across all Skyflow SDKs.
+### Naming conventions (cross-SDK consistency)
+These intentionally deviate from standard Go acronym casing. Flag any violation:
+- `Id` suffix, **not** `ID` — e.g. `VaultId`, `ClusterId`, `ConnectionId`
+- `Url` suffix, **not** `URL` — e.g. `DownloadUrl`, `BaseVaultUrl`
+- `Api` prefix, **not** `API` — e.g. `ApiKey`
+- Use `//revive:disable-next-line:var-naming` only for genuine outliers not coverable by the allowlist in `v2/.golangci.yml`.
+
+### Cross-SDK nomenclature (Go-specific public-API contract)
+Flag any violation as `[BLOCKER]` — these keys are part of the public API contract across all Skyflow SDKs.
 
 **Credential JSON key fields** (in `Credentials` struct and related types):
 - Must use `ClientId` (not `ClientID`), `TokenUri` (not `TokenURI`), `KeyId` (not `KeyID`)
@@ -57,76 +54,71 @@ Verify these specific naming requirements from the cross-SDK specification. Flag
 - All response structs must always include an `Errors` field (never omit it, even on success — emit empty slice, not nil/absent)
 - Verify the field is exported (`Errors []SkyflowError`) and included in JSON serialization
 
-## 2. Error Handling
+### Error handling (SDK contract)
+- All public methods must return `*skyflowError.SkyflowError` — never raw `error` or bare `nil` on failure.
+- `logger.Error(...)` (from `v2/utils/logger`) must be called before every `SkyflowError` return.
+- Errors wrapped with cause context (`Cause: err`).
+- No `fmt.Println`, `log.Print*`, or `panic` anywhere in SDK code.
+- Never swallow errors — always propagate to the caller.
+- No error message may expose sensitive data (tokens, credentials, PII).
 
-- Are all public methods returning `*error.SkyflowError` (never raw `error` or `nil` on failure)?
-- Are errors wrapped with cause context (`Cause: err`)?
-- Are new error message strings added to `utils/messages/` rather than inlined?
-- Does any error message expose sensitive data (tokens, credentials, PII)?
-- Is `panic` used in library code? (never acceptable in an SDK — convert to error return)
+### Messages and constants
+- No inline string literals for log/error messages — all such strings must be constants in `v2/utils/messages/`.
+- All SDK-internal string constants go in `v2/internal/constants/constants.go`.
+- Error code strings go in `v2/utils/error/error_codes.go`.
+- `goconst` will flag repeated literals; fix by extracting a constant.
 
-## 3. Go Idioms and Best Practices
+### Request / Response patterns
+- Request structs are data holders only — all validation belongs in `v2/internal/validation/ValidateXxxRequest()`.
+- Options structs (custom headers, redaction type, etc.) must stay separate from request structs.
+- Every response struct must have an `Errors` field (slice, nil when empty per serialization above).
 
-- No naked `return` in long functions; named returns only when they substantially aid clarity
-- No use of `fmt.Print*` or `log.*` in library code (use project logger)
-- Goroutines: are all goroutines guarded by context cancellation or a done channel?
-- No unexported global mutable state (race conditions in concurrent SDK use)
-- Nil guards on receivers and map/slice fields before use
-- `defer` used correctly — no deferred calls inside loops
-- No shadowed `err` variables across if-blocks
-- Proper use of `errors.Is` / `errors.As` rather than type-asserting raw errors
-- Unused imports, unused variables — run `go vet` confirms clean?
+### Internal vs public boundary
+- New business logic placed in `internal/` rather than exported packages.
+- `utils/common/` contains data types only, not logic.
 
-## 4. Internal vs Public Boundary
+### Input validation
+- All user-supplied inputs (vault IDs, field names, tokens, file paths) validated in `internal/validation/` before use.
+- Validation errors returned via `SkyflowError`, never panics.
 
-- Is new business logic placed in `internal/` rather than exported packages?
-- Are generated files under `internal/generated/` untouched (edited by hand)?
-- Does `utils/common/` only contain data types, not logic?
+### Context
+- Every public API method accepts `context.Context` as its first parameter.
 
-## 5. Input Validation
-
-- Are all user-supplied inputs (vault IDs, field names, tokens, file paths) validated in `internal/validation/` before use?
-- Validation errors returned via `SkyflowError`, not panics
-- No use of raw user input in log messages without sanitisation
-
-## 6. Test Coverage
-
-- Does every new exported function/method have at least one `It` block (happy path)?
-- Are all validation-error branches covered?
-- Are external HTTP calls mocked via `httptest.Server`, not by patching internal helpers?
-- New `DescribeTable` entries for any table-driven scenario added?
+### Tests
+- Framework: Ginkgo v2 + Gomega — use `Describe` / `It` / `Expect` blocks.
+- 100% statement and branch coverage required for all new/modified code.
+- No mocking the production struct under test — use interface substitution or function-variable injection.
+- External HTTP calls mocked via `httptest.Server`, not by patching internal helpers.
 - Tests compilable and passing: `cd v2 && go test ./...`
 
-## 7. Backward Compatibility
+### Backward compatibility
+- Any removed or renamed exported identifier is a `[BLOCKER]` — requires a major version bump.
+- Watch struct fields that callers may embed or copy.
 
-- Are any exported identifiers removed or renamed? (BLOCKER — requires major version bump)
-- Are struct fields that callers may embed or copy affected?
-- Is `go.mod` `require` bumped for a dependency with a breaking change in its own API?
-
-## 8. Concurrency and Resource Safety
-
-- HTTP clients and vault configs: are they safely shared across goroutines (no mutation after construction)?
-- File uploads: are temporary files and open handles cleaned up even on error paths?
-- Context propagation: is `ctx` passed down to every HTTP call and blocking operation?
+### v1 maintenance boundary
+- `v1/` is in maintenance mode (EOL: October 31, 2026) — security and bug fixes only.
+- Flag any new feature or non-trivial refactor proposed against `v1/`.
+- New customer-facing functionality belongs in `v2/` only.
 
 ---
 
-End with a **Summary** table:
+## Skyflow Summary Table
+
+In addition to the generic verdict above, end with this repo-specific table:
 
 | Category | Blockers | Warnings | Suggestions |
 |---|---|---|---|
-| Public API Surface | | | |
-| Cross-SDK Nomenclature | | | |
+| Generated Code Boundary | | | |
+| Naming / Cross-SDK Nomenclature | | | |
 | Error Handling | | | |
-| Go Idioms | | | |
+| Messages & Constants | | | |
+| Request/Response Patterns | | | |
 | Internal/Public Boundary | | | |
 | Input Validation | | | |
 | Test Coverage | | | |
 | Backward Compatibility | | | |
-| Concurrency/Resources | | | |
-
-Then give an overall verdict: **Approve**, **Approve with minor changes**, or **Request changes**.
+| v1 Boundary | | | |
 
 ---
 
-After completing the code review above, also run `/security-review` to perform a security audit of the same scope, and append its findings below the code review output.
+After completing the code review above, also run `/security-review $ARGUMENTS` to perform a security audit of the same scope, and append its findings below the code review output.
