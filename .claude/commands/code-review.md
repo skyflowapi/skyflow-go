@@ -100,6 +100,3 @@ These keys are part of the public API contract across all Skyflow SDKs — treat
 - Flag any new feature or non-trivial refactor proposed against `v1/`.
 - New customer-facing functionality belongs in `v2/` only.
 
----
-
-After completing the code review above, also run `/security-review $ARGUMENTS` to perform a security audit of the same scope, and append its findings below the code review output.
