@@ -1,9 +1,10 @@
 package logger
 
 import (
+	"fmt"
 	"io"
-
-	"github.com/sirupsen/logrus"
+	"log/slog"
+	"os"
 )
 
 type LogLevel int
@@ -16,49 +17,58 @@ const (
 	OFF
 )
 
-var log = logrus.New()
+var (
+	writer   io.Writer = os.Stderr
+	levelVar           = new(slog.LevelVar)
+	log      *slog.Logger
+)
 
 func init() {
-	var formatter = &logrus.TextFormatter{
-		FullTimestamp: true,
-	}
-	log.SetFormatter(formatter)
-	log.SetLevel(logrus.ErrorLevel)
+	levelVar.Set(slog.LevelError)
+	rebuild()
+}
+
+// rebuild recreates the underlying logger. slog handlers are immutable and
+// bound to a writer, so the logger must be rebuilt when the output changes.
+// The level is held in a *slog.LevelVar, so level changes do not require it.
+func rebuild() {
+	log = slog.New(slog.NewTextHandler(writer, &slog.HandlerOptions{Level: levelVar}))
 }
 
 func Debug(args ...interface{}) {
-	log.Debug(args...)
+	log.Debug(fmt.Sprint(args...))
 }
 
 func Info(args ...interface{}) {
-	log.Info(args...)
+	log.Info(fmt.Sprint(args...))
 }
 
 func Warn(args ...interface{}) {
-	log.Warn(args...)
+	log.Warn(fmt.Sprint(args...))
 }
 
 func Error(args ...interface{}) {
-	log.Error(args...)
+	log.Error(fmt.Sprint(args...))
 }
 
 func SetOutput(w io.Writer) {
-	log.SetOutput(w)
+	writer = w
+	rebuild()
 }
 
 func SetLogLevel(level LogLevel) {
 	switch level {
 	case INFO:
-		log.SetLevel(logrus.InfoLevel)
+		levelVar.Set(slog.LevelInfo)
 	case DEBUG:
-		log.SetLevel(logrus.DebugLevel)
+		levelVar.Set(slog.LevelDebug)
 	case WARN:
-		log.SetLevel(logrus.WarnLevel)
+		levelVar.Set(slog.LevelWarn)
 	case ERROR:
-		log.SetLevel(logrus.ErrorLevel)
+		levelVar.Set(slog.LevelError)
 	case OFF:
-		log.SetOutput(io.Discard)
+		SetOutput(io.Discard)
 	default:
-		log.SetLevel(logrus.ErrorLevel)
+		levelVar.Set(slog.LevelError)
 	}
 }
