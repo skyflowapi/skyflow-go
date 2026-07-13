@@ -2,8 +2,6 @@ module github.com/skyflowapi/skyflow-go/v2
 
 go 1.25.0
 
-toolchain go1.25.11
-
 require (
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/google/uuid v1.6.0
