@@ -66,8 +66,20 @@ func (h *logrusTextHandler) Enabled(_ context.Context, l slog.Level) bool {
 	return l >= h.level.Level()
 }
 
+// logLineBufSize is the initial capacity for a formatted log line; sized to
+// hold a typical timestamp + level + short message without reallocating.
+const logLineBufSize = 128
+
+// logrus level names. logrus spells the warn level "warning".
+const (
+	levelDebug = "debug"
+	levelInfo  = "info"
+	levelWarn  = "warning"
+	levelError = "error"
+)
+
 func (h *logrusTextHandler) Handle(_ context.Context, r slog.Record) error {
-	buf := make([]byte, 0, 128)
+	buf := make([]byte, 0, logLineBufSize)
 	buf = append(buf, "time="...)
 	buf = appendLogrusValue(buf, r.Time.Format(time.RFC3339))
 	buf = append(buf, " level="...)
@@ -90,13 +102,13 @@ func (h *logrusTextHandler) WithGroup(_ string) slog.Handler      { return h }
 func logrusLevel(l slog.Level) string {
 	switch {
 	case l < slog.LevelInfo:
-		return "debug"
+		return levelDebug
 	case l < slog.LevelWarn:
-		return "info"
+		return levelInfo
 	case l < slog.LevelError:
-		return "warning"
+		return levelWarn
 	default:
-		return "error"
+		return levelError
 	}
 }
 
