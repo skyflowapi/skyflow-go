@@ -20,6 +20,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	constants "github.com/skyflowapi/skyflow-go/v2/internal/constants"
 	vaultapis "github.com/skyflowapi/skyflow-go/v2/internal/generated"
 	"github.com/skyflowapi/skyflow-go/v2/internal/generated/core"
 	. "github.com/skyflowapi/skyflow-go/v2/internal/helpers"
@@ -1865,5 +1866,58 @@ var _ = Describe("Deprecation warning logs", func() {
 			GetDetokenizePayload(req, common.DetokenizeOptions{DownloadUrl: true})
 			Expect(buf.String()).ToNot(ContainSubstring(logs.DEPRECATED_FIELD_DOWNLOAD_URL))
 		})
+	})
+})
+
+// SK-2963: beta-build-in-prod warning.
+var _ = Describe("IsNonGaVersion", func() {
+	It("treats a plain semver release as GA", func() {
+		Expect(IsNonGaVersion("v2.1.0")).To(BeFalse())
+		Expect(IsNonGaVersion("2.11.3")).To(BeFalse())
+	})
+	It("treats a beta suffix as non-GA", func() {
+		Expect(IsNonGaVersion("v2.1.0-beta.1")).To(BeTrue())
+	})
+	It("treats a dev suffix as non-GA", func() {
+		Expect(IsNonGaVersion("v2.1.0-dev.abc1234")).To(BeTrue())
+	})
+	It("treats an empty or garbage string as non-GA", func() {
+		Expect(IsNonGaVersion("")).To(BeTrue())
+		Expect(IsNonGaVersion("not-a-version")).To(BeTrue())
+	})
+})
+
+var _ = Describe("AnyVaultIsProd", func() {
+	It("returns false for an empty list", func() {
+		Expect(AnyVaultIsProd(nil)).To(BeFalse())
+		Expect(AnyVaultIsProd([]common.VaultConfig{})).To(BeFalse())
+	})
+	It("returns false when no vault is PROD", func() {
+		configs := []common.VaultConfig{
+			{VaultId: "v1", Env: common.DEV},
+			{VaultId: "v2", Env: common.SANDBOX},
+			{VaultId: "v3", Env: common.STAGE},
+		}
+		Expect(AnyVaultIsProd(configs)).To(BeFalse())
+	})
+	It("returns true when one of several vaults is PROD", func() {
+		configs := []common.VaultConfig{
+			{VaultId: "v1", Env: common.DEV},
+			{VaultId: "v2", Env: common.PROD},
+		}
+		Expect(AnyVaultIsProd(configs)).To(BeTrue())
+	})
+	It("treats an unset Env as PROD, matching GetURLWithEnv's own default", func() {
+		configs := []common.VaultConfig{{VaultId: "v1"}}
+		Expect(AnyVaultIsProd(configs)).To(BeTrue())
+	})
+})
+
+var _ = Describe("CurrentSDKVersion", func() {
+	It("falls back to constants.SDK_VERSION when build info isn't a resolved module version", func() {
+		// go test builds this module's own source, so debug.ReadBuildInfo().Main.Version
+		// is always "(devel)" here - this exercises (and documents) the fallback path;
+		// the real-consumer path can only be exercised by an actual downstream module.
+		Expect(CurrentSDKVersion()).To(Equal(constants.SDK_VERSION))
 	})
 })

@@ -16,6 +16,7 @@ import (
 	"os"
 	"regexp"
 	"runtime"
+	"runtime/debug"
 	"time"
 
 	"github.com/skyflowapi/skyflow-go/v2/internal/generated/core"
@@ -312,6 +313,58 @@ func GetURLWithEnv(env common.Env, clusterId string) string {
 		url = url + constants.PROD_DOMAIN
 	}
 	return url
+}
+
+// gaVersionPattern matches a clean public release (e.g. "v2.1.0"); anything else -
+// "v2.1.0-beta.1", "v2.1.0-dev.abc1234" - is a non-GA build.
+var gaVersionPattern = regexp.MustCompile(`^v?\d+\.\d+\.\d+$`)
+
+// IsNonGaVersion reports whether version is a beta/dev pre-release build rather than a
+// plain public release.
+func IsNonGaVersion(version string) bool {
+	return !gaVersionPattern.MatchString(version)
+}
+
+// AnyVaultIsProd reports whether any of the given vault configs resolves to Env.PROD.
+// PROD is Env's zero value (see utils/common.Env), so an unset Env already defaults to
+// it, same as GetURLWithEnv's own default case above.
+func AnyVaultIsProd(vaultConfigs []common.VaultConfig) bool {
+	for _, vaultConfig := range vaultConfigs {
+		if vaultConfig.Env == common.PROD {
+			return true
+		}
+	}
+	return false
+}
+
+// skyflowGoModulePath must match the module directive in go.mod.
+const skyflowGoModulePath = "github.com/skyflowapi/skyflow-go/v2"
+
+// CurrentSDKVersion returns the version of this module as actually resolved by the
+// importing consumer's go.mod (e.g. "v2.1.0-beta.1"), read from the running binary's
+// embedded build info. constants.SDK_VERSION is a manually maintained literal that isn't
+// bumped per release (see internal/constants/constants.go), so on its own it can't be
+// trusted to detect a beta/dev build - this reads the ground truth instead, falling back
+// to the constant when build info isn't meaningful (e.g. `go test` against this module's
+// own source, where Main.Version is always "(devel)").
+func CurrentSDKVersion() string {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return constants.SDK_VERSION
+	}
+	if info.Main.Path == skyflowGoModulePath && isResolvedVersion(info.Main.Version) {
+		return info.Main.Version
+	}
+	for _, dep := range info.Deps {
+		if dep.Path == skyflowGoModulePath && isResolvedVersion(dep.Version) {
+			return dep.Version
+		}
+	}
+	return constants.SDK_VERSION
+}
+
+func isResolvedVersion(version string) bool {
+	return version != "" && version != "(devel)"
 }
 
 func ParseTokenizeResponse(apiResponse vaultapis.V1TokenizeResponse) *common.TokenizeResponse {
