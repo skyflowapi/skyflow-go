@@ -340,13 +340,18 @@ func AnyVaultIsProd(vaultConfigs []common.VaultConfig) bool {
 // skyflowGoModulePath must match the module directive in go.mod.
 const skyflowGoModulePath = "github.com/skyflowapi/skyflow-go/v2"
 
+// develVersion is what debug.ReadBuildInfo() reports for Main.Version when the binary
+// wasn't built as a proper versioned module dependency (e.g. `go test` run against this
+// module's own source, or a local `go build` from within it) - not a meaningful version.
+const develVersion = "(devel)"
+
 // CurrentSDKVersion returns the version of this module as actually resolved by the
 // importing consumer's go.mod (e.g. "v2.1.0-beta.1"), read from the running binary's
 // embedded build info. constants.SDK_VERSION is a manually maintained literal that isn't
 // bumped per release (see internal/constants/constants.go), so on its own it can't be
 // trusted to detect a beta/dev build - this reads the ground truth instead, falling back
 // to the constant when build info isn't meaningful (e.g. `go test` against this module's
-// own source, where Main.Version is always "(devel)").
+// own source, where Main.Version is always "(devel)", see develVersion below).
 func CurrentSDKVersion() string {
 	info, ok := debug.ReadBuildInfo()
 	if !ok {
@@ -364,7 +369,7 @@ func CurrentSDKVersion() string {
 }
 
 func isResolvedVersion(version string) bool {
-	return version != "" && version != "(devel)"
+	return version != "" && version != develVersion
 }
 
 func ParseTokenizeResponse(apiResponse vaultapis.V1TokenizeResponse) *common.TokenizeResponse {
