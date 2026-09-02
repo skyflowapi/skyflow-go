@@ -402,7 +402,7 @@ func main() {
 
     var records = make(map[string] interface {})
     var record1 = make(map[string] interface {})
-    record1["token"] = "45012507-f72b-4f5c-9bf9-86b133bae719"
+    record1["token"] = "<TOKEN_1>"
     var record2 = make(map[string] interface {})
     record2["token"] = "invalid-token"
     var recordsArray[] interface {}
@@ -425,7 +425,7 @@ Sample response:
 {
   "records": [
     {
-      "token": "131e70dc-6f76-4319-bdd3-96281e051051",
+      "token": "<TOKEN_1>",
       "value": "1990-01-01"
     }
   ],
@@ -457,9 +457,9 @@ func main() {
 
     var records = make(map[string] interface {})
     var record1 = make(map[string] interface {})
-    record1["token"] = "45012507-f72b-4f5c-9bf9-86b133bae719"
+    record1["token"] = "<TOKEN_2>"
     var record2 = make(map[string] interface {})
-    record2["token"] = "131e70dc-6f76-4319-bdd3-96281e051051"
+    record2["token"] = "<TOKEN_1>"
     var recordsArray[] interface {}
     recordsArray = append(recordsArray, record1)
     recordsArray = append(recordsArray, record2)
@@ -480,11 +480,11 @@ Sample response:
 {
   "records": [
     {
-      "token": "45012507-f72b-4f5c-9bf9-86b133bae719",
+      "token": "<TOKEN_2>",
       "value": "Jhon"
     },
     {
-      "token": "131e70dc-6f76-4319-bdd3-96281e051051",
+      "token": "<TOKEN_1>",
       "value": "1990-01-01"
     }
   ],
