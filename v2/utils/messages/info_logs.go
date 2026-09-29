@@ -105,4 +105,6 @@ const (
 	DEPRECATED_RESPONSE_KEY_SKYFLOW_ID_UPDATE = SDK_LOG_PREFIX + "Deprecated: response key 'skyflowId' is deprecated and will be removed in a future version. Use 'SkyflowId' instead."
 	DEPRECATED_RESPONSE_KEY_TOKENIZED_DATA    = SDK_LOG_PREFIX + "Deprecated: response key 'tokenized_data' is deprecated and will be removed in a future version. Use 'TokenizedData' instead."
 	DEPRECATED_FIELD_REQUEST_INDEX 		 = SDK_LOG_PREFIX + "Deprecated: field 'request_index' is deprecated and will be removed in a future version. Use 'RequestIndex' instead."
+
+	BETA_BUILD_WARNING = SDK_LOG_PREFIX + "This is a beta/pre-release build of the Skyflow SDK (%s). Beta builds are intended for acceptance testing only - you appear to be connecting to a Production vault. Contact your Skyflow representative before using this build in Production."
 )

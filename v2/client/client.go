@@ -3,6 +3,7 @@ package client
 import (
 	"fmt"
 
+	"github.com/skyflowapi/skyflow-go/v2/internal/helpers"
 	"github.com/skyflowapi/skyflow-go/v2/internal/validation"
 	"github.com/skyflowapi/skyflow-go/v2/internal/vault/controller"
 	vaultutils "github.com/skyflowapi/skyflow-go/v2/utils/common"
@@ -34,6 +35,17 @@ func NewSkyflow(opts ...Option) (*Skyflow, *error.SkyflowError) {
 	for _, opt := range opts {
 		if err := opt(client); err != nil {
 			return nil, err
+		}
+	}
+
+	sdkVersion := helpers.CurrentSDKVersion()
+	if helpers.IsNonGaVersion(sdkVersion) {
+		var vaultConfigs []vaultutils.VaultConfig
+		for _, svc := range client.vaultServices {
+			vaultConfigs = append(vaultConfigs, *svc.config)
+		}
+		if helpers.AnyVaultIsProd(vaultConfigs) {
+			logger.Warn(fmt.Sprintf(logs.BETA_BUILD_WARNING, sdkVersion))
 		}
 	}
 

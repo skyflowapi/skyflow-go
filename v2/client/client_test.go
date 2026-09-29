@@ -1,6 +1,7 @@
 package client
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"testing"
@@ -2164,5 +2165,37 @@ var _ = Describe("Skyflow lifecycle: after Vault/Detect/Connection activated", f
 			Expect(err).To(BeNil())
 			Expect(svc3.config.ClusterId).To(Equal("detect-final"))
 		})
+	})
+})
+
+// SK-2963: beta-build-in-prod warning.
+//
+// helpers.CurrentSDKVersion() falls back to the real, GA constants.SDK_VERSION whenever
+// go test's own build info isn't a resolved module version (see helpers_test.go's
+// "CurrentSDKVersion" spec) - so unlike a real beta-tagged consumer, NewSkyflow() in this
+// suite can never actually take the "non-GA" branch. The logic that decides *whether* to
+// warn (IsNonGaVersion, AnyVaultIsProd) is covered directly in helpers_test.go; this only
+// proves the real wiring stays silent against today's real GA build, which is what every
+// test run actually exercises.
+var _ = Describe("Beta build warning wiring", func() {
+	var buf bytes.Buffer
+
+	BeforeEach(func() {
+		buf.Reset()
+		logger.SetOutput(&buf)
+		logger.SetLogLevel(logger.WARN)
+	})
+	AfterEach(func() {
+		logger.SetOutput(os.Stderr)
+		logger.SetLogLevel(logger.ERROR)
+	})
+
+	It("does not warn for the real GA build even against a PROD vault", func() {
+		_, err := NewSkyflow(
+			WithLogLevel(logger.WARN),
+			WithVaults(common.VaultConfig{VaultId: "v1", ClusterId: "cluster1", Env: common.PROD}),
+		)
+		Expect(err).To(BeNil())
+		Expect(buf.String()).ToNot(ContainSubstring("beta/pre-release build"))
 	})
 })
