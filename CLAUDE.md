@@ -1,0 +1,213 @@
+---
+name: {{REPO_NAME}}
+description: {{PROJECT_NAME}} project context — naming conventions, build commands, known failures, and slash commands. Loaded for all Go source files and go.mod.
+paths:
+  - "**/*.go"
+  - "**/go.mod"
+  - "**/go.sum"
+  - "**/.golangci.yml"
+  # Add file types for other languages used in your project:
+  # - "**/*.{{EXTRA_EXT_1}}"   # e.g. *.py, *.ts, *.sh
+  # - "**/*.{{EXTRA_EXT_2}}"
+exclude:
+  - "{{GENERATED_GLOB}}"        # glob for auto-generated code, e.g. **/internal/generated/**
+  - "**/vendor/**"
+  # - "{{EXTRA_EXCLUDE_1}}"     # add more project-specific excludes as needed
+---
+
+> **Template setup** — Search-and-replace the placeholders below before using this file in a new project.
+>
+> | Placeholder | Current value | Description |
+> |---|---|---|
+> | `{{PROJECT_NAME}}` | `Skyflow Go SDK` | Display name of the project |
+> | `{{REPO_NAME}}` | `skyflow-go` | Repository / folder name |
+> | `{{PROJECT_DESCRIPTION}}` | `Go interface to the Skyflow Data Privacy Vault API` | One-line project description |
+> | `{{MODULE_DIR}}` | `v2` | Subdirectory where the Go module lives (use `.` if root) |
+> | `{{MODULE_PATH}}` | `github.com/skyflowapi/skyflow-go/v2` | Full Go module path |
+> | `{{GENERATED_PATH}}` | `v2/internal/generated/` | Path to auto-generated code — never edit manually |
+> | `{{CODEGEN_TOOL}}` | `Fern` | Tool that generates the code at `{{GENERATED_PATH}}` |
+> | `{{ERROR_TYPE}}` | `*skyflowError.SkyflowError` | SDK error type returned by all public methods |
+> | `{{LOGGER_PACKAGE}}` | `v2/utils/logger` | Internal logger package path |
+> | `{{MESSAGES_PACKAGE}}` | `v2/utils/messages/` | Package where all log/error message strings live |
+> | `{{CONSTANTS_FILE}}` | `v2/internal/constants/constants.go` | File for SDK-internal string constants |
+> | `{{ERROR_CODES_FILE}}` | `v2/utils/error/error_codes.go` | File for error code string constants |
+> | `{{TEST_FRAMEWORK}}` | `Ginkgo v2 + Gomega` | Test framework used by the project |
+> | `{{TEST_STYLE}}` | `` `Describe` / `It` / `Expect` blocks `` | Test block syntax for the framework |
+> | `{{JIRA_PREFIX}}` | `SK` | Jira project key prefix (e.g. `SK` → `SK-1234`) |
+> | `{{CURRENT_VERSION}}` | `v2.1` | Current stable release version |
+> | `{{VERSION_FEATURES}}` | `supports PDB vaults` | Short description of what this version supports |
+> | `{{EOL_DATE}}` | `October 31, 2026` | End-of-life date for the legacy version (remove line if N/A) |
+> | `{{ID_NAMING_EXAMPLES}}` | `VaultId, ClusterId, ConnectionId` | Example field names using the `Id` suffix convention |
+> | `{{URL_NAMING_EXAMPLES}}` | `DownloadUrl, BaseVaultUrl` | Example field names using the `Url` suffix convention |
+> | `{{API_NAMING_EXAMPLES}}` | `ApiKey` | Example field names using the `Api` prefix convention |
+> | `{{INTEGRATION_TEST_ENV_VARS}}` | `CRED_FILE_PATH, VALID_CREDS_PVT_KEY, EXPIRED_TOKEN, API_KEY` | Env vars required to run integration tests |
+> | `{{GENERATED_GLOB}}` | `**/internal/generated/**` | Glob pattern matching the auto-generated code directory |
+> | `{{EXTRA_EXT_1}}`, `{{EXTRA_EXT_2}}` | *(optional)* | Additional file extensions to load as context (e.g. `py`, `ts`, `sh`) |
+> | `{{EXTRA_EXCLUDE_1}}` | *(optional)* | Additional paths to exclude from context (e.g. `**/testdata/**`) |
+> | `{{AUTH_PACKAGE}}` | `serviceaccount` | Package name for authentication / token generation *(optional)* |
+> | `{{CONTROLLER_PATH}}` | `vault/controller` | Path to service controllers inside `internal/` *(optional)* |
+> | `{{PUBLIC_PKG}}` | `client` | Top-level package with public entry points |
+> | `{{UTILS_PKG}}` | `utils` | Package containing shared types, errors, and utilities |
+> | `{{INTERNAL_PKG_1}}` | `constants` | First internal package (e.g. constants, config) |
+> | `{{INTERNAL_PKG_2}}` | `helpers` | Second internal package (e.g. helpers, middleware) *(optional)* |
+> | `{{LEGACY_VERSION_DIR}}` | `v1` | Samples subdirectory for the legacy version (remove if N/A) |
+> | `{{CURRENT_VERSION_DIR}}` | `v2` | Samples subdirectory for the current version |
+> | `{{CODEGEN_TOOL_URL}}` | `https://buildwithfern.com` | Homepage / docs URL for the codegen tool |
+> | `{{INTEGRATION_TEST_COUNT}}` | `30` | Number of integration tests that require live credentials |
+> | `{{CI_CONFIG_FILE}}` | `.github/workflows/main.yml` | CI workflow file that enforces commit format |
+
+# {{PROJECT_NAME}} — Claude Code Instructions
+
+## Project Overview
+
+This is the {{PROJECT_NAME}} (`{{REPO_NAME}}`). It provides a {{PROJECT_DESCRIPTION}}.
+
+**{{LEGACY_VERSION_DIR}} (maintenance mode):** Security and bug fixes only — no new features. EOL announced: **{{EOL_DATE}}**.
+
+**Current stable version: {{CURRENT_VERSION}}** — {{VERSION_FEATURES}}. Module path: `{{MODULE_PATH}}`. This is what customers use.
+
+## Critical Boundary — Generated Code
+
+**Never edit files under `{{GENERATED_PATH}}`.**
+
+These are auto-generated by [{{CODEGEN_TOOL}}]({{CODEGEN_TOOL_URL}}) from the API definition. Manual edits are overwritten on the next generation run. If you find a bug in generated code, report it — do not patch it directly.
+
+`{{MODULE_DIR}}/.golangci.yml` already excludes `internal/generated` and `test` from lint checks.
+
+## Project Structure
+
+> Update this tree to match your project's actual layout. Add or remove entries as needed.
+
+```
+{{REPO_NAME}}/
+  {{MODULE_DIR}}/                    # module {{MODULE_PATH}}
+    {{PUBLIC_PKG}}/                  # public entry points
+    {{AUTH_PACKAGE}}/                # authentication / token generation (remove if N/A)
+    internal/
+      {{INTERNAL_PKG_1}}/            # SDK-private package (e.g. constants, config)
+      {{INTERNAL_PKG_2}}/            # SDK-private package (e.g. helpers, middleware) — remove if N/A
+      {{CONTROLLER_PATH}}/           # service controllers (remove if N/A)
+      generated/                     # ← AUTO-GENERATED, DO NOT EDIT (see {{GENERATED_PATH}})
+    {{UTILS_PKG}}/                   # shared utilities (errors, logger, types)
+  samples/                           # remove entire section if N/A
+    {{LEGACY_VERSION_DIR}}/          # legacy version samples (remove if N/A)
+    {{CURRENT_VERSION_DIR}}/         # current version samples
+```
+
+## Naming Conventions
+
+These intentionally deviate from standard Go convention for cross-SDK consistency:
+
+- **`Id` suffix (not `ID`):** `{{ID_NAMING_EXAMPLES}}` — never `FooID`
+- **`Url` suffix (not `URL`):** `{{URL_NAMING_EXAMPLES}}` — never `FooURL`
+- **`Api` prefix (not `API`):** `{{API_NAMING_EXAMPLES}}` — never `FooAPI`
+- The `revive` linter allows these via its `var-naming` allowlist in `{{MODULE_DIR}}/.golangci.yml`. Add `//revive:disable-next-line:var-naming` only for outliers not covered by the allowlist.
+- **Messages:** All log and error message strings live in `{{MESSAGES_PACKAGE}}` — no inline string literals in code
+- **Constants:** SDK-internal constants live in `{{CONSTANTS_FILE}}`; error code strings live in `{{ERROR_CODES_FILE}}`
+
+## SDK Coding Rules
+
+These apply whenever writing or modifying code — not just during review.
+
+### Error handling
+- All public methods must return `{{ERROR_TYPE}}` as the error type — never raw `error`
+- Never swallow errors — always return them to the caller
+- No `fmt.Println`, `log.Print*`, or `panic` in SDK code — use `logger.Error/Info/Warn` from `{{LOGGER_PACKAGE}}`
+- Always call `logger.Error(...)` before returning a `{{ERROR_TYPE}}`
+
+### Message and constant strings
+- All error and log messages must be constants in `{{MESSAGES_PACKAGE}}` — no magic strings inline
+- All SDK-internal string constants go in `{{CONSTANTS_FILE}}`
+- `goconst` linter will flag repeated string literals — fix them by adding a constant
+
+### Request / Response patterns
+- Request structs are data holders — all validation belongs in `{{MODULE_DIR}}/internal/validation/ValidateXxxRequest()`
+- Options structs carry per-call settings (custom headers, redaction type, etc.) — keep them separate from request structs
+- All response structs must have an `Errors` field (slice, nil when no errors)
+
+### Context
+- All public API methods must accept `context.Context` as their first parameter
+
+### Tests
+- Test framework: **{{TEST_FRAMEWORK}}** — use {{TEST_STYLE}}
+- All code written or modified must have 100% coverage — both statement and branch
+- No mocking of the production struct under test; use interface substitution or function-variable injection
+
+---
+
+## Build and Test
+
+All commands run from `{{MODULE_DIR}}/` or the project root with explicit paths:
+
+```bash
+# Compile
+go build ./{{MODULE_DIR}}/...
+
+# Lint (golangci-lint with revive + goconst, config: {{MODULE_DIR}}/.golangci.yml)
+cd {{MODULE_DIR}} && golangci-lint run
+
+# Full test suite
+cd {{MODULE_DIR}} && go test ./...
+
+# Single package or test name
+cd {{MODULE_DIR}} && go test ./internal/... -v
+cd {{MODULE_DIR}} && go test ./... -run "TestName"
+
+# Coverage report
+cd {{MODULE_DIR}} && go test ./... -coverprofile=coverage.out && go tool cover -func=coverage.out
+
+# Dependency hygiene
+cd {{MODULE_DIR}} && go mod tidy
+```
+
+## Credentials JSON Format
+
+The SDK reads a credentials JSON file for authentication. Update the fields below to match your project's credential schema:
+
+```json
+{
+  "<field1>": "...",
+  "<field2>": "...",
+  "<field3>": "..."
+}
+```
+
+> Never commit credentials files — add to `.gitignore` and use environment variables or a secrets manager.
+
+## Known Pre-existing Test Failures
+
+{{INTEGRATION_TEST_COUNT}} integration tests require live credentials and will fail without them. All non-integration tests pass.
+
+Required env vars for integration tests: `{{INTEGRATION_TEST_ENV_VARS}}`. Without these, the 30 failures are expected — do not treat them as a regression introduced by your change.
+
+Run `cd {{MODULE_DIR}} && go test ./... 2>&1 | grep -E "FAIL|ok"` to see the current baseline before making changes.
+
+## Active Work
+
+See `docs/` for in-progress design specs and implementation plans.
+
+## Slash Commands
+
+- `/code-review` — full review: Go patterns + code smells + security
+- `/code-smell` — standalone structural smell analysis only (long functions, dead code, magic numbers)
+- `/code-security` — standalone security audit only (credentials, input validation, HTTP security)
+- `/sdk-sample <feature>` — generate a sample file for a feature
+- `/code-quality [./path/...]` — run quality pipeline (build → lint → test → coverage check)
+- `/git-commit <description>` — stage check + Jira-aware commit (extracts ticket ID from branch name)
+
+## Commit & PR Guidelines
+
+### Commit messages
+**Never run `git commit` directly. Always use `/git-commit <description>`** — it extracts the Jira ticket ID from the branch name, confirms `/code-quality` has passed, and validates the format against the CI check in `{{CI_CONFIG_FILE}}`.
+
+### Branch naming
+Branch name must include your GitHub username:
+
+```
+<github-username>/{{JIRA_PREFIX}}-<ticket-number>-<short-description>
+```
+
+Example: `<your-github-username>/{{JIRA_PREFIX}}-<ticket-number>-<short-description>`
+
+### PR template
+`.github/workflows/pull_request_template.md` requires: **Why**, **Goal**, **Testing** sections. Tech debt section is optional.
