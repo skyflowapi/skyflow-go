@@ -2,22 +2,27 @@ package common
 
 import (
 	"os"
-	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
+
+	cfg "github.com/skyflowapi/skyflow-go/common/config"
+	sa "github.com/skyflowapi/skyflow-go/common/serviceaccount"
 )
 
-type Env int
+// Platform-level configuration types are defined once in
+// skyflow-go/common/config and shared by every SDK in this repository.
+// Aliases keep them the same types under v2's import path.
+type Env = cfg.Env
 
 const (
-	PROD Env = iota
-	STAGE
-	SANDBOX
-	DEV
+	PROD    Env = cfg.PROD
+	STAGE   Env = cfg.STAGE
+	SANDBOX Env = cfg.SANDBOX
+	DEV     Env = cfg.DEV
 )
 
-type TokenResponse struct {
-	AccessToken string `json:"accessToken"`
-	TokenType   string `json:"tokenType"`
-}
+// Service-account types are defined once in skyflow-go/common/serviceaccount
+// and shared by every SDK in this repository. Aliases keep them the same
+// types under v2's import path.
+type TokenResponse = sa.TokenResponse
 type DeidentifyTextRequest struct {
 	Text string
 	// ConfigurationId    ConfigurationId
@@ -171,49 +176,16 @@ const (
 	TRANSCRIPTION                  DetectOutputTranscriptions = "transcription"
 )
 
-type BearerTokenOptions struct {
-	Ctx      interface{}
-	RoleIds  []string
-	// Deprecated: Use RoleIds instead.
-	RoleIDs  []string
-	LogLevel logger.LogLevel
-}
+type BearerTokenOptions = sa.BearerTokenOptions
 
-type SignedDataTokensOptions struct {
-	DataTokens []string
-	TimeToLive int
-	Ctx        interface{}
-	LogLevel   logger.LogLevel
-}
+type SignedDataTokensOptions = sa.SignedDataTokensOptions
 
-type SignedDataTokensResponse struct {
-	Token       string
-	SignedToken string
-}
+type SignedDataTokensResponse = sa.SignedDataTokensResponse
 
-type VaultConfig struct {
-	VaultId      string
-	ClusterId    string
-	BaseVaultUrl string
-	// Deprecated: Use BaseVaultUrl instead.
-	BaseVaultURL string
-	Env          Env
-	Credentials  Credentials
-}
+type VaultConfig = cfg.VaultConfig
 
-type Credentials struct {
-	Path              string
-	Roles             []string
-	Context           interface{}
-	CredentialsString string
-	Token             string
-	ApiKey            string
-}
-type ConnectionConfig struct {
-	ConnectionId  string
-	ConnectionUrl string
-	Credentials   Credentials
-}
+type Credentials = cfg.Credentials
+type ConnectionConfig = cfg.ConnectionConfig
 type DetectConfig struct {
 	VaultId     string
 	ClusterId   string
@@ -266,7 +238,7 @@ type TextIndex struct {
 }
 type ReidentifyTextResponse struct {
 	ProcessedText string
-	Errors		[]map[string]interface{}
+	Errors        []map[string]interface{}
 }
 
 type ReidentifyTextRequest struct {
@@ -375,8 +347,8 @@ const (
 	FORMURLENCODED    ContentType = "application/x-www-form-urlencoded"
 	FORMDATA          ContentType = "multipart/form-data"
 	TEXTORXML         ContentType = "text/xml"
-	APPLICATIONXML	  ContentType = "application/xml"
-	TEXTHTML        ContentType = "text/html"
+	APPLICATIONXML    ContentType = "application/xml"
+	TEXTHTML          ContentType = "text/html"
 )
 
 type OrderByEnum string
@@ -397,12 +369,12 @@ const (
 	REDACTED   RedactionType = "REDACTED"
 )
 
-type CustomHeaderKey string
+type CustomHeaderKey = cfg.CustomHeaderKey
 
 const (
-	SkyflowAccountId   CustomHeaderKey = "x-skyflow-account-id"
-	SkyflowAccountName CustomHeaderKey = "x-skyflow-account-name"
-	RequestIdHeader    CustomHeaderKey = "x-request-id"
+	SkyflowAccountId   CustomHeaderKey = cfg.SkyflowAccountId
+	SkyflowAccountName CustomHeaderKey = cfg.SkyflowAccountName
+	RequestIdHeader    CustomHeaderKey = cfg.RequestIdHeader
 
 	// Deprecated: Use SkyflowAccountId instead.
 	SkyflowAccountID = SkyflowAccountId
@@ -443,8 +415,8 @@ type DetokenizeOptions struct {
 	ContinueOnError bool
 	DownloadUrl     bool
 	// Deprecated: Use DownloadUrl instead.
-	DownloadURL     bool
-	CustomHeaders   map[CustomHeaderKey]string
+	DownloadURL   bool
+	CustomHeaders map[CustomHeaderKey]string
 }
 
 type DetokenizeRecordResponse struct {
