@@ -1,22 +1,23 @@
 package common
 
-// InsertRequest — flowvault specific, embeds common base.
+// InsertRequest is the FlowVault insert request. Unlike v2, ContinueOnError
+// is part of the request rather than the options.
 type InsertRequest struct {
-	BaseInsertRequest // Table, Values
-	ContinueOnError   bool
+	Table           string
+	Values          []map[string]interface{}
+	ContinueOnError bool
 }
 
-// InsertOptions — flowvault specific, embeds common base.
-// CustomHeaders uses plain string keys (v2 uses a typed CustomHeaderKey).
+// InsertOptions are the FlowVault insert options. CustomHeaders uses plain
+// string keys (v2 uses a typed CustomHeaderKey).
 type InsertOptions struct {
-	BaseInsertOptions // shared marker
-	Upsert            string
-	CustomHeaders     map[string]string
+	Upsert        string
+	CustomHeaders map[string]string
 }
 
-// InsertResponse — flowvault specific, embeds common base.
+// InsertResponse is the FlowVault insert response.
 type InsertResponse struct {
-	BaseInsertResponse // Errors
-	InsertedFields     []map[string]interface{}
-	Tokens             []map[string]interface{}
+	InsertedFields []map[string]interface{}
+	Tokens         []map[string]interface{}
+	Errors         []map[string]interface{}
 }
