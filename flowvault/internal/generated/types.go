@@ -12,110 +12,177 @@ type PatchV2VaultsIDRequest struct {
 	VaultID *string `json:"-" url:"-"`
 }
 
-type GooglerpcStatus struct {
-	Code    *int           `json:"code,omitempty" url:"code,omitempty"`
-	Message *string        `json:"message,omitempty" url:"message,omitempty"`
-	Details []*ProtobufAny `json:"details,omitempty" url:"details,omitempty"`
+type ErrorResponse struct {
+	Error *ErrorResponseError `json:"error" url:"error"`
 
 	extraProperties map[string]interface{}
 	rawJSON         json.RawMessage
 }
 
-func (g *GooglerpcStatus) GetCode() *int {
-	if g == nil {
+func (e *ErrorResponse) GetError() *ErrorResponseError {
+	if e == nil {
 		return nil
 	}
-	return g.Code
+	return e.Error
 }
 
-func (g *GooglerpcStatus) GetMessage() *string {
-	if g == nil {
-		return nil
-	}
-	return g.Message
+func (e *ErrorResponse) GetExtraProperties() map[string]interface{} {
+	return e.extraProperties
 }
 
-func (g *GooglerpcStatus) GetDetails() []*ProtobufAny {
-	if g == nil {
-		return nil
-	}
-	return g.Details
-}
-
-func (g *GooglerpcStatus) GetExtraProperties() map[string]interface{} {
-	return g.extraProperties
-}
-
-func (g *GooglerpcStatus) UnmarshalJSON(data []byte) error {
-	type unmarshaler GooglerpcStatus
+func (e *ErrorResponse) UnmarshalJSON(data []byte) error {
+	type unmarshaler ErrorResponse
 	var value unmarshaler
 	if err := json.Unmarshal(data, &value); err != nil {
 		return err
 	}
-	*g = GooglerpcStatus(value)
-	extraProperties, err := internal.ExtractExtraProperties(data, *g)
+	*e = ErrorResponse(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *e)
 	if err != nil {
 		return err
 	}
-	g.extraProperties = extraProperties
-	g.rawJSON = json.RawMessage(data)
+	e.extraProperties = extraProperties
+	e.rawJSON = json.RawMessage(data)
 	return nil
 }
 
-func (g *GooglerpcStatus) String() string {
-	if len(g.rawJSON) > 0 {
-		if value, err := internal.StringifyJSON(g.rawJSON); err == nil {
+func (e *ErrorResponse) String() string {
+	if len(e.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(e.rawJSON); err == nil {
 			return value
 		}
 	}
-	if value, err := internal.StringifyJSON(g); err == nil {
+	if value, err := internal.StringifyJSON(e); err == nil {
 		return value
 	}
-	return fmt.Sprintf("%#v", g)
+	return fmt.Sprintf("%#v", e)
 }
 
-type ProtobufAny struct {
-	Type *string `json:"@type,omitempty" url:"@type,omitempty"`
+type ErrorResponseError struct {
+	// gRPC status codes. See https://grpc.io/docs/guides/status-codes.
+	GrpcCode   int                      `json:"grpc_code" url:"grpc_code"`
+	HTTPCode   HTTPCode                 `json:"http_code" url:"http_code"`
+	HTTPStatus string                   `json:"http_status" url:"http_status"`
+	Message    string                   `json:"message" url:"message"`
+	Details    []map[string]interface{} `json:"details,omitempty" url:"details,omitempty"`
 
 	extraProperties map[string]interface{}
 	rawJSON         json.RawMessage
 }
 
-func (p *ProtobufAny) GetType() *string {
-	if p == nil {
+func (e *ErrorResponseError) GetGrpcCode() int {
+	if e == nil {
+		return 0
+	}
+	return e.GrpcCode
+}
+
+func (e *ErrorResponseError) GetHTTPCode() HTTPCode {
+	if e == nil {
+		return 0
+	}
+	return e.HTTPCode
+}
+
+func (e *ErrorResponseError) GetHTTPStatus() string {
+	if e == nil {
+		return ""
+	}
+	return e.HTTPStatus
+}
+
+func (e *ErrorResponseError) GetMessage() string {
+	if e == nil {
+		return ""
+	}
+	return e.Message
+}
+
+func (e *ErrorResponseError) GetDetails() []map[string]interface{} {
+	if e == nil {
 		return nil
 	}
-	return p.Type
+	return e.Details
 }
 
-func (p *ProtobufAny) GetExtraProperties() map[string]interface{} {
-	return p.extraProperties
+func (e *ErrorResponseError) GetExtraProperties() map[string]interface{} {
+	return e.extraProperties
 }
 
-func (p *ProtobufAny) UnmarshalJSON(data []byte) error {
-	type unmarshaler ProtobufAny
+func (e *ErrorResponseError) UnmarshalJSON(data []byte) error {
+	type unmarshaler ErrorResponseError
 	var value unmarshaler
 	if err := json.Unmarshal(data, &value); err != nil {
 		return err
 	}
-	*p = ProtobufAny(value)
-	extraProperties, err := internal.ExtractExtraProperties(data, *p)
+	*e = ErrorResponseError(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *e)
 	if err != nil {
 		return err
 	}
-	p.extraProperties = extraProperties
-	p.rawJSON = json.RawMessage(data)
+	e.extraProperties = extraProperties
+	e.rawJSON = json.RawMessage(data)
 	return nil
 }
 
-func (p *ProtobufAny) String() string {
-	if len(p.rawJSON) > 0 {
-		if value, err := internal.StringifyJSON(p.rawJSON); err == nil {
+func (e *ErrorResponseError) String() string {
+	if len(e.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(e.rawJSON); err == nil {
 			return value
 		}
 	}
-	if value, err := internal.StringifyJSON(p); err == nil {
+	if value, err := internal.StringifyJSON(e); err == nil {
 		return value
 	}
-	return fmt.Sprintf("%#v", p)
+	return fmt.Sprintf("%#v", e)
+}
+
+// HTTP status codes. See https://developer.mozilla.org/en-US/docs/Web/HTTP/Status.
+type HTTPCode = int
+
+type UniqueValue struct {
+	// Columns names and values for the unique value entry.
+	Data map[string]interface{} `json:"data" url:"data"`
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (u *UniqueValue) GetData() map[string]interface{} {
+	if u == nil {
+		return nil
+	}
+	return u.Data
+}
+
+func (u *UniqueValue) GetExtraProperties() map[string]interface{} {
+	return u.extraProperties
+}
+
+func (u *UniqueValue) UnmarshalJSON(data []byte) error {
+	type unmarshaler UniqueValue
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*u = UniqueValue(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *u)
+	if err != nil {
+		return err
+	}
+	u.extraProperties = extraProperties
+	u.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (u *UniqueValue) String() string {
+	if len(u.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(u.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(u); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", u)
 }

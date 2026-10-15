@@ -7,14 +7,14 @@ import (
 	core "github.com/skyflowapi/skyflow-go/flowvault/internal/generated/core"
 )
 
-// Invalid scope format.
+// Returned when the request is invalid or cannot be served.
 type BadRequestError struct {
 	*core.APIError
-	Body map[string]interface{}
+	Body *ErrorResponse
 }
 
 func (b *BadRequestError) UnmarshalJSON(data []byte) error {
-	var body map[string]interface{}
+	var body *ErrorResponse
 	if err := json.Unmarshal(data, &body); err != nil {
 		return err
 	}
@@ -31,14 +31,62 @@ func (b *BadRequestError) Unwrap() error {
 	return b.APIError
 }
 
-// Returned when the resource does not exist.
+// Returned when the requester lacks permission to access the resource.
+type ForbiddenError struct {
+	*core.APIError
+	Body *ErrorResponse
+}
+
+func (f *ForbiddenError) UnmarshalJSON(data []byte) error {
+	var body *ErrorResponse
+	if err := json.Unmarshal(data, &body); err != nil {
+		return err
+	}
+	f.StatusCode = 403
+	f.Body = body
+	return nil
+}
+
+func (f *ForbiddenError) MarshalJSON() ([]byte, error) {
+	return json.Marshal(f.Body)
+}
+
+func (f *ForbiddenError) Unwrap() error {
+	return f.APIError
+}
+
+// An unexpected error response.
+type InternalServerError struct {
+	*core.APIError
+	Body *ErrorResponse
+}
+
+func (i *InternalServerError) UnmarshalJSON(data []byte) error {
+	var body *ErrorResponse
+	if err := json.Unmarshal(data, &body); err != nil {
+		return err
+	}
+	i.StatusCode = 500
+	i.Body = body
+	return nil
+}
+
+func (i *InternalServerError) MarshalJSON() ([]byte, error) {
+	return json.Marshal(i.Body)
+}
+
+func (i *InternalServerError) Unwrap() error {
+	return i.APIError
+}
+
+// Returned when a resource doesn't exist.
 type NotFoundError struct {
 	*core.APIError
-	Body map[string]interface{}
+	Body *ErrorResponse
 }
 
 func (n *NotFoundError) UnmarshalJSON(data []byte) error {
-	var body map[string]interface{}
+	var body *ErrorResponse
 	if err := json.Unmarshal(data, &body); err != nil {
 		return err
 	}
@@ -55,14 +103,38 @@ func (n *NotFoundError) Unwrap() error {
 	return n.APIError
 }
 
-// Key expired or JWT token unparseable.
+// Returned when the requester has exceeded the rate limit.
+type TooManyRequestsError struct {
+	*core.APIError
+	Body *ErrorResponse
+}
+
+func (t *TooManyRequestsError) UnmarshalJSON(data []byte) error {
+	var body *ErrorResponse
+	if err := json.Unmarshal(data, &body); err != nil {
+		return err
+	}
+	t.StatusCode = 429
+	t.Body = body
+	return nil
+}
+
+func (t *TooManyRequestsError) MarshalJSON() ([]byte, error) {
+	return json.Marshal(t.Body)
+}
+
+func (t *TooManyRequestsError) Unwrap() error {
+	return t.APIError
+}
+
+// Returned when the request is unauthorized.
 type UnauthorizedError struct {
 	*core.APIError
-	Body map[string]interface{}
+	Body *ErrorResponse
 }
 
 func (u *UnauthorizedError) UnmarshalJSON(data []byte) error {
-	var body map[string]interface{}
+	var body *ErrorResponse
 	if err := json.Unmarshal(data, &body); err != nil {
 		return err
 	}
