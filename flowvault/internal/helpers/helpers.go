@@ -30,7 +30,7 @@ func GetURLWithEnv(env fvcommon.Env, clusterId string) string {
 // CreateSDKMetadata builds the sky-metadata header value.
 func CreateSDKMetadata() string {
 	data := map[string]string{
-		"sdk_name_version": fmt.Sprintf("skyflow-go@%s", fvconsts.SDK_VERSION),
+		"sdk_name_version": fmt.Sprintf("%s@%s", fvconsts.METRICS_SDK_NAME, fvconsts.SDK_VERSION),
 		"device_model":     runtime.GOOS,
 		"os_details":       fmt.Sprintf("%s %s", runtime.GOOS, runtime.GOARCH),
 		"runtime_details":  runtime.Version(),

@@ -2,20 +2,24 @@ package client
 
 import (
 	"fmt"
+	"sync"
 
 	fvhelpers "github.com/skyflowapi/skyflow-go/flowvault/internal/helpers"
+	"github.com/skyflowapi/skyflow-go/flowvault/internal/vault/controller"
 	fvcommon "github.com/skyflowapi/skyflow-go/flowvault/utils/common"
 	fverrors "github.com/skyflowapi/skyflow-go/flowvault/utils/error"
 	fvlogger "github.com/skyflowapi/skyflow-go/flowvault/utils/logger"
 	logs "github.com/skyflowapi/skyflow-go/flowvault/utils/messages"
 )
 
-// Skyflow is the flowvault client entry point.
+// Skyflow is the flowvault client entry point. It is safe for concurrent use: vaults and
+// client settings can be changed while calls are running.
 type Skyflow struct {
+	mu            sync.RWMutex
 	vaultServices map[string]*VaultService
 	credentials   *fvcommon.Credentials
 	logLevel      fvlogger.LogLevel
-	customHeaders map[fvcommon.CustomHeaderKey]string
+	httpConfig    fvcommon.HttpConfig
 }
 
 type Option func(*Skyflow) *fverrors.SkyflowError
@@ -60,22 +64,55 @@ func WithCredentials(credentials fvcommon.Credentials) Option {
 // WithLogLevel sets the logging level.
 func WithLogLevel(logLevel fvlogger.LogLevel) Option {
 	return func(s *Skyflow) *fverrors.SkyflowError {
+		s.mu.Lock()
+		defer s.mu.Unlock()
 		s.logLevel = logLevel
 		fvlogger.SetLogLevel(logLevel)
 		return nil
 	}
 }
 
-// WithCustomHeaders sets custom headers sent with every request from this client.
-func WithCustomHeaders(headers map[fvcommon.CustomHeaderKey]string) Option {
+// WithHttpConfig sets client-level timeout and retry defaults. A value set on a
+// VaultConfig wins over the one set here.
+func WithHttpConfig(httpConfig fvcommon.HttpConfig) Option {
 	return func(s *Skyflow) *fverrors.SkyflowError {
-		s.customHeaders = headers
+		if err := fvhelpers.ConfigValidator().ValidateHttpConfig(httpConfig); err != nil {
+			return err
+		}
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		s.httpConfig = copyHttpConfig(httpConfig)
+		s.syncVaults()
 		return nil
 	}
 }
 
+// clientSettings returns the settings vaults fall back to. The caller holds s.mu.
+func (s *Skyflow) clientSettings() controller.ClientSettings {
+	return controller.ClientSettings{Credentials: s.credentials, HttpConfig: s.httpConfig}
+}
+
+// syncVaults pushes client-level settings to every registered vault. The caller holds s.mu.
+func (s *Skyflow) syncVaults() {
+	settings := s.clientSettings()
+	for _, svc := range s.vaultServices {
+		svc.controller.SetClientSettings(settings)
+	}
+}
+
+// copyHttpConfig copies MaxRetries so later changes to the caller's value don't leak in.
+func copyHttpConfig(config fvcommon.HttpConfig) fvcommon.HttpConfig {
+	if config.MaxRetries != nil {
+		retries := *config.MaxRetries
+		config.MaxRetries = &retries
+	}
+	return config
+}
+
 // Vault returns the vault service registered under vaultId.
 func (s *Skyflow) Vault(vaultId string) (*VaultService, *fverrors.SkyflowError) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	svc, ok := s.vaultServices[vaultId]
 	if !ok {
 		return nil, fverrors.NewSkyflowError(fverrors.INVALID_INPUT_CODE, fverrors.VAULT_ID_NOT_IN_CONFIG_LIST)
@@ -94,11 +131,17 @@ func (s *Skyflow) AddVaultConfig(cfg fvcommon.VaultConfig) *fverrors.SkyflowErro
 	if err := fvhelpers.ConfigValidator().ValidateVaultConfig(cfg); err != nil {
 		return err
 	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if _, exists := s.vaultServices[cfg.VaultId]; exists {
 		fvlogger.Error(fmt.Sprintf(logs.VAULT_CONFIG_EXISTS, cfg.VaultId))
 		return fverrors.NewSkyflowError(fverrors.INVALID_INPUT_CODE, fmt.Sprintf(fverrors.VAULT_ID_EXISTS_IN_CONFIG_LIST, cfg.VaultId))
 	}
-	s.vaultServices[cfg.VaultId] = newVaultService(s, &cfg)
+	if cfg.MaxRetries != nil {
+		retries := *cfg.MaxRetries
+		cfg.MaxRetries = &retries
+	}
+	s.vaultServices[cfg.VaultId] = newVaultService(controller.NewVaultController(cfg, s.clientSettings()))
 	fvlogger.Info(fmt.Sprintf(logs.VAULT_CONTROLLER_INITIALIZED, cfg.VaultId))
 	return nil
 }
@@ -110,30 +153,54 @@ func (s *Skyflow) UpdateVaultConfig(updatedConfig fvcommon.VaultConfig) *fverror
 	if err := fvhelpers.ConfigValidator().ValidateUpdateVaultConfig(updatedConfig); err != nil {
 		return err
 	}
+	if err := fvhelpers.ConfigValidator().ValidateHttpConfig(updatedConfig.HttpConfig()); err != nil {
+		return err
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	svc, exists := s.vaultServices[updatedConfig.VaultId]
 	if !exists {
 		fvlogger.Error(fmt.Sprintf(logs.VAULT_CONFIG_DOES_NOT_EXIST, updatedConfig.VaultId))
 		return fverrors.NewSkyflowError(fverrors.INVALID_INPUT_CODE, fverrors.VAULT_ID_NOT_IN_CONFIG_LIST)
 	}
-	// The service holds a pointer to its config, so in-place updates reach it
-	// and any controller it has built; cached tokens are dropped on change.
-	if !fvcommon.IsCredentialsEmpty(updatedConfig.Credentials) {
-		svc.config.Credentials = updatedConfig.Credentials
-		svc.resetAuth()
+	// Only the fields set on updatedConfig change. The merged config replaces the old one in
+	// a single step, so a call that is running keeps the config it started with.
+	config := svc.controller.Config()
+	credentialsChanged := !fvcommon.IsCredentialsEmpty(updatedConfig.Credentials)
+	if credentialsChanged {
+		config.Credentials = updatedConfig.Credentials
 	}
 	if updatedConfig.ClusterId != "" {
-		svc.config.ClusterId = updatedConfig.ClusterId
+		config.ClusterId = updatedConfig.ClusterId
 	}
 	if updatedConfig.BaseVaultUrl != "" {
-		svc.config.BaseVaultUrl = updatedConfig.BaseVaultUrl
+		config.BaseVaultUrl = updatedConfig.BaseVaultUrl
 	}
-	svc.config.Env = updatedConfig.Env
+	if updatedConfig.Env.IsSet() {
+		config.Env = updatedConfig.Env
+	}
+	if updatedConfig.Timeout != 0 {
+		config.Timeout = updatedConfig.Timeout
+	}
+	if updatedConfig.MaxRetries != nil {
+		retries := *updatedConfig.MaxRetries
+		config.MaxRetries = &retries
+	}
+	if updatedConfig.InitialRetryDelay != 0 {
+		config.InitialRetryDelay = updatedConfig.InitialRetryDelay
+	}
+	if updatedConfig.MaxRetryDelay != 0 {
+		config.MaxRetryDelay = updatedConfig.MaxRetryDelay
+	}
+	svc.controller.SetConfig(config, credentialsChanged)
 	return nil
 }
 
 // RemoveVaultConfig removes the vault config registered under vaultId.
 // Returns an error if the vault ID is not registered.
 func (s *Skyflow) RemoveVaultConfig(vaultId string) *fverrors.SkyflowError {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if _, exists := s.vaultServices[vaultId]; !exists {
 		fvlogger.Error(fmt.Sprintf(logs.VAULT_CONFIG_DOES_NOT_EXIST, vaultId))
 		return fverrors.NewSkyflowError(fverrors.INVALID_INPUT_CODE, fverrors.VAULT_ID_NOT_IN_CONFIG_LIST)
@@ -142,13 +209,17 @@ func (s *Skyflow) RemoveVaultConfig(vaultId string) *fverrors.SkyflowError {
 	return nil
 }
 
-// GetVaultConfig returns the VaultConfig registered under vaultId, or an error if it is not found.
+// GetVaultConfig returns a copy of the VaultConfig registered under vaultId, or an error if
+// it is not found. Use UpdateVaultConfig to change it.
 func (s *Skyflow) GetVaultConfig(vaultId string) (*fvcommon.VaultConfig, *fverrors.SkyflowError) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	svc, exists := s.vaultServices[vaultId]
 	if !exists {
 		return nil, fverrors.NewSkyflowError(fverrors.INVALID_INPUT_CODE, fverrors.VAULT_ID_NOT_IN_CONFIG_LIST)
 	}
-	return svc.config, nil
+	config := svc.controller.Config()
+	return &config, nil
 }
 
 // ---------------------------------------------------------------------------
@@ -161,10 +232,11 @@ func (s *Skyflow) AddSkyflowCredentials(credentials fvcommon.Credentials) *fverr
 	if err := fvhelpers.ConfigValidator().ValidateCredentials(credentials); err != nil {
 		return err
 	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	// A new pointer, so every vault drops its cached token.
 	s.credentials = &credentials
-	for _, svc := range s.vaultServices {
-		svc.resetAuth()
-	}
+	s.syncVaults()
 	return nil
 }
 
@@ -175,7 +247,13 @@ func (s *Skyflow) UpdateSkyflowCredentials(credentials fvcommon.Credentials) *fv
 
 // GetSkyflowCredentials returns the client-level credentials, or nil if none are set.
 func (s *Skyflow) GetSkyflowCredentials() *fvcommon.Credentials {
-	return s.credentials
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if s.credentials == nil {
+		return nil
+	}
+	credentials := *s.credentials
+	return &credentials
 }
 
 // ---------------------------------------------------------------------------
@@ -184,6 +262,8 @@ func (s *Skyflow) GetSkyflowCredentials() *fvcommon.Credentials {
 
 // UpdateLogLevel changes the log level for the client.
 func (s *Skyflow) UpdateLogLevel(logLevel fvlogger.LogLevel) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	fvlogger.Info(fmt.Sprintf(logs.CURRENT_LOG_LEVEL, s.logLevel))
 	s.logLevel = logLevel
 	fvlogger.SetLogLevel(logLevel)
@@ -191,6 +271,8 @@ func (s *Skyflow) UpdateLogLevel(logLevel fvlogger.LogLevel) {
 
 // GetLoglevel returns the current log level of the client.
 func (s *Skyflow) GetLoglevel() *fvlogger.LogLevel {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	logLevel := s.logLevel
 	return &logLevel
 }

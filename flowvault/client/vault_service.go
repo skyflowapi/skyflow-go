@@ -1,105 +1,67 @@
 package client
 
 import (
+	"context"
+
+	"github.com/skyflowapi/skyflow-go/flowvault/internal/vault/controller"
 	fvcommon "github.com/skyflowapi/skyflow-go/flowvault/utils/common"
 	fverrors "github.com/skyflowapi/skyflow-go/flowvault/utils/error"
-	fvlogger "github.com/skyflowapi/skyflow-go/flowvault/utils/logger"
 )
 
-// VaultService handles all vault operations for a single vault.
+// VaultService handles all vault operations for a single vault. Every method is unary:
+// one request, one response.
 //
-// It keeps a pointer to its config and a back-reference to the client, so
-// UpdateVaultConfig and credential updates on the client are visible to it
-// without any copying.
+// The client updates the controller's settings in place, so a VaultService obtained
+// earlier sees UpdateVaultConfig and credential changes on its next call.
 type VaultService struct {
-	client *Skyflow
-	config *fvcommon.VaultConfig
+	controller *controller.VaultController
 }
 
-func newVaultService(client *Skyflow, config *fvcommon.VaultConfig) *VaultService {
-	return &VaultService{client: client, config: config}
+func newVaultService(controller *controller.VaultController) *VaultService {
+	return &VaultService{controller: controller}
 }
 
-// credentials returns the client-level credentials (nil if none are set).
-func (v *VaultService) credentials() *fvcommon.Credentials {
-	return v.client.credentials
+// Insert inserts records into the vault, optionally upserting on unique columns.
+func (v *VaultService) Insert(ctx context.Context, request fvcommon.InsertRequest, options fvcommon.InsertOptions) (*fvcommon.InsertResponse, *fverrors.SkyflowError) {
+	return v.controller.Insert(ctx, request, options)
 }
 
-// resetAuth drops any cached token so the next call re-authenticates with
-// the current credentials. The vault controller is not wired yet; once it is,
-// this is where its Token/ApiKey are cleared.
-func (v *VaultService) resetAuth() {}
-
-// Insert inserts records into the vault.
-func (v *VaultService) Insert(request fvcommon.InsertRequest, options fvcommon.InsertOptions) (*fvcommon.InsertResponse, *fverrors.SkyflowError) {
-	fvlogger.Info("Insert triggered for vault: " + v.config.VaultId + ", table: " + request.Table)
-	fvlogger.Debug("Insert request: ", request)
-	if request.Table == "" {
-		return nil, fverrors.NewSkyflowError(fverrors.INVALID_INPUT_CODE, "table must not be empty")
-	}
-	if len(request.Values) == 0 {
-		return nil, fverrors.NewSkyflowError(fverrors.INVALID_INPUT_CODE, "values must not be empty")
-	}
-	// TODO: implement actual HTTP call to Skyflow vault API
-	return &fvcommon.InsertResponse{}, nil
+// Update updates existing records by Skyflow ID.
+func (v *VaultService) Update(ctx context.Context, request fvcommon.UpdateRequest, options fvcommon.UpdateOptions) (*fvcommon.UpdateResponse, *fverrors.SkyflowError) {
+	return v.controller.Update(ctx, request, options)
 }
 
-// Detokenize detokenizes the given tokens.
-func (v *VaultService) Detokenize(request fvcommon.DetokenizeRequest, options fvcommon.DetokenizeOptions) (*fvcommon.DetokenizeResponse, *fverrors.SkyflowError) {
-	fvlogger.Info("Detokenize triggered for vault: " + v.config.VaultId)
-	if len(request.DetokenizeData) == 0 {
-		return nil, fverrors.NewSkyflowError(fverrors.INVALID_INPUT_CODE, "detokenize data must not be empty")
-	}
-	// TODO: implement actual HTTP call
-	return &fvcommon.DetokenizeResponse{}, nil
+// Get retrieves records by Skyflow IDs or unique values.
+func (v *VaultService) Get(ctx context.Context, request fvcommon.GetRequest, options fvcommon.GetOptions) (*fvcommon.GetResponse, *fverrors.SkyflowError) {
+	return v.controller.Get(ctx, request, options)
 }
 
-// Get retrieves records from the vault.
-func (v *VaultService) Get(request fvcommon.GetRequest, options fvcommon.GetOptions) (*fvcommon.GetResponse, *fverrors.SkyflowError) {
-	fvlogger.Info("Get triggered for vault: " + v.config.VaultId + ", table: " + request.Table)
-	if request.Table == "" {
-		return nil, fverrors.NewSkyflowError(fverrors.INVALID_INPUT_CODE, "table must not be empty")
-	}
-	// TODO: implement actual HTTP call
-	return &fvcommon.GetResponse{}, nil
+// Delete deletes records by Skyflow IDs or unique values.
+func (v *VaultService) Delete(ctx context.Context, request fvcommon.DeleteRequest, options fvcommon.DeleteOptions) (*fvcommon.DeleteResponse, *fverrors.SkyflowError) {
+	return v.controller.Delete(ctx, request, options)
 }
 
-// Delete deletes records from the vault.
-func (v *VaultService) Delete(request fvcommon.DeleteRequest, options fvcommon.DeleteOptions) (*fvcommon.DeleteResponse, *fverrors.SkyflowError) {
-	fvlogger.Info("Delete triggered for vault: " + v.config.VaultId + ", table: " + request.Table)
-	if request.Table == "" {
-		return nil, fverrors.NewSkyflowError(fverrors.INVALID_INPUT_CODE, "table must not be empty")
-	}
-	// TODO: implement actual HTTP call
-	return &fvcommon.DeleteResponse{}, nil
+// Detokenize returns the values behind tokens.
+func (v *VaultService) Detokenize(ctx context.Context, request fvcommon.DetokenizeRequest, options fvcommon.DetokenizeOptions) (*fvcommon.DetokenizeResponse, *fverrors.SkyflowError) {
+	return v.controller.Detokenize(ctx, request, options)
 }
 
-// Update updates records in the vault.
-func (v *VaultService) Update(request fvcommon.UpdateRequest, options fvcommon.UpdateOptions) (*fvcommon.UpdateResponse, *fverrors.SkyflowError) {
-	fvlogger.Info("Update triggered for vault: " + v.config.VaultId + ", table: " + request.Table)
-	if request.Table == "" {
-		return nil, fverrors.NewSkyflowError(fverrors.INVALID_INPUT_CODE, "table must not be empty")
-	}
-	// TODO: implement actual HTTP call
-	return &fvcommon.UpdateResponse{}, nil
+// GetTokens returns existing tokens for values in deterministic token groups.
+func (v *VaultService) GetTokens(ctx context.Context, request fvcommon.GetTokensRequest, options fvcommon.GetTokensOptions) (*fvcommon.GetTokensResponse, *fverrors.SkyflowError) {
+	return v.controller.GetTokens(ctx, request, options)
 }
 
-// Query executes a query against the vault.
-func (v *VaultService) Query(request fvcommon.QueryRequest, options fvcommon.QueryOptions) (*fvcommon.QueryResponse, *fverrors.SkyflowError) {
-	fvlogger.Info("Query triggered for vault: " + v.config.VaultId)
-	if request.Query == "" {
-		return nil, fverrors.NewSkyflowError(fverrors.INVALID_INPUT_CODE, "query must not be empty")
-	}
-	// TODO: implement actual HTTP call
-	return &fvcommon.QueryResponse{}, nil
+// Query runs a SELECT query against the vault.
+func (v *VaultService) Query(ctx context.Context, request fvcommon.QueryRequest, options fvcommon.QueryOptions) (*fvcommon.QueryResponse, *fverrors.SkyflowError) {
+	return v.controller.Query(ctx, request, options)
 }
 
-// Tokenize tokenizes values using the vault.
-func (v *VaultService) Tokenize(requests []fvcommon.TokenizeRequest, options fvcommon.TokenizeOptions) (*fvcommon.TokenizeResponse, *fverrors.SkyflowError) {
-	fvlogger.Info("Tokenize triggered for vault: " + v.config.VaultId)
-	if len(requests) == 0 {
-		return nil, fverrors.NewSkyflowError(fverrors.INVALID_INPUT_CODE, "tokenize requests must not be empty")
-	}
-	// TODO: implement actual HTTP call
-	return &fvcommon.TokenizeResponse{}, nil
+// UploadFiles uploads files into file columns.
+func (v *VaultService) UploadFiles(ctx context.Context, request fvcommon.UploadFilesRequest, options fvcommon.UploadFilesOptions) (*fvcommon.UploadFilesResponse, *fverrors.SkyflowError) {
+	return v.controller.UploadFiles(ctx, request, options)
+}
+
+// DeleteFiles deletes files from file columns of existing records.
+func (v *VaultService) DeleteFiles(ctx context.Context, request fvcommon.DeleteFilesRequest, options fvcommon.DeleteFilesOptions) (*fvcommon.DeleteFilesResponse, *fverrors.SkyflowError) {
+	return v.controller.DeleteFiles(ctx, request, options)
 }
