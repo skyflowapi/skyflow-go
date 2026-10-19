@@ -310,7 +310,9 @@ func (s *Skyflow) UpdateVaultConfig(updatedConfig vaultutils.VaultConfig) *error
 		if updatedConfig.ClusterId != "" {
 			vaultSvc.controller.Config.ClusterId = updatedConfig.ClusterId
 		}
-		vaultSvc.controller.Config.Env = updatedConfig.Env
+		if updatedConfig.Env.IsSet() {
+			vaultSvc.controller.Config.Env = updatedConfig.Env
+		}
 	}
 	// Update the credentials in the detect controller if provided
 	if detectExists && detectSvc.controller != nil {
@@ -322,7 +324,9 @@ func (s *Skyflow) UpdateVaultConfig(updatedConfig vaultutils.VaultConfig) *error
 		if updatedConfig.ClusterId != "" {
 			detectSvc.controller.Config.ClusterId = updatedConfig.ClusterId
 		}
-		detectSvc.controller.Config.Env = updatedConfig.Env
+		if updatedConfig.Env.IsSet() {
+			detectSvc.controller.Config.Env = updatedConfig.Env
+		}
 	}
 
 	// Update the config in the vaultapi service
