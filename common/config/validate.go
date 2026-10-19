@@ -55,6 +55,15 @@ func (v Validator) ValidateVaultConfig(vaultConfig VaultConfig) *skyflowError.Sk
 	} else if !isValidHTTPURL(baseVaultUrl) {
 		return v.invalid(logVaultUrlIsInvalid, errInvalidVaultUrl)
 	}
+	return v.ValidateHttpConfig(vaultConfig.HttpConfig())
+}
+
+// ValidateHttpConfig checks that timeout, retry count and retry delays are not negative.
+func (v Validator) ValidateHttpConfig(httpConfig HttpConfig) *skyflowError.SkyflowError {
+	if httpConfig.Timeout < 0 || httpConfig.InitialRetryDelay < 0 || httpConfig.MaxRetryDelay < 0 ||
+		(httpConfig.MaxRetries != nil && *httpConfig.MaxRetries < 0) {
+		return v.invalid(logNegativeHttpConfig, errNegativeHttpConfig)
+	}
 	return nil
 }
 
