@@ -26,7 +26,7 @@ The Skyflow Go SDK is designed to help with integrating Skyflow into a go backen
   - [Insert data into the vault, get tokens back](#insert-data-into-the-vault-get-tokens-back)
 - [Upgrade from v1 to v2](#upgrade-from-v1-to-v2)
 - [Vault](#vault)
-  - [Insert data into the vault](#insert-data-into-the-vault-1)
+  - [Insert data into the vault](#insert-data-into-the-vault)
     - [Insert example with ContinueOnError option](#insert-example-with-continueonerror-option)
     - [Upsert request](#upsert-request)
   - [Detokenize](#detokenize)
@@ -90,7 +90,7 @@ The Skyflow Go SDK is designed to help with integrating Skyflow into a go backen
 
 ## Install
 ### Requirements
-- go 1.22.0 and above
+- go 1.25.0 and above
 
 ### Configuration
 
@@ -129,44 +129,35 @@ skyflowCredentials := common.Credentials{ApiKey: "<YOUR_API_KEY>"} // Replace <A
 skyflowCredentials := common.Credentials{Token: "<BEARER_TOKEN>"}
 ```
 
-For authenticating via generated bearer tokens including support for scoped tokens, context-aware access tokens, and more, refer to the [Authenticate with bearer tokens](#authenticate-with-bearer-tokens) section.
+Generated bearer tokens support scoped tokens, context-aware access tokens, and more. See [Generate bearer tokens for authentication & authorization](#generate-bearer-tokens-for-authentication--authorization).
 
 ### Initialize the client
 To get started, you must first initialize the skyflow client. While initializing the skyflow client, you can specify different types of credentials.
 
 ```go
-import (
-	"context"
-	"fmt"
-	"github.com/skyflowapi/skyflow-go/v2/client"
-	"github.com/skyflowapi/skyflow-go/v2/utils/common"
-	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
-)
+creds := common.Credentials{
+	Path: "<YOUR_CREDENTIALS_FILE_PATH_1>", // Replace with the path to the credentials file
+}
+vaultConfig1 := common.VaultConfig{
+	VaultId:     "<VAULT_ID1>",   // Replace with the Vault ID of the first vault
+	ClusterId:   "<CLUSTER_ID1>", // Replace with the Cluster ID of the first vault
+	Env:         common.DEV,      // Set the environment: SANDBOX, DEV, STAGE, or PROD
+	Credentials: creds,
+}
+var arr []common.VaultConfig
+arr = append(arr, vaultConfig1)
 
-func main() {
-        creds := common.Credentials{
-              Path: "<YOUR_CREDENTIALS_FILE_PATH_1>"
-          }    // Replace with the path to the credentials file
-        vaultConfig1 := common.VaultConfig{
-            VaultId: "<VAULT_ID1>", 
-            ClusterId: "<CLUSTER_ID1>", 
-            Env: common.DEV, 
-            Credentials: creds
-            } // Replace with the Cluster and Vault ID of the first vault, Set the environment (e.g., DEV, STAGE, PROD)
-        var arr []common.VaultConfig
-        arr = append(arr, vaultConfig1)
-       // Create a Skyflow client and add vault configurations
-        skyflowClient, err := client.NewSkyflow(
-          client.WithVaults(arr...), // Add the first vault configuration
-          client.WithCredentials(common.Credentials{
-            Token: "<BEARER_TOKEN>"
-          }), // Add the first vault configuration
-          client.WithLogLevel(logger.DEBUG), // Enable debugging for detailed logs
-	)
-}	
+// Create a Skyflow client and add vault configurations
+skyflowClient, err := client.NewSkyflow(
+	client.WithVaults(arr...),         // Add the first vault configuration
+	client.WithLogLevel(logger.DEBUG), // Enable debugging for detailed logs
+)
+if err != nil {
+	fmt.Println("Error creating Skyflow client:", err)
+}
 ```
 
-See [docs/advanced_initialization.md](./docs/advanced_initialization.md) for advanced initialization examples including multiple vaults and different credential types.
+See [docs/advanced_initialization.md](./docs/advanced_initialization.md) for advanced initialization examples including multiple vaults and different credential types. The remaining examples in this README reuse the `skyflowClient` you create here; the next section continues this snippet into one complete, runnable program.
 
 ### Insert data into the vault, get tokens back
 To insert data into your vault, use the `Insert` method.  The `InsertRequest` struct creates an insert request, which includes the values to be inserted as a list of records. Below is a simple example to get started. For advanced options, check out [Insert data into the vault](#insert-data-into-the-vault) section.
@@ -191,9 +182,29 @@ import (
 )
 
 func main() {
-  // Initialize Skyflow client
+  // Step 1: Initialize the Skyflow client (see Initialize the client above).
+  creds := common.Credentials{
+    Path: "<YOUR_CREDENTIALS_FILE_PATH_1>", // Replace with the path to the credentials file
+  }
+  vaultConfig1 := common.VaultConfig{
+    VaultId:     "<VAULT_ID1>",   // Replace with the Vault ID of the first vault
+    ClusterId:   "<CLUSTER_ID1>", // Replace with the Cluster ID of the first vault
+    Env:         common.DEV,      // Set the environment: SANDBOX, DEV, STAGE, or PROD
+    Credentials: creds,
+  }
+  var arr []common.VaultConfig
+  arr = append(arr, vaultConfig1)
 
-  // Step 1: Initialize data to be inserted into the Skyflow vault
+  skyflowClient, err := client.NewSkyflow(
+    client.WithVaults(arr...),
+    client.WithLogLevel(logger.DEBUG), // Enable debugging for detailed logs
+  )
+  if err != nil {
+    fmt.Println("Error creating Skyflow client:", err)
+    return
+  }
+
+  // Step 2: Prepare the data to be inserted into the Skyflow vault.
   ctx := context.TODO() // Create a context for the operation.
 
   // Create a slice to hold the data records for insertion.
@@ -201,30 +212,32 @@ func main() {
 
   // Add a record with sensitive fields (e.g., card number and cardholder name).
   values = append(values, map[string]interface{}{
-    "card_number":     "4111111111111111",// Replace with actual card number (sensitive data)
-    "cardholder_name": "john doe",         // Replace with the actual cardholder name  (sensitive data)
+    "card_number":     "4111111111111111", // Replace with actual card number (sensitive data)
+    "cardholder_name": "john doe",         // Replace with the actual cardholder name (sensitive data)
   })
   insertRequest := common.InsertRequest{
     Table:  "table1", // Specify the table in the vault where the data will be inserted
     Values: values,   // Attach the data (records) to be inserted
   }
   insertOptions := common.InsertOptions{
-    ReturnTokens:    true,  // Request tokenized values to be returned in the response.
+    ReturnTokens: true, // Request tokenized values to be returned in the response.
   }
-  // Step 2: Obtain a Vault service instance for performing operations.
+
+  // Step 3: Obtain a Vault service instance for performing operations.
   service, serviceError := skyflowClient.Vault("9f27764a10f7946fe56b3258e117") // Replace the vault ID "9f27764a10f7946fe56b3258e117" with your actual Skyflow vault ID
   if serviceError != nil {
     // Handle errors while getting the vault service instance.
     fmt.Println("Error obtaining Vault service:", serviceError)
+    return
   }
 
-  // Step 3: Perform the insert operation using the Skyflow client
-  insert, err4 := service.Insert(ctx, insertRequest, insertOptions)
-  if err4 != nil {
-    // Step 4: Handle any errors that occur during the insert operation.
-    fmt.Println("Error occurred: ", *err4)
+  // Step 4: Perform the insert operation using the Skyflow client.
+  insert, insertErr := service.Insert(ctx, insertRequest, insertOptions)
+  if insertErr != nil {
+    // Step 5: Handle any errors that occur during the insert operation.
+    fmt.Println("Error occurred: ", *insertErr)
   } else {
-    // Step 5: Print the response from the insert operation.
+    // Step 6: Print the response from the insert operation.
     fmt.Println("Insert Response: ", insert)
   }
 }
@@ -294,7 +307,10 @@ func main() {
     Table:  "<TABLE_NAME>", // Replace with the actual table name in your Skyflow vault.
     Values: values,         // Attach the data to be inserted.
   }
-  
+  insertOptions := common.InsertOptions{
+    ReturnTokens: true, // Request tokenized values to be returned in the response.
+  }
+
   // Step 3: Use the Skyflow client to perform the insert operation
   //Obtain a Vault service instance for performing operations. 
   service, err := skyflowClient.Vault("<VAULT_ID>") // Replace <VAULT_ID> with your actual vault ID
@@ -303,10 +319,10 @@ func main() {
     fmt.Println("Error obtaining Vault service:", err)
   }
   // Step 4: Perform the insert operation using the Vault service.
-  insert, errs := service.Insert(ctx, insertRequest)
+  insert, errs := service.Insert(ctx, insertRequest, insertOptions)
   if errs != nil {
     // Handle any exceptions that occur during the insert operation
-    fmt.Println("Error occurred while inserting data: ", *err4)
+    fmt.Println("Error occurred while inserting data: ", *errs)
   } else {
     // Print the response from the insert operation
     fmt.Println("Insert Response: ", insert)
@@ -775,7 +791,7 @@ func main() {
   } else {
 
     // Step 4: Call the Skyflow vault to tokenize the sensitive data
-    res, tokenizeErr := service.Tokenize(ctx, reqArray)
+    res, tokenizeErr := service.Tokenize(ctx, reqArray, common.TokenizeOptions{})
     if tokenizeErr != nil {
       // Step 5: Handle error during the tokenization process
       fmt.Println("Error occurred: ", tokenizeErr)
@@ -827,7 +843,7 @@ func main() {
     fmt.Println(serviceErr)
     } else {
         // Step 4 : Call the Skyflow vault to tokenize the sensitive data
-        res, tokenizeErr := service.Tokenize(ctx, reqArray)
+        res, tokenizeErr := service.Tokenize(ctx, reqArray, common.TokenizeOptions{})
         if tokenizeErr != nil {
         // Handle error during the tokenization process
             fmt.Println("Error occurred ", tokenizeErr)
@@ -1405,7 +1421,7 @@ func main() {
   }
   
   // Step 3: Send the delete request to the Skyflow vault
-  deleteResponse, errDelete := service.Delete(ctx, deleteRequest) // Call to delete records from the vault
+  deleteResponse, errDelete := service.Delete(ctx, deleteRequest, common.DeleteOptions{}) // Call to delete records from the vault
   if errDelete != nil {
     // Handle errors during the delete operation
     fmt.Println("Error occurred", *errDelete) // Print the error message for debugging
@@ -1463,7 +1479,7 @@ func main() {
   }
 
   // Step 3: Send the delete request to the Skyflow vault
-  deleteResponse, errDelete := service.Delete(context.TODO(), deleteRequest)
+  deleteResponse, errDelete := service.Delete(context.TODO(), deleteRequest, common.DeleteOptions{})
   if errDelete != nil {
     // Handle errors that occur during the delete operation
     fmt.Println("Error occurred", *errDelete) // Print the error for debugging purposes
@@ -1524,7 +1540,7 @@ func main() {
   ctx := context.TODO() // Using context to manage the API request lifecycle
 
   // Step 4: Execute the query request on the specified Skyflow vault
-  res, queryErr := service.Query(ctx, queryRequest) // Execute the query
+  res, queryErr := service.Query(ctx, queryRequest, common.QueryOptions{}) // Execute the query
 
   // Step 5: Handle the response or any errors from the query execution
   if queryErr != nil {
@@ -1580,7 +1596,7 @@ func main() {
 
   // Step 3: Execute the query request on the specified Skyflow vault and handle the response
   ctx := context.TODO() // Context for managing the lifecycle of the query request
-  res, queryErr := service.Query(ctx, queryRequest) // Execute the query request
+  res, queryErr := service.Query(ctx, queryRequest, common.QueryOptions{}) // Execute the query request
 
   if queryErr != nil {
     // Handle any errors that occur during query execution
@@ -1616,6 +1632,7 @@ package main
 import (
   "context"
   "fmt"
+  "os"
   "github.com/skyflowapi/skyflow-go/v2/client"
   "github.com/skyflowapi/skyflow-go/v2/utils/common"
 )
@@ -1642,16 +1659,16 @@ func main() {
     } else {
       // Step 3: Create file request
       request := common.FileUploadRequest{
-      	Table: "<TABLE_NAME>", // Replace with the actual table name into which file is to upload 
+      	Table: "<TABLE_NAME>", // Replace with the actual table name into which file is to upload
       	FileObject: *fileObj,   // Optional
-          FilePath: "<FILE_PATH>" // Optional 
-          Base64: "<BASE_64>" // Optional
+          FilePath: "<FILE_PATH>", // Optional
+          Base64: "<BASE_64>", // Optional
       	ColumnName: "<COLUMN_NAME>", // Replace column name with your file column
       	SkyflowId:  "<SKYFLOW_ID>", // Replace skyflow id for file upload
-          FileName: "<FILE_NAME>" // Optional, File name is required in case of base64
+          FileName: "<FILE_NAME>", // Optional, File name is required in case of base64
       }
         // Step 4: Send the file upload request to the Skyflow vault
-      fileResponse, errFile := service.UploadFile(ctx, request)
+      fileResponse, errFile := service.UploadFile(ctx, request, common.FileUploadOptions{})
         // Step 5: Prints the response to confirm the success or failure of the update operation.
       if errFile != nil {
           // Handle errors that occur during the upload operation
@@ -1677,6 +1694,7 @@ package main
 import (
   "context"
   "fmt"
+  "os"
   "github.com/skyflowapi/skyflow-go/v2/client"
   "github.com/skyflowapi/skyflow-go/v2/utils/common"
 )
@@ -1708,16 +1726,16 @@ func main() {
 			} else {
       // Step 3: Constructs an file upload request 
       request := common.FileUploadRequest{
-      	Table: "table1", // Replace with the actual table name into which file is to upload 
+      	Table: "table1", // Replace with the actual table name into which file is to upload
       	FileObject: *fileObj,   // Optional
-        FilePath: filePath // Optional 
-        Base64: "<BASE_64>" // Optional
+        FilePath: filePath, // Optional
+        Base64: "<BASE_64>", // Optional
       	ColumnName: "file", // Replace column name with your file column
       	SkyflowId:  "5b699e2c-4301-4f9f-bcff-0a8fd3057413", // Replace skyflow id for file upload
-        FileName: "<FILE_NAME>" // Optional, File name is required in case of base64
+        FileName: "<FILE_NAME>", // Optional, File name is required in case of base64
       }
         // Step 4: Send the file upload request to the Skyflow vault
-      fileResponse, errFile := service.UploadFile(ctx, request)
+      fileResponse, errFile := service.UploadFile(ctx, request, common.FileUploadOptions{})
         // Step 5: Prints the response to confirm the success or failure of the file upload operation.
       if errFile != nil {
           // Handle errors that occur during the upload operation
@@ -1885,7 +1903,7 @@ func main() {
       },
 			}
       // Step 3: Call deidentifyText
-			deidentifyTextRes, deidentifyTextErr := service.DeidentifyText(ctx, request)
+			deidentifyTextRes, deidentifyTextErr := service.DeidentifyText(ctx, request, common.DeidentifyTextOptions{})
 			// Step 5: Handle the response and errors.
 			if deidentifyTextErr != nil {
       fmt.Println("ERROR: ", *deidentifyTextErr)
@@ -1961,7 +1979,7 @@ func main() {
       		common.Dob,
       	},
       },
-			})
+			}, common.DeidentifyTextOptions{})
 			// Step 5: Handle the response and errors.
 			if deidentifyTextErr != nil {
       fmt.Println("ERROR: ", *deidentifyTextErr)
@@ -2052,7 +2070,7 @@ func main() {
       },
 			}
 			//  Call ReidentifyText
-			reidentifyTextResponse, reidentifyTextErr := service.ReidentifyText(ctx, request)
+			reidentifyTextResponse, reidentifyTextErr := service.ReidentifyText(ctx, request, common.ReidentifyTextOptions{})
 
 			// Handle the response and errors.
 			if reidentifyTextErr != nil {
@@ -2108,7 +2126,7 @@ func main() {
       },
 			}
       //  Call ReidentifyText
-      reidentifyTextResponse, reidentifyTextErr := service.ReidentifyText(ctx, request)
+      reidentifyTextResponse, reidentifyTextErr := service.ReidentifyText(ctx, request, common.ReidentifyTextOptions{})
 
       // Handle the response and errors.
       if reidentifyTextErr != nil {
@@ -2201,7 +2219,7 @@ func main() {
       // OutputTranscription: common.PLAINTEXT_TRANSCRIPTION,
       }
       //Step 2: Construct the file input by providing either file or filePath but not both
-      deidentifyFileRes, deidentifyFileErr := service.DeidentifyFile(ctx, request)
+      deidentifyFileRes, deidentifyFileErr := service.DeidentifyFile(ctx, request, common.DeidentifyFileOptions{})
 
       // Step 5: Handle the response and errors.
       if deidentifyFileErr != nil {
@@ -2276,7 +2294,7 @@ func main() {
       },
       }
       //Step 2: Construct the file input by providing either file or filePath but not both
-      deidentifyFileRes, deidentifyFileErr := service.DeidentifyFile(ctx, request)
+      deidentifyFileRes, deidentifyFileErr := service.DeidentifyFile(ctx, request, common.DeidentifyFileOptions{})
 
       // Step 5: Handle the response and errors.
       if deidentifyFileErr != nil {
@@ -2388,7 +2406,7 @@ func main() {
       request := common.GetDetectRunRequest{
 				RunId: "<RUN_ID_FROM_DEIDENTIFY_FILE_RESPONSE>",
 			}
-      getDetectRunRes, deidentifyFileErr := service.GetDetectRun(ctx, request)
+      getDetectRunRes, deidentifyFileErr := service.GetDetectRun(ctx, request, common.GetDetectRunOptions{})
 
 			// Step 5: Handle the response and errors.
 			if deidentifyFileErr != nil {
@@ -2424,7 +2442,7 @@ func main() {
 				RunId: "89699e2c-4301-4f9f-bcff-0a8fd30574898", // Replace with the runId you received earlier
         }
       // Step 2: Call GetDetectRun
-      getDetectRunRes, deidentifyFileErr := service.GetDetectRun(ctx, request)
+      getDetectRunRes, deidentifyFileErr := service.GetDetectRun(ctx, request, common.GetDetectRunOptions{})
 
 			// Step 5: Handle the response and errors
       if deidentifyFileErr != nil {
@@ -3260,13 +3278,16 @@ All SDK methods return `*skyflowError.SkyflowError` as the error type. Check for
 | `GetDetails()` | `[]interface{}` | Structured error details array from the API response. |
 | `GetResponseBody()` | `map[string]interface{}` | Raw response body from the API. |
 
+The following continues the [Insert data into the vault](#insert-data-into-the-vault) example, reusing its `service`, `ctx`, and `insertRequest`:
+
 ```go
 import (
     "fmt"
+    "github.com/skyflowapi/skyflow-go/v2/utils/common"
     skyflowError "github.com/skyflowapi/skyflow-go/v2/utils/error"
 )
 
-res, err := service.Insert(ctx, insertRequest)
+res, err := service.Insert(ctx, insertRequest, common.InsertOptions{})
 if err != nil {
     fmt.Println("HTTP status:", err.GetHttpStatusCode())
     fmt.Println("message:", err.GetMessage())
