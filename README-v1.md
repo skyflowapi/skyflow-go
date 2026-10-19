@@ -949,7 +949,7 @@ The InvokeConnection method lets you bypass handling sensitive data by integrati
   requestBody := make(map[string]interface{})
   requestBody["<request_body_key>"] = "<request_body_value>"
 
-  connectionConfig := common.ConnectionConfig{ConnectionURL : "<your_connection_url>",MethodName : "<Method_Name>",PathParams : pathParams,QueryParams : queryParams, RequestBody : requestBody, RequestHeaders : requestHeader}
+  connectionConfig := common.ConnectionConfig{ConnectionURL : "<your_connection_url>",MethodName : common.POST,PathParams : pathParams,QueryParams : queryParams, RequestBody : requestBody, RequestHeader : requestHeader}
 
   skyflowClient.InvokeConnection(connectionConfig)  
 
