@@ -73,7 +73,7 @@ All mutating methods return `*SkyflowError` (nil on success) unless the table no
 |--------|---------|-------------|
 | `AddVaultConfig(VaultConfig)` | `*SkyflowError` | Add a vault after initialization. |
 | `GetVaultConfig(vaultId string)` | `(*VaultConfig, *SkyflowError)` | Retrieve a vault configuration by ID. |
-| `UpdateVaultConfig(VaultConfig)` | `*SkyflowError` | Replace an existing vault configuration (matched by `VaultId`). |
+| `UpdateVaultConfig(VaultConfig)` | `*SkyflowError` | Update an existing vault configuration (matched by `VaultId`). Only the `ClusterId`, `Env`, and `Credentials` you set change; fields you leave empty keep their current values. |
 | `RemoveVaultConfig(vaultId string)` | `*SkyflowError` | Remove a vault configuration. |
 | `AddConnectionConfig(ConnectionConfig)` | `*SkyflowError` | Add a connection after initialization. |
 | `GetConnectionConfig(connId string)` | `(*ConnectionConfig, *SkyflowError)` | Retrieve a connection configuration by ID. |
@@ -676,6 +676,8 @@ Used inside [`Transformations`](#transformations).
 | `STAGE` | Staging environment. |
 | `SANDBOX` | Sandbox environment. |
 | `DEV` | Development environment. |
+
+An unset `Env` (the zero value) resolves to `PROD`. Use the named constants rather than numeric values: `PROD` is `1`, not `0`.
 
 ### `RedactionType`
 

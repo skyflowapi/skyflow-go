@@ -1,6 +1,6 @@
 # FlowVault Go samples
 
-Runnable examples for the Skyflow FlowVault Go SDK (`github.com/skyflowapi/skyflow-go/flowvault`), one file per operation.
+Runnable examples for the Skyflow FlowVault Go SDK (`github.com/skyflowapi/skyflow-go/flowvault`), one file per operation. For the full guide, including request rules and error handling, see the [SDK README](../../flowvault/README.md).
 
 ## Prerequisites
 
