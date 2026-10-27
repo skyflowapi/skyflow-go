@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 
+	cdetect "github.com/skyflowapi/skyflow-go/common/detect"
 	"github.com/skyflowapi/skyflow-go/flowvault/internal/vault/controller"
 	fvcommon "github.com/skyflowapi/skyflow-go/flowvault/utils/common"
 	fverrors "github.com/skyflowapi/skyflow-go/flowvault/utils/error"
@@ -15,10 +16,12 @@ import (
 // earlier sees UpdateVaultConfig and credential changes on its next call.
 type VaultService struct {
 	controller *controller.VaultController
+	// detect shares the vault controller's settings and bearer token.
+	detect *DetectService
 }
 
 func newVaultService(controller *controller.VaultController) *VaultService {
-	return &VaultService{controller: controller}
+	return &VaultService{controller: controller, detect: newDetectService(cdetect.NewController(controller.Base))}
 }
 
 // Insert inserts records into the vault, optionally upserting on unique columns.

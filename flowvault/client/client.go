@@ -120,6 +120,16 @@ func (s *Skyflow) Vault(vaultId string) (*VaultService, *fverrors.SkyflowError) 
 	return svc, nil
 }
 
+// Detect returns the Detect V2 service of the vault registered under vaultId. It uses
+// the same vault config, credentials and bearer token as Vault(vaultId).
+func (s *Skyflow) Detect(vaultId string) (*DetectService, *fverrors.SkyflowError) {
+	svc, err := s.Vault(vaultId)
+	if err != nil {
+		return nil, err
+	}
+	return svc.detect, nil
+}
+
 // ---------------------------------------------------------------------------
 // Vault config management
 // ---------------------------------------------------------------------------
