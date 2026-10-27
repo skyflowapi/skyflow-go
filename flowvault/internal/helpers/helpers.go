@@ -7,6 +7,7 @@ import (
 
 	"github.com/skyflowapi/skyflow-go/common/auth"
 	"github.com/skyflowapi/skyflow-go/common/config"
+	"github.com/skyflowapi/skyflow-go/common/vaultclient"
 	fvconsts "github.com/skyflowapi/skyflow-go/flowvault/internal/constants"
 	fvcommon "github.com/skyflowapi/skyflow-go/flowvault/utils/common"
 )
@@ -50,6 +51,19 @@ var authSvc = auth.New(auth.Config{
 
 // Auth returns the shared service-account authenticator configured for flowvault.
 func Auth() *auth.Service { return authSvc }
+
+// profile describes flowvault to the shared per-vault request plumbing.
+var profile = vaultclient.Profile{
+	SDKPrefix:   fvconsts.SDK_PREFIX,
+	LogPrefix:   fvconsts.SDK_LOG_PREFIX,
+	Auth:        authSvc,
+	ClusterURL:  GetURLWithEnv,
+	SDKMetadata: CreateSDKMetadata,
+	Defaults:    httpDefaults,
+}
+
+// Profile returns flowvault's settings for the shared common/vaultclient plumbing.
+func Profile() vaultclient.Profile { return profile }
 
 // configValidator is the shared vault-config/credential validator configured for flowvault.
 var configValidator = config.NewValidator(fvconsts.SDK_PREFIX, fvconsts.SDK_LOG_PREFIX)

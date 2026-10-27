@@ -45,10 +45,14 @@ The Skyflow Go SDK is designed to help with integrating Skyflow into a go backen
   - [Client-level custom headers](#client-level-custom-headers)
   - [Request-level custom headers](#request-level-custom-headers)
 - [Detect](#detect)
-  - [Deidentify Text](#deidentify-text)
-  - [Reidentify Text](#reidentify-text)
+  - [Deidentify String](#deidentify-string)
   - [Deidentify File](#deidentify-file)
   - [Get Run](#get-run)
+  - [Reidentify String](#reidentify-string)
+  - [Reidentify File](#reidentify-file)
+  - [Check Guardrails](#check-guardrails)
+  - [Detect request headers](#detect-request-headers)
+  - [Migrate from Detect V1](#migrate-from-detect-v1)
 - [Connections](#connections)
   - [Invoke a Connection](#invoke-connection)
 - [Client management](#client-management)
@@ -1775,7 +1779,7 @@ skyflowClient, err := client.NewSkyflow(
 
 Pass `CustomHeaders` in the options struct for any individual operation. Request-level headers take precedence over client-level headers for that call.
 
-The following options structs support `CustomHeaders`:
+The following vault options structs support `CustomHeaders`. Detect operations set request-level headers with an `Interceptor` instead: see [Detect request headers](#detect-request-headers).
 
 **Vault operations**
 | Operation | Options struct |
@@ -1788,14 +1792,6 @@ The following options structs support `CustomHeaders`:
 | `Query` | `QueryOptions` |
 | `Tokenize` | `TokenizeOptions` |
 | `UploadFile` | `FileUploadOptions` |
-
-**Detect operations**
-| Operation | Options struct |
-|---|---|
-| `DeidentifyText` | `DeidentifyTextOptions` |
-| `ReidentifyText` | `ReidentifyTextOptions` |
-| `DeidentifyFile` | `DeidentifyFileOptions` |
-| `GetDetectRun` | `GetDetectRunOptions` |
 
 Example — passing a custom request ID on a single insert call:
 
@@ -1829,635 +1825,270 @@ if err != nil {
 ```
 
 ## Detect
-Skyflow Detect enables you to deidentify and reidentify sensitive data in text and files, supporting advanced privacy-preserving workflows. The Detect API supports the following operations:
+Skyflow Detect de-identifies and re-identifies sensitive data in text and files. Get a vault's detect service from the client; every method takes a context, a request and an options struct, and returns a response and a `*SkyflowError`.
 
-### Deidentify Text
-To deidentify text, use the `DeidentifyText` method. The `DeidentifyTextRequest` struct creates a deidentify text request, which includes the text to be deidentified. Additionally, you can provide optional parameters using the `DeidentifyTextRequest` struct.
-```go 
-package main
-
-import (
-	"context"
-	"fmt"
-	"github.com/skyflowapi/skyflow-go/v2/client"
-	"github.com/skyflowapi/skyflow-go/v2/utils/common"
-	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
-)
-func main() {
-		// Configure the vault with detect service.
-		service, serviceErr := skyflowInstance.Detect("<VAULT_ID>") // Replace with your vault ID from the vault config
-		if serviceErr != nil {
-			fmt.Println(*serviceErr)
-		} else {
-			ctx := context.TODO()
-			// Step 1: Prepare the request to be deidentified the text
-      request := common.DeidentifyTextRequest{
-      Text: "<TEXT_TO_BE_DEIDENTIFIED>",
-      Entities: []common.DetectEntities{ // Entities to deidentify
-      	common.Ssn,
-      	common.CreditCard,
-      },
-      AllowRegexList:    []string{"<ALLOW_REGEX_PATTERN1>", "<ALLOW_REGEX_PATTERN2>"}, // Allowlist regex patterns
-      RestrictRegexList: []string{"<RESTRICT_REGEX_PATTERN1>", "<RESTRICT_REGEX_PATTERN2>"}, // Restrict regex patterns
-      Transformations: common.Transformations{ // Specify custom transformations for entities
-      	ShiftDates: common.DateTransformation{
-      		MaxDays: 15, // Maximum days to shift
-      		MinDays: 5,  //  Minimum days to shift
-      		Entities: []common.TransformationsShiftDatesEntityTypesItem{ // Entities to apply the shift
-      			common.TransformationsShiftDatesEntityTypesItemDob,
-      		},
-      	},
-      },
-      TokenFormat: common.TokenFormat{  // Specify the token format for deidentified entities
-      	DefaultType: common.TokenTypeDefaultEntityOnly,
-      	VaultToken: []common.DetectEntities{ // Specify entities to use vault tokens
-      		common.CreditCard,
-      		common.Ssn,
-      		common.Name,
-      		common.CreditCardExpiration,
-      	},
-      	EntityUniqueCounter: []common.DetectEntities{
-      		common.Statistics,
-      	},
-      	EntityOnly: []common.DetectEntities{
-      		common.Dob,
-      	},
-      },
-			}
-      // Step 3: Call deidentifyText
-			deidentifyTextRes, deidentifyTextErr := service.DeidentifyText(ctx, request)
-			// Step 5: Handle the response and errors.
-			if deidentifyTextErr != nil {
-      fmt.Println("ERROR: ", *deidentifyTextErr)
-			} else {
-      fmt.Println("RESPONSE: ", deidentifyTextRes)
-			}
-		}
-}
-```
-
-> [!TIP]
-> See the full example in the samples directory: [deidentify_text.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v2/detectapi/deidentify_text.go)
 ```go
-package main
-
-import (
-	"context"
-	"fmt"
-	"github.com/skyflowapi/skyflow-go/v2/client"
-	"github.com/skyflowapi/skyflow-go/v2/utils/common"
-	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
-)
-
-/**
- * This example demonstrates how to use the Skyflow Go SDK to deidentify sensitive data in text
- * by masking or transforming detected values according to your configuration.
- * <p>
- * Steps include:
- * 1. Set up Skyflow vault credentials.
- * 2. Configure the skyflow client.
- * 3. Configure the vault with detect service.
- * 4. Deidentifying sensitive data in the text and returning the output.
- * 5. Handling the response and errors.
- */
-
-func main() {
-	  // Step 1: Set up Skyflow vault credentials
-    // Step 2: Configure the skyflow client.
-		// Step 3: Configure the vault with detect service.
-		service, serviceErr := skyflowInstance.Detect("<VAULT_ID>") // Replace with your vault ID from the vault config
-		if serviceErr != nil {
-			fmt.Println(*serviceErr)
-		} else {
-			ctx := context.TODO()
-			// Step 4: Deidentify sensitive data in the text and return the output
-			deidentifyTextRes, deidentifyTextErr := service.DeidentifyText(ctx, common.DeidentifyTextRequest{
-      Text: "My SSN is 123-45-6789 and my card is 4111 1111 1111 1111.", // Text to be deidentified
-      Entities: []common.DetectEntities{ // Specify which entities to deidentify
-      	common.Ssn,
-      	common.CreditCard,
-      },
-      Transformations: common.Transformations{ //Specify custom transformations for entities
-      	ShiftDates: common.DateTransformation{
-      		MaxDays: 15, // Maximum days to shift
-      		MinDays: 5,  //  Minimum days to shift
-      		Entities: []common.TransformationsShiftDatesEntityTypesItem{ // Apply shift to DOB entities
-      			common.TransformationsShiftDatesEntityTypesItemDob,
-      		},
-      	},
-      },
-      TokenFormat: common.TokenFormat{ // Specify the token format for deidentified entities
-      	DefaultType: common.TokenTypeDefaultEntityOnly,
-      	VaultToken: []common.DetectEntities{ // Specify entities to use vault tokens
-      		common.CreditCard,
-      		common.Ssn,
-      		common.Name,
-      		common.CreditCardExpiration,
-      	},
-      	EntityUniqueCounter: []common.DetectEntities{
-      		common.Statistics,
-      	},
-      	EntityOnly: []common.DetectEntities{
-      		common.Dob,
-      	},
-      },
-			})
-			// Step 5: Handle the response and errors.
-			if deidentifyTextErr != nil {
-      fmt.Println("ERROR: ", *deidentifyTextErr)
-
-			} else {
-      fmt.Println("RESPONSE: ", deidentifyTextRes)
-
-			}
-		}
+service, err := skyflowClient.Detect("<VAULT_ID>") // a vault from the client config
+if err != nil {
+	fmt.Println(err.GetMessage())
+	return
 }
 ```
 
-Sample Response:
+| Method | Request | Options | Response |
+|---|---|---|---|
+| `DeidentifyString` | `DeidentifyStringRequest` | `DeidentifyStringOptions` | `DeidentifyStringResponse` |
+| `DeidentifyFile` | `DeidentifyFileRequest` | `DeidentifyFileOptions` | `DeidentifyFileResponse` |
+| `GetRun` | `GetRunRequest` | `GetRunOptions` | `GetRunResponse` |
+| `ReidentifyString` | `ReidentifyStringRequest` | `ReidentifyStringOptions` | `ReidentifyStringResponse` |
+| `ReidentifyFile` | `ReidentifyFileRequest` | `ReidentifyFileOptions` | `ReidentifyFileResponse` |
+| `CheckGuardrails` | `CheckGuardrailsRequest` | `CheckGuardrailsOptions` | `CheckGuardrailsResponse` |
+
+All types are in `github.com/skyflowapi/skyflow-go/v2/utils/common`.
+
+> [!NOTE]
+> This is the Detect V2 API (`/v2/detect/...`). It replaces the V1 methods: see [Migrate from Detect V1](#migrate-from-detect-v1).
+
+### Deidentify String
+`DeidentifyString` replaces sensitive data in `Text` with tokens. Set exactly one of `ConfigurationId` (a stored configuration) or `Configuration` (an inline one).
+
+```go
+// With a stored configuration
+response, err := service.DeidentifyString(ctx, common.DeidentifyStringRequest{
+	Text:            "My name is John Doe, and my email is johndoe@acme.com.",
+	ConfigurationId: "<CONFIGURATION_ID>",
+}, common.DeidentifyStringOptions{})
+
+// With an inline configuration
+response, err = service.DeidentifyString(ctx, common.DeidentifyStringRequest{
+	Text: "My name is John Doe, and my email is johndoe@acme.com.",
+	Configuration: &common.DetectConfiguration{
+		Detect: &common.Detect{
+			Entities: []common.Entity{
+				{EntityType: common.EntityTypeName, DeidentificationType: common.DeidentificationTypeVaultToken, Destination: "<TABLE_NAME>.<COLUMN_NAME>"},
+				{
+					EntityType:           common.EntityTypeDOB,
+					DeidentificationType: common.DeidentificationTypeEntityUniqueCounter,
+					Transformation:       &common.Transformation{ShiftDates: &common.ShiftDates{MinDays: 10, MaxDays: 30}},
+				},
+				{EntityType: common.EntityTypeAll, DeidentificationType: common.DeidentificationTypeEntityUniqueCounter},
+			},
+			Restrict:       []string{"[0-9]{3}-[0-9]{2}-[0-9]{4}"},              // always treat as sensitive
+			Skip:           []string{"Skyflow"},                                 // never treat as sensitive
+			CustomTypes:    []common.CustomType{{Label: "EMPLOYEE_ID", Match: []string{"EMP-[0-9]{6}"}}},
+			ReturnEntities: common.ReturnEntitiesTypeExcludeSensitiveData,
+		},
+	},
+}, common.DeidentifyStringOptions{})
+if err != nil {
+	fmt.Println(err.GetHttpCode(), err.GetMessage(), err.GetRequestId())
+	return
+}
+fmt.Println(response.ProcessedText) // My name is [NAME_1], and my email is [EMAIL_ADDRESS_1].
+```
+
+Sample response:
 ```json
 {
-  "ProcessedText": "My SSN is [SSN_0ykQWPA] and my card is [CREDIT_CARD_N92QAVa].",
-  "Entities": [
+  "processedText": "My name is [NAME_1], and my email is [EMAIL_ADDRESS_1].",
+  "entities": [
     {
-      "Token": "SSN_0ykQWPA",
-      "Value": "123-45-6789",
-      "TextIndex": {
-        "Start": 10,
-        "End": 21
-      },
-      "ProcessedIndex": {
-        "Start": 10,
-        "End": 23
-      },
-      "Entity": "SSN",
-      "Scores": {
-        "SSN": 0.9383999705314636
-      }
-    },
-    {
-      "Token": "CREDIT_CARD_N92QAVa",
-      "Value": "4111 1111 1111 1111",
-      "TextIndex": {
-        "Start": 37,
-        "End": 56
-      },
-      "ProcessedIndex": {
-        "Start": 39,
-        "End": 60
-      },
-      "Entity": "CREDIT_CARD",
-      "Scores": {
-        "CREDIT_CARD": 0.9050999879837
-      }
+      "token": "NAME_1",
+      "value": "",
+      "location": { "startIndex": 11, "endIndex": 19, "startIndexProcessed": 11, "endIndexProcessed": 19 },
+      "entityType": "NAME",
+      "entityScores": { "NAME": 0.95 }
     }
   ],
-  "WordCount": 9,
-  "CharCount": 57
+  "metrics": { "size": 0.05, "wordCount": 11, "characterCount": 54 }
 }
 ```
 
-### Reidentify Text
-
-To reidentify text, use the `reidentifyText` method. The `ReidentifyTextRequest` struct creates a reidentify text request, which includes the redacted or deidentified text to be reidentified. Additionally, you can provide optional parameters using the `ReidentifyTextRequest` struct to control how specific entities are returned (as redacted, masked, or plain text).
-
-```go 
-package main
-
-import (
-	"context"
-	"fmt"
-	"github.com/skyflowapi/skyflow-go/v2/client"
-	"github.com/skyflowapi/skyflow-go/v2/utils/common"
-	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
-)
-func main() {
-		// Configure the vault with detect service.
-		service, serviceErr := skyflowInstance.Detect("<VAULT_ID>") // Replace with your vault ID from the vault config
-		if serviceErr != nil {
-			fmt.Println(*serviceErr)
-		} else {
-			ctx := context.TODO()
-      // Prepare the redacted text to be reidentified
-      request := common.ReidentifyTextRequest{
-      Text: "<DEIDENTIFY_TEXT_RESPONSE>", // The redacted text to reidentify
-      MaskedEntities: []common.DetectEntities{
-      	common.CreditCard, // Entities to mask
-      },
-      RedactedEntities: []common.DetectEntities{
-      	common.Name, // Entities to keep redacted
-      },
-      PlainTextEntities: []common.DetectEntities{
-      	common.Year, // Entities to return as plain text
-      },
-			}
-			//  Call ReidentifyText
-			reidentifyTextResponse, reidentifyTextErr := service.ReidentifyText(ctx, request)
-
-			// Handle the response and errors.
-			if reidentifyTextErr != nil {
-      fmt.Println("ERROR: ", *reidentifyTextErr)
-
-			} else {
-      fmt.Println("RESPONSE: ", reidentifyTextResponse)
-			}
-		}
-}
-```
+`Value` is set only when the configuration's `ReturnEntities` is `ReturnEntitiesTypeAll`.
 
 > [!TIP]
-> See the full example in the samples directory: [reidentify_text.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v2/detectapi/reidentify_text.go)
-```go
-package main
-/**
- * Skyflow Reidentify Text Example
- * 
- * This example demonstrates how to:
- * 1. Configure credentials
- * 2. Set up vault configuration
- * 3. Create a reidentify text request
- * 4. Use all available options for reidentification
- * 5. Handle response and errors
- */ 
-
-import (
-	"context"
-	"fmt"
-	"github.com/skyflowapi/skyflow-go/v2/client"
-	"github.com/skyflowapi/skyflow-go/v2/utils/common"
-	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
-)
-func main() {
-		// Configure the vault with detect service.
-		service, serviceErr := skyflowInstance.Detect("<VAULT_ID>") // Replace with your vault ID from the vault config
-		if serviceErr != nil {
-			fmt.Println(*serviceErr)
-		} else {
-			ctx := context.TODO()
-      // Prepare the redacted text to be reidentified
-      request := common.ReidentifyTextRequest{
-      Text: "My SSN is [SSN_0ykQWPA] and my card is [CREDIT_CARD_N92QAVa]." // The redacted text to reidentify
-      MaskedEntities: []common.DetectEntities{
-      	common.CreditCard, // Entities to mask
-      },
-      RedactedEntities: []common.DetectEntities{
-      	common.Name, // Entities to keep redacted
-      },
-      PlainTextEntities: []common.DetectEntities{
-      	common.Year, // Entities to return as plain text
-      },
-			}
-      //  Call ReidentifyText
-      reidentifyTextResponse, reidentifyTextErr := service.ReidentifyText(ctx, request)
-
-      // Handle the response and errors.
-      if reidentifyTextErr != nil {
-      fmt.Println("ERROR: ", *reidentifyTextErr)
-      } else {
-      fmt.Println("RESPONSE: ", reidentifyTextResponse)
-      }
-  }
-}
-```
-
-Sample Response:
-```json
-{
-  "ProcessedText": "My SSN is 123-45-6789 and my card is 4111 1111 1111 1111."
-}
-```
+> See the full example in the samples directory: [deidentify_string.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v2/detectapi/deidentify_string.go)
 
 ### Deidentify File
-To deidentify files, use the `DeidentifyFile` method. The `DeidentifyFileRequest` struct creates a deidentify file request, which includes the file to be deidentified (such as images, PDFs, audio, documents, spreadsheets, or presentations). Additionally, you can provide optional parameters using the `DeidentifyFileRequest` struct to control how entities are detected and deidentified, as well as how the output is generated for different file types.
+`DeidentifyFile` submits a file and returns its run ID. Supply the file as exactly one of:
 
-```go 
-package main
+| Field | Input |
+|---|---|
+| `FilePath` | A local file. Sent as base64; the format is inferred from the extension. |
+| `FileObject` | An open `*os.File`. The caller closes it. |
+| `DataSource` + `Value` | `DataSourceTypeBase64`, `DataSourceTypeSkyflowID` or `DataSourceTypePresignedURL`. |
 
-import (
-	"context"
-	"fmt"
-	"github.com/skyflowapi/skyflow-go/v2/client"
-	"github.com/skyflowapi/skyflow-go/v2/utils/common"
-	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
-)
-func main() {
-    // Configure the vault with detect service.
-    service, serviceErr := skyflowInstance.Detect("<VAULT_ID>") // Replace with your vault ID from the vault config
-    if serviceErr != nil {
-      fmt.Println(*serviceErr)
-      } else {
-      ctx := context.TODO()
-      // Step 1: Prepare the file to be deidentified
-      filePath := "<PATH_TO_FILE>" // Replace with your file path to deidentify
-      file, _ := os.Open(filePath)
-      defer file.Close()
-      request := common.DeidentifyFileRequest{
-      File: common.FileInput{
-      	File: file,
-      	// FilePath: filePath, // Provide FilePath or File at a time
-      },
-      OutputDirectory: "<OUTPUT_DIRECTORY_PATH>", // Output directory for saving the deidentified file. This is not supported in Cloudflare workers
-      WaitTime:        20, // Wait time for response (max 64 seconds; throws error if more)
-      Entities: []common.DetectEntities{
-      	common.Ssn,
-      	common.CreditCard,
-      	common.EmailAddress,
-      },
-      AllowRegexList:    []string{"<ALLOW_REGEX_PATTERN1>", "<ALLOW_REGEX_PATTERN2>"},       // Replace with the regex patterns you want to allow during deidentification
-      RestrictRegexList: []string{"<RESTRICT_REGEX_PATTERN1>", "<RESTRICT_REGEX_PATTERN2>"}, // Replace with the regex patterns you want to restrict during deidentification
-      Transformations: common.Transformations{      // Transformations for entities
-      	ShiftDates: common.DateTransformation{
-      		MaxDays: 15, // Maximum days to shift
-      		MinDays: 5,  //  Minimum days to shift
-      		Entities: []common.TransformationsShiftDatesEntityTypesItem{ // Apply shift to DOB entities
-      			common.TransformationsShiftDatesEntityTypesItemDob,
-      		},
-      	},
-      },
-      TokenFormat: common.TokenFormat{ // Token format for deidentified entities
-      	DefaultType: common.TokenTypeDefaultEntityOnly,
-      	EntityUniqueCounter: []common.DetectEntities{
-      		common.Statistics,
-      	},
-      	EntityOnly: []common.DetectEntities{
-      		common.Dob,
-      	},
-      },
-      // ===== Image Options (apply when file is an image) =====
-      MaskingMethod:        common.BLACKBOX, // Masking method for image entities
-      OutputProcessedImage: true, // Include processed image in output
-      OutputOcrText:        true, // Include OCR text in response
-        // ===== PDF Options (apply when file is a PDF) =====		
-    		PixelDensity:  30, // Pixel density for PDF processing
-      MaxResolution: 3,  // Max resolution for PDF
-      // ===== Audio Options (apply when file is audio) =====
-      OutputProcessedAudio: true,
-      Bleep: common.AudioBleep { // Bleep audio configuration
-      	Gain:         70,  // Relative loudness in dB
-      	Frequency:    100, // Pitch in Hz
-      	StartPadding: 2,   // Padding at start in seconds
-      	StopPadding:  8,   // Padding at end in seconds
-      },
-      // OutputTranscription: common.PLAINTEXT_TRANSCRIPTION,
-      }
-      //Step 2: Construct the file input by providing either file or filePath but not both
-      deidentifyFileRes, deidentifyFileErr := service.DeidentifyFile(ctx, request)
+By default the call returns as soon as the file is submitted; get the result later with [GetRun](#get-run). Set `Poll` to wait for the run instead. For a local file, a successful polled run's outputs are written to `OutputDirectory` as `processed-<name>.<ext>` and `processed-entities-<name>.json`.
 
-      // Step 5: Handle the response and errors.
-      if deidentifyFileErr != nil {
-        fmt.Println("ERROR: ", *deidentifyFileErr)
-      } else {
-        fmt.Println("RESPONSE: ", deidentifyFileRes)
-      }
-  }
+```go
+// Submit and return: only RunId is set
+submitted, err := service.DeidentifyFile(ctx, common.DeidentifyFileRequest{
+	DataSource:      common.DataSourceTypeSkyflowID,
+	Value:           "<SKYFLOW_ID>",
+	DataFormat:      common.FileDataFormatPDF, // optional
+	ConfigurationId: "<CONFIGURATION_ID>",
+}, common.DeidentifyFileOptions{})
+fmt.Println(submitted.RunId)
+
+// Submit a local file and wait up to 2 minutes
+response, err := service.DeidentifyFile(ctx, common.DeidentifyFileRequest{
+	FilePath:        "<PATH_TO_FILE>/patient-notes.pdf",
+	ConfigurationId: "<CONFIGURATION_ID>",
+}, common.DeidentifyFileOptions{
+	Poll:            &common.PollOptions{WaitTime: 2 * time.Minute},
+	OutputDirectory: "<OUTPUT_DIRECTORY>",
+})
+if err != nil {
+	fmt.Println(err.GetHttpCode(), err.GetMessage(), err.GetRequestId())
+	return
+}
+switch response.Status {
+case common.DetectRunStatusSuccess:
+	fmt.Println("Outputs:", len(response.Output))
+case common.DetectRunStatusInProgress, common.DetectRunStatusQueued: // the wait ran out
+	fmt.Println("Still running, run ID:", response.RunId)
+default: // FAILED or UNKNOWN
+	fmt.Println("Run failed:", response.Message)
+}
+```
+
+| `PollOptions` | Default | Limit |
+|---|---|---|
+| `WaitTime` | 60s | 300s |
+| `MaxAttempts` | 23 | 23 |
+
+Polling backs off 1s, 2s, 4s … up to 32s between lookups, and stops at the first of `WaitTime`, `MaxAttempts` or a final status (`SUCCESS`, `FAILED`, `UNKNOWN`).
+
+Sample response (polled, successful):
+```json
+{
+  "RunId": "89699e2c-4301-4f9f-bcff-0a8fd3057489",
+  "Status": "SUCCESS",
+  "OutputType": "BASE64",
+  "Output": [
+    { "processedFile": "TXkgU1NOIGlzIFtTU0==", "processedFileType": "REDACTED_FILE", "processedFileExtension": "pdf" },
+    { "processedFile": "0X2xhYmVsIjoiQ1JFRElUX0NB==", "processedFileType": "ENTITIES", "processedFileExtension": "json" }
+  ],
+  "Metrics": { "size": 12.4, "wordCount": 210, "characterCount": 1180, "pages": 2 },
+  "Message": ""
 }
 ```
 
 > [!TIP]
 > See the full example in the samples directory: [deidentify_file.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v2/detectapi/deidentify_file.go)
-```go 
-package main
 
-import (
-	"context"
-	"fmt"
-	"github.com/skyflowapi/skyflow-go/v2/client"
-	"github.com/skyflowapi/skyflow-go/v2/utils/common"
-	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
-)
-/**
- * Skyflow Deidentify File Example
- * 
- * This sample demonstrates how to use all available options for deidentifying files.
- * Supported file types: images (jpg, png, etc.), pdf, audio (mp3, wav), documents, spreadsheets, presentations, structured text.
- */
-func main() {
-		// Configure the vault with detect service.
-    service, serviceErr := skyflowInstance.Detect("<VAULT_ID>") // Replace with your vault ID from the vault config
-    if serviceErr != nil {
-			fmt.Println(*serviceErr)
-      } else {
-      ctx := context.TODO()
-      // Step 1: Prepare Deidentify File Request
-      filePath := "/detect/sample.txt" // Replace with your file path to deidentify
-      file, _ := os.Open(filePath)
-      defer file.Close()
-      // Construct the file input by providing either file or filePath but not both
-      fileInput := common.FileInput{
-      	File: file,
-      	// FilePath: filePath, // Provide FilePath or File at a time
-      },
-      request := common.DeidentifyFileRequest{
-      File: fileInput,
-      OutputDirectory: "/home/user/output", // Output directory for saving the deidentified file. This is not supported in Cloudflare workers
-      WaitTime:        15, // Wait time for response (max 64 seconds; throws error if more)
-      Entities: []common.DetectEntities{
-      	common.Ssn,
-      	common.CreditCard,
-      	common.EmailAddress,
-      },
-      Transformations: common.Transformations{      // Transformations for entities
-      	ShiftDates: common.DateTransformation{
-      		MaxDays: 15, // Maximum days to shift
-      		MinDays: 5,  //  Minimum days to shift
-      		Entities: []common.TransformationsShiftDatesEntityTypesItem{ // Apply shift to DOB entities
-      			common.TransformationsShiftDatesEntityTypesItemDob,
-      		},
-      	},
-      },
-      TokenFormat: common.TokenFormat{ // Token format for deidentified entities
-      	DefaultType: common.TokenTypeDefaultEntityOnly,
-      	EntityUniqueCounter: []common.DetectEntities{
-      		common.Statistics,
-      	},
-      	EntityOnly: []common.DetectEntities{
-      		common.Dob,
-      	},
-      },
-      }
-      //Step 2: Construct the file input by providing either file or filePath but not both
-      deidentifyFileRes, deidentifyFileErr := service.DeidentifyFile(ctx, request)
-
-      // Step 5: Handle the response and errors.
-      if deidentifyFileErr != nil {
-        fmt.Println("ERROR: ", *deidentifyFileErr)
-      } else {
-        fmt.Println("RESPONSE: ", deidentifyFileRes)
-        }
-  }
-}
-```
-
-Sample Response:
-```json
-{
-  "Entities": [
-    {
-      "file": "0X2xhYmVsIjoiQ1JFRElUX0NB==",
-      "extension": "json"
-    }
-  ],
-  "FileBase64": "TXkgU1NOIGlzIFtTU0==",
-  "File": {
-    "Size": 15075,
-    "Type": "",
-    "Name": "deidentified.jpeg",
-    "LastModified": 1750791985426
-  },
-  "Type": "redacted_file",
-  "Extension": "txt",
-  "WordCount": 12,
-  "CharCount": 58,
-  "SizeInKb": 0.06,
-  "DurationInSeconds": 0,
-  "PageCount": 0,
-  "SlideCount": 0,
-  "RunId": "undefined",
-  "Status": "SUCCESS"
-}
-```
-
-**Supported file types:**  
-- Documents: `doc`, `docx`, `pdf`
-- PDFs: `pdf`
-- Images: `bmp`, `jpeg`, `jpg`, `png`, `tif`, `tiff`
-- Structured text: `json`, `xml`
-- Spreadsheets: `csv`, `xls`, `xlsx`
-- Presentations: `ppt`, `pptx`
-- Audio: `mp3`, `wav`
-
-**`MaskingMethod` values (image files):**
-
-| Value | Description |
-|-------|-------------|
-| `common.BLACKBOX` | Cover detected entities with a solid black rectangle. |
-| `common.BLUR` | Apply a gaussian blur over detected entities. |
-
-**`OutputTranscription` values (audio files):**
-
-| Value | Description |
-|-------|-------------|
-| `common.PLAINTEXT_TRANSCRIPTION` | Return transcript as plain text. |
-| `common.DIARIZED_TRANSCRIPTION` | Return transcript with speaker labels. |
-
-**Note:** 
-- Transformations cannot be applied to Documents, Images, or PDFs file formats.
-- The `waitTime` option must be ≤ 64 seconds; otherwise, an error is thrown.
-- If the API takes more than 64 seconds to process the file, it will return only the run ID in the response.
-
-Sample response (when the API takes more than 64 seconds):
-```go
-{
-  "Entities": nil,
-  "File": nil,
-  "Type": nil,
-  "Extension": nil,
-  "WordCount": nil,
-  "CharCount": nil,
-  "SizeInKb": nil,
-  "DurationInSeconds": nil,
-  "PageCount": nil,
-  "SlideCount": nil,
-  "RunId": "1ad6dc12-8405-46cf-1c13-db1123f9f4c5",
-  "Status": "IN_PROGRESS"
-}
-```
-
-### Get run 
-To retrieve the results of a previously started file deidentification operation, use the `GetDetectRun` method.  
-The `GetDetectRunRequest` struct is initialized with the `RunId` returned from a prior `DeidentifyFile` call.  
-This method allows you to fetch the final results of the file processing operation once they are available.
+### Get Run
+`GetRun` returns the current state of a `DeidentifyFile` run. `Output`, `Metrics` and `OutputType` are set once the run succeeds; each output is base64 or a presigned URL, per `OutputType`.
 
 ```go
-package main
-
-import (
-	"context"
-	"fmt"
-	"github.com/skyflowapi/skyflow-go/v2/client"
-	"github.com/skyflowapi/skyflow-go/v2/utils/common"
-	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
-)
-func main() {
-		// Configure the vault with detect service.
-		service, serviceErr := skyflowInstance.Detect("<VAULT_ID>") // Replace with your vault ID from the vault config
-		if serviceErr != nil {
-			fmt.Println(*serviceErr)
-		} else {
-			ctx := context.TODO()
-      request := common.GetDetectRunRequest{
-				RunId: "<RUN_ID_FROM_DEIDENTIFY_FILE_RESPONSE>",
-			}
-      getDetectRunRes, deidentifyFileErr := service.GetDetectRun(ctx, request)
-
-			// Step 5: Handle the response and errors.
-			if deidentifyFileErr != nil {
-				fmt.Println("ERROR: ", *deidentifyFileErr)
-			} else {
-				fmt.Println("RESPONSE: ", getDetectRunRes)
-			}
-  }
+run, err := service.GetRun(ctx, common.GetRunRequest{RunId: "<RUN_ID>"}, common.GetRunOptions{})
+if err != nil {
+	fmt.Println(err.GetHttpCode(), err.GetMessage(), err.GetRequestId())
+	return
+}
+if run.Status == common.DetectRunStatusSuccess {
+	for _, output := range run.Output {
+		fmt.Println(output.ProcessedFileType, output.ProcessedFileExtension)
+	}
 }
 ```
 
 > [!TIP]
-> See the full example in the samples directory: [get_detect_run.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v2/detectapi/get_detect_run.go)
+> See the full example in the samples directory: [get_run.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v2/detectapi/get_run.go)
+
+### Reidentify String
+`ReidentifyString` replaces the tokens in `Text`. Without `RedactionLevel`, every token gets its original value. Each `RedactionLevel` selects tokens by `EntityName` and shows them through a `RedactionType`: `common.PLAIN_TEXT`, `common.MASKED`, `common.REDACTED` or `common.DEFAULT`.
+
 ```go
-package main
+response, err := service.ReidentifyString(ctx, common.ReidentifyStringRequest{
+	Text: "My name is [NAME_1], and my email is [EMAIL_ADDRESS_1].",
+	RedactionLevel: []common.RedactionLevel{
+		{EntityName: common.EntityTypeName, RedactionType: common.PLAIN_TEXT},
+		{EntityName: common.EntityTypeEmailAddress, RedactionType: common.MASKED},
+	},
+}, common.ReidentifyStringOptions{})
+if err != nil {
+	fmt.Println(err.GetHttpCode(), err.GetMessage(), err.GetRequestId())
+	return
+}
+fmt.Println(response.ProcessedText) // My name is John Doe, and my email is j******e@acme.com.
+```
 
-import (
-	"context"
-	"fmt"
-	"github.com/skyflowapi/skyflow-go/v2/client"
-	"github.com/skyflowapi/skyflow-go/v2/utils/common"
-	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
-)
-func main() {
-		// Configure the vault with detect service.
-    service, serviceErr := skyflowInstance.Detect("<VAULT_ID>") // Replace with your vault ID from the vault config
-    if serviceErr != nil {
-      fmt.Println(*serviceErr)
-      } else {
-      ctx := context.TODO()
-      // Step 1: Prepare the GetDetectRunRequest with the runId from a previous deidentifyFile call
-      request := common.GetDetectRunRequest{
-				RunId: "89699e2c-4301-4f9f-bcff-0a8fd30574898", // Replace with the runId you received earlier
-        }
-      // Step 2: Call GetDetectRun
-      getDetectRunRes, deidentifyFileErr := service.GetDetectRun(ctx, request)
+> [!TIP]
+> See the full example in the samples directory: [reidentify_string.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v2/detectapi/reidentify_string.go)
 
-			// Step 5: Handle the response and errors
-      if deidentifyFileErr != nil {
-        fmt.Println("ERROR: ", *deidentifyFileErr)
-        } else {
-        fmt.Println("RESPONSE: ", getDetectRunRes)
-        }
-    }
+### Reidentify File
+`ReidentifyFile` takes the same file inputs and `RedactionLevel` as above. It is synchronous: there is no run to poll. For a local file the outputs are written to `OutputDirectory`.
+
+```go
+response, err := service.ReidentifyFile(ctx, common.ReidentifyFileRequest{
+	FilePath: "<PATH_TO_FILE>/processed-notes.txt",
+	RedactionLevel: []common.RedactionLevel{
+		{EntityName: common.EntityTypeName, RedactionType: common.PLAIN_TEXT},
+	},
+}, common.ReidentifyFileOptions{OutputDirectory: "<OUTPUT_DIRECTORY>"})
+if err != nil {
+	fmt.Println(err.GetHttpCode(), err.GetMessage(), err.GetRequestId())
+	return
+}
+fmt.Println(response.Status, len(response.Output))
+```
+
+> [!TIP]
+> See the full example in the samples directory: [reidentify_file.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v2/detectapi/reidentify_file.go)
+
+### Check Guardrails
+`CheckGuardrails` screens text for toxicity and denied topics.
+
+```go
+response, err := service.CheckGuardrails(ctx, common.CheckGuardrailsRequest{
+	Text:          "<USER_PROMPT>",
+	CheckToxicity: true,
+	DenyTopics:    []string{"politics", "medical advice"},
+}, common.CheckGuardrailsOptions{})
+if err != nil {
+	fmt.Println(err.GetHttpCode(), err.GetMessage(), err.GetRequestId())
+	return
+}
+if response.Validation == common.GuardrailsValidationFailed {
+	fmt.Println("Blocked. Toxic:", response.Toxic, "Denied topic:", response.DeniedTopic)
 }
 ```
 
-Sample response
+Sample response:
 ```json
-{
-  "Entities": [
-    {
-      "File": "0X2xhYmVsIjoiQ1JFRElUX0NB==",
-      "Extension": "json"
-    }
-  ],
-  "File": "TXkgU1NOIGlzIFtTU0==",
-  "Type": "redacted_file",
-  "Extension": "txt",
-  "WordCount": 12,
-  "CharCount": 58,
-  "SizeInKb": 0.06,
-  "DurationInSeconds": 0,
-  "PageCount": 0,
-  "SlideCount": 0,
-  "Status": "SUCCESS"
+{ "text": "<USER_PROMPT>", "validation": "FAILED", "toxic": false, "deniedTopic": true }
+```
+
+> [!TIP]
+> See the full example in the samples directory: [check_guardrails.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v2/detectapi/check_guardrails.go)
+
+### Detect request headers
+Client-level headers set with `WithCustomHeaders` are sent with every Detect call. To add a header to a single call, set `Interceptor` in its options:
+
+```go
+options := common.DeidentifyStringOptions{
+	Interceptor: func(rc *common.RequestContext) {
+		rc.AddHeader(common.RequestIdHeader, "<REQUEST_ID>")
+	},
 }
 ```
 
+### Migrate from Detect V1
+`client.Detect(vaultID)` now returns the V2 methods, and the V1 methods and types are removed.
+
+| V1 | V2 |
+|---|---|
+| `DeidentifyText` | `DeidentifyString` |
+| `ReidentifyText` | `ReidentifyString` |
+| `DeidentifyFile`, always polled | `DeidentifyFile`; set `Options.Poll` to wait |
+| `GetDetectRun` | `GetRun` |
+| — | `ReidentifyFile`, `CheckGuardrails` |
+| `Entities`, `TokenFormat`, `Transformations` and the regex lists on the request | `Configuration` (`DetectConfiguration`) or `ConfigurationId` |
+| `AllowRegexList` / `RestrictRegexList` | `Detect.Skip` / `Detect.Restrict` |
+| `TokenFormat` | `Entity.DeidentificationType` per entity |
+| `CustomHeaders` in options | `Interceptor` in options |
+| `File`, `OutputDirectory`, `WaitTime` (seconds) on the request | `FilePath` / `FileObject` on the request; `OutputDirectory` and `Poll.WaitTime` (`time.Duration`) on the options |
 
 ## Connections
 Skyflow Connections is a gateway service leveraging tokenization to securely send and receive data between your systems and first- or third-party services. The [connections](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v2/vaultapi/invoke_connection.go) module is used to invoke both INBOUND and/or OUTBOUND connections.

@@ -381,7 +381,7 @@ func (s *Service) GenerateBearerTokenHelper(credKeys map[string]interface{}, opt
 		return nil, err
 	}
 
-	body := &gen.V1GetAuthTokenRequest{
+	body := &gen.GetAuthTokenRequest{
 		GrantType: grantType,
 		Assertion: signedUserJWT,
 	}
@@ -402,13 +402,13 @@ func (s *Service) GenerateBearerTokenHelper(credKeys map[string]interface{}, opt
 // postAuthToken calls the token endpoint through the generated authentication
 // client (common/internal/generated), which owns the endpoint path, retries
 // and error decoding.
-func (s *Service) postAuthToken(baseURL string, body *gen.V1GetAuthTokenRequest) (*TokenResult, *skyflowError.SkyflowError) {
+func (s *Service) postAuthToken(baseURL string, body *gen.GetAuthTokenRequest) (*TokenResult, *skyflowError.SkyflowError) {
 	opts := []option.RequestOption{option.WithBaseURL(baseURL)}
 	if s.cfg.HTTPClient != nil {
 		opts = append(opts, option.WithHTTPClient(s.cfg.HTTPClient))
 	}
 	client := genauth.NewClient(opts...)
-	resp, err := client.WithRawResponse.AuthenticationServiceGetAuthToken(context.Background(), body)
+	resp, err := client.WithRawResponse.GetBearerToken(context.Background(), body)
 	if err != nil {
 		return nil, skyflowError.SkyflowErrorApi(err, responseHeader(err))
 	}

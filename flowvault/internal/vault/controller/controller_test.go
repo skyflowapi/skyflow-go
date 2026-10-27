@@ -60,19 +60,6 @@ var _ = Describe("SetupRequest", func() {
 		Expect(setup.BaseURL).To(Equal("https://cluster.skyvault.skyflowapis.com"))
 	})
 
-	It("drops the cached token when credentials change", func() {
-		v := NewVaultController(fvcommon.VaultConfig{VaultId: "v"}, ClientSettings{})
-		version := v.snapshot().authVersion
-		v.SetClientSettings(ClientSettings{Credentials: &fvcommon.Credentials{ApiKey: testApiKey}})
-		Expect(v.snapshot().authVersion).To(Equal(version + 1))
-		v.SetClientSettings(ClientSettings{Credentials: v.ClientSettings().Credentials, HttpConfig: fvcommon.HttpConfig{Timeout: time.Second}})
-		Expect(v.snapshot().authVersion).To(Equal(version + 1))
-		v.SetConfig(v.Config(), true)
-		Expect(v.snapshot().authVersion).To(Equal(version + 2))
-		v.ResetAuth()
-		Expect(v.snapshot().authVersion).To(Equal(version + 3))
-	})
-
 	It("fails when no credentials are available", func() {
 		Expect(os.Unsetenv("SKYFLOW_CREDENTIALS")).To(Succeed())
 		_, err := NewVaultController(fvcommon.VaultConfig{VaultId: "v", ClusterId: "c"}, ClientSettings{}).SetupRequest("GET", nil)

@@ -1,5 +1,7 @@
 package common
 
+import "github.com/skyflowapi/skyflow-go/common/vaultclient"
+
 // UpdateType controls how an update or upsert applies data to an existing record.
 type UpdateType string
 
@@ -10,31 +12,12 @@ const (
 	UpdateTypeReplace UpdateType = "REPLACE"
 )
 
-// RequestContext is passed to an options Interceptor before each API call.
-type RequestContext struct {
-	Operation string
-	headers   map[CustomHeaderKey]string
-}
-
-// AddHeader adds a custom header to the outgoing request.
-func (rc *RequestContext) AddHeader(key CustomHeaderKey, value string) {
-	if rc.headers == nil {
-		rc.headers = make(map[CustomHeaderKey]string)
-	}
-	rc.headers[key] = value
-}
-
-// Headers returns a copy of the headers added so far.
-func (rc *RequestContext) Headers() map[CustomHeaderKey]string {
-	headers := make(map[CustomHeaderKey]string, len(rc.headers))
-	for key, value := range rc.headers {
-		headers[key] = value
-	}
-	return headers
-}
+// RequestContext is passed to an options Interceptor before each API call. It is the
+// shared skyflow-go/common/vaultclient type, so detect and vault options use the same one.
+type RequestContext = vaultclient.RequestContext
 
 // Interceptor customises a single call, e.g. by adding headers.
-type Interceptor func(rc *RequestContext)
+type Interceptor = vaultclient.Interceptor
 
 // Token is one token issued for a column value.
 type Token struct {
