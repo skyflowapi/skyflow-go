@@ -2,7 +2,7 @@
 
 > **The `flowvault` module isn't published yet.** Until it is, build against a local checkout of this repository, as described in [Add the module](#add-the-module).
 
-Use the Skyflow Flow Vault Go SDK (`github.com/skyflowapi/skyflow-go/flowvault`) to work with a Skyflow Flow Vault from a Go backend. You can insert, read, update, and delete records, and run read-only SQL queries. You can also detokenize tokens, look up existing tokens, and upload and delete files in file columns. This guide covers installing the module, authenticating, configuring the client, each vault operation, and handling errors.
+Use the Skyflow Flow Vault Go SDK (`github.com/skyflowapi/skyflow-go/flowvault`) to work with a Skyflow Flow Vault from a Go backend. You can insert, read, update, and delete records, and run read-only SQL queries. You can also detokenize tokens, look up existing tokens, and upload and delete files in file columns. With Detect, you can de-identify and re-identify sensitive data in text and files. This guide covers installing the module, authenticating, configuring the client, each vault and Detect operation, and handling errors.
 
 # Table of contents
 
@@ -28,6 +28,11 @@ Use the Skyflow Flow Vault Go SDK (`github.com/skyflowapi/skyflow-go/flowvault`)
   - [Query](#query)
   - [Upload files](#upload-files)
   - [Delete files](#delete-files)
+- [Detect](#detect)
+  - [De-identify a string](#de-identify-a-string)
+  - [De-identify a file](#de-identify-a-file)
+  - [Re-identify a string or file](#re-identify-a-string-or-file)
+  - [Check guardrails](#check-guardrails)
 - [Timeouts and retries](#timeouts-and-retries)
 - [Custom request headers](#custom-request-headers)
 - [Manage the client](#manage-the-client)
@@ -44,7 +49,7 @@ This SDK is for Flow Vaults. A Flow Vault's URL uses the `skyvault` subdomain, f
 
 The SDK works like this:
 
-- **One client, many vaults.** You create a `Skyflow` client, register one or more vaults, and get a `VaultService` for each vault. Every operation is a method on `VaultService`.
+- **One client, many vaults.** You create a `Skyflow` client, register one or more vaults, and get a `VaultService` for each vault. Every vault operation is a method on `VaultService`. Detect operations are on the `DetectService` that `Detect` returns.
 - **One request, one response.** Each operation takes a `context.Context`, a request struct, and an options struct. It returns a response or a `*SkyflowError`.
 - **Results per record.** When some records in a call fail and others succeed, the call still returns a response. Each record in it carries its own error, HTTP code, and request ID. See [Error handling](#error-handling).
 - **Retries are off by default.** You can turn them on for the client or for one vault. See [Timeouts and retries](#timeouts-and-retries).
@@ -506,6 +511,139 @@ Each record in `response.Records` has `SkyflowId`, `TableName`, `HttpCode`, `Err
 > [!TIP]
 > See the full sample in [delete_files.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/flowvault/vaultapi/delete_files.go).
 
+## Detect
+
+Use Detect to de-identify and re-identify sensitive data in text and files, and to screen text with guardrails. Get a vault's Detect service from the client with `Detect`. It uses the same vault configuration, credentials, and bearer token as `Vault`, and returns a `SkyflowError` if no vault with that ID is registered.
+
+```go
+detect, err := skyflowClient.Detect("<YOUR_VAULT_ID>")
+if err != nil {
+	fmt.Println(err.GetMessage())
+	return
+}
+```
+
+Like the vault operations, each Detect method takes a `context.Context`, a request struct, and an options struct, and returns a response or a `*SkyflowError`. All Detect types are in `github.com/skyflowapi/skyflow-go/flowvault/utils/common`.
+
+| Method | Does |
+| --- | --- |
+| `DeidentifyString` | Replaces sensitive data in a string. |
+| `DeidentifyFile` | Submits a file for de-identification and returns its run ID. Can wait for the run to finish. |
+| `GetRun` | Returns the current state of a `DeidentifyFile` run. |
+| `ReidentifyString` | Replaces the tokens in a string. |
+| `ReidentifyFile` | Replaces the tokens in a file. |
+| `CheckGuardrails` | Screens text for toxicity and denied topics. |
+
+The methods, request fields, and file-polling rules are the same as in the v2 SDK. For the full field reference, see [Detect](https://github.com/skyflowapi/skyflow-go/blob/main/README.md#detect) in the root README. Two fields work differently in a Flow Vault:
+
+- In an `Entity` with `DeidentificationTypeVaultToken`, `Destination` is the name of a token group, not a table and column.
+- A `RedactionLevel` selects tokens by `TokenGroupName` and shows them through a `RedactionPattern`. `EntityName` and `RedactionType` are for other vaults.
+
+To add headers to a Detect call, set `Interceptor` in its options, as described in [Custom request headers](#custom-request-headers).
+
+### De-identify a string
+
+Set exactly one of `ConfigurationId`, for a stored Detect configuration, and `Configuration`, for an inline one.
+
+```go
+response, err := detect.DeidentifyString(ctx, common.DeidentifyStringRequest{
+	Text: "My name is John Doe, and my email is johndoe@acme.com.",
+	Configuration: &common.DetectConfiguration{
+		Detect: &common.Detect{
+			Entities: []common.Entity{
+				{EntityType: common.EntityTypeName, DeidentificationType: common.DeidentificationTypeVaultToken, Destination: "<TOKEN_GROUP_NAME>"},
+				{EntityType: common.EntityTypeAll, DeidentificationType: common.DeidentificationTypeEntityUniqueCounter},
+			},
+		},
+	},
+}, common.DeidentifyStringOptions{})
+if err != nil {
+	fmt.Println(err.GetHttpCode(), err.GetMessage(), err.GetRequestId())
+	return
+}
+fmt.Println(response.ProcessedText) // My name is [NAME_1], and my email is [EMAIL_ADDRESS_1].
+```
+
+> [!TIP]
+> See the full sample in [deidentify_string.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/flowvault/detectapi/deidentify_string.go).
+
+### De-identify a file
+
+Supply the file as exactly one of `FilePath`, `FileObject`, or `Value` with `DataSource`. By default, `DeidentifyFile` returns as soon as the file is submitted, with only `RunId` set. Get the result later with `GetRun`. To wait for the run instead, set `Poll` in the options. For a local file, a successful run's outputs are written to `OutputDirectory`.
+
+```go
+response, err := detect.DeidentifyFile(ctx, common.DeidentifyFileRequest{
+	FilePath:        "<PATH_TO_FILE>/patient-notes.pdf",
+	ConfigurationId: "<CONFIGURATION_ID>",
+}, common.DeidentifyFileOptions{
+	Poll:            &common.PollOptions{WaitTime: 2 * time.Minute},
+	OutputDirectory: "<OUTPUT_DIRECTORY>",
+})
+if err != nil {
+	fmt.Println(err.GetMessage())
+	return
+}
+switch response.Status {
+case common.DetectRunStatusSuccess:
+	fmt.Println("Outputs:", len(response.Output))
+case common.DetectRunStatusInProgress, common.DetectRunStatusQueued: // The wait ran out
+	fmt.Println("Still running. Call GetRun with run ID", response.RunId)
+default: // FAILED or UNKNOWN
+	fmt.Println("Run failed:", response.Message)
+}
+```
+
+`WaitTime` defaults to 60 seconds and can be at most 300 seconds. `MaxAttempts` defaults to 23, which is also the most it can be.
+
+> [!TIP]
+> See the full samples in [deidentify_file.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/flowvault/detectapi/deidentify_file.go) and [get_run.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/flowvault/detectapi/get_run.go).
+
+### Re-identify a string or file
+
+Without `RedactionLevel`, every token gets its original value. To show a token group in another form, add a `RedactionLevel` with its `TokenGroupName` and a `RedactionPattern`.
+
+```go
+response, err := detect.ReidentifyString(ctx, common.ReidentifyStringRequest{
+	Text: "My name is [NAME_1].",
+	RedactionLevel: []common.RedactionLevel{{
+		TokenGroupName:   "<TOKEN_GROUP_NAME>",
+		RedactionPattern: "<REDACTION_PATTERN_NAME>",
+	}},
+}, common.ReidentifyStringOptions{})
+if err != nil {
+	fmt.Println(err.GetMessage())
+	return
+}
+fmt.Println(response.ProcessedText)
+```
+
+`ReidentifyFile` takes the same file inputs as `DeidentifyFile` and the same `RedactionLevel` as `ReidentifyString`. It's synchronous, so there's no run to poll. For a local file, the outputs are written to `OutputDirectory` in `ReidentifyFileOptions`.
+
+> [!TIP]
+> See the full samples in [reidentify_string.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/flowvault/detectapi/reidentify_string.go) and [reidentify_file.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/flowvault/detectapi/reidentify_file.go).
+
+### Check guardrails
+
+`CheckGuardrails` screens text for toxicity and denied topics.
+
+```go
+response, err := detect.CheckGuardrails(ctx, common.CheckGuardrailsRequest{
+	Text:          "<USER_PROMPT>",
+	CheckToxicity: true,
+	DenyTopics:    []string{"politics", "medical advice"},
+}, common.CheckGuardrailsOptions{})
+if err != nil {
+	fmt.Println(err.GetMessage())
+	return
+}
+if response.Validation == common.GuardrailsValidationFailed {
+	fmt.Println("Blocked. Toxic:", response.Toxic, "Denied topic:", response.DeniedTopic)
+}
+```
+
+> [!TIP]
+> See the full sample in [check_guardrails.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/flowvault/detectapi/check_guardrails.go).
+
 ## Timeouts and retries
 
 Four settings control how long a call can take and whether the SDK retries it:
@@ -710,4 +848,4 @@ if len(failed) > 0 {
 
 ## Samples
 
-The [`samples/flowvault`](https://github.com/skyflowapi/skyflow-go/tree/main/samples/flowvault) directory has a runnable program for each operation, plus custom headers, timeout and retry settings, and service account token generation. Its [README](https://github.com/skyflowapi/skyflow-go/blob/main/samples/flowvault/README.md) lists the samples and explains how to run them.
+The [`samples/flowvault`](https://github.com/skyflowapi/skyflow-go/tree/main/samples/flowvault) directory has a runnable program for each vault and Detect operation, plus custom headers, timeout and retry settings, and service account token generation. Its [README](https://github.com/skyflowapi/skyflow-go/blob/main/samples/flowvault/README.md) lists the samples and explains how to run them.
