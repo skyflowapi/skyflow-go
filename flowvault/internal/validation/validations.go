@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	fvconsts "github.com/skyflowapi/skyflow-go/flowvault/internal/constants"
+	fvhelpers "github.com/skyflowapi/skyflow-go/flowvault/internal/helpers"
 	fvcommon "github.com/skyflowapi/skyflow-go/flowvault/utils/common"
 	fverrors "github.com/skyflowapi/skyflow-go/flowvault/utils/error"
 )
@@ -293,15 +294,5 @@ func ValidateDeleteFiles(req fvcommon.DeleteFilesRequest) *fverrors.SkyflowError
 
 // ValidateCustomHeaders checks that only supported header keys are set, each with a value.
 func ValidateCustomHeaders(headers map[fvcommon.CustomHeaderKey]string, tag string) *fverrors.SkyflowError {
-	for key, value := range headers {
-		switch key {
-		case fvcommon.SkyflowAccountId, fvcommon.SkyflowAccountName, fvcommon.RequestIdHeader:
-		default:
-			return invalid(fverrors.INVALID_HEADER_KEY, tag, string(key))
-		}
-		if blank(value) {
-			return invalid(fverrors.EMPTY_HEADER_VALUE, tag, string(key))
-		}
-	}
-	return nil
+	return fvhelpers.Profile().ValidateCustomHeaders(headers, tag)
 }

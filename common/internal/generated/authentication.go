@@ -8,10 +8,10 @@ import (
 	internal "github.com/skyflowapi/skyflow-go/common/internal/generated/internal"
 )
 
-type V1GetAuthTokenRequest struct {
+type GetAuthTokenRequest struct {
 	// Grant type of the request. Set this to `urn:ietf:params:oauth:grant-type:jwt-bearer`.
 	GrantType string `json:"grant_type" url:"-"`
-	// User-signed JWT token that contains the following fields: <br/> <ul><li><code>iss</code>: Issuer of the JWT.</li><li><code>key</code>: Unique identifier for the key.</li><li><code>aud</code>: Recipient the JWT is intended for.</li><li><code>exp</code>: Time the JWT expires.</li><li><code>sub</code>: Subject of the JWT.</li><li><code>ctx</code>: (Optional) Value for <a href='/context-aware-overview/'>Context-aware authorization</a>.</li></ul>
+	// User-signed JWT token that contains the following fields: iss (Issuer), key (Unique identifier), aud (Recipient), exp (Expiry), sub (Subject), ctx (Optional context for context-aware authorization).
 	Assertion string `json:"assertion" url:"-"`
 	// Subject token.
 	SubjectToken *string `json:"subject_token,omitempty" url:"-"`
@@ -19,11 +19,11 @@ type V1GetAuthTokenRequest struct {
 	SubjectTokenType *string `json:"subject_token_type,omitempty" url:"-"`
 	// Token use type. Either `delegation` or `impersonation`.
 	RequestedTokenUse *string `json:"requested_token_use,omitempty" url:"-"`
-	// Subset of available <a href='#Roles'>roles</a> to associate with the requested token. Uses the format "role:\<roleID1\> role:\<roleID2\>".
+	// Subset of available roles to associate with the requested token. Uses the format "role:<roleID1> role:<roleID2>".
 	Scope *string `json:"scope,omitempty" url:"-"`
 }
 
-type V1GetAuthTokenResponse struct {
+type GetAuthTokenResponse struct {
 	// AccessToken.
 	AccessToken *string `json:"accessToken,omitempty" url:"accessToken,omitempty"`
 	// TokenType : Bearer.
@@ -33,48 +33,48 @@ type V1GetAuthTokenResponse struct {
 	rawJSON         json.RawMessage
 }
 
-func (v *V1GetAuthTokenResponse) GetAccessToken() *string {
-	if v == nil {
+func (g *GetAuthTokenResponse) GetAccessToken() *string {
+	if g == nil {
 		return nil
 	}
-	return v.AccessToken
+	return g.AccessToken
 }
 
-func (v *V1GetAuthTokenResponse) GetTokenType() *string {
-	if v == nil {
+func (g *GetAuthTokenResponse) GetTokenType() *string {
+	if g == nil {
 		return nil
 	}
-	return v.TokenType
+	return g.TokenType
 }
 
-func (v *V1GetAuthTokenResponse) GetExtraProperties() map[string]interface{} {
-	return v.extraProperties
+func (g *GetAuthTokenResponse) GetExtraProperties() map[string]interface{} {
+	return g.extraProperties
 }
 
-func (v *V1GetAuthTokenResponse) UnmarshalJSON(data []byte) error {
-	type unmarshaler V1GetAuthTokenResponse
+func (g *GetAuthTokenResponse) UnmarshalJSON(data []byte) error {
+	type unmarshaler GetAuthTokenResponse
 	var value unmarshaler
 	if err := json.Unmarshal(data, &value); err != nil {
 		return err
 	}
-	*v = V1GetAuthTokenResponse(value)
-	extraProperties, err := internal.ExtractExtraProperties(data, *v)
+	*g = GetAuthTokenResponse(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *g)
 	if err != nil {
 		return err
 	}
-	v.extraProperties = extraProperties
-	v.rawJSON = json.RawMessage(data)
+	g.extraProperties = extraProperties
+	g.rawJSON = json.RawMessage(data)
 	return nil
 }
 
-func (v *V1GetAuthTokenResponse) String() string {
-	if len(v.rawJSON) > 0 {
-		if value, err := internal.StringifyJSON(v.rawJSON); err == nil {
+func (g *GetAuthTokenResponse) String() string {
+	if len(g.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(g.rawJSON); err == nil {
 			return value
 		}
 	}
-	if value, err := internal.StringifyJSON(v); err == nil {
+	if value, err := internal.StringifyJSON(g); err == nil {
 		return value
 	}
-	return fmt.Sprintf("%#v", v)
+	return fmt.Sprintf("%#v", g)
 }

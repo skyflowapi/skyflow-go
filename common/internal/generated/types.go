@@ -12,110 +12,2120 @@ type PatchV2VaultsIDRequest struct {
 	VaultID *string `json:"-" url:"-"`
 }
 
-type GooglerpcStatus struct {
-	Code    *int           `json:"code,omitempty" url:"code,omitempty"`
-	Message *string        `json:"message,omitempty" url:"message,omitempty"`
-	Details []*ProtobufAny `json:"details,omitempty" url:"details,omitempty"`
+// Audio detection and deidentification configuration.
+type AudioV2 struct {
+	// If `true`, includes processed audio file in the response. Can't be used together with `outputTranscription`.
+	OutputProcessedAudio *bool `json:"outputProcessedAudio,omitempty" url:"outputProcessedAudio,omitempty"`
+	// Type of transcription to include in the response. `TRANSCRIPTION`: standard transcript of the audio. `MEDICAL_TRANSCRIPTION`: transcript focused on medical content and terminology. `DIARIZED_TRANSCRIPTION`: speaker-separated transcript that labels each speaker's dialogue. `MEDICAL_DIARIZED_TRANSCRIPTION`: speaker-separated transcript focused on medical content and terminology. `NONE`: no transcription is included. Can't be used together with `outputProcessedAudio`.
+	OutputTranscription *AudioV2OutputTranscription `json:"outputTranscription,omitempty" url:"outputTranscription,omitempty"`
+	Bleep               *AudioV2Bleep               `json:"bleep,omitempty" url:"bleep,omitempty"`
 
 	extraProperties map[string]interface{}
 	rawJSON         json.RawMessage
 }
 
-func (g *GooglerpcStatus) GetCode() *int {
-	if g == nil {
+func (a *AudioV2) GetOutputProcessedAudio() *bool {
+	if a == nil {
 		return nil
 	}
-	return g.Code
+	return a.OutputProcessedAudio
 }
 
-func (g *GooglerpcStatus) GetMessage() *string {
-	if g == nil {
+func (a *AudioV2) GetOutputTranscription() *AudioV2OutputTranscription {
+	if a == nil {
 		return nil
 	}
-	return g.Message
+	return a.OutputTranscription
 }
 
-func (g *GooglerpcStatus) GetDetails() []*ProtobufAny {
-	if g == nil {
+func (a *AudioV2) GetBleep() *AudioV2Bleep {
+	if a == nil {
 		return nil
 	}
-	return g.Details
+	return a.Bleep
 }
 
-func (g *GooglerpcStatus) GetExtraProperties() map[string]interface{} {
-	return g.extraProperties
+func (a *AudioV2) GetExtraProperties() map[string]interface{} {
+	return a.extraProperties
 }
 
-func (g *GooglerpcStatus) UnmarshalJSON(data []byte) error {
-	type unmarshaler GooglerpcStatus
+func (a *AudioV2) UnmarshalJSON(data []byte) error {
+	type unmarshaler AudioV2
 	var value unmarshaler
 	if err := json.Unmarshal(data, &value); err != nil {
 		return err
 	}
-	*g = GooglerpcStatus(value)
-	extraProperties, err := internal.ExtractExtraProperties(data, *g)
+	*a = AudioV2(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *a)
 	if err != nil {
 		return err
 	}
-	g.extraProperties = extraProperties
-	g.rawJSON = json.RawMessage(data)
+	a.extraProperties = extraProperties
+	a.rawJSON = json.RawMessage(data)
 	return nil
 }
 
-func (g *GooglerpcStatus) String() string {
-	if len(g.rawJSON) > 0 {
-		if value, err := internal.StringifyJSON(g.rawJSON); err == nil {
+func (a *AudioV2) String() string {
+	if len(a.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(a.rawJSON); err == nil {
 			return value
 		}
 	}
-	if value, err := internal.StringifyJSON(g); err == nil {
+	if value, err := internal.StringifyJSON(a); err == nil {
 		return value
 	}
-	return fmt.Sprintf("%#v", g)
+	return fmt.Sprintf("%#v", a)
 }
 
-type ProtobufAny struct {
-	Type *string `json:"@type,omitempty" url:"@type,omitempty"`
+// Configuration for the bleep sound used to mask detected entities in audio.
+type AudioV2Bleep struct {
+	// Padding added to the beginning of a bleep, in seconds. Range: 0–20. Defaults to 0.5.
+	StartPadding *float64 `json:"startPadding,omitempty" url:"startPadding,omitempty"`
+	// Padding added to the end of a bleep, in seconds. Range: 0–20. Defaults to 0.2.
+	StopPadding *float64 `json:"stopPadding,omitempty" url:"stopPadding,omitempty"`
+	// Frequency of the sine wave used for the bleep sound, in Hz.
+	Frequency *int `json:"frequency,omitempty" url:"frequency,omitempty"`
+	// Relative loudness of the bleep. Positive values increase loudness and negative values decrease it.
+	Gain *int `json:"gain,omitempty" url:"gain,omitempty"`
 
 	extraProperties map[string]interface{}
 	rawJSON         json.RawMessage
 }
 
-func (p *ProtobufAny) GetType() *string {
-	if p == nil {
+func (a *AudioV2Bleep) GetStartPadding() *float64 {
+	if a == nil {
 		return nil
 	}
-	return p.Type
+	return a.StartPadding
 }
 
-func (p *ProtobufAny) GetExtraProperties() map[string]interface{} {
-	return p.extraProperties
+func (a *AudioV2Bleep) GetStopPadding() *float64 {
+	if a == nil {
+		return nil
+	}
+	return a.StopPadding
 }
 
-func (p *ProtobufAny) UnmarshalJSON(data []byte) error {
-	type unmarshaler ProtobufAny
+func (a *AudioV2Bleep) GetFrequency() *int {
+	if a == nil {
+		return nil
+	}
+	return a.Frequency
+}
+
+func (a *AudioV2Bleep) GetGain() *int {
+	if a == nil {
+		return nil
+	}
+	return a.Gain
+}
+
+func (a *AudioV2Bleep) GetExtraProperties() map[string]interface{} {
+	return a.extraProperties
+}
+
+func (a *AudioV2Bleep) UnmarshalJSON(data []byte) error {
+	type unmarshaler AudioV2Bleep
 	var value unmarshaler
 	if err := json.Unmarshal(data, &value); err != nil {
 		return err
 	}
-	*p = ProtobufAny(value)
-	extraProperties, err := internal.ExtractExtraProperties(data, *p)
+	*a = AudioV2Bleep(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *a)
 	if err != nil {
 		return err
 	}
-	p.extraProperties = extraProperties
-	p.rawJSON = json.RawMessage(data)
+	a.extraProperties = extraProperties
+	a.rawJSON = json.RawMessage(data)
 	return nil
 }
 
-func (p *ProtobufAny) String() string {
-	if len(p.rawJSON) > 0 {
-		if value, err := internal.StringifyJSON(p.rawJSON); err == nil {
+func (a *AudioV2Bleep) String() string {
+	if len(a.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(a.rawJSON); err == nil {
 			return value
 		}
 	}
-	if value, err := internal.StringifyJSON(p); err == nil {
+	if value, err := internal.StringifyJSON(a); err == nil {
 		return value
 	}
-	return fmt.Sprintf("%#v", p)
+	return fmt.Sprintf("%#v", a)
+}
+
+// Type of transcription to include in the response. `TRANSCRIPTION`: standard transcript of the audio. `MEDICAL_TRANSCRIPTION`: transcript focused on medical content and terminology. `DIARIZED_TRANSCRIPTION`: speaker-separated transcript that labels each speaker's dialogue. `MEDICAL_DIARIZED_TRANSCRIPTION`: speaker-separated transcript focused on medical content and terminology. `NONE`: no transcription is included. Can't be used together with `outputProcessedAudio`.
+type AudioV2OutputTranscription string
+
+const (
+	AudioV2OutputTranscriptionNone                         AudioV2OutputTranscription = "NONE"
+	AudioV2OutputTranscriptionTranscription                AudioV2OutputTranscription = "TRANSCRIPTION"
+	AudioV2OutputTranscriptionMedicalTranscription         AudioV2OutputTranscription = "MEDICAL_TRANSCRIPTION"
+	AudioV2OutputTranscriptionDiarizedTranscription        AudioV2OutputTranscription = "DIARIZED_TRANSCRIPTION"
+	AudioV2OutputTranscriptionMedicalDiarizedTranscription AudioV2OutputTranscription = "MEDICAL_DIARIZED_TRANSCRIPTION"
+)
+
+func NewAudioV2OutputTranscriptionFromString(s string) (AudioV2OutputTranscription, error) {
+	switch s {
+	case "NONE":
+		return AudioV2OutputTranscriptionNone, nil
+	case "TRANSCRIPTION":
+		return AudioV2OutputTranscriptionTranscription, nil
+	case "MEDICAL_TRANSCRIPTION":
+		return AudioV2OutputTranscriptionMedicalTranscription, nil
+	case "DIARIZED_TRANSCRIPTION":
+		return AudioV2OutputTranscriptionDiarizedTranscription, nil
+	case "MEDICAL_DIARIZED_TRANSCRIPTION":
+		return AudioV2OutputTranscriptionMedicalDiarizedTranscription, nil
+	}
+	var t AudioV2OutputTranscription
+	return "", fmt.Errorf("%s is not a valid %T", s, t)
+}
+
+func (a AudioV2OutputTranscription) Ptr() *AudioV2OutputTranscription {
+	return &a
+}
+
+// Entity detection and deidentification settings.
+type Detect struct {
+	// Entities and their deidentification settings.
+	Entities []*DetectEntity `json:"entities,omitempty" url:"entities,omitempty"`
+	// Object entities and their deidentification settings.
+	ObjectEntities []*DetectObjectEntity `json:"objectEntities,omitempty" url:"objectEntities,omitempty"`
+	// Settings for restricting detected entities. A detected entity is replaced with '[RESTRICTED]' only when a `restrict` pattern matches the entity's full value. If a pattern matches only a substring of the detected entity, the pattern is ignored and the entity is processed according to the configured tokenization and transformation settings. Patterns don't match across entity boundaries. If an entity matches both a `skip` and a `restrict` pattern, `skip` takes precedence and the entity is displayed in plaintext. <b>Note</b>: Vault tokens are currently not supported.
+	Restrict []string `json:"restrict,omitempty" url:"restrict,omitempty"`
+	// Settings for bypassing deidentification on detected entities. A detected entity is displayed in plaintext when a `skip` pattern matches either the entity's full value or any substring of it. Patterns don't match across entity boundaries. If an entity matches both a `skip` and a `restrict` pattern, `skip` takes precedence and the entity is displayed in plaintext.
+	Skip []string `json:"skip,omitempty" url:"skip,omitempty"`
+	// Custom entity type definitions.
+	CustomTypes []*DetectCustomTypes `json:"customTypes,omitempty" url:"customTypes,omitempty"`
+	// Controls which detected entities are returned in the response. `EXCLUDE_SENSITIVE_DATA`: returns each detected entity's metadata (token, entity type, location, and confidence scores) but omits the original sensitive value. `ALL`: returns each detected entity's metadata and the original sensitive value. `NONE`: doesn't return detected entities.
+	ReturnEntities *DetectReturnEntities `json:"returnEntities,omitempty" url:"returnEntities,omitempty"`
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (d *Detect) GetEntities() []*DetectEntity {
+	if d == nil {
+		return nil
+	}
+	return d.Entities
+}
+
+func (d *Detect) GetObjectEntities() []*DetectObjectEntity {
+	if d == nil {
+		return nil
+	}
+	return d.ObjectEntities
+}
+
+func (d *Detect) GetRestrict() []string {
+	if d == nil {
+		return nil
+	}
+	return d.Restrict
+}
+
+func (d *Detect) GetSkip() []string {
+	if d == nil {
+		return nil
+	}
+	return d.Skip
+}
+
+func (d *Detect) GetCustomTypes() []*DetectCustomTypes {
+	if d == nil {
+		return nil
+	}
+	return d.CustomTypes
+}
+
+func (d *Detect) GetReturnEntities() *DetectReturnEntities {
+	if d == nil {
+		return nil
+	}
+	return d.ReturnEntities
+}
+
+func (d *Detect) GetExtraProperties() map[string]interface{} {
+	return d.extraProperties
+}
+
+func (d *Detect) UnmarshalJSON(data []byte) error {
+	type unmarshaler Detect
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*d = Detect(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *d)
+	if err != nil {
+		return err
+	}
+	d.extraProperties = extraProperties
+	d.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (d *Detect) String() string {
+	if len(d.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(d.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(d); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", d)
+}
+
+// Configuration for detecting and deidentifying entities in a vault.
+type DetectConfigV2 struct {
+	// ID of the configuration.
+	ID *string `json:"ID,omitempty" url:"ID,omitempty"`
+	// Name of the configuration.
+	Name *string `json:"name,omitempty" url:"name,omitempty"`
+	// Namespace of the configuration.
+	Namespace *string `json:"namespace,omitempty" url:"namespace,omitempty"`
+	// Description of the configuration.
+	Description *string `json:"description,omitempty" url:"description,omitempty"`
+	// ID of the vault.
+	VaultID string `json:"vaultId" url:"vaultId"`
+	// Type of the vault.
+	VaultType *DetectConfigV2VaultType `json:"vaultType,omitempty" url:"vaultType,omitempty"`
+	Detect    *Detect                  `json:"detect,omitempty" url:"detect,omitempty"`
+	// Mappings for source and deidentified file locations.
+	FileMapping []*FileMapping `json:"fileMapping,omitempty" url:"fileMapping,omitempty"`
+	Media       *Media         `json:"media,omitempty" url:"media,omitempty"`
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (d *DetectConfigV2) GetID() *string {
+	if d == nil {
+		return nil
+	}
+	return d.ID
+}
+
+func (d *DetectConfigV2) GetName() *string {
+	if d == nil {
+		return nil
+	}
+	return d.Name
+}
+
+func (d *DetectConfigV2) GetNamespace() *string {
+	if d == nil {
+		return nil
+	}
+	return d.Namespace
+}
+
+func (d *DetectConfigV2) GetDescription() *string {
+	if d == nil {
+		return nil
+	}
+	return d.Description
+}
+
+func (d *DetectConfigV2) GetVaultID() string {
+	if d == nil {
+		return ""
+	}
+	return d.VaultID
+}
+
+func (d *DetectConfigV2) GetVaultType() *DetectConfigV2VaultType {
+	if d == nil {
+		return nil
+	}
+	return d.VaultType
+}
+
+func (d *DetectConfigV2) GetDetect() *Detect {
+	if d == nil {
+		return nil
+	}
+	return d.Detect
+}
+
+func (d *DetectConfigV2) GetFileMapping() []*FileMapping {
+	if d == nil {
+		return nil
+	}
+	return d.FileMapping
+}
+
+func (d *DetectConfigV2) GetMedia() *Media {
+	if d == nil {
+		return nil
+	}
+	return d.Media
+}
+
+func (d *DetectConfigV2) GetExtraProperties() map[string]interface{} {
+	return d.extraProperties
+}
+
+func (d *DetectConfigV2) UnmarshalJSON(data []byte) error {
+	type unmarshaler DetectConfigV2
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*d = DetectConfigV2(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *d)
+	if err != nil {
+		return err
+	}
+	d.extraProperties = extraProperties
+	d.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (d *DetectConfigV2) String() string {
+	if len(d.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(d.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(d); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", d)
+}
+
+// Type of the vault.
+type DetectConfigV2VaultType string
+
+const (
+	DetectConfigV2VaultTypeNone             DetectConfigV2VaultType = "NONE"
+	DetectConfigV2VaultTypePrivacydb        DetectConfigV2VaultType = "PRIVACYDB"
+	DetectConfigV2VaultTypeFlowdb           DetectConfigV2VaultType = "FLOWDB"
+	DetectConfigV2VaultTypeFlowdbSchemaless DetectConfigV2VaultType = "FLOWDB_SCHEMALESS"
+)
+
+func NewDetectConfigV2VaultTypeFromString(s string) (DetectConfigV2VaultType, error) {
+	switch s {
+	case "NONE":
+		return DetectConfigV2VaultTypeNone, nil
+	case "PRIVACYDB":
+		return DetectConfigV2VaultTypePrivacydb, nil
+	case "FLOWDB":
+		return DetectConfigV2VaultTypeFlowdb, nil
+	case "FLOWDB_SCHEMALESS":
+		return DetectConfigV2VaultTypeFlowdbSchemaless, nil
+	}
+	var t DetectConfigV2VaultType
+	return "", fmt.Errorf("%s is not a valid %T", s, t)
+}
+
+func (d DetectConfigV2VaultType) Ptr() *DetectConfigV2VaultType {
+	return &d
+}
+
+// Custom entity type defined by a label and a list of match values.
+type DetectCustomTypes struct {
+	// Label of the custom type. Used as the entity's identity and default token prefix.
+	Label *string `json:"label,omitempty" url:"label,omitempty"`
+	// Regular expressions to replace with '[<customType.label>]' enclosed in square brackets. Expressions must match the entirety of a detected entity, not just a substring, for the entity to be redacted. Expressions don't match across entity boundaries. If a string or entity matches both `skip` and `customType.label`, the entity is displayed in plaintext. If a string is detected as an entity and a `customType.match` pattern matches the entire detected entity, the entity is replaced with '[<customType.label>]'. If a string is detected as an entity but a `customType.match` pattern only matches a substring of it, the `customType.match` pattern is ignored, and the entity is processed according to the specified tokenization and transformation settings.
+	Match []string `json:"match,omitempty" url:"match,omitempty"`
+	// Type of deidentification to apply to matches of this custom type.
+	DeidentificationType *DetectCustomTypesDeidentificationType `json:"deidentificationType,omitempty" url:"deidentificationType,omitempty"`
+	// Vault destination where matches of this custom type are stored. Required when `deidentificationType` is `VAULT_TOKEN`. For vaults with a schema, specify the table and column in `table.column` format (for example, `persons.product`). For schemaless vaults, specify the token group name (for example, `productTokenGroup`).
+	Destination *string `json:"destination,omitempty" url:"destination,omitempty"`
+	// Whether to include the label as a prefix in the generated token. Only applies when `deidentificationType` is `VAULT_TOKEN`. `NO` returns the raw vault token, and the value can't be re-identified later.
+	IncludePrefix *DetectCustomTypesIncludePrefix `json:"includePrefix,omitempty" url:"includePrefix,omitempty"`
+	// Overrides the default entity-type prefix used in the generated token (for example, `NAAM` instead of `NAME`, producing `[NAAM_<token>]`). Can't be combined with `includePrefix: NO`.
+	PrefixOverride *string `json:"prefixOverride,omitempty" url:"prefixOverride,omitempty"`
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (d *DetectCustomTypes) GetLabel() *string {
+	if d == nil {
+		return nil
+	}
+	return d.Label
+}
+
+func (d *DetectCustomTypes) GetMatch() []string {
+	if d == nil {
+		return nil
+	}
+	return d.Match
+}
+
+func (d *DetectCustomTypes) GetDeidentificationType() *DetectCustomTypesDeidentificationType {
+	if d == nil {
+		return nil
+	}
+	return d.DeidentificationType
+}
+
+func (d *DetectCustomTypes) GetDestination() *string {
+	if d == nil {
+		return nil
+	}
+	return d.Destination
+}
+
+func (d *DetectCustomTypes) GetIncludePrefix() *DetectCustomTypesIncludePrefix {
+	if d == nil {
+		return nil
+	}
+	return d.IncludePrefix
+}
+
+func (d *DetectCustomTypes) GetPrefixOverride() *string {
+	if d == nil {
+		return nil
+	}
+	return d.PrefixOverride
+}
+
+func (d *DetectCustomTypes) GetExtraProperties() map[string]interface{} {
+	return d.extraProperties
+}
+
+func (d *DetectCustomTypes) UnmarshalJSON(data []byte) error {
+	type unmarshaler DetectCustomTypes
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*d = DetectCustomTypes(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *d)
+	if err != nil {
+		return err
+	}
+	d.extraProperties = extraProperties
+	d.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (d *DetectCustomTypes) String() string {
+	if len(d.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(d.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(d); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", d)
+}
+
+// Type of deidentification to apply to matches of this custom type.
+type DetectCustomTypesDeidentificationType string
+
+const (
+	DetectCustomTypesDeidentificationTypeUnknown             DetectCustomTypesDeidentificationType = "UNKNOWN"
+	DetectCustomTypesDeidentificationTypeEntityUniqueCounter DetectCustomTypesDeidentificationType = "ENTITY_UNIQUE_COUNTER"
+	DetectCustomTypesDeidentificationTypeEntityOnly          DetectCustomTypesDeidentificationType = "ENTITY_ONLY"
+	DetectCustomTypesDeidentificationTypeVaultToken          DetectCustomTypesDeidentificationType = "VAULT_TOKEN"
+	DetectCustomTypesDeidentificationTypeMask                DetectCustomTypesDeidentificationType = "MASK"
+)
+
+func NewDetectCustomTypesDeidentificationTypeFromString(s string) (DetectCustomTypesDeidentificationType, error) {
+	switch s {
+	case "UNKNOWN":
+		return DetectCustomTypesDeidentificationTypeUnknown, nil
+	case "ENTITY_UNIQUE_COUNTER":
+		return DetectCustomTypesDeidentificationTypeEntityUniqueCounter, nil
+	case "ENTITY_ONLY":
+		return DetectCustomTypesDeidentificationTypeEntityOnly, nil
+	case "VAULT_TOKEN":
+		return DetectCustomTypesDeidentificationTypeVaultToken, nil
+	case "MASK":
+		return DetectCustomTypesDeidentificationTypeMask, nil
+	}
+	var t DetectCustomTypesDeidentificationType
+	return "", fmt.Errorf("%s is not a valid %T", s, t)
+}
+
+func (d DetectCustomTypesDeidentificationType) Ptr() *DetectCustomTypesDeidentificationType {
+	return &d
+}
+
+// Whether to include the label as a prefix in the generated token. Only applies when `deidentificationType` is `VAULT_TOKEN`. `NO` returns the raw vault token, and the value can't be re-identified later.
+type DetectCustomTypesIncludePrefix string
+
+const (
+	DetectCustomTypesIncludePrefixYes DetectCustomTypesIncludePrefix = "YES"
+	DetectCustomTypesIncludePrefixNo  DetectCustomTypesIncludePrefix = "NO"
+)
+
+func NewDetectCustomTypesIncludePrefixFromString(s string) (DetectCustomTypesIncludePrefix, error) {
+	switch s {
+	case "YES":
+		return DetectCustomTypesIncludePrefixYes, nil
+	case "NO":
+		return DetectCustomTypesIncludePrefixNo, nil
+	}
+	var t DetectCustomTypesIncludePrefix
+	return "", fmt.Errorf("%s is not a valid %T", s, t)
+}
+
+func (d DetectCustomTypesIncludePrefix) Ptr() *DetectCustomTypesIncludePrefix {
+	return &d
+}
+
+// Entity detection and deidentification configuration.
+type DetectEntity struct {
+	// Type of entity to detect.
+	EntityType *DetectEntityEntityType `json:"entityType,omitempty" url:"entityType,omitempty"`
+	// Type of deidentification to apply. `VAULT_TOKEN` is only supported for the following file formats: `txt`, `json`, `csv`, `xml`, `jsonl`, `docx`, `xlsx`, `pptx`.
+	DeidentificationType *DetectEntityDeidentificationType `json:"deidentificationType,omitempty" url:"deidentificationType,omitempty"`
+	// Vault destination where detected values of this entity type are stored. For vaults with a schema, specify the table and column in `table.column` format (for example, `persons.name`). For schemaless vaults, specify the token group name (for example, `personTokenGroup`).
+	Destination    *string               `json:"destination,omitempty" url:"destination,omitempty"`
+	Transformation *EntityTransformation `json:"transformation,omitempty" url:"transformation,omitempty"`
+	// Whether to include the label as a prefix in the generated token. Only applies when `deidentificationType` is `VAULT_TOKEN`. `NO` returns the raw vault token, and the value can't be re-identified later.
+	IncludePrefix *DetectEntityIncludePrefix `json:"includePrefix,omitempty" url:"includePrefix,omitempty"`
+	// Overrides the default entity-type prefix used in the generated token (for example, `NAAM` instead of `NAME`, producing `[NAAM_<token>]`). Can't be combined with `includePrefix: NO`.
+	PrefixOverride *string `json:"prefixOverride,omitempty" url:"prefixOverride,omitempty"`
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (d *DetectEntity) GetEntityType() *DetectEntityEntityType {
+	if d == nil {
+		return nil
+	}
+	return d.EntityType
+}
+
+func (d *DetectEntity) GetDeidentificationType() *DetectEntityDeidentificationType {
+	if d == nil {
+		return nil
+	}
+	return d.DeidentificationType
+}
+
+func (d *DetectEntity) GetDestination() *string {
+	if d == nil {
+		return nil
+	}
+	return d.Destination
+}
+
+func (d *DetectEntity) GetTransformation() *EntityTransformation {
+	if d == nil {
+		return nil
+	}
+	return d.Transformation
+}
+
+func (d *DetectEntity) GetIncludePrefix() *DetectEntityIncludePrefix {
+	if d == nil {
+		return nil
+	}
+	return d.IncludePrefix
+}
+
+func (d *DetectEntity) GetPrefixOverride() *string {
+	if d == nil {
+		return nil
+	}
+	return d.PrefixOverride
+}
+
+func (d *DetectEntity) GetExtraProperties() map[string]interface{} {
+	return d.extraProperties
+}
+
+func (d *DetectEntity) UnmarshalJSON(data []byte) error {
+	type unmarshaler DetectEntity
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*d = DetectEntity(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *d)
+	if err != nil {
+		return err
+	}
+	d.extraProperties = extraProperties
+	d.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (d *DetectEntity) String() string {
+	if len(d.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(d.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(d); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", d)
+}
+
+// Type of deidentification to apply. `VAULT_TOKEN` is only supported for the following file formats: `txt`, `json`, `csv`, `xml`, `jsonl`, `docx`, `xlsx`, `pptx`.
+type DetectEntityDeidentificationType string
+
+const (
+	DetectEntityDeidentificationTypeUnknown             DetectEntityDeidentificationType = "UNKNOWN"
+	DetectEntityDeidentificationTypeEntityUniqueCounter DetectEntityDeidentificationType = "ENTITY_UNIQUE_COUNTER"
+	DetectEntityDeidentificationTypeEntityOnly          DetectEntityDeidentificationType = "ENTITY_ONLY"
+	DetectEntityDeidentificationTypeVaultToken          DetectEntityDeidentificationType = "VAULT_TOKEN"
+	DetectEntityDeidentificationTypeMask                DetectEntityDeidentificationType = "MASK"
+)
+
+func NewDetectEntityDeidentificationTypeFromString(s string) (DetectEntityDeidentificationType, error) {
+	switch s {
+	case "UNKNOWN":
+		return DetectEntityDeidentificationTypeUnknown, nil
+	case "ENTITY_UNIQUE_COUNTER":
+		return DetectEntityDeidentificationTypeEntityUniqueCounter, nil
+	case "ENTITY_ONLY":
+		return DetectEntityDeidentificationTypeEntityOnly, nil
+	case "VAULT_TOKEN":
+		return DetectEntityDeidentificationTypeVaultToken, nil
+	case "MASK":
+		return DetectEntityDeidentificationTypeMask, nil
+	}
+	var t DetectEntityDeidentificationType
+	return "", fmt.Errorf("%s is not a valid %T", s, t)
+}
+
+func (d DetectEntityDeidentificationType) Ptr() *DetectEntityDeidentificationType {
+	return &d
+}
+
+// Type of entity to detect.
+type DetectEntityEntityType string
+
+const (
+	DetectEntityEntityTypeNone                        DetectEntityEntityType = "NONE"
+	DetectEntityEntityTypeBankAccount                 DetectEntityEntityType = "BANK_ACCOUNT"
+	DetectEntityEntityTypeCreditCard                  DetectEntityEntityType = "CREDIT_CARD"
+	DetectEntityEntityTypeCreditCardExpiration        DetectEntityEntityType = "CREDIT_CARD_EXPIRATION"
+	DetectEntityEntityTypeCvv                         DetectEntityEntityType = "CVV"
+	DetectEntityEntityTypeDate                        DetectEntityEntityType = "DATE"
+	DetectEntityEntityTypeDateInterval                DetectEntityEntityType = "DATE_INTERVAL"
+	DetectEntityEntityTypeDob                         DetectEntityEntityType = "DOB"
+	DetectEntityEntityTypeDriverLicense               DetectEntityEntityType = "DRIVER_LICENSE"
+	DetectEntityEntityTypeEmailAddress                DetectEntityEntityType = "EMAIL_ADDRESS"
+	DetectEntityEntityTypeHealthcareNumber            DetectEntityEntityType = "HEALTHCARE_NUMBER"
+	DetectEntityEntityTypeIPAddress                   DetectEntityEntityType = "IP_ADDRESS"
+	DetectEntityEntityTypeLocation                    DetectEntityEntityType = "LOCATION"
+	DetectEntityEntityTypeName                        DetectEntityEntityType = "NAME"
+	DetectEntityEntityTypeNumericalPii                DetectEntityEntityType = "NUMERICAL_PII"
+	DetectEntityEntityTypePhoneNumber                 DetectEntityEntityType = "PHONE_NUMBER"
+	DetectEntityEntityTypeSsn                         DetectEntityEntityType = "SSN"
+	DetectEntityEntityTypeURL                         DetectEntityEntityType = "URL"
+	DetectEntityEntityTypeVehicleID                   DetectEntityEntityType = "VEHICLE_ID"
+	DetectEntityEntityTypeMedicalCode                 DetectEntityEntityType = "MEDICAL_CODE"
+	DetectEntityEntityTypeNameFamily                  DetectEntityEntityType = "NAME_FAMILY"
+	DetectEntityEntityTypeNameGiven                   DetectEntityEntityType = "NAME_GIVEN"
+	DetectEntityEntityTypeAccountNumber               DetectEntityEntityType = "ACCOUNT_NUMBER"
+	DetectEntityEntityTypeEvent                       DetectEntityEntityType = "EVENT"
+	DetectEntityEntityTypeFilename                    DetectEntityEntityType = "FILENAME"
+	DetectEntityEntityTypeGender                      DetectEntityEntityType = "GENDER"
+	DetectEntityEntityTypeLanguage                    DetectEntityEntityType = "LANGUAGE"
+	DetectEntityEntityTypeLocationAddress             DetectEntityEntityType = "LOCATION_ADDRESS"
+	DetectEntityEntityTypeLocationCity                DetectEntityEntityType = "LOCATION_CITY"
+	DetectEntityEntityTypeLocationCoordinate          DetectEntityEntityType = "LOCATION_COORDINATE"
+	DetectEntityEntityTypeLocationCountry             DetectEntityEntityType = "LOCATION_COUNTRY"
+	DetectEntityEntityTypeLocationState               DetectEntityEntityType = "LOCATION_STATE"
+	DetectEntityEntityTypeLocationZip                 DetectEntityEntityType = "LOCATION_ZIP"
+	DetectEntityEntityTypeMaritalStatus               DetectEntityEntityType = "MARITAL_STATUS"
+	DetectEntityEntityTypeMoney                       DetectEntityEntityType = "MONEY"
+	DetectEntityEntityTypeNameMedicalProfessional     DetectEntityEntityType = "NAME_MEDICAL_PROFESSIONAL"
+	DetectEntityEntityTypeOccupation                  DetectEntityEntityType = "OCCUPATION"
+	DetectEntityEntityTypeOrganization                DetectEntityEntityType = "ORGANIZATION"
+	DetectEntityEntityTypeOrganizationMedicalFacility DetectEntityEntityType = "ORGANIZATION_MEDICAL_FACILITY"
+	DetectEntityEntityTypeOrigin                      DetectEntityEntityType = "ORIGIN"
+	DetectEntityEntityTypePassportNumber              DetectEntityEntityType = "PASSPORT_NUMBER"
+	DetectEntityEntityTypePassword                    DetectEntityEntityType = "PASSWORD"
+	DetectEntityEntityTypePhysicalAttribute           DetectEntityEntityType = "PHYSICAL_ATTRIBUTE"
+	DetectEntityEntityTypePoliticalAffiliation        DetectEntityEntityType = "POLITICAL_AFFILIATION"
+	DetectEntityEntityTypeReligion                    DetectEntityEntityType = "RELIGION"
+	DetectEntityEntityTypeTime                        DetectEntityEntityType = "TIME"
+	DetectEntityEntityTypeUsername                    DetectEntityEntityType = "USERNAME"
+	DetectEntityEntityTypeZodiacSign                  DetectEntityEntityType = "ZODIAC_SIGN"
+	DetectEntityEntityTypeBloodType                   DetectEntityEntityType = "BLOOD_TYPE"
+	DetectEntityEntityTypeCondition                   DetectEntityEntityType = "CONDITION"
+	DetectEntityEntityTypeDose                        DetectEntityEntityType = "DOSE"
+	DetectEntityEntityTypeDrug                        DetectEntityEntityType = "DRUG"
+	DetectEntityEntityTypeInjury                      DetectEntityEntityType = "INJURY"
+	DetectEntityEntityTypeMedicalProcess              DetectEntityEntityType = "MEDICAL_PROCESS"
+	DetectEntityEntityTypeStatistics                  DetectEntityEntityType = "STATISTICS"
+	DetectEntityEntityTypeRoutingNumber               DetectEntityEntityType = "ROUTING_NUMBER"
+	DetectEntityEntityTypeCorporateAction             DetectEntityEntityType = "CORPORATE_ACTION"
+	DetectEntityEntityTypeFinancialMetric             DetectEntityEntityType = "FINANCIAL_METRIC"
+	DetectEntityEntityTypeProduct                     DetectEntityEntityType = "PRODUCT"
+	DetectEntityEntityTypeTrend                       DetectEntityEntityType = "TREND"
+	DetectEntityEntityTypeDuration                    DetectEntityEntityType = "DURATION"
+	DetectEntityEntityTypeLocationAddressStreet       DetectEntityEntityType = "LOCATION_ADDRESS_STREET"
+	DetectEntityEntityTypeAge                         DetectEntityEntityType = "AGE"
+	DetectEntityEntityTypeSexuality                   DetectEntityEntityType = "SEXUALITY"
+	DetectEntityEntityTypeEffect                      DetectEntityEntityType = "EFFECT"
+	DetectEntityEntityTypeProject                     DetectEntityEntityType = "PROJECT"
+	DetectEntityEntityTypeOrganizationID              DetectEntityEntityType = "ORGANIZATION_ID"
+	DetectEntityEntityTypeDay                         DetectEntityEntityType = "DAY"
+	DetectEntityEntityTypeMonth                       DetectEntityEntityType = "MONTH"
+	DetectEntityEntityTypeYear                        DetectEntityEntityType = "YEAR"
+	DetectEntityEntityTypeAll                         DetectEntityEntityType = "ALL"
+)
+
+func NewDetectEntityEntityTypeFromString(s string) (DetectEntityEntityType, error) {
+	switch s {
+	case "NONE":
+		return DetectEntityEntityTypeNone, nil
+	case "BANK_ACCOUNT":
+		return DetectEntityEntityTypeBankAccount, nil
+	case "CREDIT_CARD":
+		return DetectEntityEntityTypeCreditCard, nil
+	case "CREDIT_CARD_EXPIRATION":
+		return DetectEntityEntityTypeCreditCardExpiration, nil
+	case "CVV":
+		return DetectEntityEntityTypeCvv, nil
+	case "DATE":
+		return DetectEntityEntityTypeDate, nil
+	case "DATE_INTERVAL":
+		return DetectEntityEntityTypeDateInterval, nil
+	case "DOB":
+		return DetectEntityEntityTypeDob, nil
+	case "DRIVER_LICENSE":
+		return DetectEntityEntityTypeDriverLicense, nil
+	case "EMAIL_ADDRESS":
+		return DetectEntityEntityTypeEmailAddress, nil
+	case "HEALTHCARE_NUMBER":
+		return DetectEntityEntityTypeHealthcareNumber, nil
+	case "IP_ADDRESS":
+		return DetectEntityEntityTypeIPAddress, nil
+	case "LOCATION":
+		return DetectEntityEntityTypeLocation, nil
+	case "NAME":
+		return DetectEntityEntityTypeName, nil
+	case "NUMERICAL_PII":
+		return DetectEntityEntityTypeNumericalPii, nil
+	case "PHONE_NUMBER":
+		return DetectEntityEntityTypePhoneNumber, nil
+	case "SSN":
+		return DetectEntityEntityTypeSsn, nil
+	case "URL":
+		return DetectEntityEntityTypeURL, nil
+	case "VEHICLE_ID":
+		return DetectEntityEntityTypeVehicleID, nil
+	case "MEDICAL_CODE":
+		return DetectEntityEntityTypeMedicalCode, nil
+	case "NAME_FAMILY":
+		return DetectEntityEntityTypeNameFamily, nil
+	case "NAME_GIVEN":
+		return DetectEntityEntityTypeNameGiven, nil
+	case "ACCOUNT_NUMBER":
+		return DetectEntityEntityTypeAccountNumber, nil
+	case "EVENT":
+		return DetectEntityEntityTypeEvent, nil
+	case "FILENAME":
+		return DetectEntityEntityTypeFilename, nil
+	case "GENDER":
+		return DetectEntityEntityTypeGender, nil
+	case "LANGUAGE":
+		return DetectEntityEntityTypeLanguage, nil
+	case "LOCATION_ADDRESS":
+		return DetectEntityEntityTypeLocationAddress, nil
+	case "LOCATION_CITY":
+		return DetectEntityEntityTypeLocationCity, nil
+	case "LOCATION_COORDINATE":
+		return DetectEntityEntityTypeLocationCoordinate, nil
+	case "LOCATION_COUNTRY":
+		return DetectEntityEntityTypeLocationCountry, nil
+	case "LOCATION_STATE":
+		return DetectEntityEntityTypeLocationState, nil
+	case "LOCATION_ZIP":
+		return DetectEntityEntityTypeLocationZip, nil
+	case "MARITAL_STATUS":
+		return DetectEntityEntityTypeMaritalStatus, nil
+	case "MONEY":
+		return DetectEntityEntityTypeMoney, nil
+	case "NAME_MEDICAL_PROFESSIONAL":
+		return DetectEntityEntityTypeNameMedicalProfessional, nil
+	case "OCCUPATION":
+		return DetectEntityEntityTypeOccupation, nil
+	case "ORGANIZATION":
+		return DetectEntityEntityTypeOrganization, nil
+	case "ORGANIZATION_MEDICAL_FACILITY":
+		return DetectEntityEntityTypeOrganizationMedicalFacility, nil
+	case "ORIGIN":
+		return DetectEntityEntityTypeOrigin, nil
+	case "PASSPORT_NUMBER":
+		return DetectEntityEntityTypePassportNumber, nil
+	case "PASSWORD":
+		return DetectEntityEntityTypePassword, nil
+	case "PHYSICAL_ATTRIBUTE":
+		return DetectEntityEntityTypePhysicalAttribute, nil
+	case "POLITICAL_AFFILIATION":
+		return DetectEntityEntityTypePoliticalAffiliation, nil
+	case "RELIGION":
+		return DetectEntityEntityTypeReligion, nil
+	case "TIME":
+		return DetectEntityEntityTypeTime, nil
+	case "USERNAME":
+		return DetectEntityEntityTypeUsername, nil
+	case "ZODIAC_SIGN":
+		return DetectEntityEntityTypeZodiacSign, nil
+	case "BLOOD_TYPE":
+		return DetectEntityEntityTypeBloodType, nil
+	case "CONDITION":
+		return DetectEntityEntityTypeCondition, nil
+	case "DOSE":
+		return DetectEntityEntityTypeDose, nil
+	case "DRUG":
+		return DetectEntityEntityTypeDrug, nil
+	case "INJURY":
+		return DetectEntityEntityTypeInjury, nil
+	case "MEDICAL_PROCESS":
+		return DetectEntityEntityTypeMedicalProcess, nil
+	case "STATISTICS":
+		return DetectEntityEntityTypeStatistics, nil
+	case "ROUTING_NUMBER":
+		return DetectEntityEntityTypeRoutingNumber, nil
+	case "CORPORATE_ACTION":
+		return DetectEntityEntityTypeCorporateAction, nil
+	case "FINANCIAL_METRIC":
+		return DetectEntityEntityTypeFinancialMetric, nil
+	case "PRODUCT":
+		return DetectEntityEntityTypeProduct, nil
+	case "TREND":
+		return DetectEntityEntityTypeTrend, nil
+	case "DURATION":
+		return DetectEntityEntityTypeDuration, nil
+	case "LOCATION_ADDRESS_STREET":
+		return DetectEntityEntityTypeLocationAddressStreet, nil
+	case "AGE":
+		return DetectEntityEntityTypeAge, nil
+	case "SEXUALITY":
+		return DetectEntityEntityTypeSexuality, nil
+	case "EFFECT":
+		return DetectEntityEntityTypeEffect, nil
+	case "PROJECT":
+		return DetectEntityEntityTypeProject, nil
+	case "ORGANIZATION_ID":
+		return DetectEntityEntityTypeOrganizationID, nil
+	case "DAY":
+		return DetectEntityEntityTypeDay, nil
+	case "MONTH":
+		return DetectEntityEntityTypeMonth, nil
+	case "YEAR":
+		return DetectEntityEntityTypeYear, nil
+	case "ALL":
+		return DetectEntityEntityTypeAll, nil
+	}
+	var t DetectEntityEntityType
+	return "", fmt.Errorf("%s is not a valid %T", s, t)
+}
+
+func (d DetectEntityEntityType) Ptr() *DetectEntityEntityType {
+	return &d
+}
+
+// Whether to include the label as a prefix in the generated token. Only applies when `deidentificationType` is `VAULT_TOKEN`. `NO` returns the raw vault token, and the value can't be re-identified later.
+type DetectEntityIncludePrefix string
+
+const (
+	DetectEntityIncludePrefixYes DetectEntityIncludePrefix = "YES"
+	DetectEntityIncludePrefixNo  DetectEntityIncludePrefix = "NO"
+)
+
+func NewDetectEntityIncludePrefixFromString(s string) (DetectEntityIncludePrefix, error) {
+	switch s {
+	case "YES":
+		return DetectEntityIncludePrefixYes, nil
+	case "NO":
+		return DetectEntityIncludePrefixNo, nil
+	}
+	var t DetectEntityIncludePrefix
+	return "", fmt.Errorf("%s is not a valid %T", s, t)
+}
+
+func (d DetectEntityIncludePrefix) Ptr() *DetectEntityIncludePrefix {
+	return &d
+}
+
+// Object entity detection and deidentification configuration (e.g. faces, license plates).
+type DetectObjectEntity struct {
+	// Type of entity to detect.
+	EntityType *DetectObjectEntityEntityType `json:"entityType,omitempty" url:"entityType,omitempty"`
+	// Type of deidentification to apply.
+	DeidentificationType *DetectObjectEntityDeidentificationType `json:"deidentificationType,omitempty" url:"deidentificationType,omitempty"`
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (d *DetectObjectEntity) GetEntityType() *DetectObjectEntityEntityType {
+	if d == nil {
+		return nil
+	}
+	return d.EntityType
+}
+
+func (d *DetectObjectEntity) GetDeidentificationType() *DetectObjectEntityDeidentificationType {
+	if d == nil {
+		return nil
+	}
+	return d.DeidentificationType
+}
+
+func (d *DetectObjectEntity) GetExtraProperties() map[string]interface{} {
+	return d.extraProperties
+}
+
+func (d *DetectObjectEntity) UnmarshalJSON(data []byte) error {
+	type unmarshaler DetectObjectEntity
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*d = DetectObjectEntity(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *d)
+	if err != nil {
+		return err
+	}
+	d.extraProperties = extraProperties
+	d.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (d *DetectObjectEntity) String() string {
+	if len(d.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(d.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(d); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", d)
+}
+
+// Type of deidentification to apply.
+type DetectObjectEntityDeidentificationType string
+
+const (
+	DetectObjectEntityDeidentificationTypeUnknown  DetectObjectEntityDeidentificationType = "UNKNOWN"
+	DetectObjectEntityDeidentificationTypeRedact   DetectObjectEntityDeidentificationType = "REDACT"
+	DetectObjectEntityDeidentificationTypeUnredact DetectObjectEntityDeidentificationType = "UNREDACT"
+)
+
+func NewDetectObjectEntityDeidentificationTypeFromString(s string) (DetectObjectEntityDeidentificationType, error) {
+	switch s {
+	case "UNKNOWN":
+		return DetectObjectEntityDeidentificationTypeUnknown, nil
+	case "REDACT":
+		return DetectObjectEntityDeidentificationTypeRedact, nil
+	case "UNREDACT":
+		return DetectObjectEntityDeidentificationTypeUnredact, nil
+	}
+	var t DetectObjectEntityDeidentificationType
+	return "", fmt.Errorf("%s is not a valid %T", s, t)
+}
+
+func (d DetectObjectEntityDeidentificationType) Ptr() *DetectObjectEntityDeidentificationType {
+	return &d
+}
+
+// Type of entity to detect.
+type DetectObjectEntityEntityType string
+
+const (
+	DetectObjectEntityEntityTypeNone         DetectObjectEntityEntityType = "NONE"
+	DetectObjectEntityEntityTypeFace         DetectObjectEntityEntityType = "FACE"
+	DetectObjectEntityEntityTypeLicensePlate DetectObjectEntityEntityType = "LICENSE_PLATE"
+	DetectObjectEntityEntityTypeLogo         DetectObjectEntityEntityType = "LOGO"
+	DetectObjectEntityEntityTypeSignature    DetectObjectEntityEntityType = "SIGNATURE"
+	DetectObjectEntityEntityTypeAll          DetectObjectEntityEntityType = "ALL"
+)
+
+func NewDetectObjectEntityEntityTypeFromString(s string) (DetectObjectEntityEntityType, error) {
+	switch s {
+	case "NONE":
+		return DetectObjectEntityEntityTypeNone, nil
+	case "FACE":
+		return DetectObjectEntityEntityTypeFace, nil
+	case "LICENSE_PLATE":
+		return DetectObjectEntityEntityTypeLicensePlate, nil
+	case "LOGO":
+		return DetectObjectEntityEntityTypeLogo, nil
+	case "SIGNATURE":
+		return DetectObjectEntityEntityTypeSignature, nil
+	case "ALL":
+		return DetectObjectEntityEntityTypeAll, nil
+	}
+	var t DetectObjectEntityEntityType
+	return "", fmt.Errorf("%s is not a valid %T", s, t)
+}
+
+func (d DetectObjectEntityEntityType) Ptr() *DetectObjectEntityEntityType {
+	return &d
+}
+
+// Controls which detected entities are returned in the response. `EXCLUDE_SENSITIVE_DATA`: returns each detected entity's metadata (token, entity type, location, and confidence scores) but omits the original sensitive value. `ALL`: returns each detected entity's metadata and the original sensitive value. `NONE`: doesn't return detected entities.
+type DetectReturnEntities string
+
+const (
+	DetectReturnEntitiesExcludeSensitiveData DetectReturnEntities = "EXCLUDE_SENSITIVE_DATA"
+	DetectReturnEntitiesAll                  DetectReturnEntities = "ALL"
+	DetectReturnEntitiesNone                 DetectReturnEntities = "NONE"
+)
+
+func NewDetectReturnEntitiesFromString(s string) (DetectReturnEntities, error) {
+	switch s {
+	case "EXCLUDE_SENSITIVE_DATA":
+		return DetectReturnEntitiesExcludeSensitiveData, nil
+	case "ALL":
+		return DetectReturnEntitiesAll, nil
+	case "NONE":
+		return DetectReturnEntitiesNone, nil
+	}
+	var t DetectReturnEntities
+	return "", fmt.Errorf("%s is not a valid %T", s, t)
+}
+
+func (d DetectReturnEntities) Ptr() *DetectReturnEntities {
+	return &d
+}
+
+// Document detection and deidentification configuration.
+type DocumentV2 struct {
+	Pdf *DocumentV2Pdf `json:"pdf,omitempty" url:"pdf,omitempty"`
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (d *DocumentV2) GetPdf() *DocumentV2Pdf {
+	if d == nil {
+		return nil
+	}
+	return d.Pdf
+}
+
+func (d *DocumentV2) GetExtraProperties() map[string]interface{} {
+	return d.extraProperties
+}
+
+func (d *DocumentV2) UnmarshalJSON(data []byte) error {
+	type unmarshaler DocumentV2
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*d = DocumentV2(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *d)
+	if err != nil {
+		return err
+	}
+	d.extraProperties = extraProperties
+	d.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (d *DocumentV2) String() string {
+	if len(d.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(d.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(d); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", d)
+}
+
+// Advanced options for processing PDF documents.
+type DocumentV2Pdf struct {
+	// Processing mode for the PDF file. `TEXT_LAYER`: processes the PDF's native text layer and replaces detected entities with entity tokens (for example, `[NAME_1]`). Fast and accurate for PDFs with selectable text. `OCR`: processes the PDF as an image using optical character recognition and covers detected content with a gray box. Use for scanned or image-based PDFs. Because `OCR` rasterizes each page, the output PDF file size can be significantly larger than the input.
+	ProcessingMode *DocumentV2PdfProcessingMode `json:"processingMode,omitempty" url:"processingMode,omitempty"`
+	// Pixel density at which to process the PDF file. Applies only when `processingMode` is `OCR`.
+	Density *int `json:"density,omitempty" url:"density,omitempty"`
+	// Max resolution at which to process the PDF file. Applies only when `processingMode` is `OCR`.
+	MaxResolution *int `json:"maxResolution,omitempty" url:"maxResolution,omitempty"`
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (d *DocumentV2Pdf) GetProcessingMode() *DocumentV2PdfProcessingMode {
+	if d == nil {
+		return nil
+	}
+	return d.ProcessingMode
+}
+
+func (d *DocumentV2Pdf) GetDensity() *int {
+	if d == nil {
+		return nil
+	}
+	return d.Density
+}
+
+func (d *DocumentV2Pdf) GetMaxResolution() *int {
+	if d == nil {
+		return nil
+	}
+	return d.MaxResolution
+}
+
+func (d *DocumentV2Pdf) GetExtraProperties() map[string]interface{} {
+	return d.extraProperties
+}
+
+func (d *DocumentV2Pdf) UnmarshalJSON(data []byte) error {
+	type unmarshaler DocumentV2Pdf
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*d = DocumentV2Pdf(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *d)
+	if err != nil {
+		return err
+	}
+	d.extraProperties = extraProperties
+	d.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (d *DocumentV2Pdf) String() string {
+	if len(d.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(d.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(d); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", d)
+}
+
+// Processing mode for the PDF file. `TEXT_LAYER`: processes the PDF's native text layer and replaces detected entities with entity tokens (for example, `[NAME_1]`). Fast and accurate for PDFs with selectable text. `OCR`: processes the PDF as an image using optical character recognition and covers detected content with a gray box. Use for scanned or image-based PDFs. Because `OCR` rasterizes each page, the output PDF file size can be significantly larger than the input.
+type DocumentV2PdfProcessingMode string
+
+const (
+	DocumentV2PdfProcessingModeNone      DocumentV2PdfProcessingMode = "NONE"
+	DocumentV2PdfProcessingModeOcr       DocumentV2PdfProcessingMode = "OCR"
+	DocumentV2PdfProcessingModeTextLayer DocumentV2PdfProcessingMode = "TEXT_LAYER"
+)
+
+func NewDocumentV2PdfProcessingModeFromString(s string) (DocumentV2PdfProcessingMode, error) {
+	switch s {
+	case "NONE":
+		return DocumentV2PdfProcessingModeNone, nil
+	case "OCR":
+		return DocumentV2PdfProcessingModeOcr, nil
+	case "TEXT_LAYER":
+		return DocumentV2PdfProcessingModeTextLayer, nil
+	}
+	var t DocumentV2PdfProcessingMode
+	return "", fmt.Errorf("%s is not a valid %T", s, t)
+}
+
+func (d DocumentV2PdfProcessingMode) Ptr() *DocumentV2PdfProcessingMode {
+	return &d
+}
+
+// Optional transformations to apply to detected entity values.
+type EntityTransformation struct {
+	ShiftDates *TransformationShiftDates `json:"shiftDates,omitempty" url:"shiftDates,omitempty"`
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (e *EntityTransformation) GetShiftDates() *TransformationShiftDates {
+	if e == nil {
+		return nil
+	}
+	return e.ShiftDates
+}
+
+func (e *EntityTransformation) GetExtraProperties() map[string]interface{} {
+	return e.extraProperties
+}
+
+func (e *EntityTransformation) UnmarshalJSON(data []byte) error {
+	type unmarshaler EntityTransformation
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*e = EntityTransformation(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *e)
+	if err != nil {
+		return err
+	}
+	e.extraProperties = extraProperties
+	e.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (e *EntityTransformation) String() string {
+	if len(e.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(e.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(e); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", e)
+}
+
+type ErrorResponse struct {
+	Error *ErrorResponseError `json:"error" url:"error"`
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (e *ErrorResponse) GetError() *ErrorResponseError {
+	if e == nil {
+		return nil
+	}
+	return e.Error
+}
+
+func (e *ErrorResponse) GetExtraProperties() map[string]interface{} {
+	return e.extraProperties
+}
+
+func (e *ErrorResponse) UnmarshalJSON(data []byte) error {
+	type unmarshaler ErrorResponse
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*e = ErrorResponse(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *e)
+	if err != nil {
+		return err
+	}
+	e.extraProperties = extraProperties
+	e.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (e *ErrorResponse) String() string {
+	if len(e.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(e.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(e); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", e)
+}
+
+type ErrorResponseError struct {
+	// gRPC status codes. See https://grpc.io/docs/guides/status-codes.
+	GrpcCode   int                      `json:"grpc_code" url:"grpc_code"`
+	HTTPCode   HTTPCode                 `json:"http_code" url:"http_code"`
+	HTTPStatus string                   `json:"http_status" url:"http_status"`
+	Message    string                   `json:"message" url:"message"`
+	Details    []map[string]interface{} `json:"details,omitempty" url:"details,omitempty"`
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (e *ErrorResponseError) GetGrpcCode() int {
+	if e == nil {
+		return 0
+	}
+	return e.GrpcCode
+}
+
+func (e *ErrorResponseError) GetHTTPCode() HTTPCode {
+	if e == nil {
+		return 0
+	}
+	return e.HTTPCode
+}
+
+func (e *ErrorResponseError) GetHTTPStatus() string {
+	if e == nil {
+		return ""
+	}
+	return e.HTTPStatus
+}
+
+func (e *ErrorResponseError) GetMessage() string {
+	if e == nil {
+		return ""
+	}
+	return e.Message
+}
+
+func (e *ErrorResponseError) GetDetails() []map[string]interface{} {
+	if e == nil {
+		return nil
+	}
+	return e.Details
+}
+
+func (e *ErrorResponseError) GetExtraProperties() map[string]interface{} {
+	return e.extraProperties
+}
+
+func (e *ErrorResponseError) UnmarshalJSON(data []byte) error {
+	type unmarshaler ErrorResponseError
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*e = ErrorResponseError(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *e)
+	if err != nil {
+		return err
+	}
+	e.extraProperties = extraProperties
+	e.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (e *ErrorResponseError) String() string {
+	if len(e.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(e.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(e); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", e)
+}
+
+// Source and destination file paths for a deidentification job.
+type FileMapping struct {
+	// Location of the source file.
+	Source *string `json:"source,omitempty" url:"source,omitempty"`
+	// Location of the target file.
+	Destination *string `json:"destination,omitempty" url:"destination,omitempty"`
+	// Suffix of the output file. For example, with outputFileNameSuffix = "_deidentified", "invoice.pdf" becomes "invoice_deidentified.pdf".
+	OutputFileNameSuffix *string `json:"outputFileNameSuffix,omitempty" url:"outputFileNameSuffix,omitempty"`
+	// Location of the entities output, as "table.column". For example, "documents.entities_json". Must be in the same table as source. If unset, the entities output is not stored in the vault.
+	EntitiesDestination *string `json:"entitiesDestination,omitempty" url:"entitiesDestination,omitempty"`
+	// Location of the object entities output, as "table.column". For example, "documents.object_entities_json". Must be in the same table as source. If unset, the object entities output is not stored in the vault.
+	ObjectEntitiesDestination *string `json:"objectEntitiesDestination,omitempty" url:"objectEntitiesDestination,omitempty"`
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (f *FileMapping) GetSource() *string {
+	if f == nil {
+		return nil
+	}
+	return f.Source
+}
+
+func (f *FileMapping) GetDestination() *string {
+	if f == nil {
+		return nil
+	}
+	return f.Destination
+}
+
+func (f *FileMapping) GetOutputFileNameSuffix() *string {
+	if f == nil {
+		return nil
+	}
+	return f.OutputFileNameSuffix
+}
+
+func (f *FileMapping) GetEntitiesDestination() *string {
+	if f == nil {
+		return nil
+	}
+	return f.EntitiesDestination
+}
+
+func (f *FileMapping) GetObjectEntitiesDestination() *string {
+	if f == nil {
+		return nil
+	}
+	return f.ObjectEntitiesDestination
+}
+
+func (f *FileMapping) GetExtraProperties() map[string]interface{} {
+	return f.extraProperties
+}
+
+func (f *FileMapping) UnmarshalJSON(data []byte) error {
+	type unmarshaler FileMapping
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*f = FileMapping(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *f)
+	if err != nil {
+		return err
+	}
+	f.extraProperties = extraProperties
+	f.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (f *FileMapping) String() string {
+	if len(f.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(f.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(f); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", f)
+}
+
+// HTTP status codes. See https://developer.mozilla.org/en-US/docs/Web/HTTP/Status.
+type HTTPCode = int
+
+// Image detection and deidentification configuration.
+type ImageV2 struct {
+	// If `true`, includes processed image in the output.
+	OutputProcessedImage *bool `json:"outputProcessedImage,omitempty" url:"outputProcessedImage,omitempty"`
+	// If `true`, includes text detected by OCR in the response.
+	OutputOcrText *bool `json:"outputOcrText,omitempty" url:"outputOcrText,omitempty"`
+	// Method used to mask detected entities in the image. `BLUR`: blurs each detected entity so the sensitive content is unreadable while the rest of the image is preserved. `BLACKBOX`: covers each detected entity with a solid black box.
+	MaskingMethod *ImageV2MaskingMethod `json:"maskingMethod,omitempty" url:"maskingMethod,omitempty"`
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (i *ImageV2) GetOutputProcessedImage() *bool {
+	if i == nil {
+		return nil
+	}
+	return i.OutputProcessedImage
+}
+
+func (i *ImageV2) GetOutputOcrText() *bool {
+	if i == nil {
+		return nil
+	}
+	return i.OutputOcrText
+}
+
+func (i *ImageV2) GetMaskingMethod() *ImageV2MaskingMethod {
+	if i == nil {
+		return nil
+	}
+	return i.MaskingMethod
+}
+
+func (i *ImageV2) GetExtraProperties() map[string]interface{} {
+	return i.extraProperties
+}
+
+func (i *ImageV2) UnmarshalJSON(data []byte) error {
+	type unmarshaler ImageV2
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*i = ImageV2(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *i)
+	if err != nil {
+		return err
+	}
+	i.extraProperties = extraProperties
+	i.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (i *ImageV2) String() string {
+	if len(i.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(i.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(i); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", i)
+}
+
+// Method used to mask detected entities in the image. `BLUR`: blurs each detected entity so the sensitive content is unreadable while the rest of the image is preserved. `BLACKBOX`: covers each detected entity with a solid black box.
+type ImageV2MaskingMethod string
+
+const (
+	ImageV2MaskingMethodNone     ImageV2MaskingMethod = "NONE"
+	ImageV2MaskingMethodBlur     ImageV2MaskingMethod = "BLUR"
+	ImageV2MaskingMethodBlackbox ImageV2MaskingMethod = "BLACKBOX"
+)
+
+func NewImageV2MaskingMethodFromString(s string) (ImageV2MaskingMethod, error) {
+	switch s {
+	case "NONE":
+		return ImageV2MaskingMethodNone, nil
+	case "BLUR":
+		return ImageV2MaskingMethodBlur, nil
+	case "BLACKBOX":
+		return ImageV2MaskingMethodBlackbox, nil
+	}
+	var t ImageV2MaskingMethod
+	return "", fmt.Errorf("%s is not a valid %T", s, t)
+}
+
+func (i ImageV2MaskingMethod) Ptr() *ImageV2MaskingMethod {
+	return &i
+}
+
+// Media-specific detection and deidentification configuration.
+type Media struct {
+	Audio    *AudioV2    `json:"audio,omitempty" url:"audio,omitempty"`
+	Document *DocumentV2 `json:"document,omitempty" url:"document,omitempty"`
+	Image    *ImageV2    `json:"image,omitempty" url:"image,omitempty"`
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (m *Media) GetAudio() *AudioV2 {
+	if m == nil {
+		return nil
+	}
+	return m.Audio
+}
+
+func (m *Media) GetDocument() *DocumentV2 {
+	if m == nil {
+		return nil
+	}
+	return m.Document
+}
+
+func (m *Media) GetImage() *ImageV2 {
+	if m == nil {
+		return nil
+	}
+	return m.Image
+}
+
+func (m *Media) GetExtraProperties() map[string]interface{} {
+	return m.extraProperties
+}
+
+func (m *Media) UnmarshalJSON(data []byte) error {
+	type unmarshaler Media
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*m = Media(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *m)
+	if err != nil {
+		return err
+	}
+	m.extraProperties = extraProperties
+	m.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (m *Media) String() string {
+	if len(m.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(m.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(m); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", m)
+}
+
+// Performance metrics for the detection and deidentification operation.
+type Metrics struct {
+	// Size of the input text(KB).
+	Size *float64 `json:"size,omitempty" url:"size,omitempty"`
+	// Total number of words processed.
+	WordCount *int `json:"wordCount,omitempty" url:"wordCount,omitempty"`
+	// Total number of characters processed.
+	CharacterCount *int `json:"characterCount,omitempty" url:"characterCount,omitempty"`
+	// Total number of slides processed.
+	Slides *int `json:"slides,omitempty" url:"slides,omitempty"`
+	// Total number of pages processed.
+	Pages *int `json:"pages,omitempty" url:"pages,omitempty"`
+	// Total duration processed(seconds).
+	Duration *float64 `json:"duration,omitempty" url:"duration,omitempty"`
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (m *Metrics) GetSize() *float64 {
+	if m == nil {
+		return nil
+	}
+	return m.Size
+}
+
+func (m *Metrics) GetWordCount() *int {
+	if m == nil {
+		return nil
+	}
+	return m.WordCount
+}
+
+func (m *Metrics) GetCharacterCount() *int {
+	if m == nil {
+		return nil
+	}
+	return m.CharacterCount
+}
+
+func (m *Metrics) GetSlides() *int {
+	if m == nil {
+		return nil
+	}
+	return m.Slides
+}
+
+func (m *Metrics) GetPages() *int {
+	if m == nil {
+		return nil
+	}
+	return m.Pages
+}
+
+func (m *Metrics) GetDuration() *float64 {
+	if m == nil {
+		return nil
+	}
+	return m.Duration
+}
+
+func (m *Metrics) GetExtraProperties() map[string]interface{} {
+	return m.extraProperties
+}
+
+func (m *Metrics) UnmarshalJSON(data []byte) error {
+	type unmarshaler Metrics
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*m = Metrics(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *m)
+	if err != nil {
+		return err
+	}
+	m.extraProperties = extraProperties
+	m.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (m *Metrics) String() string {
+	if len(m.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(m.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(m); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", m)
+}
+
+// Specifies a replacement pattern/type and the token group or entity type it applies to during re-identification.
+type RedactionLevel struct {
+	// Name of the token group whose detokenized values should be masked (e.g., a token in `personTokenGroup` that detokenizes to `John Doe` is masked as `JoXXXe`). Use this for FlowVault.
+	TokenGroupName *string `json:"tokenGroupName,omitempty" url:"tokenGroupName,omitempty"`
+	// Entity type whose detokenized values should be shown in plain text, redacted, or masked based on `redactionType` (e.g., a `NAME` entity that detokenizes to `John Doe` is masked as `JoXXXe`). Use this for SkyVault.
+	EntityName *RedactionLevelEntityName `json:"entityName,omitempty" url:"entityName,omitempty"`
+	// Redaction method to apply to the detokenized value (e.g., for the value `John Doe`, `MASKED` transforms it into `JoXXXe`, `REDACTED` transforms it into `*REDACTED*`, and `PLAIN_TEXT` keeps it as `John Doe`). Use this for SkyVault.
+	RedactionType *RedactionLevelRedactionType `json:"redactionType,omitempty" url:"redactionType,omitempty"`
+	// Redaction method to apply to the detokenized value. Use the name of a redaction pattern configured in the vault (e.g., `personMaskPattern` transforms `John Doe` into `JoXXXe`). Use this for FlowVault.
+	RedactionPattern *string `json:"redactionPattern,omitempty" url:"redactionPattern,omitempty"`
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (r *RedactionLevel) GetTokenGroupName() *string {
+	if r == nil {
+		return nil
+	}
+	return r.TokenGroupName
+}
+
+func (r *RedactionLevel) GetEntityName() *RedactionLevelEntityName {
+	if r == nil {
+		return nil
+	}
+	return r.EntityName
+}
+
+func (r *RedactionLevel) GetRedactionType() *RedactionLevelRedactionType {
+	if r == nil {
+		return nil
+	}
+	return r.RedactionType
+}
+
+func (r *RedactionLevel) GetRedactionPattern() *string {
+	if r == nil {
+		return nil
+	}
+	return r.RedactionPattern
+}
+
+func (r *RedactionLevel) GetExtraProperties() map[string]interface{} {
+	return r.extraProperties
+}
+
+func (r *RedactionLevel) UnmarshalJSON(data []byte) error {
+	type unmarshaler RedactionLevel
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*r = RedactionLevel(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *r)
+	if err != nil {
+		return err
+	}
+	r.extraProperties = extraProperties
+	r.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (r *RedactionLevel) String() string {
+	if len(r.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(r.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(r); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", r)
+}
+
+// Entity type whose detokenized values should be shown in plain text, redacted, or masked based on `redactionType` (e.g., a `NAME` entity that detokenizes to `John Doe` is masked as `JoXXXe`). Use this for SkyVault.
+type RedactionLevelEntityName string
+
+const (
+	RedactionLevelEntityNameNone                        RedactionLevelEntityName = "NONE"
+	RedactionLevelEntityNameBankAccount                 RedactionLevelEntityName = "BANK_ACCOUNT"
+	RedactionLevelEntityNameCreditCard                  RedactionLevelEntityName = "CREDIT_CARD"
+	RedactionLevelEntityNameCreditCardExpiration        RedactionLevelEntityName = "CREDIT_CARD_EXPIRATION"
+	RedactionLevelEntityNameCvv                         RedactionLevelEntityName = "CVV"
+	RedactionLevelEntityNameDate                        RedactionLevelEntityName = "DATE"
+	RedactionLevelEntityNameDateInterval                RedactionLevelEntityName = "DATE_INTERVAL"
+	RedactionLevelEntityNameDob                         RedactionLevelEntityName = "DOB"
+	RedactionLevelEntityNameDriverLicense               RedactionLevelEntityName = "DRIVER_LICENSE"
+	RedactionLevelEntityNameEmailAddress                RedactionLevelEntityName = "EMAIL_ADDRESS"
+	RedactionLevelEntityNameHealthcareNumber            RedactionLevelEntityName = "HEALTHCARE_NUMBER"
+	RedactionLevelEntityNameIPAddress                   RedactionLevelEntityName = "IP_ADDRESS"
+	RedactionLevelEntityNameLocation                    RedactionLevelEntityName = "LOCATION"
+	RedactionLevelEntityNameName                        RedactionLevelEntityName = "NAME"
+	RedactionLevelEntityNameNumericalPii                RedactionLevelEntityName = "NUMERICAL_PII"
+	RedactionLevelEntityNamePhoneNumber                 RedactionLevelEntityName = "PHONE_NUMBER"
+	RedactionLevelEntityNameSsn                         RedactionLevelEntityName = "SSN"
+	RedactionLevelEntityNameURL                         RedactionLevelEntityName = "URL"
+	RedactionLevelEntityNameVehicleID                   RedactionLevelEntityName = "VEHICLE_ID"
+	RedactionLevelEntityNameMedicalCode                 RedactionLevelEntityName = "MEDICAL_CODE"
+	RedactionLevelEntityNameNameFamily                  RedactionLevelEntityName = "NAME_FAMILY"
+	RedactionLevelEntityNameNameGiven                   RedactionLevelEntityName = "NAME_GIVEN"
+	RedactionLevelEntityNameAccountNumber               RedactionLevelEntityName = "ACCOUNT_NUMBER"
+	RedactionLevelEntityNameEvent                       RedactionLevelEntityName = "EVENT"
+	RedactionLevelEntityNameFilename                    RedactionLevelEntityName = "FILENAME"
+	RedactionLevelEntityNameGender                      RedactionLevelEntityName = "GENDER"
+	RedactionLevelEntityNameLanguage                    RedactionLevelEntityName = "LANGUAGE"
+	RedactionLevelEntityNameLocationAddress             RedactionLevelEntityName = "LOCATION_ADDRESS"
+	RedactionLevelEntityNameLocationCity                RedactionLevelEntityName = "LOCATION_CITY"
+	RedactionLevelEntityNameLocationCoordinate          RedactionLevelEntityName = "LOCATION_COORDINATE"
+	RedactionLevelEntityNameLocationCountry             RedactionLevelEntityName = "LOCATION_COUNTRY"
+	RedactionLevelEntityNameLocationState               RedactionLevelEntityName = "LOCATION_STATE"
+	RedactionLevelEntityNameLocationZip                 RedactionLevelEntityName = "LOCATION_ZIP"
+	RedactionLevelEntityNameMaritalStatus               RedactionLevelEntityName = "MARITAL_STATUS"
+	RedactionLevelEntityNameMoney                       RedactionLevelEntityName = "MONEY"
+	RedactionLevelEntityNameNameMedicalProfessional     RedactionLevelEntityName = "NAME_MEDICAL_PROFESSIONAL"
+	RedactionLevelEntityNameOccupation                  RedactionLevelEntityName = "OCCUPATION"
+	RedactionLevelEntityNameOrganization                RedactionLevelEntityName = "ORGANIZATION"
+	RedactionLevelEntityNameOrganizationMedicalFacility RedactionLevelEntityName = "ORGANIZATION_MEDICAL_FACILITY"
+	RedactionLevelEntityNameOrigin                      RedactionLevelEntityName = "ORIGIN"
+	RedactionLevelEntityNamePassportNumber              RedactionLevelEntityName = "PASSPORT_NUMBER"
+	RedactionLevelEntityNamePassword                    RedactionLevelEntityName = "PASSWORD"
+	RedactionLevelEntityNamePhysicalAttribute           RedactionLevelEntityName = "PHYSICAL_ATTRIBUTE"
+	RedactionLevelEntityNamePoliticalAffiliation        RedactionLevelEntityName = "POLITICAL_AFFILIATION"
+	RedactionLevelEntityNameReligion                    RedactionLevelEntityName = "RELIGION"
+	RedactionLevelEntityNameTime                        RedactionLevelEntityName = "TIME"
+	RedactionLevelEntityNameUsername                    RedactionLevelEntityName = "USERNAME"
+	RedactionLevelEntityNameZodiacSign                  RedactionLevelEntityName = "ZODIAC_SIGN"
+	RedactionLevelEntityNameBloodType                   RedactionLevelEntityName = "BLOOD_TYPE"
+	RedactionLevelEntityNameCondition                   RedactionLevelEntityName = "CONDITION"
+	RedactionLevelEntityNameDose                        RedactionLevelEntityName = "DOSE"
+	RedactionLevelEntityNameDrug                        RedactionLevelEntityName = "DRUG"
+	RedactionLevelEntityNameInjury                      RedactionLevelEntityName = "INJURY"
+	RedactionLevelEntityNameMedicalProcess              RedactionLevelEntityName = "MEDICAL_PROCESS"
+	RedactionLevelEntityNameStatistics                  RedactionLevelEntityName = "STATISTICS"
+	RedactionLevelEntityNameRoutingNumber               RedactionLevelEntityName = "ROUTING_NUMBER"
+	RedactionLevelEntityNameCorporateAction             RedactionLevelEntityName = "CORPORATE_ACTION"
+	RedactionLevelEntityNameFinancialMetric             RedactionLevelEntityName = "FINANCIAL_METRIC"
+	RedactionLevelEntityNameProduct                     RedactionLevelEntityName = "PRODUCT"
+	RedactionLevelEntityNameTrend                       RedactionLevelEntityName = "TREND"
+	RedactionLevelEntityNameDuration                    RedactionLevelEntityName = "DURATION"
+	RedactionLevelEntityNameLocationAddressStreet       RedactionLevelEntityName = "LOCATION_ADDRESS_STREET"
+	RedactionLevelEntityNameAge                         RedactionLevelEntityName = "AGE"
+	RedactionLevelEntityNameSexuality                   RedactionLevelEntityName = "SEXUALITY"
+	RedactionLevelEntityNameEffect                      RedactionLevelEntityName = "EFFECT"
+	RedactionLevelEntityNameProject                     RedactionLevelEntityName = "PROJECT"
+	RedactionLevelEntityNameOrganizationID              RedactionLevelEntityName = "ORGANIZATION_ID"
+	RedactionLevelEntityNameDay                         RedactionLevelEntityName = "DAY"
+	RedactionLevelEntityNameMonth                       RedactionLevelEntityName = "MONTH"
+	RedactionLevelEntityNameYear                        RedactionLevelEntityName = "YEAR"
+	RedactionLevelEntityNameAll                         RedactionLevelEntityName = "ALL"
+)
+
+func NewRedactionLevelEntityNameFromString(s string) (RedactionLevelEntityName, error) {
+	switch s {
+	case "NONE":
+		return RedactionLevelEntityNameNone, nil
+	case "BANK_ACCOUNT":
+		return RedactionLevelEntityNameBankAccount, nil
+	case "CREDIT_CARD":
+		return RedactionLevelEntityNameCreditCard, nil
+	case "CREDIT_CARD_EXPIRATION":
+		return RedactionLevelEntityNameCreditCardExpiration, nil
+	case "CVV":
+		return RedactionLevelEntityNameCvv, nil
+	case "DATE":
+		return RedactionLevelEntityNameDate, nil
+	case "DATE_INTERVAL":
+		return RedactionLevelEntityNameDateInterval, nil
+	case "DOB":
+		return RedactionLevelEntityNameDob, nil
+	case "DRIVER_LICENSE":
+		return RedactionLevelEntityNameDriverLicense, nil
+	case "EMAIL_ADDRESS":
+		return RedactionLevelEntityNameEmailAddress, nil
+	case "HEALTHCARE_NUMBER":
+		return RedactionLevelEntityNameHealthcareNumber, nil
+	case "IP_ADDRESS":
+		return RedactionLevelEntityNameIPAddress, nil
+	case "LOCATION":
+		return RedactionLevelEntityNameLocation, nil
+	case "NAME":
+		return RedactionLevelEntityNameName, nil
+	case "NUMERICAL_PII":
+		return RedactionLevelEntityNameNumericalPii, nil
+	case "PHONE_NUMBER":
+		return RedactionLevelEntityNamePhoneNumber, nil
+	case "SSN":
+		return RedactionLevelEntityNameSsn, nil
+	case "URL":
+		return RedactionLevelEntityNameURL, nil
+	case "VEHICLE_ID":
+		return RedactionLevelEntityNameVehicleID, nil
+	case "MEDICAL_CODE":
+		return RedactionLevelEntityNameMedicalCode, nil
+	case "NAME_FAMILY":
+		return RedactionLevelEntityNameNameFamily, nil
+	case "NAME_GIVEN":
+		return RedactionLevelEntityNameNameGiven, nil
+	case "ACCOUNT_NUMBER":
+		return RedactionLevelEntityNameAccountNumber, nil
+	case "EVENT":
+		return RedactionLevelEntityNameEvent, nil
+	case "FILENAME":
+		return RedactionLevelEntityNameFilename, nil
+	case "GENDER":
+		return RedactionLevelEntityNameGender, nil
+	case "LANGUAGE":
+		return RedactionLevelEntityNameLanguage, nil
+	case "LOCATION_ADDRESS":
+		return RedactionLevelEntityNameLocationAddress, nil
+	case "LOCATION_CITY":
+		return RedactionLevelEntityNameLocationCity, nil
+	case "LOCATION_COORDINATE":
+		return RedactionLevelEntityNameLocationCoordinate, nil
+	case "LOCATION_COUNTRY":
+		return RedactionLevelEntityNameLocationCountry, nil
+	case "LOCATION_STATE":
+		return RedactionLevelEntityNameLocationState, nil
+	case "LOCATION_ZIP":
+		return RedactionLevelEntityNameLocationZip, nil
+	case "MARITAL_STATUS":
+		return RedactionLevelEntityNameMaritalStatus, nil
+	case "MONEY":
+		return RedactionLevelEntityNameMoney, nil
+	case "NAME_MEDICAL_PROFESSIONAL":
+		return RedactionLevelEntityNameNameMedicalProfessional, nil
+	case "OCCUPATION":
+		return RedactionLevelEntityNameOccupation, nil
+	case "ORGANIZATION":
+		return RedactionLevelEntityNameOrganization, nil
+	case "ORGANIZATION_MEDICAL_FACILITY":
+		return RedactionLevelEntityNameOrganizationMedicalFacility, nil
+	case "ORIGIN":
+		return RedactionLevelEntityNameOrigin, nil
+	case "PASSPORT_NUMBER":
+		return RedactionLevelEntityNamePassportNumber, nil
+	case "PASSWORD":
+		return RedactionLevelEntityNamePassword, nil
+	case "PHYSICAL_ATTRIBUTE":
+		return RedactionLevelEntityNamePhysicalAttribute, nil
+	case "POLITICAL_AFFILIATION":
+		return RedactionLevelEntityNamePoliticalAffiliation, nil
+	case "RELIGION":
+		return RedactionLevelEntityNameReligion, nil
+	case "TIME":
+		return RedactionLevelEntityNameTime, nil
+	case "USERNAME":
+		return RedactionLevelEntityNameUsername, nil
+	case "ZODIAC_SIGN":
+		return RedactionLevelEntityNameZodiacSign, nil
+	case "BLOOD_TYPE":
+		return RedactionLevelEntityNameBloodType, nil
+	case "CONDITION":
+		return RedactionLevelEntityNameCondition, nil
+	case "DOSE":
+		return RedactionLevelEntityNameDose, nil
+	case "DRUG":
+		return RedactionLevelEntityNameDrug, nil
+	case "INJURY":
+		return RedactionLevelEntityNameInjury, nil
+	case "MEDICAL_PROCESS":
+		return RedactionLevelEntityNameMedicalProcess, nil
+	case "STATISTICS":
+		return RedactionLevelEntityNameStatistics, nil
+	case "ROUTING_NUMBER":
+		return RedactionLevelEntityNameRoutingNumber, nil
+	case "CORPORATE_ACTION":
+		return RedactionLevelEntityNameCorporateAction, nil
+	case "FINANCIAL_METRIC":
+		return RedactionLevelEntityNameFinancialMetric, nil
+	case "PRODUCT":
+		return RedactionLevelEntityNameProduct, nil
+	case "TREND":
+		return RedactionLevelEntityNameTrend, nil
+	case "DURATION":
+		return RedactionLevelEntityNameDuration, nil
+	case "LOCATION_ADDRESS_STREET":
+		return RedactionLevelEntityNameLocationAddressStreet, nil
+	case "AGE":
+		return RedactionLevelEntityNameAge, nil
+	case "SEXUALITY":
+		return RedactionLevelEntityNameSexuality, nil
+	case "EFFECT":
+		return RedactionLevelEntityNameEffect, nil
+	case "PROJECT":
+		return RedactionLevelEntityNameProject, nil
+	case "ORGANIZATION_ID":
+		return RedactionLevelEntityNameOrganizationID, nil
+	case "DAY":
+		return RedactionLevelEntityNameDay, nil
+	case "MONTH":
+		return RedactionLevelEntityNameMonth, nil
+	case "YEAR":
+		return RedactionLevelEntityNameYear, nil
+	case "ALL":
+		return RedactionLevelEntityNameAll, nil
+	}
+	var t RedactionLevelEntityName
+	return "", fmt.Errorf("%s is not a valid %T", s, t)
+}
+
+func (r RedactionLevelEntityName) Ptr() *RedactionLevelEntityName {
+	return &r
+}
+
+// Redaction method to apply to the detokenized value (e.g., for the value `John Doe`, `MASKED` transforms it into `JoXXXe`, `REDACTED` transforms it into `*REDACTED*`, and `PLAIN_TEXT` keeps it as `John Doe`). Use this for SkyVault.
+type RedactionLevelRedactionType string
+
+const (
+	RedactionLevelRedactionTypeDefault   RedactionLevelRedactionType = "DEFAULT"
+	RedactionLevelRedactionTypeRedacted  RedactionLevelRedactionType = "REDACTED"
+	RedactionLevelRedactionTypeMasked    RedactionLevelRedactionType = "MASKED"
+	RedactionLevelRedactionTypePlainText RedactionLevelRedactionType = "PLAIN_TEXT"
+)
+
+func NewRedactionLevelRedactionTypeFromString(s string) (RedactionLevelRedactionType, error) {
+	switch s {
+	case "DEFAULT":
+		return RedactionLevelRedactionTypeDefault, nil
+	case "REDACTED":
+		return RedactionLevelRedactionTypeRedacted, nil
+	case "MASKED":
+		return RedactionLevelRedactionTypeMasked, nil
+	case "PLAIN_TEXT":
+		return RedactionLevelRedactionTypePlainText, nil
+	}
+	var t RedactionLevelRedactionType
+	return "", fmt.Errorf("%s is not a valid %T", s, t)
+}
+
+func (r RedactionLevelRedactionType) Ptr() *RedactionLevelRedactionType {
+	return &r
+}
+
+// Shifts detected date values by a random number of days within the given range. Negative values shift dates backward and positive values shift them forward.
+type TransformationShiftDates struct {
+	// Minimum number of days to shift dates.
+	MinDays *int `json:"minDays,omitempty" url:"minDays,omitempty"`
+	// Maximum number of days to shift dates.
+	MaxDays *int `json:"maxDays,omitempty" url:"maxDays,omitempty"`
+
+	extraProperties map[string]interface{}
+	rawJSON         json.RawMessage
+}
+
+func (t *TransformationShiftDates) GetMinDays() *int {
+	if t == nil {
+		return nil
+	}
+	return t.MinDays
+}
+
+func (t *TransformationShiftDates) GetMaxDays() *int {
+	if t == nil {
+		return nil
+	}
+	return t.MaxDays
+}
+
+func (t *TransformationShiftDates) GetExtraProperties() map[string]interface{} {
+	return t.extraProperties
+}
+
+func (t *TransformationShiftDates) UnmarshalJSON(data []byte) error {
+	type unmarshaler TransformationShiftDates
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*t = TransformationShiftDates(value)
+	extraProperties, err := internal.ExtractExtraProperties(data, *t)
+	if err != nil {
+		return err
+	}
+	t.extraProperties = extraProperties
+	t.rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (t *TransformationShiftDates) String() string {
+	if len(t.rawJSON) > 0 {
+		if value, err := internal.StringifyJSON(t.rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := internal.StringifyJSON(t); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", t)
 }

@@ -7,8 +7,12 @@ import (
 	generated "github.com/skyflowapi/skyflow-go/common/internal/generated"
 	authentication "github.com/skyflowapi/skyflow-go/common/internal/generated/authentication"
 	core "github.com/skyflowapi/skyflow-go/common/internal/generated/core"
+	filesv2 "github.com/skyflowapi/skyflow-go/common/internal/generated/filesv2"
+	guardrailsv2 "github.com/skyflowapi/skyflow-go/common/internal/generated/guardrailsv2"
 	internal "github.com/skyflowapi/skyflow-go/common/internal/generated/internal"
 	option "github.com/skyflowapi/skyflow-go/common/internal/generated/option"
+	stringsv2 "github.com/skyflowapi/skyflow-go/common/internal/generated/stringsv2"
+	tokenexchange "github.com/skyflowapi/skyflow-go/common/internal/generated/tokenexchange"
 	http "net/http"
 )
 
@@ -19,6 +23,10 @@ type Client struct {
 
 	WithRawResponse *RawClient
 	Authentication  *authentication.Client
+	TokenExchange   *tokenexchange.Client
+	FilesV2         *filesv2.Client
+	StringsV2       *stringsv2.Client
+	GuardrailsV2    *guardrailsv2.Client
 }
 
 func NewClient(opts ...option.RequestOption) *Client {
@@ -34,6 +42,10 @@ func NewClient(opts ...option.RequestOption) *Client {
 		header:          options.ToHeader(),
 		WithRawResponse: NewRawClient(options),
 		Authentication:  authentication.NewClient(opts...),
+		TokenExchange:   tokenexchange.NewClient(opts...),
+		FilesV2:         filesv2.NewClient(opts...),
+		StringsV2:       stringsv2.NewClient(opts...),
+		GuardrailsV2:    guardrailsv2.NewClient(opts...),
 	}
 }
 
@@ -46,7 +58,7 @@ func (c *Client) PatchV2VaultsID(
 	baseURL := internal.ResolveBaseURL(
 		options.BaseURL,
 		c.baseURL,
-		"https://manage.skyflowapis.com",
+		"https://%7B%7Bvault_url%7D%7D",
 	)
 	endpointURL := internal.EncodeURL(
 		baseURL+"/v2/vaults/%v",

@@ -68,10 +68,7 @@ func WithVaults(config ...vaultutils.VaultConfig) Option {
 				logLevel: &s.logLevel,
 			}
 
-			s.detectServices[vaultConfig.VaultId] = &detectService{
-				config:   &vaultConfig,
-				logLevel: &s.logLevel,
-			}
+			s.detectServices[vaultConfig.VaultId] = newDetectService(vaultConfig, s.detectSettings(), &s.logLevel)
 		}
 		return nil
 	}
@@ -118,6 +115,7 @@ func WithCredentials(credentials vaultutils.Credentials) Option {
 			return err
 		}
 		s.credentials = &credentials
+		s.syncDetect()
 		return nil
 	}
 }
@@ -135,6 +133,7 @@ func WithLogLevel(logLevel logger.LogLevel) Option {
 func WithCustomHeaders(headers map[vaultutils.CustomHeaderKey]string) Option {
 	return func(s *Skyflow) *error.SkyflowError {
 		s.customHeaders = headers
+		s.syncDetect()
 		return nil
 	}
 }
@@ -185,29 +184,18 @@ func (s *Skyflow) Connection(connectionId ...string) (*connectionService, *error
 	return connectionService, nil
 }
 
+// Detect returns the Detect service of a vault: the vault with vaultID, or the first
+// configured vault when none is given. Its methods call the Detect V2 APIs.
 func (s *Skyflow) Detect(vaultID ...string) (*detectService, *error.SkyflowError) {
-	// get vaultapi config if available in vaultapi configs, skyflow or env
 	config, err := getDetectConfig(s.detectServices, vaultID...)
 	if err != nil {
 		return nil, err
 	}
-
-	detectService := &detectService{}
-	// Get the VaultController from the builder's vaultServices map
-	detectService, exists := s.detectServices[config.VaultId]
+	service, exists := s.detectServices[config.VaultId]
 	if !exists {
-		detectService.config = config
-		detectService.logLevel = &s.logLevel
+		return nil, error.NewSkyflowError(error.INVALID_INPUT_CODE, error.VAULT_ID_NOT_IN_CONFIG_LIST)
 	}
-	// Update the config in the vaultapi service
-	detectService.controller = &controller.DetectController{
-		Config:        config,
-		Loglevel:      &s.logLevel,
-		CommonCreds:   s.credentials,
-		CustomHeaders: s.customHeaders,
-	}
-	detectService.config = config
-	return detectService, nil
+	return service, nil
 }
 
 // GetVaultConfig returns the VaultConfig registered under vaultId, or an error if it is not found.
@@ -264,15 +252,7 @@ func (s *Skyflow) UpdateSkyflowCredentials(credentials vaultutils.Credentials) *
 			}
 		}
 	}
-	if (s.detectServices != nil) && (len(s.detectServices) > 0) {
-		for _, dService := range s.detectServices {
-			if dService.controller != nil {
-				dService.controller.CommonCreds = &credentials
-				dService.controller.Token = ""
-				dService.controller.ApiKey = ""
-			}
-		}
-	}
+	s.syncDetect()
 	if (s.connectionServices != nil) && (len(s.connectionServices) > 0) {
 		for _, cService := range s.connectionServices {
 			if cService.controller != nil {
@@ -314,19 +294,9 @@ func (s *Skyflow) UpdateVaultConfig(updatedConfig vaultutils.VaultConfig) *error
 			vaultSvc.controller.Config.Env = updatedConfig.Env
 		}
 	}
-	// Update the credentials in the detect controller if provided
-	if detectExists && detectSvc.controller != nil {
-		if !isCredentialsEmpty(updatedConfig.Credentials) {
-			detectSvc.controller.Config.Credentials = updatedConfig.Credentials
-			detectSvc.controller.Token = ""
-			detectSvc.controller.ApiKey = ""
-		}
-		if updatedConfig.ClusterId != "" {
-			detectSvc.controller.Config.ClusterId = updatedConfig.ClusterId
-		}
-		if updatedConfig.Env.IsSet() {
-			detectSvc.controller.Config.Env = updatedConfig.Env
-		}
+	// Merge the update into the detect service's config
+	if detectExists {
+		s.updateDetect(detectSvc, updatedConfig)
 	}
 
 	// Update the config in the vaultapi service
@@ -400,10 +370,7 @@ func (s *Skyflow) AddVaultConfig(config vaultutils.VaultConfig) *error.SkyflowEr
 		config:   &config,
 		logLevel: &s.logLevel,
 	}
-	s.detectServices[config.VaultId] = &detectService{
-		config:   &config,
-		logLevel: &s.logLevel,
-	}
+	s.detectServices[config.VaultId] = newDetectService(config, s.detectSettings(), &s.logLevel)
 	logger.Info(fmt.Sprintf(logs.VAULT_CONTROLLER_INITIALIZED, config.VaultId))
 	return nil
 }
@@ -425,15 +392,7 @@ func (s *Skyflow) AddSkyflowCredentials(config vaultutils.Credentials) *error.Sk
 			}
 		}
 	}
-	if (s.detectServices != nil) && (len(s.detectServices) > 0) {
-		for _, dService := range s.detectServices {
-			if dService.controller != nil {
-				dService.controller.CommonCreds = &config
-				dService.controller.Token = ""
-				dService.controller.ApiKey = ""
-			}
-		}
-	}
+	s.syncDetect()
 	if (s.connectionServices != nil) && (len(s.connectionServices) > 0) {
 		for _, cService := range s.connectionServices {
 			if cService.controller != nil {

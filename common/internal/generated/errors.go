@@ -7,14 +7,14 @@ import (
 	core "github.com/skyflowapi/skyflow-go/common/internal/generated/core"
 )
 
-// Invalid scope format.
+// Returned when the request is invalid or cannot be served.
 type BadRequestError struct {
 	*core.APIError
-	Body map[string]interface{}
+	Body *ErrorResponse
 }
 
 func (b *BadRequestError) UnmarshalJSON(data []byte) error {
-	var body map[string]interface{}
+	var body *ErrorResponse
 	if err := json.Unmarshal(data, &body); err != nil {
 		return err
 	}
@@ -31,14 +31,38 @@ func (b *BadRequestError) Unwrap() error {
 	return b.APIError
 }
 
-// Returned when the resource does not exist.
+// An unexpected error response.
+type InternalServerError struct {
+	*core.APIError
+	Body *ErrorResponse
+}
+
+func (i *InternalServerError) UnmarshalJSON(data []byte) error {
+	var body *ErrorResponse
+	if err := json.Unmarshal(data, &body); err != nil {
+		return err
+	}
+	i.StatusCode = 500
+	i.Body = body
+	return nil
+}
+
+func (i *InternalServerError) MarshalJSON() ([]byte, error) {
+	return json.Marshal(i.Body)
+}
+
+func (i *InternalServerError) Unwrap() error {
+	return i.APIError
+}
+
+// Returned when a resource doesn't exist.
 type NotFoundError struct {
 	*core.APIError
-	Body map[string]interface{}
+	Body *ErrorResponse
 }
 
 func (n *NotFoundError) UnmarshalJSON(data []byte) error {
-	var body map[string]interface{}
+	var body *ErrorResponse
 	if err := json.Unmarshal(data, &body); err != nil {
 		return err
 	}
@@ -55,14 +79,14 @@ func (n *NotFoundError) Unwrap() error {
 	return n.APIError
 }
 
-// Key expired or JWT token unparseable.
+// Returned when the request is unauthorized.
 type UnauthorizedError struct {
 	*core.APIError
-	Body map[string]interface{}
+	Body *ErrorResponse
 }
 
 func (u *UnauthorizedError) UnmarshalJSON(data []byte) error {
-	var body map[string]interface{}
+	var body *ErrorResponse
 	if err := json.Unmarshal(data, &body); err != nil {
 		return err
 	}

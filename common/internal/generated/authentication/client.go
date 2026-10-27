@@ -34,17 +34,17 @@ func NewClient(opts ...option.RequestOption) *Client {
 	}
 }
 
-// <p>Generates a Bearer Token to authenticate with Skyflow. This method doesn't require the <code>Authorization</code> header.</p><p><b>Note:</b> For recommended ways to authenticate, see <a href='/api-authentication/'>API authentication</a>.</p>
-func (c *Client) AuthenticationServiceGetAuthToken(
+// Generates a Bearer Token to authenticate with Skyflow.
+func (c *Client) GetBearerToken(
 	ctx context.Context,
-	request *generated.V1GetAuthTokenRequest,
+	request *generated.GetAuthTokenRequest,
 	opts ...option.RequestOption,
-) (*generated.V1GetAuthTokenResponse, error) {
+) (*generated.GetAuthTokenResponse, error) {
 	options := core.NewRequestOptions(opts...)
 	baseURL := internal.ResolveBaseURL(
 		options.BaseURL,
 		c.baseURL,
-		"https://manage.skyflowapis.com",
+		"https://%7B%7Bvault_url%7D%7D",
 	)
 	endpointURL := baseURL + "/v1/auth/sa/oauth/token"
 	headers := internal.MergeHeaders(
@@ -68,9 +68,14 @@ func (c *Client) AuthenticationServiceGetAuthToken(
 				APIError: apiError,
 			}
 		},
+		500: func(apiError *core.APIError) error {
+			return &generated.InternalServerError{
+				APIError: apiError,
+			}
+		},
 	}
 
-	var response *generated.V1GetAuthTokenResponse
+	var response *generated.GetAuthTokenResponse
 	if _, err := c.caller.Call(
 		ctx,
 		&internal.CallParams{
