@@ -443,7 +443,7 @@ response, err := vault.Query(ctx, request, common.QueryOptions{})
 
 ### Upload files
 
-`UploadFiles` stores files in a table's file columns. Leave `SkyflowId` empty on a record to create a new record, or set it to upload into an existing record. Each record needs `TableName` and at least one column.
+`UploadFiles` stores files in a table's file columns. Leave `SkyflowId` empty on a record to create a new record, or set it to upload into an existing record. Each record needs `TableName` and at least one column, with each column listed once.
 
 Each `UploadFilesRequestColumn` needs `Column` and exactly one file source:
 
