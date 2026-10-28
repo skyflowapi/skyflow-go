@@ -447,9 +447,9 @@ response, err := vault.Query(ctx, request, common.QueryOptions{})
 
 Each `UploadFilesRequestColumn` needs `Column` and exactly one file source:
 
-- `FilePath`, a path to a file.
+- `FilePath`, a path to a regular file, not a directory.
 - `Base64`, the file's content encoded as base64. `FileName` is required with `Base64`.
-- `FileObject`, an open `*os.File`. Close it yourself after the call.
+- `FileObject`, an open `*os.File`. The SDK uploads it from its current offset and doesn't close it. Keep it open until the call returns, then close it yourself.
 
 If you leave `FileName` empty, the SDK takes the name from `FilePath` or `FileObject`. If no name is available, the vault generates one.
 
@@ -476,9 +476,9 @@ response, err := vault.UploadFiles(ctx, request, common.UploadFilesOptions{})
 
 The SDK uploads files in these steps:
 
-1. It reads every file into memory. If a file can't be read or its base64 is invalid, the call returns a `SkyflowError` before anything is sent.
+1. It checks every file source. Each `FilePath` must open as a regular file, and each `FileObject` must be open. It also decodes any `Base64` content. If a check fails or the base64 is invalid, the call returns a `SkyflowError` before anything is sent.
 2. It requests a signed upload URL for each column from the vault. This request follows your timeout, retry, and header settings.
-3. It uploads each file to its signed URL, at most 5 at a time. These uploads aren't retried, have no overall timeout, and carry none of the SDK's headers or your interceptor's headers. The SDK waits up to 10 seconds to connect to the storage service, and up to 10 seconds for its response after sending a file. To stop an upload, cancel `ctx`.
+3. It uploads each file to its signed URL, at most 5 at a time. It streams `FilePath` and `FileObject` files as it sends them, so it doesn't hold them in memory. If a `FilePath` can't be opened by then, that column fails. These uploads aren't retried, have no overall timeout, and carry none of the SDK's headers or your interceptor's headers. The SDK waits up to 10 seconds to connect to the storage service, and up to 10 seconds for its response after sending a file. To stop an upload, cancel `ctx`.
 
 Each record in `response.Records` has `SkyflowId`, `TableName`, `HttpCode`, `Error`, and `RequestId`, plus a `Columns` entry for each request column. Each column result has `Column`, `FileName`, `UploadStatus`, and `Error`. `UploadStatus` is one of these values:
 
