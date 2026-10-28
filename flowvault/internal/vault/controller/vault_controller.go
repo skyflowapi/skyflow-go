@@ -189,7 +189,8 @@ func (v *VaultController) UploadFiles(ctx context.Context, request fvcommon.Uplo
 		if err := fvvalidation.ValidateUploadFiles(request); err != nil {
 			return err
 		}
-		// Read every file up front so a bad file fails the call before anything is uploaded.
+		// Check every file up front so a bad file fails the call before anything is uploaded.
+		// Files are read only when they are uploaded.
 		for i, record := range request.Records {
 			for _, column := range record.Columns {
 				file, err := fvhelpers.ResolveFile(column)

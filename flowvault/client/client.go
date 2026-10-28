@@ -109,6 +109,45 @@ func copyHttpConfig(config fvcommon.HttpConfig) fvcommon.HttpConfig {
 	return config
 }
 
+// copyVaultConfig copies MaxRetries and the credentials so the copy shares nothing mutable.
+func copyVaultConfig(config fvcommon.VaultConfig) fvcommon.VaultConfig {
+	if config.MaxRetries != nil {
+		retries := *config.MaxRetries
+		config.MaxRetries = &retries
+	}
+	config.Credentials = copyCredentials(config.Credentials)
+	return config
+}
+
+// copyCredentials copies Roles and a map or slice Context, so a change to either through
+// one copy doesn't reach the other.
+func copyCredentials(credentials fvcommon.Credentials) fvcommon.Credentials {
+	if credentials.Roles != nil {
+		credentials.Roles = append([]string(nil), credentials.Roles...)
+	}
+	credentials.Context = copyValue(credentials.Context)
+	return credentials
+}
+
+// copyValue deep-copies JSON-like maps and slices; other values are returned as they are.
+func copyValue(value interface{}) interface{} {
+	switch v := value.(type) {
+	case map[string]interface{}:
+		copied := make(map[string]interface{}, len(v))
+		for key, item := range v {
+			copied[key] = copyValue(item)
+		}
+		return copied
+	case []interface{}:
+		copied := make([]interface{}, len(v))
+		for i, item := range v {
+			copied[i] = copyValue(item)
+		}
+		return copied
+	}
+	return value
+}
+
 // Vault returns the vault service registered under vaultId.
 func (s *Skyflow) Vault(vaultId string) (*VaultService, *fverrors.SkyflowError) {
 	s.mu.RLock()
@@ -137,11 +176,7 @@ func (s *Skyflow) AddVaultConfig(cfg fvcommon.VaultConfig) *fverrors.SkyflowErro
 		fvlogger.Error(fmt.Sprintf(logs.VAULT_CONFIG_EXISTS, cfg.VaultId))
 		return fverrors.NewSkyflowError(fverrors.INVALID_INPUT_CODE, fmt.Sprintf(fverrors.VAULT_ID_EXISTS_IN_CONFIG_LIST, cfg.VaultId))
 	}
-	if cfg.MaxRetries != nil {
-		retries := *cfg.MaxRetries
-		cfg.MaxRetries = &retries
-	}
-	s.vaultServices[cfg.VaultId] = newVaultService(controller.NewVaultController(cfg, s.clientSettings()))
+	s.vaultServices[cfg.VaultId] = newVaultService(controller.NewVaultController(copyVaultConfig(cfg), s.clientSettings()))
 	fvlogger.Info(fmt.Sprintf(logs.VAULT_CONTROLLER_INITIALIZED, cfg.VaultId))
 	return nil
 }
@@ -168,7 +203,7 @@ func (s *Skyflow) UpdateVaultConfig(updatedConfig fvcommon.VaultConfig) *fverror
 	config := svc.controller.Config()
 	credentialsChanged := !fvcommon.IsCredentialsEmpty(updatedConfig.Credentials)
 	if credentialsChanged {
-		config.Credentials = updatedConfig.Credentials
+		config.Credentials = copyCredentials(updatedConfig.Credentials)
 	}
 	if updatedConfig.ClusterId != "" {
 		config.ClusterId = updatedConfig.ClusterId
@@ -218,7 +253,7 @@ func (s *Skyflow) GetVaultConfig(vaultId string) (*fvcommon.VaultConfig, *fverro
 	if !exists {
 		return nil, fverrors.NewSkyflowError(fverrors.INVALID_INPUT_CODE, fverrors.VAULT_ID_NOT_IN_CONFIG_LIST)
 	}
-	config := svc.controller.Config()
+	config := copyVaultConfig(svc.controller.Config())
 	return &config, nil
 }
 
@@ -235,6 +270,7 @@ func (s *Skyflow) AddSkyflowCredentials(credentials fvcommon.Credentials) *fverr
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	// A new pointer, so every vault drops its cached token.
+	credentials = copyCredentials(credentials)
 	s.credentials = &credentials
 	s.syncVaults()
 	return nil
@@ -252,7 +288,7 @@ func (s *Skyflow) GetSkyflowCredentials() *fvcommon.Credentials {
 	if s.credentials == nil {
 		return nil
 	}
-	credentials := *s.credentials
+	credentials := copyCredentials(*s.credentials)
 	return &credentials
 }
 

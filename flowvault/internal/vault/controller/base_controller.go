@@ -1,12 +1,15 @@
 package controller
 
 import (
+	"errors"
+	"io"
 	"net/http"
 	"os"
 	"sync"
 
 	fvconsts "github.com/skyflowapi/skyflow-go/flowvault/internal/constants"
 	apiclient "github.com/skyflowapi/skyflow-go/flowvault/internal/generated/client"
+	"github.com/skyflowapi/skyflow-go/flowvault/internal/generated/core"
 	"github.com/skyflowapi/skyflow-go/flowvault/internal/generated/option"
 	fvhelpers "github.com/skyflowapi/skyflow-go/flowvault/internal/helpers"
 	fvvalidation "github.com/skyflowapi/skyflow-go/flowvault/internal/validation"
@@ -164,12 +167,32 @@ func (b *BaseController) SetupRequest(operation string, interceptor fvcommon.Int
 	// Retries happen in setup.HTTPClient, so the generated client makes a single attempt.
 	setup.API = apiclient.NewClient(
 		option.WithBaseURL(setup.BaseURL),
-		option.WithHTTPClient(setup.HTTPClient),
+		option.WithHTTPClient(finalResponseClient{setup.HTTPClient}),
 		option.WithHTTPHeader(setup.Headers),
 		option.WithToken(setup.AuthToken),
 		option.WithMaxAttempts(1),
 	)
 	return setup, nil
+}
+
+// finalResponseClient returns a response that would be retried as the generated client's
+// APIError, because retries are already done. The generated retrier would otherwise sleep
+// before giving up, outside the call's timeout and ignoring cancellation.
+type finalResponseClient struct {
+	client *http.Client
+}
+
+func (c finalResponseClient) Do(req *http.Request) (*http.Response, error) {
+	resp, err := c.client.Do(req)
+	if err != nil || !fvhelpers.ShouldRetry(resp.StatusCode) {
+		return resp, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	return nil, core.NewAPIError(resp.StatusCode, resp.Header, errors.New(string(raw)))
 }
 
 // buildHeaders merges the interceptor's per-call headers and the SDK metadata header.

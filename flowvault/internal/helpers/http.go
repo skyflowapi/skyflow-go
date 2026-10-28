@@ -89,7 +89,7 @@ type retryTransport struct {
 
 func (t *retryTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	resp, err := t.base.RoundTrip(req)
-	for retry := 0; err == nil && shouldRetry(resp.StatusCode) && retry < t.config.MaxRetries; retry++ {
+	for retry := 0; err == nil && ShouldRetry(resp.StatusCode) && retry < t.config.MaxRetries; retry++ {
 		if req.Body != nil && req.GetBody == nil {
 			break
 		}
@@ -126,7 +126,8 @@ func (t *retryTransport) wait(req *http.Request, delay time.Duration) error {
 	}
 }
 
-func shouldRetry(status int) bool {
+// ShouldRetry reports whether a response with this status is retried: 408, 429 and 5xx.
+func ShouldRetry(status int) bool {
 	return status == http.StatusRequestTimeout || status == http.StatusTooManyRequests || status >= http.StatusInternalServerError
 }
 

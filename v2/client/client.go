@@ -329,14 +329,32 @@ func (s *Skyflow) UpdateVaultConfig(updatedConfig vaultutils.VaultConfig) *error
 		}
 	}
 
-	// Update the config in the vaultapi service
+	// Update the config in the vaultapi service, keeping the stored values of the fields the
+	// update leaves unset, so a controller built later by Vault or Detect still sees them.
 	if vaultExists {
-		vaultSvc.config = &updatedConfig
+		vaultSvc.config = mergeVaultConfig(updatedConfig, vaultSvc.config)
 	}
 	if detectExists {
-		detectSvc.config = &updatedConfig
+		detectSvc.config = mergeVaultConfig(updatedConfig, detectSvc.config)
 	}
 	return nil
+}
+
+// mergeVaultConfig returns updated, with the credentials, cluster ID and Env of current
+// wherever updated leaves them unset.
+func mergeVaultConfig(updated vaultutils.VaultConfig, current *vaultutils.VaultConfig) *vaultutils.VaultConfig {
+	if current != nil {
+		if isCredentialsEmpty(updated.Credentials) {
+			updated.Credentials = current.Credentials
+		}
+		if updated.ClusterId == "" {
+			updated.ClusterId = current.ClusterId
+		}
+		if !updated.Env.IsSet() {
+			updated.Env = current.Env
+		}
+	}
+	return &updated
 }
 
 // UpdateConnectionConfig updates the credentials or URL of an existing connection config.

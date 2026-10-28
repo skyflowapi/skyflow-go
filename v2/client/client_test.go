@@ -319,6 +319,21 @@ var _ = Describe("Skyflow Client", func() {
 			Expect(service1).To(BeNil())
 		})
 
+		It("keeps the stored Env and cluster ID when an update omits them", func() {
+			Expect(client.AddVaultConfig(common.VaultConfig{VaultId: "env-vault", ClusterId: "c1", Env: common.SANDBOX})).To(BeNil())
+			Expect(client.UpdateVaultConfig(common.VaultConfig{VaultId: "env-vault", Credentials: common.Credentials{ApiKey: "key"}})).To(BeNil())
+
+			config, err := client.GetVaultConfig("env-vault")
+			Expect(err).To(BeNil())
+			Expect(config.Env).To(Equal(common.SANDBOX))
+			Expect(config.ClusterId).To(Equal("c1"))
+			Expect(config.Credentials.ApiKey).To(Equal("key"))
+			vault, _ := client.Vault("env-vault")
+			Expect(vault.controller.Config.Env).To(Equal(common.SANDBOX))
+			detect, _ := client.Detect("env-vault")
+			Expect(detect.controller.Config.Env).To(Equal(common.SANDBOX))
+		})
+
 		It("should return an error when trying to update a non-existing vault configuration", func() {
 			nonExistingConfig := common.VaultConfig{
 				VaultId:   "non-existing-vault",

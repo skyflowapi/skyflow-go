@@ -99,7 +99,7 @@ var _ = Describe("Files", func() {
 
 		file, err := ResolveFile(fvcommon.UploadFilesRequestColumn{Column: "c", FilePath: path})
 		Expect(err).To(BeNil())
-		Expect(file).To(Equal(ResolvedFile{Name: "resume.pdf", ContentType: "application/pdf", Content: []byte("pdf")}))
+		Expect(file).To(Equal(ResolvedFile{Name: "resume.pdf", ContentType: "application/pdf", Path: path}))
 
 		file, err = ResolveFile(fvcommon.UploadFilesRequestColumn{Column: "c", Base64: base64.StdEncoding.EncodeToString([]byte("txt")), FileName: "notes.txt"})
 		Expect(err).To(BeNil())
@@ -111,10 +111,18 @@ var _ = Describe("Files", func() {
 		file, err = ResolveFile(fvcommon.UploadFilesRequestColumn{Column: "c", FileObject: handle})
 		Expect(err).To(BeNil())
 		Expect(file.Name).To(Equal("resume.pdf"))
+		Expect(file.Object).To(BeIdenticalTo(handle))
+		Expect(file.Content).To(BeNil())
 	})
 
-	It("rejects an unreadable path and invalid base64", func() {
+	It("rejects an unreadable path, a directory, a closed file and invalid base64", func() {
 		_, err := ResolveFile(fvcommon.UploadFilesRequestColumn{Column: "c", FilePath: "/does/not/exist"})
+		Expect(err.GetMessage()).To(ContainSubstring("Could not read file"))
+		_, err = ResolveFile(fvcommon.UploadFilesRequestColumn{Column: "c", FilePath: GinkgoT().TempDir()})
+		Expect(err.GetMessage()).To(ContainSubstring("not a regular file"))
+		closed, _ := os.CreateTemp(GinkgoT().TempDir(), "closed")
+		_ = closed.Close()
+		_, err = ResolveFile(fvcommon.UploadFilesRequestColumn{Column: "c", FileObject: closed})
 		Expect(err.GetMessage()).To(ContainSubstring("Could not read file"))
 		_, err = ResolveFile(fvcommon.UploadFilesRequestColumn{Column: "c", Base64: "%%%", FileName: "a.txt"})
 		Expect(err.GetMessage()).To(ContainSubstring("invalid base64"))
@@ -151,6 +159,40 @@ var _ = Describe("Files", func() {
 		cancel()
 		status, _ = PutFile(ctx, http.DefaultClient, server.URL+"/ok", file)
 		Expect(status).To(Equal(fvcommon.UploadStatusFailed))
+	})
+
+	It("streams a path or file object with its length and leaves the file object open", func() {
+		var length int64
+		var body string
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			raw, _ := io.ReadAll(r.Body)
+			length, body = r.ContentLength, string(raw)
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer server.Close()
+		path := filepath.Join(GinkgoT().TempDir(), "notes.txt")
+		Expect(os.WriteFile(path, []byte("header:content"), 0o600)).To(Succeed())
+
+		status, _ := PutFile(context.Background(), http.DefaultClient, server.URL, ResolvedFile{Path: path})
+		Expect(status).To(Equal(fvcommon.UploadStatusUploaded))
+		Expect(length).To(Equal(int64(14)))
+		Expect(body).To(Equal("header:content"))
+
+		handle, _ := os.Open(path)
+		defer handle.Close()
+		_, _ = handle.Seek(7, io.SeekStart)
+		status, _ = PutFile(context.Background(), http.DefaultClient, server.URL, ResolvedFile{Object: handle})
+		Expect(status).To(Equal(fvcommon.UploadStatusUploaded))
+		Expect(length).To(Equal(int64(7)))
+		Expect(body).To(Equal("content"))
+		_, err := handle.Stat()
+		Expect(err).To(BeNil())
+
+		empty := filepath.Join(GinkgoT().TempDir(), "empty.txt")
+		Expect(os.WriteFile(empty, nil, 0o600)).To(Succeed())
+		status, _ = PutFile(context.Background(), http.DefaultClient, server.URL, ResolvedFile{Path: empty})
+		Expect(status).To(Equal(fvcommon.UploadStatusUploaded))
+		Expect(length).To(Equal(int64(0)))
 	})
 
 	It("uploads with no retries and no overall timeout, but bounded connect and response waits", func() {

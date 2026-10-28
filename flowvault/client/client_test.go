@@ -94,6 +94,38 @@ var _ = Describe("Skyflow client", func() {
 		Expect(client.GetSkyflowCredentials().ApiKey).To(Equal(testApiKey))
 	})
 
+	It("shares no retries, roles or context with the caller", func() {
+		retries := 2
+		roles := []string{"role1"}
+		claims := map[string]interface{}{"user": map[string]interface{}{"id": "u1"}}
+		client, err := NewSkyflow(
+			WithVaults(fvcommon.VaultConfig{VaultId: testVaultID, ClusterId: "cluster", MaxRetries: &retries,
+				Credentials: fvcommon.Credentials{ApiKey: testApiKey, Roles: roles, Context: claims}}),
+			WithCredentials(fvcommon.Credentials{ApiKey: testApiKey, Roles: roles, Context: claims}),
+		)
+		Expect(err).To(BeNil())
+		retries, roles[0] = 5, "changed"
+		claims["user"].(map[string]interface{})["id"] = "changed"
+
+		config, _ := client.GetVaultConfig(testVaultID)
+		creds := client.GetSkyflowCredentials()
+		Expect(*config.MaxRetries).To(Equal(2))
+		for _, c := range []fvcommon.Credentials{config.Credentials, *creds} {
+			Expect(c.Roles).To(Equal([]string{"role1"}))
+			Expect(c.Context).To(Equal(map[string]interface{}{"user": map[string]interface{}{"id": "u1"}}))
+		}
+
+		*config.MaxRetries = -1
+		config.Credentials.Roles[0] = "changed"
+		creds.Roles[0] = "changed"
+		creds.Context.(map[string]interface{})["user"] = "changed"
+		again, _ := client.GetVaultConfig(testVaultID)
+		Expect(*again.MaxRetries).To(Equal(2))
+		Expect(again.Credentials.Roles).To(Equal([]string{"role1"}))
+		Expect(client.GetSkyflowCredentials().Roles).To(Equal([]string{"role1"}))
+		Expect(client.GetSkyflowCredentials().Context).To(Equal(map[string]interface{}{"user": map[string]interface{}{"id": "u1"}}))
+	})
+
 	It("can be changed while calls are running", func() {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")

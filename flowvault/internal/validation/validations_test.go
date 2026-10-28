@@ -102,6 +102,9 @@ var _ = Describe("Other validators", func() {
 		expectError(ValidateUploadFiles(column(fvcommon.UploadFilesRequestColumn{Column: "c", FilePath: "a", Base64: "b"})), "exactly one of FilePath")
 		expectError(ValidateUploadFiles(column(fvcommon.UploadFilesRequestColumn{Column: "c", Base64: "b"})), "FileName is required")
 		expectError(ValidateUploadFiles(column(fvcommon.UploadFilesRequestColumn{Column: "c", Base64: "b", FileName: "a.txt"})), "")
+		file := fvcommon.UploadFilesRequestColumn{Column: "c", Base64: "b", FileName: "a.txt"}
+		expectError(ValidateUploadFiles(fvcommon.UploadFilesRequest{Records: []fvcommon.UploadFilesRequestRecord{{TableName: "t", Columns: []fvcommon.UploadFilesRequestColumn{file, file}}}}),
+			`Column "c" is listed more than once for record at index 0`)
 	})
 
 	It("validates DeleteFiles", func() {
