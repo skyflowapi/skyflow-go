@@ -1,6 +1,6 @@
 # FlowVault Go samples
 
-Runnable examples for the Skyflow FlowVault Go SDK (`github.com/skyflowapi/skyflow-go/flowvault`), one file per operation.
+Runnable examples for the Skyflow FlowVault Go SDK (`github.com/skyflowapi/skyflow-go/flowvault`), one file per operation. For the full guide, including request rules and error handling, see the [SDK README](../../flowvault/README.md).
 
 ## Prerequisites
 
@@ -43,6 +43,17 @@ go run vaultapi/insert_records.go
 | [get_tokens.go](vaultapi/get_tokens.go) | Look up existing tokens for values (deterministic token groups) |
 | [upload_files.go](vaultapi/upload_files.go) | Upload files to file columns (`FilePath` / `Base64` / `FileObject`) |
 | [delete_files.go](vaultapi/delete_files.go) | Delete files from file columns (by `SkyflowId` or `UniqueValues`) |
+
+## Detect
+
+| Sample | Demonstrates |
+|---|---|
+| [deidentify_string.go](detectapi/deidentify_string.go) | De-identify a string with a stored or an inline configuration |
+| [deidentify_file.go](detectapi/deidentify_file.go) | Submit a file, or submit a local file and wait for the run with `Poll` |
+| [get_run.go](detectapi/get_run.go) | Get the state and outputs of a `DeidentifyFile` run |
+| [reidentify_string.go](detectapi/reidentify_string.go) | Re-identify a string with a token group's redaction pattern |
+| [reidentify_file.go](detectapi/reidentify_file.go) | Re-identify a file and write the outputs |
+| [check_guardrails.go](detectapi/check_guardrails.go) | Screen text for toxicity and denied topics |
 
 ## Custom headers and HTTP config
 
