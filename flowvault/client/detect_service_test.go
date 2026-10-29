@@ -46,9 +46,9 @@ var _ = Describe("Detect service", func() {
 	It("reports validation errors with the FlowVault SDK prefix", func() {
 		service, err := newTestClient().Detect(testVaultID)
 		Expect(err).To(BeNil())
-		_, err = service.DeidentifyString(context.Background(), fvcommon.DeidentifyStringRequest{Text: "x"}, fvcommon.DeidentifyStringOptions{})
+		_, err = service.DeidentifyString(context.Background(), fvcommon.DeidentifyStringRequest{Text: " "}, fvcommon.DeidentifyStringOptions{})
 		Expect(err.GetMessage()).To(ContainSubstring("Skyflow FlowVault Go SDK"))
-		Expect(err.GetMessage()).To(ContainSubstring("Set exactly one of ConfigurationId or Configuration"))
+		Expect(err.GetMessage()).To(ContainSubstring("Text must not be empty"))
 	})
 
 	It("is removed with its vault", func() {

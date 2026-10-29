@@ -31,6 +31,8 @@ type (
 	IncludePrefix              = cdetect.IncludePrefix
 	ReturnEntitiesType         = cdetect.ReturnEntitiesType
 	RedactionType              = cdetect.RedactionType
+	DeidentifySourceType       = cdetect.DeidentifySourceType
+	ReidentifySourceType       = cdetect.ReidentifySourceType
 	DataSourceType             = cdetect.DataSourceType
 	FileDataFormat             = cdetect.FileDataFormat
 	DetectRunStatus            = cdetect.DetectRunStatus
@@ -143,17 +145,21 @@ const (
 	DeidentificationTypeEntityUniqueCounter                   = cdetect.DeidentificationTypeEntityUniqueCounter
 	DeidentificationTypeEntityOnly                            = cdetect.DeidentificationTypeEntityOnly
 	DeidentificationTypeVaultToken                            = cdetect.DeidentificationTypeVaultToken
+	DeidentificationTypeMask                                  = cdetect.DeidentificationTypeMask
 	IncludePrefixIncludePrefixUnspecified                     = cdetect.IncludePrefixIncludePrefixUnspecified
 	IncludePrefixYes                                          = cdetect.IncludePrefixYes
 	IncludePrefixNo                                           = cdetect.IncludePrefixNo
 	ReturnEntitiesTypeExcludeSensitiveData                    = cdetect.ReturnEntitiesTypeExcludeSensitiveData
 	ReturnEntitiesTypeAll                                     = cdetect.ReturnEntitiesTypeAll
 	ReturnEntitiesTypeNone                                    = cdetect.ReturnEntitiesTypeNone
-	RedactionTypeDefault                                      = cdetect.RedactionTypeDefault
 	RedactionTypeRedacted                                     = cdetect.RedactionTypeRedacted
 	RedactionTypeMasked                                       = cdetect.RedactionTypeMasked
 	RedactionTypePlainText                                    = cdetect.RedactionTypePlainText
-	DataSourceTypeFile                                        = cdetect.DataSourceTypeFile
+	DeidentifySourceTypeBase64                                = cdetect.DeidentifySourceTypeBase64
+	DeidentifySourceTypeSkyflowID                             = cdetect.DeidentifySourceTypeSkyflowID
+	DeidentifySourceTypePresignedURL                          = cdetect.DeidentifySourceTypePresignedURL
+	ReidentifySourceTypeBase64                                = cdetect.ReidentifySourceTypeBase64
+	ReidentifySourceTypePresignedURL                          = cdetect.ReidentifySourceTypePresignedURL
 	DataSourceTypeBase64                                      = cdetect.DataSourceTypeBase64
 	DataSourceTypeSkyflowID                                   = cdetect.DataSourceTypeSkyflowID
 	DataSourceTypePresignedURL                                = cdetect.DataSourceTypePresignedURL
@@ -223,3 +229,6 @@ const (
 	OperationReidentifyFile                                   = cdetect.OperationReidentifyFile
 	OperationCheckGuardrails                                  = cdetect.OperationCheckGuardrails
 )
+
+// Deprecated: the server rejects DEFAULT in a redaction level. Use REDACTED, MASKED or PLAIN_TEXT.
+const RedactionTypeDefault = cdetect.RedactionTypeDefault

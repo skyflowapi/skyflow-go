@@ -51,7 +51,7 @@ func (c *Controller) callDeidentifyString(ctx context.Context, call *vaultclient
 	resp, err := newAPI(call).StringsV2.DeidentifyStringV2(ctx, &gen.DeidentifyStringRequestV2{
 		Text:            request.Text,
 		ConfigurationID: optString(request.ConfigurationId),
-		Configuration:   toGenConfiguration(request.Configuration, call.VaultID),
+		Configuration:   toGenConfiguration(request.Configuration, request.ConfigurationId, call.VaultID),
 	})
 	if err != nil {
 		return nil, apiError(err)
@@ -68,7 +68,7 @@ func (c *Controller) callDeidentifyFile(ctx context.Context, call *vaultclient.C
 		Value:           request.Value,
 		DataFormat:      optEnum[gen.DeidentifyFileRequestV2DataFormat](request.DataFormat),
 		ConfigurationID: optString(request.ConfigurationId),
-		Configuration:   toGenConfiguration(request.Configuration, call.VaultID),
+		Configuration:   toGenConfiguration(request.Configuration, request.ConfigurationId, call.VaultID),
 	})
 	if err != nil {
 		return "", apiError(err)

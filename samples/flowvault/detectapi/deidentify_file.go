@@ -52,7 +52,7 @@ func main() {
 
 	// Step 3: Submit a file already in the vault; only the run ID comes back
 	submitted, err := service.DeidentifyFile(context.Background(), common.DeidentifyFileRequest{
-		DataSource:      common.DataSourceTypeSkyflowID, // or DataSourceTypePresignedURL / DataSourceTypeBase64
+		DataSource:      common.DeidentifySourceTypeSkyflowID, // or DeidentifySourceTypePresignedURL / DeidentifySourceTypeBase64
 		Value:           "<SKYFLOW_ID>",
 		DataFormat:      common.FileDataFormatPDF,
 		ConfigurationId: "<CONFIGURATION_ID>",

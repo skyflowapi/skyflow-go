@@ -26,14 +26,11 @@ func (c *Controller) validateDeidentifyString(request DeidentifyStringRequest) *
 	if blank(request.Text) {
 		return c.invalid(errEmptyText, methodDeidentifyString)
 	}
-	return c.validateConfigurationSource(methodDeidentifyString, request.ConfigurationId, request.Configuration)
+	return nil
 }
 
 func (c *Controller) validateDeidentifyFile(request DeidentifyFileRequest, options DeidentifyFileOptions) *skyflowError.SkyflowError {
-	if err := c.validateFileSource(methodDeidentifyFile, request.DataSource, request.Value, request.FilePath, request.FileObject); err != nil {
-		return err
-	}
-	if err := c.validateConfigurationSource(methodDeidentifyFile, request.ConfigurationId, request.Configuration); err != nil {
+	if err := c.validateFileSource(methodDeidentifyFile, errMissingDeidentifySource, string(request.DataSource), request.Value, request.FilePath, request.FileObject); err != nil {
 		return err
 	}
 	if options.Poll == nil {
@@ -51,33 +48,28 @@ func (c *Controller) validateDeidentifyFile(request DeidentifyFileRequest, optio
 	return nil
 }
 
-func (c *Controller) validateConfigurationSource(method, configurationId string, configuration *DetectConfiguration) *skyflowError.SkyflowError {
-	if countSet(!blank(configurationId), configuration != nil) != 1 {
-		return c.invalid(errConfigurationSource, method)
-	}
-	return nil
-}
-
 // validateFileSource checks that the file comes from exactly one of Value, FilePath and
-// FileObject, and that DataSource suits it.
-func (c *Controller) validateFileSource(method string, dataSource DataSourceType, value, filePath string, fileObject *os.File) *skyflowError.SkyflowError {
+// FileObject, and that DataSource suits it. errMissingSource lists the method's DataSource
+// values.
+func (c *Controller) validateFileSource(method, errMissingSource, dataSource, value, filePath string, fileObject *os.File) *skyflowError.SkyflowError {
 	if countSet(!blank(value), !blank(filePath), fileObject != nil) != 1 {
 		return c.invalid(errFileSource, method)
 	}
 	if !blank(value) {
 		if dataSource == "" {
-			return c.invalid(errMissingDataSource, method)
+			return c.invalid(errMissingSource, method)
 		}
 		return nil
 	}
-	if dataSource != "" && dataSource != DataSourceTypeBase64 {
+	// Both request enums use this wire value for base64 content.
+	if dataSource != "" && dataSource != string(DeidentifySourceTypeBase64) {
 		return c.invalid(errLocalFileDataSource, method)
 	}
 	return nil
 }
 
 // validateRedactionLevels checks each level has exactly one source and one replacement.
-// Whether they suit the vault type is checked by the server.
+// Whether they suit the vault type is not checked here or by the server; see RedactionLevel.
 func (c *Controller) validateRedactionLevels(method string, levels []RedactionLevel) *skyflowError.SkyflowError {
 	for i, level := range levels {
 		if countSet(!blank(level.TokenGroupName), level.EntityName != "") != 1 {

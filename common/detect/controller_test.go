@@ -134,8 +134,7 @@ func TestDeidentifyStringSendsInlineConfigurationWithVaultId(t *testing.T) {
 func TestDeidentifyStringValidation(t *testing.T) {
 	c, _ := newTestController(newFakeDetect(t))
 	cases := map[string]DeidentifyStringRequest{
-		"Text must not be empty":                          {Text: " ", ConfigurationId: "cfg"},
-		"exactly one of ConfigurationId or Configuration": {Text: "x"},
+		"Text must not be empty": {Text: " ", ConfigurationId: "cfg"},
 	}
 	for want, request := range cases {
 		_, err := c.DeidentifyString(context.Background(), request, DeidentifyStringOptions{})
@@ -143,9 +142,53 @@ func TestDeidentifyStringValidation(t *testing.T) {
 			t.Errorf("%q: err = %v", want, err)
 		}
 	}
-	_, err := c.DeidentifyString(context.Background(), DeidentifyStringRequest{Text: "x", ConfigurationId: "c", Configuration: &DetectConfiguration{}}, DeidentifyStringOptions{})
-	if err == nil {
-		t.Error("both configuration sources should fail")
+}
+
+// Configuration sources match the Java SDK: both are optional and sent as given.
+func TestConfigurationSourcesAreSentAsGiven(t *testing.T) {
+	f := newFakeDetect(t)
+	f.responses[pathDeidentifyString] = []string{`{"processedText":"x"}`, `{"processedText":"x"}`, `{"processedText":"x"}`}
+	f.responses[pathDeidentifyFile] = []string{`{"runId":"run-1"}`}
+	c, _ := newTestController(f)
+	ctx := context.Background()
+
+	cases := []struct {
+		name          string
+		request       DeidentifyStringRequest
+		wantId        interface{}
+		wantVaultOnly bool
+	}{
+		{"neither: vault defaults", DeidentifyStringRequest{Text: "x"}, nil, true},
+		{"configuration ID only", DeidentifyStringRequest{Text: "x", ConfigurationId: "cfg"}, nil, false},
+		{"both: passed through for the API to reject", DeidentifyStringRequest{Text: "x", ConfigurationId: "cfg", Configuration: &DetectConfiguration{}}, "cfg", false},
+	}
+	for _, tc := range cases {
+		if _, err := c.DeidentifyString(ctx, tc.request, DeidentifyStringOptions{}); err != nil {
+			t.Fatalf("%s: %v", tc.name, err)
+		}
+		body := f.last().body
+		cfg, hasCfg := body["configuration"].(map[string]interface{})
+		switch {
+		case tc.wantVaultOnly:
+			if !hasCfg || len(cfg) != 1 || cfg["vaultId"] != "vault1" || body["configurationId"] != nil {
+				t.Errorf("%s: body = %v", tc.name, body)
+			}
+		case tc.request.Configuration == nil:
+			if hasCfg || body["configurationId"] != "cfg" {
+				t.Errorf("%s: body = %v", tc.name, body)
+			}
+		default:
+			if !hasCfg || cfg["vaultId"] != "vault1" || body["configurationId"] != tc.wantId {
+				t.Errorf("%s: body = %v", tc.name, body)
+			}
+		}
+	}
+
+	if _, err := c.DeidentifyFile(ctx, DeidentifyFileRequest{Value: "v", DataSource: DeidentifySourceTypeBase64}, DeidentifyFileOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	if cfg, ok := f.last().body["configuration"].(map[string]interface{}); !ok || cfg["vaultId"] != "vault1" {
+		t.Fatalf("deidentify file without configuration: body = %v", f.last().body)
 	}
 }
 
@@ -155,7 +198,7 @@ func TestDeidentifyFileSubmitOnly(t *testing.T) {
 	c, _ := newTestController(f)
 
 	resp, err := c.DeidentifyFile(context.Background(), DeidentifyFileRequest{
-		DataSource: DataSourceTypeSkyflowID, Value: "sid", DataFormat: FileDataFormatPDF, ConfigurationId: "cfg",
+		DataSource: DeidentifySourceTypeSkyflowID, Value: "sid", DataFormat: FileDataFormatPDF, ConfigurationId: "cfg",
 	}, DeidentifyFileOptions{})
 	if err != nil {
 		t.Fatal(err)
@@ -256,10 +299,10 @@ func TestDeidentifyFileValidation(t *testing.T) {
 	}{
 		{"exactly one of Value, FilePath or FileObject", DeidentifyFileRequest{ConfigurationId: "c"}, DeidentifyFileOptions{}},
 		{"DataSource is required", DeidentifyFileRequest{Value: "v", ConfigurationId: "c"}, DeidentifyFileOptions{}},
-		{"DataSource must be empty or BASE64", DeidentifyFileRequest{FilePath: "a.pdf", DataSource: DataSourceTypeSkyflowID, ConfigurationId: "c"}, DeidentifyFileOptions{}},
-		{"OutputDirectory requires Poll", DeidentifyFileRequest{Value: "v", DataSource: DataSourceTypeBase64, ConfigurationId: "c"}, DeidentifyFileOptions{OutputDirectory: "out"}},
-		{"WaitTime must be between", DeidentifyFileRequest{Value: "v", DataSource: DataSourceTypeBase64, ConfigurationId: "c"}, DeidentifyFileOptions{Poll: &PollOptions{WaitTime: 301 * time.Second}}},
-		{"MaxAttempts must be between", DeidentifyFileRequest{Value: "v", DataSource: DataSourceTypeBase64, ConfigurationId: "c"}, DeidentifyFileOptions{Poll: &PollOptions{MaxAttempts: 24}}},
+		{"DataSource must be empty or BASE64", DeidentifyFileRequest{FilePath: "a.pdf", DataSource: DeidentifySourceTypeSkyflowID, ConfigurationId: "c"}, DeidentifyFileOptions{}},
+		{"OutputDirectory requires Poll", DeidentifyFileRequest{Value: "v", DataSource: DeidentifySourceTypeBase64, ConfigurationId: "c"}, DeidentifyFileOptions{OutputDirectory: "out"}},
+		{"WaitTime must be between", DeidentifyFileRequest{Value: "v", DataSource: DeidentifySourceTypeBase64, ConfigurationId: "c"}, DeidentifyFileOptions{Poll: &PollOptions{WaitTime: 301 * time.Second}}},
+		{"MaxAttempts must be between", DeidentifyFileRequest{Value: "v", DataSource: DeidentifySourceTypeBase64, ConfigurationId: "c"}, DeidentifyFileOptions{Poll: &PollOptions{MaxAttempts: 24}}},
 		{"Could not read file", DeidentifyFileRequest{FilePath: "/does/not/exist.pdf", ConfigurationId: "c"}, DeidentifyFileOptions{}},
 	}
 	for _, tc := range cases {

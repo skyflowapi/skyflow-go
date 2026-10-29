@@ -62,10 +62,15 @@ func derefEnum[G ~string](p *G) string {
 // Requests
 // ---------------------------------------------------------------------------
 
-// toGenConfiguration adds the vault ID the API requires on an inline configuration.
-func toGenConfiguration(c *DetectConfiguration, vaultId string) *gen.DetectConfigV2 {
+// toGenConfiguration adds the vault ID the API requires on an inline configuration. The vault ID
+// travels inside the configuration, so with neither a configuration nor a configuration ID it
+// sends one holding only the vault ID, and the server applies the vault's defaults.
+func toGenConfiguration(c *DetectConfiguration, configurationId, vaultId string) *gen.DetectConfigV2 {
 	if c == nil {
-		return nil
+		if configurationId != "" {
+			return nil
+		}
+		return &gen.DetectConfigV2{VaultID: vaultId}
 	}
 	out := &gen.DetectConfigV2{
 		Name:        optString(c.Name),

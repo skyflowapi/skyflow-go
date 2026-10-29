@@ -113,7 +113,7 @@ func (c *Controller) DeidentifyFile(ctx context.Context, request DeidentifyFileR
 		return nil, err
 	}
 	if input != nil {
-		request.DataSource, request.Value = DataSourceTypeBase64, input.base64
+		request.DataSource, request.Value = DeidentifySourceTypeBase64, input.base64
 		if request.DataFormat == "" {
 			request.DataFormat = input.format
 		}
@@ -186,7 +186,7 @@ func (c *Controller) ReidentifyString(ctx context.Context, request ReidentifyStr
 func (c *Controller) ReidentifyFile(ctx context.Context, request ReidentifyFileRequest, options ReidentifyFileOptions) (*ReidentifyFileResponse, *skyflowError.SkyflowError) {
 	var input *localFile
 	call, err := c.prepare(methodReidentifyFile, OperationReidentifyFile, options.Interceptor, func() *skyflowError.SkyflowError {
-		if err := c.validateFileSource(methodReidentifyFile, request.DataSource, request.Value, request.FilePath, request.FileObject); err != nil {
+		if err := c.validateFileSource(methodReidentifyFile, errMissingReidentifySource, string(request.DataSource), request.Value, request.FilePath, request.FileObject); err != nil {
 			return err
 		}
 		if err := c.validateRedactionLevels(methodReidentifyFile, request.RedactionLevel); err != nil {
@@ -200,7 +200,7 @@ func (c *Controller) ReidentifyFile(ctx context.Context, request ReidentifyFileR
 		return nil, err
 	}
 	if input != nil {
-		request.DataSource, request.Value = DataSourceTypeBase64, input.base64
+		request.DataSource, request.Value = ReidentifySourceTypeBase64, input.base64
 		if request.DataFormat == "" {
 			request.DataFormat = input.format
 		}

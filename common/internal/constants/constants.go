@@ -12,6 +12,11 @@ const (
 	HTTP_STATUS_BAD_REQUEST     = "Bad Request"
 	ERROR_FAILED_TO_READ        = "Failed to read error"
 
+	// Generated clients format API errors as "<status>: <body>".
+	API_ERROR_SEPARATOR = ": "
+	MIN_HTTP_STATUS     = 100
+	MAX_HTTP_STATUS     = 599
+
 	ERROR_KEY_ERROR       = "error"
 	ERROR_KEY_MESSAGE     = "message"
 	ERROR_KEY_HTTP_CODE   = "http_code"

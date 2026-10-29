@@ -35,8 +35,8 @@ type FileOutput struct {
 
 // RedactionLevel controls how one group of tokens is re-identified. Set exactly one source
 // (TokenGroupName for FlowVault, EntityName for SkyVault) and exactly one replacement
-// (RedactionPattern for FlowVault, RedactionType for SkyVault). The server checks that
-// they suit the vault type.
+// (RedactionPattern for FlowVault, RedactionType for SkyVault). The server does not check
+// that they suit the vault type: a level using the other vault type's fields is ignored.
 type RedactionLevel struct {
 	TokenGroupName   string        `json:"tokenGroupName,omitempty"`
 	EntityName       EntityType    `json:"entityName,omitempty"`
@@ -48,8 +48,8 @@ type RedactionLevel struct {
 // DeidentifyString
 // ---------------------------------------------------------------------------
 
-// DeidentifyStringRequest de-identifies sensitive data in Text. Set exactly one of
-// ConfigurationId and Configuration.
+// DeidentifyStringRequest de-identifies sensitive data in Text. ConfigurationId and Configuration are optional:
+// with neither, the vault's default Detect settings apply. Setting both is rejected by the API.
 type DeidentifyStringRequest struct {
 	Text            string               `json:"text"`
 	ConfigurationId string               `json:"configurationId,omitempty"`
@@ -92,12 +92,12 @@ type EntityLocation struct {
 // ---------------------------------------------------------------------------
 
 // DeidentifyFileRequest submits a file for de-identification. Supply the file as exactly
-// one of Value (with DataSource), FilePath or FileObject. Set exactly one of
-// ConfigurationId and Configuration.
+// one of Value (with DataSource), FilePath or FileObject. ConfigurationId and Configuration are optional:
+// with neither, the vault's default Detect settings apply. Setting both is rejected by the API.
 type DeidentifyFileRequest struct {
 	// DataSource says what Value holds. A local file (FilePath or FileObject) is sent as
-	// DataSourceTypeBase64, which is also the only value allowed with one.
-	DataSource DataSourceType `json:"dataSource"`
+	// DeidentifySourceTypeBase64, which is also the only value allowed with one.
+	DataSource DeidentifySourceType `json:"dataSource"`
 	// Value is base64 content, a Skyflow ID or a presigned URL.
 	Value string `json:"value"`
 	// DataFormat is optional: the server infers it, and for a local file the SDK infers
@@ -197,10 +197,12 @@ type ReidentifyStringResponse struct {
 // ReidentifyFileRequest re-identifies a file. It is synchronous: there is no run to poll.
 // Supply the file as exactly one of Value (with DataSource), FilePath or FileObject.
 type ReidentifyFileRequest struct {
-	DataSource     DataSourceType   `json:"dataSource"`
-	Value          string           `json:"value"`
-	DataFormat     FileDataFormat   `json:"dataFormat,omitempty"`
-	RedactionLevel []RedactionLevel `json:"redactionLevel,omitempty"`
+	// DataSource says what Value holds. A local file (FilePath or FileObject) is sent as
+	// ReidentifySourceTypeBase64, which is also the only value allowed with one.
+	DataSource     ReidentifySourceType `json:"dataSource"`
+	Value          string               `json:"value"` // base64 content or a presigned URL
+	DataFormat     FileDataFormat       `json:"dataFormat,omitempty"`
+	RedactionLevel []RedactionLevel     `json:"redactionLevel,omitempty"`
 
 	FilePath   string   `json:"-"`
 	FileObject *os.File `json:"-"`

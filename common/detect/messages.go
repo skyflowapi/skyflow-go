@@ -40,6 +40,10 @@ const (
 const (
 	processedFilePrefix = "processed-"
 	defaultOutputName   = "output"
+	binaryExtension     = "bin"
+	nameSeparator       = "-"
+	extensionSeparator  = "."
+	fileTypeSeparator   = "_"
 )
 
 // Message bodies without the SDK prefix; the controller prepends the owning SDK's prefix
@@ -49,9 +53,9 @@ const (
 // Error messages: prefixed with the SDK prefix.
 const (
 	errEmptyText               = " Validation error. %s failed. Text must not be empty."
-	errConfigurationSource     = " Validation error. %s failed. Set exactly one of ConfigurationId or Configuration."
 	errFileSource              = " Validation error. %s failed. Set exactly one of Value, FilePath or FileObject."
-	errMissingDataSource       = " Validation error. %s failed. DataSource is required with Value. Specify BASE64, SKYFLOW_ID or PRESIGNED_URL."
+	errMissingDeidentifySource = " Validation error. %s failed. DataSource is required with Value. Specify BASE64, SKYFLOW_ID or PRESIGNED_URL."
+	errMissingReidentifySource = " Validation error. %s failed. DataSource is required with Value. Specify BASE64 or PRESIGNED_URL."
 	errLocalFileDataSource     = " Validation error. %s failed. A local file is sent as BASE64; DataSource must be empty or BASE64."
 	errFileNotReadable         = " Validation error. %s failed. Could not read file: %s"
 	errInvalidWaitTime         = " Validation error. DeidentifyFile failed. Poll WaitTime must be between 1 and 300 seconds."
@@ -63,6 +67,9 @@ const (
 	errEmptyDenyTopic          = " Validation error. CheckGuardrails failed. DenyTopics must not contain empty values."
 	errOutputNotWritten        = " Error occurred. The run succeeded but its output could not be written to %s: %s"
 	errEmptyResponse           = " API error. %s returned an empty response."
+
+	// Cause appended to errFileNotReadable and errOutputNotWritten.
+	notRegularFile = "not a regular file"
 )
 
 // Log messages: prefixed with the SDK log prefix.

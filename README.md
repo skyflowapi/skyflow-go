@@ -1850,7 +1850,7 @@ All types are in `github.com/skyflowapi/skyflow-go/v2/utils/common`.
 > This is the Detect V2 API (`/v2/detect/...`). It replaces the V1 methods: see [Migrate from Detect V1](#migrate-from-detect-v1).
 
 ### Deidentify String
-`DeidentifyString` replaces sensitive data in `Text` with tokens. Set exactly one of `ConfigurationId` (a stored configuration) or `Configuration` (an inline one).
+`DeidentifyString` replaces sensitive data in `Text` with tokens. `ConfigurationId` (a stored configuration) and `Configuration` (an inline one) are optional and sent as given: with neither, the vault's default Detect settings apply, and setting both is rejected by the API.
 
 ```go
 // With a stored configuration
@@ -1916,14 +1916,18 @@ Sample response:
 |---|---|
 | `FilePath` | A local file. Sent as base64; the format is inferred from the extension. |
 | `FileObject` | An open `*os.File`. The caller closes it. |
-| `DataSource` + `Value` | `DataSourceTypeBase64`, `DataSourceTypeSkyflowID` or `DataSourceTypePresignedURL`. |
+| `DataSource` + `Value` | `DeidentifySourceTypeBase64`, `DeidentifySourceTypeSkyflowID` or `DeidentifySourceTypePresignedURL`. |
 
-By default the call returns as soon as the file is submitted; get the result later with [GetRun](#get-run). Set `Poll` to wait for the run instead. For a local file, a successful polled run's outputs are written to `OutputDirectory` as `processed-<name>.<ext>` and `processed-entities-<name>.json`.
+By default the call returns as soon as the file is submitted; get the result later with [GetRun](#get-run). Set `Poll` to wait for the run instead.
+
+Outputs are written to disk only when the input is a local file (`FilePath` or `FileObject`), the polled run reached `SUCCESS` and its outputs are base64. They are named `processed-<name>.<ext>`, `processed-entities-<name>.json` and `processed-object-entities-<name>.json`. `OutputDirectory` requires `Poll`, is created if missing and defaults to the current directory. Presigned-URL outputs are not fetched: read them from `Output`.
+
+`DeidentificationTypeVaultToken` is supported only for `txt`, `csv`, `json`, `jsonl`, `xml`, `docx`, `xlsx` and `pptx` files.
 
 ```go
 // Submit and return: only RunId is set
 submitted, err := service.DeidentifyFile(ctx, common.DeidentifyFileRequest{
-	DataSource:      common.DataSourceTypeSkyflowID,
+	DataSource:      common.DeidentifySourceTypeSkyflowID,
 	Value:           "<SKYFLOW_ID>",
 	DataFormat:      common.FileDataFormatPDF, // optional
 	ConfigurationId: "<CONFIGURATION_ID>",
@@ -1997,7 +2001,9 @@ if run.Status == common.DetectRunStatusSuccess {
 > See the full example in the samples directory: [get_run.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v2/detectapi/get_run.go)
 
 ### Reidentify String
-`ReidentifyString` replaces the tokens in `Text`. Without `RedactionLevel`, every token gets its original value. Each `RedactionLevel` selects tokens by `EntityName` and shows them through a `RedactionType`: `common.PLAIN_TEXT`, `common.MASKED`, `common.REDACTED` or `common.DEFAULT`.
+`ReidentifyString` replaces the tokens in `Text`. Re-identification looks the tokens up in the vault, so it applies only to values de-identified with `DeidentificationTypeVaultToken`; `ENTITY_UNIQUE_COUNTER`, `ENTITY_ONLY` and `MASK` placeholders are not stored and cannot be re-identified.
+
+Without `RedactionLevel`, every token gets its original value. Each `RedactionLevel` selects tokens by `EntityName` and shows them through a `RedactionType`: `common.PLAIN_TEXT` (original value), `common.MASKED` or `common.REDACTED` (keeps the token).
 
 ```go
 response, err := service.ReidentifyString(ctx, common.ReidentifyStringRequest{
@@ -2018,7 +2024,7 @@ fmt.Println(response.ProcessedText) // My name is John Doe, and my email is j***
 > See the full example in the samples directory: [reidentify_string.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v2/detectapi/reidentify_string.go)
 
 ### Reidentify File
-`ReidentifyFile` takes the same file inputs and `RedactionLevel` as above. It is synchronous: there is no run to poll. For a local file the outputs are written to `OutputDirectory`.
+`ReidentifyFile` takes the same file inputs and `RedactionLevel` as above, except that `DataSource` is a `ReidentifySourceType`: `ReidentifySourceTypeBase64` or `ReidentifySourceTypePresignedURL` (a Skyflow ID is not accepted). `DataFormat` is limited to `txt`, `csv`, `json`, `jsonl`, `xml`, `docx`, `xlsx` and `pptx`. It is synchronous: there is no run to poll. For a local file, successful base64 outputs are written to `OutputDirectory` (default: the current directory).
 
 ```go
 response, err := service.ReidentifyFile(ctx, common.ReidentifyFileRequest{
