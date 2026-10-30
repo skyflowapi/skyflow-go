@@ -1,23 +1,39 @@
 package common
 
-// InsertRequest is the FlowVault insert request. Unlike v2, ContinueOnError
-// is part of the request rather than the options.
+type UpsertOptions struct {
+	UniqueColumns []string // required
+	UpdateType    UpdateType
+}
+
 type InsertRequest struct {
-	Table           string
-	Values          []map[string]interface{}
-	ContinueOnError bool
+	TableName string // set here OR on every record
+	Records   []InsertRequestRecord
+	Upsert    *UpsertOptions // only with request-level TableName
 }
 
-// InsertOptions are the FlowVault insert options. CustomHeaders uses plain
-// string keys (v2 uses a typed CustomHeaderKey).
-type InsertOptions struct {
-	Upsert        string
-	CustomHeaders map[string]string
+type InsertRequestRecord struct {
+	Data      map[string]interface{} // required
+	Tokens    map[string]interface{}
+	TableName string         // only if not set on the request
+	Upsert    *UpsertOptions // only with record-level TableName
 }
 
-// InsertResponse is the FlowVault insert response.
+// InsertResponseRecord is the per-record result of Insert, Update and Get.
+type InsertResponseRecord struct {
+	TableName  string                   `json:"tableName"`
+	SkyflowId  string                   `json:"skyflowId"`
+	Tokens     map[string][]Token       `json:"tokens"`
+	Data       map[string]interface{}   `json:"data"`
+	HashedData map[string][]HashedValue `json:"hashedData"`
+	HttpCode   int                      `json:"httpCode"`
+	Error      string                   `json:"error"`
+	RequestId  string                   `json:"requestId"`
+}
+
 type InsertResponse struct {
-	InsertedFields []map[string]interface{}
-	Tokens         []map[string]interface{}
-	Errors         []map[string]interface{}
+	Records []InsertResponseRecord `json:"records"`
+}
+
+type InsertOptions struct {
+	Interceptor Interceptor
 }

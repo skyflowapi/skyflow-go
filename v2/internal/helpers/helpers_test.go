@@ -1867,3 +1867,10 @@ var _ = Describe("Deprecation warning logs", func() {
 		})
 	})
 })
+
+var _ = Describe("Auth", func() {
+	It("returns the shared authenticator", func() {
+		Expect(Auth()).NotTo(BeNil())
+		Expect(Auth()).To(BeIdenticalTo(Auth()))
+	})
+})

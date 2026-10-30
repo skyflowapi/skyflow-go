@@ -3,7 +3,9 @@ package helpers
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"runtime"
+	"time"
 
 	"github.com/skyflowapi/skyflow-go/common/auth"
 	"github.com/skyflowapi/skyflow-go/common/config"
@@ -30,7 +32,7 @@ func GetURLWithEnv(env fvcommon.Env, clusterId string) string {
 // CreateSDKMetadata builds the sky-metadata header value.
 func CreateSDKMetadata() string {
 	data := map[string]string{
-		"sdk_name_version": fmt.Sprintf("skyflow-go@%s", fvconsts.SDK_VERSION),
+		"sdk_name_version": fmt.Sprintf("%s@%s", fvconsts.METRICS_SDK_NAME, fvconsts.SDK_VERSION),
 		"device_model":     runtime.GOOS,
 		"os_details":       fmt.Sprintf("%s %s", runtime.GOOS, runtime.GOARCH),
 		"runtime_details":  runtime.Version(),
@@ -42,10 +44,12 @@ func CreateSDKMetadata() string {
 	return string(b)
 }
 
-// authSvc is the shared service-account authenticator configured for flowvault.
+// authSvc is the shared service-account authenticator configured for flowvault. Its token
+// requests time out like Java's, so a token endpoint that stops answering can't block calls.
 var authSvc = auth.New(auth.Config{
-	SDKPrefix: fvconsts.SDK_PREFIX,
-	LogPrefix: fvconsts.SDK_LOG_PREFIX,
+	SDKPrefix:  fvconsts.SDK_PREFIX,
+	LogPrefix:  fvconsts.SDK_LOG_PREFIX,
+	HTTPClient: &http.Client{Timeout: fvconsts.AUTH_TIMEOUT_SECONDS * time.Second},
 })
 
 // Auth returns the shared service-account authenticator configured for flowvault.

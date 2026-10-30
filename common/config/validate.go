@@ -41,13 +41,7 @@ func (v Validator) ValidateVaultConfig(vaultConfig VaultConfig) *skyflowError.Sk
 	if vaultConfig.VaultId == "" {
 		return v.invalid(logVaultIdIsRequired, errInvalidVaultId)
 	}
-	baseVaultUrl := vaultConfig.BaseVaultUrl
-	if vaultConfig.BaseVaultURL != "" {
-		logger.Warn(v.logMsg(logDeprecatedFieldBaseVaultUrl))
-		if baseVaultUrl == "" {
-			baseVaultUrl = vaultConfig.BaseVaultURL
-		}
-	}
+	baseVaultUrl := v.baseVaultUrl(vaultConfig)
 	if baseVaultUrl == "" {
 		if vaultConfig.ClusterId == "" {
 			return v.invalid(logClusterIdIsRequired, errInvalidClusterId)
@@ -55,13 +49,38 @@ func (v Validator) ValidateVaultConfig(vaultConfig VaultConfig) *skyflowError.Sk
 	} else if !isValidHTTPURL(baseVaultUrl) {
 		return v.invalid(logVaultUrlIsInvalid, errInvalidVaultUrl)
 	}
+	return v.ValidateHttpConfig(vaultConfig.HttpConfig())
+}
+
+// baseVaultUrl returns BaseVaultUrl, falling back to the deprecated BaseVaultURL,
+// and warns when the deprecated field is set.
+func (v Validator) baseVaultUrl(vaultConfig VaultConfig) string {
+	if vaultConfig.BaseVaultURL != "" {
+		logger.Warn(v.logMsg(logDeprecatedFieldBaseVaultUrl))
+		if vaultConfig.BaseVaultUrl == "" {
+			return vaultConfig.BaseVaultURL
+		}
+	}
+	return vaultConfig.BaseVaultUrl
+}
+
+// ValidateHttpConfig checks that timeout, retry count and retry delays are not negative.
+func (v Validator) ValidateHttpConfig(httpConfig HttpConfig) *skyflowError.SkyflowError {
+	if httpConfig.Timeout < 0 || httpConfig.InitialRetryDelay < 0 || httpConfig.MaxRetryDelay < 0 ||
+		(httpConfig.MaxRetries != nil && *httpConfig.MaxRetries < 0) {
+		return v.invalid(logNegativeHttpConfig, errNegativeHttpConfig)
+	}
 	return nil
 }
 
 // ValidateUpdateVaultConfig checks a vault config used to update a registered vault.
+// Fields left unset keep their stored values, so only the ones that are set are checked.
 func (v Validator) ValidateUpdateVaultConfig(vaultConfig VaultConfig) *skyflowError.SkyflowError {
 	if vaultConfig.VaultId == "" {
 		return v.invalid(logVaultIdIsRequired, errInvalidVaultId)
+	}
+	if baseVaultUrl := v.baseVaultUrl(vaultConfig); baseVaultUrl != "" && !isValidHTTPURL(baseVaultUrl) {
+		return v.invalid(logVaultUrlIsInvalid, errInvalidVaultUrl)
 	}
 	return nil
 }

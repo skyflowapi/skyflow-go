@@ -7,6 +7,10 @@
 // its own, because the vault APIs differ between products.
 package config
 
+import "time"
+
+// Env is the Skyflow environment a vault runs in. The zero value is PROD, matching
+// the Java SDK's default.
 type Env int
 
 const (
@@ -33,6 +37,32 @@ type VaultConfig struct {
 	BaseVaultURL string
 	Env          Env
 	Credentials  Credentials
+
+	// Optional HTTP settings for this vault. Zero values (and a nil MaxRetries)
+	// mean "not set": the client-level HttpConfig applies, then the SDK default.
+	Timeout           time.Duration
+	MaxRetries        *int
+	InitialRetryDelay time.Duration
+	MaxRetryDelay     time.Duration
+}
+
+// HttpConfig holds client-level call timeout and retry settings. A value set on
+// VaultConfig wins over the one here.
+type HttpConfig struct {
+	Timeout           time.Duration
+	MaxRetries        *int
+	InitialRetryDelay time.Duration
+	MaxRetryDelay     time.Duration
+}
+
+// HttpConfig returns the vault's own HTTP settings.
+func (c VaultConfig) HttpConfig() HttpConfig {
+	return HttpConfig{
+		Timeout:           c.Timeout,
+		MaxRetries:        c.MaxRetries,
+		InitialRetryDelay: c.InitialRetryDelay,
+		MaxRetryDelay:     c.MaxRetryDelay,
+	}
 }
 
 type ConnectionConfig struct {
