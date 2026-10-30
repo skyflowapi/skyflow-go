@@ -70,11 +70,11 @@ var _ = Describe("Skyflow client", func() {
 		Expect(*other.controller.ClientSettings().HttpConfig.MaxRetries).To(Equal(2))
 	})
 
-	It("keeps the vault's Env when an update doesn't set one", func() {
+	It("applies the default Env when an update doesn't set one, as Java does", func() {
 		client := newTestClient()
 		Expect(client.UpdateVaultConfig(fvcommon.VaultConfig{VaultId: testVaultID, ClusterId: "other"})).To(BeNil())
 		config, _ := client.GetVaultConfig(testVaultID)
-		Expect(config.Env).To(Equal(fvcommon.DEV))
+		Expect(config.Env).To(Equal(fvcommon.PROD))
 		Expect(config.ClusterId).To(Equal("other"))
 
 		Expect(client.UpdateVaultConfig(fvcommon.VaultConfig{VaultId: testVaultID, Env: fvcommon.STAGE})).To(BeNil())

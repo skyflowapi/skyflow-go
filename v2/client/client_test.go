@@ -1,6 +1,7 @@
 package client
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"testing"
@@ -319,19 +320,35 @@ var _ = Describe("Skyflow Client", func() {
 			Expect(service1).To(BeNil())
 		})
 
-		It("keeps the stored Env and cluster ID when an update omits them", func() {
+		It("keeps the stored cluster ID but applies the default Env when an update omits them", func() {
 			Expect(client.AddVaultConfig(common.VaultConfig{VaultId: "env-vault", ClusterId: "c1", Env: common.SANDBOX})).To(BeNil())
 			Expect(client.UpdateVaultConfig(common.VaultConfig{VaultId: "env-vault", Credentials: common.Credentials{ApiKey: "key"}})).To(BeNil())
 
 			config, err := client.GetVaultConfig("env-vault")
 			Expect(err).To(BeNil())
-			Expect(config.Env).To(Equal(common.SANDBOX))
+			Expect(config.Env).To(Equal(common.PROD))
 			Expect(config.ClusterId).To(Equal("c1"))
 			Expect(config.Credentials.ApiKey).To(Equal("key"))
 			vault, _ := client.Vault("env-vault")
-			Expect(vault.controller.Config.Env).To(Equal(common.SANDBOX))
+			Expect(vault.controller.Config.Env).To(Equal(common.PROD))
 			detect, _ := client.Detect("env-vault")
-			Expect(detect.controller.Config.Env).To(Equal(common.SANDBOX))
+			Expect(detect.controller.Config.Env).To(Equal(common.PROD))
+		})
+
+		It("keeps the stored base vault URL when an update omits it", func() {
+			Expect(client.AddVaultConfig(common.VaultConfig{VaultId: "url-vault", BaseVaultUrl: "https://vault.example.com"})).To(BeNil())
+			Expect(client.UpdateVaultConfig(common.VaultConfig{VaultId: "url-vault", Credentials: common.Credentials{ApiKey: "key"}})).To(BeNil())
+
+			config, err := client.GetVaultConfig("url-vault")
+			Expect(err).To(BeNil())
+			Expect(config.BaseVaultUrl).To(Equal("https://vault.example.com"))
+			vault, _ := client.Vault("url-vault")
+			Expect(vault.controller.Config.BaseVaultUrl).To(Equal("https://vault.example.com"))
+
+			Expect(client.UpdateVaultConfig(common.VaultConfig{VaultId: "url-vault", BaseVaultURL: "https://legacy.example.com"})).To(BeNil())
+			config, _ = client.GetVaultConfig("url-vault")
+			Expect(config.BaseVaultUrl).To(BeEmpty())
+			Expect(config.BaseVaultURL).To(Equal("https://legacy.example.com"))
 		})
 
 		It("should return an error when trying to update a non-existing vault configuration", func() {
@@ -866,6 +883,13 @@ var _ = Describe("Skyflow Management Methods", func() {
 		It("should update log level", func() {
 			client.UpdateLogLevel(logger.DEBUG)
 			Expect(*client.GetLoglevel()).To(Equal(logger.DEBUG))
+		})
+		It("should log the new log level", func() {
+			var logs bytes.Buffer
+			logger.SetOutput(&logs)
+			DeferCleanup(logger.SetOutput, os.Stderr)
+			client.UpdateLogLevel(logger.INFO)
+			Expect(logs.String()).To(ContainSubstring(fmt.Sprintf("Current log level is %v.", logger.INFO)))
 		})
 	})
 

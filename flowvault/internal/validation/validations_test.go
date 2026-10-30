@@ -87,6 +87,8 @@ var _ = Describe("Other validators", func() {
 	It("validates GetTokens and Query", func() {
 		expectError(ValidateGetTokens(fvcommon.GetTokensRequest{}), "Records must not be empty")
 		expectError(ValidateGetTokens(fvcommon.GetTokensRequest{Records: []fvcommon.GetTokensRequestRecord{{TokenGroupName: "g"}}}), "Value is missing")
+		expectError(ValidateGetTokens(fvcommon.GetTokensRequest{Records: []fvcommon.GetTokensRequestRecord{{Value: "  ", TokenGroupName: "g"}}}), "Value is missing")
+		Expect(ValidateGetTokens(fvcommon.GetTokensRequest{Records: []fvcommon.GetTokensRequestRecord{{Value: 0, TokenGroupName: "g"}}})).To(BeNil())
 		expectError(ValidateGetTokens(fvcommon.GetTokensRequest{Records: []fvcommon.GetTokensRequestRecord{{Value: "v"}}}), "Token group name is missing")
 		expectError(ValidateQuery(fvcommon.QueryRequest{Query: " "}), "Query must not be empty")
 		expectError(ValidateQuery(fvcommon.QueryRequest{Query: "SELECT 1"}), "")

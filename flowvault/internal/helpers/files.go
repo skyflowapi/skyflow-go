@@ -9,6 +9,7 @@ import (
 	"io"
 	"mime"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"sync"
@@ -135,7 +136,7 @@ func PutFile(ctx context.Context, client *http.Client, signedURL string, file Re
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, signedURL, content)
 	if err != nil {
 		_ = content.Close()
-		return fvcommon.UploadStatusFailed, fmt.Sprintf(putFailedRequest, err.Error())
+		return fvcommon.UploadStatusFailed, fmt.Sprintf(putFailedRequest, withoutURL(err).Error())
 	}
 	req.ContentLength = length
 	if file.ContentType != "" {
@@ -143,7 +144,7 @@ func PutFile(ctx context.Context, client *http.Client, signedURL string, file Re
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return fvcommon.UploadStatusFailed, fmt.Sprintf(putFailedRequest, err.Error())
+		return fvcommon.UploadStatusFailed, fmt.Sprintf(putFailedRequest, withoutURL(err).Error())
 	}
 	defer resp.Body.Close()
 	_, _ = io.Copy(io.Discard, resp.Body)
@@ -151,6 +152,16 @@ func PutFile(ctx context.Context, client *http.Client, signedURL string, file Re
 		return fvcommon.UploadStatusFailed, fmt.Sprintf(putFailedStatus, resp.StatusCode)
 	}
 	return fvcommon.UploadStatusUploaded, ""
+}
+
+// withoutURL drops the request URL that http.Client.Do adds to its errors, because a signed
+// URL is a write credential and the error is returned to the caller.
+func withoutURL(err error) error {
+	var urlErr *url.Error
+	if errors.As(err, &urlErr) {
+		return urlErr.Err
+	}
+	return err
 }
 
 // RunConcurrently runs tasks with at most limit running at once, and waits for all of them.

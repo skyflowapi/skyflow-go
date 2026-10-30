@@ -202,7 +202,7 @@ func ValidateGetTokens(req fvcommon.GetTokensRequest) *fverrors.SkyflowError {
 		return invalid(fverrors.EMPTY_RECORDS, fvconsts.METHOD_GET_TOKENS)
 	}
 	for i, record := range req.Records {
-		if record.Value == nil {
+		if text, isString := record.Value.(string); record.Value == nil || isString && blank(text) {
 			return invalid(fverrors.MISSING_VALUE, i)
 		}
 		if blank(record.TokenGroupName) {

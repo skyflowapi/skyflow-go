@@ -170,6 +170,9 @@ func (s *Skyflow) AddVaultConfig(cfg fvcommon.VaultConfig) *fverrors.SkyflowErro
 	if err := fvhelpers.ConfigValidator().ValidateVaultConfig(cfg); err != nil {
 		return err
 	}
+	if err := validateVaultCredentials(cfg.Credentials); err != nil {
+		return err
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if _, exists := s.vaultServices[cfg.VaultId]; exists {
@@ -189,6 +192,9 @@ func (s *Skyflow) UpdateVaultConfig(updatedConfig fvcommon.VaultConfig) *fverror
 		return err
 	}
 	if err := fvhelpers.ConfigValidator().ValidateHttpConfig(updatedConfig.HttpConfig()); err != nil {
+		return err
+	}
+	if err := validateVaultCredentials(updatedConfig.Credentials); err != nil {
 		return err
 	}
 	s.mu.Lock()
@@ -211,9 +217,9 @@ func (s *Skyflow) UpdateVaultConfig(updatedConfig fvcommon.VaultConfig) *fverror
 	if updatedConfig.BaseVaultUrl != "" {
 		config.BaseVaultUrl = updatedConfig.BaseVaultUrl
 	}
-	if updatedConfig.Env.IsSet() {
-		config.Env = updatedConfig.Env
-	}
+	// As in Java, Env is always applied: it defaults to PROD, so an update that omits it
+	// moves the vault to PROD.
+	config.Env = updatedConfig.Env
 	if updatedConfig.Timeout != 0 {
 		config.Timeout = updatedConfig.Timeout
 	}
@@ -229,6 +235,15 @@ func (s *Skyflow) UpdateVaultConfig(updatedConfig fvcommon.VaultConfig) *fverror
 	}
 	svc.controller.SetConfig(config, credentialsChanged)
 	return nil
+}
+
+// validateVaultCredentials checks vault-level credentials when they are set. Unset
+// credentials are allowed: the client-level credentials are used instead.
+func validateVaultCredentials(credentials fvcommon.Credentials) *fverrors.SkyflowError {
+	if fvcommon.IsCredentialsEmpty(credentials) {
+		return nil
+	}
+	return fvhelpers.ConfigValidator().ValidateCredentials(credentials)
 }
 
 // RemoveVaultConfig removes the vault config registered under vaultId.
@@ -300,9 +315,9 @@ func (s *Skyflow) GetSkyflowCredentials() *fvcommon.Credentials {
 func (s *Skyflow) UpdateLogLevel(logLevel fvlogger.LogLevel) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	fvlogger.Info(fmt.Sprintf(logs.CURRENT_LOG_LEVEL, s.logLevel))
 	s.logLevel = logLevel
 	fvlogger.SetLogLevel(logLevel)
+	fvlogger.Info(fmt.Sprintf(logs.CURRENT_LOG_LEVEL, logLevel))
 }
 
 // GetLoglevel returns the current log level of the client.

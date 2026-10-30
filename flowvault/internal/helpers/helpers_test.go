@@ -157,8 +157,10 @@ var _ = Describe("Files", func() {
 
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
-		status, _ = PutFile(ctx, http.DefaultClient, server.URL+"/ok", file)
+		status, msg = PutFile(ctx, http.DefaultClient, server.URL+"/ok?signature=secret", file)
 		Expect(status).To(Equal(fvcommon.UploadStatusFailed))
+		Expect(msg).To(Equal("PUT failed: context canceled"))
+		Expect(msg).NotTo(ContainSubstring("signature"))
 	})
 
 	It("streams a path or file object with its length and leaves the file object open", func() {
@@ -205,8 +207,12 @@ var _ = Describe("Files", func() {
 		Expect(transport.ResponseHeaderTimeout).To(Equal(10 * time.Second))
 	})
 
-	It("runs at most limit tasks at once", func() {
-		var running, peak int32
+	It("runs exactly limit tasks at once", func() {
+		const limit = 5
+		var running, peak, timedOut int32
+		// The first limit tasks hold their slot until all of them are running, so the
+		// barrier only opens if RunConcurrently really runs limit tasks at the same time.
+		barrier := make(chan struct{})
 		tasks := make([]func(), 20)
 		for i := range tasks {
 			tasks[i] = func() {
@@ -217,12 +223,24 @@ var _ = Describe("Files", func() {
 						break
 					}
 				}
-				time.Sleep(2 * time.Millisecond)
+				if now == limit {
+					select {
+					case <-barrier:
+					default:
+						close(barrier)
+					}
+				}
+				select {
+				case <-barrier:
+				case <-time.After(5 * time.Second):
+					atomic.StoreInt32(&timedOut, 1)
+				}
 				atomic.AddInt32(&running, -1)
 			}
 		}
-		RunConcurrently(tasks, 5)
-		Expect(atomic.LoadInt32(&peak)).To(BeNumerically("<=", 5))
+		RunConcurrently(tasks, limit)
+		Expect(atomic.LoadInt32(&timedOut)).To(BeZero(), "fewer than limit tasks ran at once")
+		Expect(atomic.LoadInt32(&peak)).To(Equal(int32(limit)))
 		Expect(atomic.LoadInt32(&running)).To(Equal(int32(0)))
 	})
 })

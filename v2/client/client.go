@@ -235,7 +235,6 @@ func (s *Skyflow) GetSkyflowCredentials() *vaultutils.Credentials {
 
 // UpdateLogLevel update methods
 func (s *Skyflow) UpdateLogLevel(logLevel logger.LogLevel) {
-	logger.Info(fmt.Sprintf(logs.CURRENT_LOG_LEVEL, s.logLevel))
 	s.logLevel = logLevel
 	for _, service := range s.vaultServices {
 		service.logLevel = &s.logLevel
@@ -247,6 +246,7 @@ func (s *Skyflow) UpdateLogLevel(logLevel logger.LogLevel) {
 		service.logLevel = &s.logLevel
 	}
 	logger.SetLogLevel(logLevel)
+	logger.Info(fmt.Sprintf(logs.CURRENT_LOG_LEVEL, logLevel))
 }
 
 func (s *Skyflow) UpdateSkyflowCredentials(credentials vaultutils.Credentials) *error.SkyflowError {
@@ -310,9 +310,7 @@ func (s *Skyflow) UpdateVaultConfig(updatedConfig vaultutils.VaultConfig) *error
 		if updatedConfig.ClusterId != "" {
 			vaultSvc.controller.Config.ClusterId = updatedConfig.ClusterId
 		}
-		if updatedConfig.Env.IsSet() {
-			vaultSvc.controller.Config.Env = updatedConfig.Env
-		}
+		vaultSvc.controller.Config.Env = updatedConfig.Env
 	}
 	// Update the credentials in the detect controller if provided
 	if detectExists && detectSvc.controller != nil {
@@ -324,9 +322,7 @@ func (s *Skyflow) UpdateVaultConfig(updatedConfig vaultutils.VaultConfig) *error
 		if updatedConfig.ClusterId != "" {
 			detectSvc.controller.Config.ClusterId = updatedConfig.ClusterId
 		}
-		if updatedConfig.Env.IsSet() {
-			detectSvc.controller.Config.Env = updatedConfig.Env
-		}
+		detectSvc.controller.Config.Env = updatedConfig.Env
 	}
 
 	// Update the config in the vaultapi service, keeping the stored values of the fields the
@@ -340,8 +336,8 @@ func (s *Skyflow) UpdateVaultConfig(updatedConfig vaultutils.VaultConfig) *error
 	return nil
 }
 
-// mergeVaultConfig returns updated, with the credentials, cluster ID and Env of current
-// wherever updated leaves them unset.
+// mergeVaultConfig returns updated, with the credentials, cluster ID and base vault URL of
+// current wherever updated leaves them unset. Env is always taken from updated.
 func mergeVaultConfig(updated vaultutils.VaultConfig, current *vaultutils.VaultConfig) *vaultutils.VaultConfig {
 	if current != nil {
 		if isCredentialsEmpty(updated.Credentials) {
@@ -350,8 +346,9 @@ func mergeVaultConfig(updated vaultutils.VaultConfig, current *vaultutils.VaultC
 		if updated.ClusterId == "" {
 			updated.ClusterId = current.ClusterId
 		}
-		if !updated.Env.IsSet() {
-			updated.Env = current.Env
+		if updated.BaseVaultUrl == "" && updated.BaseVaultURL == "" {
+			updated.BaseVaultUrl = current.BaseVaultUrl
+			updated.BaseVaultURL = current.BaseVaultURL
 		}
 	}
 	return &updated

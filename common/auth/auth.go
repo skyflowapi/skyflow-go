@@ -165,23 +165,13 @@ func (s *Service) IsExpired(tokenString string) bool {
 		logger.Info(s.logMsg(logEmptyBearerToken))
 		return true
 	}
-	token, _, err := new(jwt.Parser).ParseUnverified(tokenString, jwt.MapClaims{})
-	if err != nil {
+	claims := jwt.MapClaims{}
+	if _, _, err := new(jwt.Parser).ParseUnverified(tokenString, claims); err != nil {
 		return true
 	}
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		return true
-	}
-	var expiryTime time.Time
-	switch exp := claims[jwtClaimExp].(type) {
-	case float64:
-		expiryTime = time.Unix(int64(exp), 0)
-	case json.Number:
-		v, _ := exp.Int64()
-		expiryTime = time.Unix(v, 0)
-	}
-	expired := expiryTime.Before(time.Now())
+	// The parser decodes numbers as float64; a missing or non-numeric exp counts as expired.
+	exp, _ := claims[jwtClaimExp].(float64)
+	expired := time.Unix(int64(exp), 0).Before(time.Now())
 	if expired {
 		logger.Info(s.logMsg(logBearerTokenExpired))
 	}
@@ -318,7 +308,7 @@ func (s *Service) GenerateSignedDataTokensHelper(clientId, keyId string, pvtKey 
 			jwtClaimTok: token,
 			jwtClaimExp: time.Now().Add(ttl).Unix(),
 		}
-		if resolvedCtx != "" {
+		if resolvedCtx != nil {
 			claims[jwtClaimCtx] = resolvedCtx
 		}
 		tokenString, err := jwt.NewWithClaims(jwt.SigningMethodRS256, claims).SignedString(pvtKey)
@@ -345,7 +335,7 @@ func (s *Service) GetSignedBearerUserToken(clientId, keyId, tokenUri string, pvt
 		jwtClaimSub: clientId,
 		jwtClaimExp: time.Now().Add(bearerTokenExpiry).Unix(),
 	}
-	if resolvedCtx != "" {
+	if resolvedCtx != nil {
 		claims[jwtClaimCtx] = resolvedCtx
 	}
 	signedToken, err := jwt.NewWithClaims(jwt.SigningMethodRS256, claims).SignedString(pvtKey)
