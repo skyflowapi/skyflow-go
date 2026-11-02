@@ -33,7 +33,6 @@ type (
 	RedactionType              = cdetect.RedactionType
 	DeidentifySourceType       = cdetect.DeidentifySourceType
 	ReidentifySourceType       = cdetect.ReidentifySourceType
-	DataSourceType             = cdetect.DataSourceType
 	FileDataFormat             = cdetect.FileDataFormat
 	DetectRunStatus            = cdetect.DetectRunStatus
 	ProcessedFileType          = cdetect.ProcessedFileType
@@ -160,9 +159,6 @@ const (
 	DeidentifySourceTypePresignedURL                          = cdetect.DeidentifySourceTypePresignedURL
 	ReidentifySourceTypeBase64                                = cdetect.ReidentifySourceTypeBase64
 	ReidentifySourceTypePresignedURL                          = cdetect.ReidentifySourceTypePresignedURL
-	DataSourceTypeBase64                                      = cdetect.DataSourceTypeBase64
-	DataSourceTypeSkyflowID                                   = cdetect.DataSourceTypeSkyflowID
-	DataSourceTypePresignedURL                                = cdetect.DataSourceTypePresignedURL
 	FileDataFormatUnknown                                     = cdetect.FileDataFormatUnknown
 	FileDataFormatMP3                                         = cdetect.FileDataFormatMP3
 	FileDataFormatWAV                                         = cdetect.FileDataFormatWAV

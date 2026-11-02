@@ -135,7 +135,7 @@ func TestValidationFailuresPerOperation(t *testing.T) {
 	}
 }
 
-// validateFileSource compares both request enums against one base64 wire value.
+// validateFileSource and writeOutputs compare both source enums against one base64 wire value.
 func TestSourceTypesShareBase64WireValue(t *testing.T) {
 	if string(ReidentifySourceTypeBase64) != string(DeidentifySourceTypeBase64) {
 		t.Fatalf("reidentify %q, deidentify %q", ReidentifySourceTypeBase64, DeidentifySourceTypeBase64)
@@ -193,10 +193,10 @@ func TestWriteOutputs(t *testing.T) {
 
 	t.Run("nothing to write", func(t *testing.T) {
 		dir := filepath.Join(t.TempDir(), "never-created")
-		if err := c.writeOutputs(nil, DataSourceTypeBase64, "a.pdf", dir); err != nil {
+		if err := c.writeOutputs(nil, string(DeidentifySourceTypeBase64), "a.pdf", dir); err != nil {
 			t.Fatal(err)
 		}
-		if err := c.writeOutputs([]FileOutput{pdf}, DataSourceType("URL"), "a.pdf", dir); err != nil {
+		if err := c.writeOutputs([]FileOutput{pdf}, "URL", "a.pdf", dir); err != nil {
 			t.Fatal(err)
 		}
 		if _, err := os.Stat(dir); !os.IsNotExist(err) {
@@ -206,7 +206,7 @@ func TestWriteOutputs(t *testing.T) {
 
 	t.Run("current directory, default name, empty outputs skipped", func(t *testing.T) {
 		chdir(t, t.TempDir())
-		if err := c.writeOutputs([]FileOutput{{}, pdf}, DataSourceTypeBase64, ".pdf", ""); err != nil {
+		if err := c.writeOutputs([]FileOutput{{}, pdf}, string(DeidentifySourceTypeBase64), ".pdf", ""); err != nil {
 			t.Fatal(err)
 		}
 		got, err := os.ReadFile("processed-output.pdf")
@@ -223,7 +223,7 @@ func TestWriteOutputs(t *testing.T) {
 		bad := FileOutput{ProcessedFile: "%%%", ProcessedFileExtension: FileDataFormatTXT}
 		dir := t.TempDir()
 		target := filepath.Join(dir, "processed-a.txt")
-		if err := c.writeOutputs([]FileOutput{bad}, DataSourceTypeBase64, "a.txt", dir); err == nil || !strings.Contains(err.GetMessage(), outputNotWritten(target)) {
+		if err := c.writeOutputs([]FileOutput{bad}, string(DeidentifySourceTypeBase64), "a.txt", dir); err == nil || !strings.Contains(err.GetMessage(), outputNotWritten(target)) {
 			t.Fatalf("err = %v", err)
 		}
 	})
@@ -233,7 +233,7 @@ func TestWriteOutputs(t *testing.T) {
 		if err := os.Mkdir(filepath.Join(dir, "processed-a.pdf"), outputDirMode); err != nil {
 			t.Fatal(err)
 		}
-		if err := c.writeOutputs([]FileOutput{pdf}, DataSourceTypeBase64, "a.pdf", dir); err == nil || !strings.Contains(err.GetMessage(), notRegularFile) {
+		if err := c.writeOutputs([]FileOutput{pdf}, string(DeidentifySourceTypeBase64), "a.pdf", dir); err == nil || !strings.Contains(err.GetMessage(), notRegularFile) {
 			t.Fatalf("err = %v", err)
 		}
 	})
@@ -244,7 +244,7 @@ func TestWriteOutputs(t *testing.T) {
 		if err := os.WriteFile(target, []byte("old"), 0o644); err != nil {
 			t.Fatal(err)
 		}
-		if err := c.writeOutputs([]FileOutput{pdf}, DataSourceTypeBase64, "a.pdf", dir); err != nil {
+		if err := c.writeOutputs([]FileOutput{pdf}, string(DeidentifySourceTypeBase64), "a.pdf", dir); err != nil {
 			t.Fatal(err)
 		}
 		got, err := os.ReadFile(target)
@@ -266,7 +266,7 @@ func TestWriteOutputs(t *testing.T) {
 		if err := os.Symlink(elsewhere, filepath.Join(dir, "processed-a.pdf")); err != nil {
 			t.Skipf("symlinks not supported: %v", err)
 		}
-		if err := c.writeOutputs([]FileOutput{pdf}, DataSourceTypeBase64, "a.pdf", dir); err == nil || !strings.Contains(err.GetMessage(), notRegularFile) {
+		if err := c.writeOutputs([]FileOutput{pdf}, string(DeidentifySourceTypeBase64), "a.pdf", dir); err == nil || !strings.Contains(err.GetMessage(), notRegularFile) {
 			t.Fatalf("err = %v", err)
 		}
 		if got, err := os.ReadFile(elsewhere); err != nil || string(got) != "keep" {
@@ -291,7 +291,7 @@ func TestWriteOutputs(t *testing.T) {
 					t.Fatal(err)
 				}
 				t.Cleanup(func() { _ = os.Chmod(dir, outputDirMode) })
-				if err := c.writeOutputs([]FileOutput{pdf}, DataSourceTypeBase64, "a.pdf", dir); err == nil || !strings.Contains(err.GetMessage(), outputNotWritten(target)) {
+				if err := c.writeOutputs([]FileOutput{pdf}, string(DeidentifySourceTypeBase64), "a.pdf", dir); err == nil || !strings.Contains(err.GetMessage(), outputNotWritten(target)) {
 					t.Fatalf("err = %v", err)
 				}
 			})

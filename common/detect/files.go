@@ -89,12 +89,13 @@ func formatFromName(name string) FileDataFormat {
 // Names: processed-<input name>.<ext> for a processed file, and
 // processed-entities-<input name>.json / processed-object-entities-<input name>.json for
 // entity outputs. If two outputs would share a name, the output type goes before the
-// extension.
-func (c *Controller) writeOutputs(outputs []FileOutput, outputType DataSourceType, inputName, dir string) *skyflowError.SkyflowError {
+// extension. outputType is the response's DeidentifySourceType or ReidentifySourceType;
+// both use the same BASE64 wire value.
+func (c *Controller) writeOutputs(outputs []FileOutput, outputType string, inputName, dir string) *skyflowError.SkyflowError {
 	if len(outputs) == 0 {
 		return nil
 	}
-	if outputType != DataSourceTypeBase64 {
+	if outputType != string(DeidentifySourceTypeBase64) {
 		logger.Info(fmt.Sprintf(c.logMsg(logOutputNotWritten), outputType))
 		return nil
 	}

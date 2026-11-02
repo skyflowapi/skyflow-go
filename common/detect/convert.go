@@ -219,7 +219,7 @@ func fromGenRun(runId string, r *gen.DetectRunsResponseV2) *GetRunResponse {
 	return &GetRunResponse{
 		RunId:      runId,
 		Status:     status,
-		OutputType: DataSourceType(derefEnum(r.OutputType)),
+		OutputType: DeidentifySourceType(derefEnum(r.OutputType)),
 		Output:     fromGenOutputs(r.Output),
 		Metrics:    fromGenMetrics(r.Metrics),
 		Message:    deref(r.Message),

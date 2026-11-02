@@ -239,7 +239,8 @@ func TestDeidentifyFilePollsAndWritesOutputs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if resp.RunId != "run-9" || resp.Status != DetectRunStatusSuccess || len(resp.Output) != 2 || *resp.Metrics.Pages != 3 {
+	if resp.RunId != "run-9" || resp.Status != DetectRunStatusSuccess || resp.OutputType != DeidentifySourceTypeBase64 ||
+		len(resp.Output) != 2 || *resp.Metrics.Pages != 3 {
 		t.Fatalf("resp = %+v", resp)
 	}
 	if got := *pauses; len(got) != 2 || got[0] != time.Second || got[1] != 2*time.Second {
@@ -377,7 +378,7 @@ func TestReidentifyFileWritesOutputsForLocalFile(t *testing.T) {
 	defer func() { _ = input.Close() }()
 
 	resp, err := c.ReidentifyFile(context.Background(), ReidentifyFileRequest{FileObject: input}, ReidentifyFileOptions{OutputDirectory: dir})
-	if err != nil || resp.Status != DetectRunStatusSuccess {
+	if err != nil || resp.Status != DetectRunStatusSuccess || resp.OutputType != ReidentifySourceTypeBase64 {
 		t.Fatalf("resp = %+v, err = %v", resp, err)
 	}
 	if body := f.last().body; body["vaultId"] != "vault1" || body["dataFormat"] != "txt" || body["dataSource"] != "BASE64" {

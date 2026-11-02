@@ -121,7 +121,7 @@ func (c *Controller) callReidentifyFile(ctx context.Context, call *vaultclient.C
 	}
 	return &ReidentifyFileResponse{
 		Status:     DetectRunStatus(derefEnum(resp.Status)),
-		OutputType: DataSourceType(derefEnum(resp.OutputType)),
+		OutputType: ReidentifySourceType(derefEnum(resp.OutputType)),
 		Output:     fromGenOutputs(resp.Output),
 		Metrics:    fromGenMetrics(resp.Metrics),
 	}, nil

@@ -135,7 +135,7 @@ func (c *Controller) DeidentifyFile(ctx context.Context, request DeidentifyFileR
 	}
 	resp.Status, resp.OutputType, resp.Output, resp.Metrics, resp.Message = run.Status, run.OutputType, run.Output, run.Metrics, run.Message
 	if input != nil && run.Status == DetectRunStatusSuccess {
-		if err := c.writeOutputs(run.Output, run.OutputType, input.name, options.OutputDirectory); err != nil {
+		if err := c.writeOutputs(run.Output, string(run.OutputType), input.name, options.OutputDirectory); err != nil {
 			return resp, err
 		}
 	}
@@ -210,7 +210,7 @@ func (c *Controller) ReidentifyFile(ctx context.Context, request ReidentifyFileR
 		return nil, err
 	}
 	if input != nil && resp.Status == DetectRunStatusSuccess {
-		if err := c.writeOutputs(resp.Output, resp.OutputType, input.name, options.OutputDirectory); err != nil {
+		if err := c.writeOutputs(resp.Output, string(resp.OutputType), input.name, options.OutputDirectory); err != nil {
 			return resp, err
 		}
 	}

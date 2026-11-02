@@ -137,7 +137,7 @@ type PollOptions struct {
 type DeidentifyFileResponse struct {
 	RunId      string
 	Status     DetectRunStatus
-	OutputType DataSourceType
+	OutputType DeidentifySourceType
 	Output     []FileOutput
 	Metrics    *Metrics
 	Message    string // failure detail when Status is DetectRunStatusFailed
@@ -160,12 +160,12 @@ type GetRunOptions struct {
 // GetRunResponse is the current state of a run. Output, Metrics and OutputType are set
 // once it succeeded.
 type GetRunResponse struct {
-	RunId      string          `json:"runId"` // echoed from the request
-	Status     DetectRunStatus `json:"status"`
-	OutputType DataSourceType  `json:"outputType"`
-	Output     []FileOutput    `json:"output"`
-	Metrics    *Metrics        `json:"metrics"`
-	Message    string          `json:"message"` // failure detail when Status is DetectRunStatusFailed
+	RunId      string               `json:"runId"` // echoed from the request
+	Status     DetectRunStatus      `json:"status"`
+	OutputType DeidentifySourceType `json:"outputType"`
+	Output     []FileOutput         `json:"output"`
+	Metrics    *Metrics             `json:"metrics"`
+	Message    string               `json:"message"` // failure detail when Status is DetectRunStatusFailed
 }
 
 // ---------------------------------------------------------------------------
@@ -218,10 +218,10 @@ type ReidentifyFileOptions struct {
 
 // ReidentifyFileResponse is the re-identified file.
 type ReidentifyFileResponse struct {
-	Status     DetectRunStatus `json:"status"`
-	OutputType DataSourceType  `json:"outputType"`
-	Output     []FileOutput    `json:"output"`
-	Metrics    *Metrics        `json:"metrics"`
+	Status     DetectRunStatus      `json:"status"`
+	OutputType ReidentifySourceType `json:"outputType"`
+	Output     []FileOutput         `json:"output"`
+	Metrics    *Metrics             `json:"metrics"`
 }
 
 // ---------------------------------------------------------------------------

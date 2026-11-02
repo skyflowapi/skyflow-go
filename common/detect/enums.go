@@ -120,7 +120,8 @@ const (
 	RedactionTypePlainText RedactionType = "PLAIN_TEXT"
 )
 
-// DeidentifySourceType is what a DeidentifyFileRequest's Value holds.
+// DeidentifySourceType is what a DeidentifyFileRequest's Value holds, and the OutputType of
+// DeidentifyFileResponse and GetRunResponse (where the API returns BASE64 or PRESIGNED_URL).
 type DeidentifySourceType string
 
 const (
@@ -129,22 +130,13 @@ const (
 	DeidentifySourceTypePresignedURL DeidentifySourceType = "PRESIGNED_URL"
 )
 
-// ReidentifySourceType is what a ReidentifyFileRequest's Value holds. Re-identification does
-// not accept a Skyflow ID.
+// ReidentifySourceType is what a ReidentifyFileRequest's Value holds, and the OutputType of
+// ReidentifyFileResponse. Re-identification does not accept a Skyflow ID.
 type ReidentifySourceType string
 
 const (
 	ReidentifySourceTypeBase64       ReidentifySourceType = "BASE64"
 	ReidentifySourceTypePresignedURL ReidentifySourceType = "PRESIGNED_URL"
-)
-
-// DataSourceType is the form a file run's outputs take.
-type DataSourceType string
-
-const (
-	DataSourceTypeBase64       DataSourceType = "BASE64"
-	DataSourceTypeSkyflowID    DataSourceType = "SKYFLOW_ID"
-	DataSourceTypePresignedURL DataSourceType = "PRESIGNED_URL"
 )
 
 // FileDataFormat is a file format. The wire values are lowercase.
