@@ -415,7 +415,7 @@ Returned by `vault.Insert()`.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `InsertedFields` | `[]map[string]interface{}` | One entry per inserted record. Each map contains `skyflow_id`; with `ReturnTokens: true`, also a token per column; with `ContinueOnError: true`, also a `request_index`. |
+| `InsertedFields` | `[]map[string]interface{}` | One entry per inserted record. Each map contains `SkyflowId` (also returned as the deprecated `skyflow_id` alias); with `ReturnTokens: true`, also a token per column; with `ContinueOnError: true`, also `RequestIndex` (also returned as the deprecated `request_index` alias). |
 | `Errors` | `[]map[string]interface{}` | Per-record errors when `ContinueOnError: true`. Each map contains `request_index`, `error`, and `http_code`. |
 
 ### `DetokenizeResponse`
@@ -442,7 +442,7 @@ Returned by `vault.Update()`.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `UpdatedField` | `map[string]interface{}` | The updated record's `skyflow_id` and, when `ReturnTokens: true`, a token per updated column. |
+| `UpdatedField` | `map[string]interface{}` | The updated record's `SkyflowId` (also returned as the deprecated `skyflowId` alias) and, when `ReturnTokens: true`, a token per updated column. |
 | `Errors` | `[]map[string]interface{}` | Errors, if any. |
 
 ### `DeleteResponse`

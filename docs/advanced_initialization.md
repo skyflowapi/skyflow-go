@@ -1,6 +1,6 @@
 # Advanced Skyflow Client Initialization
 
-This guide demonstrates advanced initialization patterns for the Skyflow Python SDK, including multiple vault configurations and different credential types.
+This guide demonstrates advanced initialization patterns for the Skyflow Go SDK, including multiple vault configurations and different credential types.
 
 Use multiple vault configurations when your application needs to access data across different Skyflow vaults, such as managing data across different geographic regions or distinct environments.
 
@@ -24,6 +24,7 @@ Note: Only one type of credential can be used at a time.
 ```go
 package main
 import (
+  "fmt"
   "github.com/skyflowapi/skyflow-go/v2/client"
   "github.com/skyflowapi/skyflow-go/v2/utils/common"
   "github.com/skyflowapi/skyflow-go/v2/utils/logger"
@@ -48,7 +49,7 @@ func main() {
 
   // Step 2: Configure the primary vault details.
   // VaultConfig stores all necessary details to connect to a specific Skyflow vault.
-  primaryConfig: = common.VaultConfig {
+  primaryConfig := common.VaultConfig{
     VaultId: "<PRIMARY_VAULT_ID>", // Replace with your primary vault's ID.
     ClusterId: "<CLUSTER_ID>", // Replace with the cluster ID (part of the vault URL, e.g., https://{clusterId}.vault.skyflowapis.com).
     Env: common.DEV, // Set the environment (PROD, SANDBOX, STAGE, DEV).
@@ -59,7 +60,7 @@ func main() {
   // Demonstrates an alternate approach to authenticate with Skyflow using a credentials object.
   credentialsObject := `<CREDS_JSON_OBJECT>`
   // Step 4: Use credentials string.
-  skyflowCredentials = common.Credentials {
+  skyflowCredentials := common.Credentials{
     CredentialsString: credentialsObject,
   }
 
@@ -94,19 +95,24 @@ func main() {
   // Step 9: Build and initialize the Skyflow client.
   // Skyflow client is configured with multiple vaults and credentials.
 
-  var arr[] common.VaultConfig
+  var arr []common.VaultConfig
   arr = append(arr, primaryConfig, secondaryConfig, tertiaryConfig)
-  skyflowClient, err: = client.NewSkyflow(
+  skyflowClient, err := client.NewSkyflow(
     client.WithVaults(arr...),
     client.WithCredentials(skyflowCredentials), // Add JSON-formatted credentials if applicable.
     client.WithLogLevel(logger.DEBUG), // Set log level for debugging or monitoring purposes.
   )
+  if err != nil {
+    fmt.Println("Error creating Skyflow client:", err)
+    return
+  }
   // The Skyflow client is now fully initialized.
   // Use the `skyflowClient` object to perform secure operations such as:
   // - Inserting data
   // - Retrieving data
   // - Deleting data
   // within the configured Skyflow vaults.
+  _ = skyflowClient
 }
 ```
 
