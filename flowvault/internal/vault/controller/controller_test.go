@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"os"
 	"testing"
 	"time"
@@ -28,7 +29,7 @@ var _ = Describe("SetupRequest", func() {
 		v := NewVaultController(config, ClientSettings{Credentials: &fvcommon.Credentials{ApiKey: testApiKey}})
 
 		var operation string
-		setup, err := v.SetupRequest("QUERY", func(rc *fvcommon.RequestContext) {
+		setup, err := v.SetupRequest(context.Background(), "QUERY", func(rc *fvcommon.RequestContext) {
 			operation = rc.Operation
 			rc.AddHeader(fvcommon.RequestIdHeader, "custom-id")
 			rc.AddHeader(fvcommon.SkyflowAccountId, "acc")
@@ -48,14 +49,14 @@ var _ = Describe("SetupRequest", func() {
 			VaultId: "v", BaseVaultUrl: "https://example.com",
 			Credentials: fvcommon.Credentials{ApiKey: vaultApiKey},
 		}
-		setup, err := NewVaultController(config, ClientSettings{Credentials: &fvcommon.Credentials{ApiKey: testApiKey}}).SetupRequest("GET", nil)
+		setup, err := NewVaultController(config, ClientSettings{Credentials: &fvcommon.Credentials{ApiKey: testApiKey}}).SetupRequest(context.Background(), "GET", nil)
 		Expect(err).To(BeNil())
 		Expect(setup.AuthToken).To(Equal(vaultApiKey))
 		Expect(setup.BaseURL).To(Equal("https://example.com"))
 	})
 
 	It("uses PROD when Env isn't set", func() {
-		setup, err := NewVaultController(fvcommon.VaultConfig{VaultId: "v", ClusterId: "cluster"}, ClientSettings{Credentials: &fvcommon.Credentials{ApiKey: testApiKey}}).SetupRequest("GET", nil)
+		setup, err := NewVaultController(fvcommon.VaultConfig{VaultId: "v", ClusterId: "cluster"}, ClientSettings{Credentials: &fvcommon.Credentials{ApiKey: testApiKey}}).SetupRequest(context.Background(), "GET", nil)
 		Expect(err).To(BeNil())
 		Expect(setup.BaseURL).To(Equal("https://cluster.skyvault.skyflowapis.com"))
 	})
@@ -75,13 +76,13 @@ var _ = Describe("SetupRequest", func() {
 
 	It("fails when no credentials are available", func() {
 		Expect(os.Unsetenv("SKYFLOW_CREDENTIALS")).To(Succeed())
-		_, err := NewVaultController(fvcommon.VaultConfig{VaultId: "v", ClusterId: "c"}, ClientSettings{}).SetupRequest("GET", nil)
+		_, err := NewVaultController(fvcommon.VaultConfig{VaultId: "v", ClusterId: "c"}, ClientSettings{}).SetupRequest(context.Background(), "GET", nil)
 		Expect(err.GetMessage()).To(ContainSubstring("Invalid credentials"))
 	})
 
 	It("rejects an expired bearer token", func() {
 		config := fvcommon.VaultConfig{VaultId: "v", ClusterId: "c", Credentials: fvcommon.Credentials{Token: "not-a-jwt"}}
-		_, err := NewVaultController(config, ClientSettings{}).SetupRequest("GET", nil)
+		_, err := NewVaultController(config, ClientSettings{}).SetupRequest(context.Background(), "GET", nil)
 		Expect(err.GetMessage()).To(ContainSubstring("expired"))
 	})
 })

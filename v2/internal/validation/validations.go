@@ -874,16 +874,3 @@ func ValidateCustomHeaders(headers map[common.CustomHeaderKey]string, tag string
 	}
 	return nil
 }
-
-func isValidHTTPURL(raw string) bool {
-	u, err := url.Parse(raw)
-	if err != nil {
-		return false
-	}
-
-	if u.Scheme != constants.HTTP_PROTOCOL && u.Scheme != constants.HTTPS_PROTOCOL {
-		return false
-	}
-
-	return u.Host != ""
-}

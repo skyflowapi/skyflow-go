@@ -1,11 +1,13 @@
 package controller
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net/http"
 	"os"
 	"sync"
+	"time"
 
 	fvconsts "github.com/skyflowapi/skyflow-go/flowvault/internal/constants"
 	apiclient "github.com/skyflowapi/skyflow-go/flowvault/internal/generated/client"
@@ -32,9 +34,23 @@ type BaseController struct {
 	// from older credentials is never reused.
 	authVersion uint64
 
-	tokenMu      sync.Mutex
-	token        string
-	tokenVersion uint64
+	// tokenSlotCh holds a value while one call reads or generates the bearer token. It is a
+	// channel rather than a mutex so a call whose context ends stops waiting for it. Use
+	// tokenSlot(), which creates it, so a zero BaseController works too.
+	tokenSlotCh   chan struct{}
+	tokenSlotOnce sync.Once
+	token         string
+	tokenVersion  uint64
+}
+
+// tokenRefreshMargin is how long before it expires a cached bearer token is replaced, so it
+// does not expire during a call and clock skew with the server does not make it fail early.
+const tokenRefreshMargin = 2 * time.Minute
+
+// tokenResult is the outcome of generating a bearer token.
+type tokenResult struct {
+	token string
+	err   *fverrors.SkyflowError
 }
 
 // ClientSettings are the client-level settings every vault falls back to.
@@ -146,13 +162,17 @@ func (b *BaseController) snapshot() settings {
 
 // SetupRequest resolves auth, headers and HTTP settings for one call. The interceptor,
 // when set, can add per-call headers.
-func (b *BaseController) SetupRequest(operation string, interceptor fvcommon.Interceptor) (*RequestSetup, *fverrors.SkyflowError) {
+func (b *BaseController) SetupRequest(ctx context.Context, operation string, interceptor fvcommon.Interceptor) (*RequestSetup, *fverrors.SkyflowError) {
+	if ctx == nil {
+		fvlogger.Error(logs.NIL_CONTEXT)
+		return nil, fverrors.NewSkyflowError(fverrors.INVALID_INPUT_CODE, fverrors.NIL_CONTEXT)
+	}
 	current := b.snapshot()
 	headers, err := buildHeaders(operation, interceptor)
 	if err != nil {
 		return nil, err
 	}
-	authToken, err := b.authToken(current)
+	authToken, err := b.authToken(ctx, current)
 	if err != nil {
 		return nil, err
 	}
@@ -215,8 +235,9 @@ func buildHeaders(operation string, interceptor fvcommon.Interceptor) (http.Head
 }
 
 // authToken returns the API key or bearer token to send, generating and caching a
-// bearer token from service-account credentials when needed.
-func (b *BaseController) authToken(current settings) (string, *fverrors.SkyflowError) {
+// bearer token from service-account credentials when needed. When ctx ends first it returns
+// an error wrapping ctx.Err(); a generation already started still finishes and is cached.
+func (b *BaseController) authToken(ctx context.Context, current settings) (string, *fverrors.SkyflowError) {
 	creds, err := resolveCredentials(current)
 	if err != nil {
 		return "", err
@@ -231,22 +252,88 @@ func (b *BaseController) authToken(current settings) (string, *fverrors.SkyflowE
 		}
 		return creds.Token, nil
 	}
-	b.tokenMu.Lock()
-	defer b.tokenMu.Unlock()
-	if b.token != "" && b.tokenVersion == current.authVersion && !fvhelpers.Auth().IsExpired(b.token) {
-		fvlogger.Info(logs.REUSE_BEARER_TOKEN)
-		return b.token, nil
-	}
-	fvlogger.Info(logs.GENERATE_BEARER_TOKEN_TRIGGERED)
-	token, err := GenerateToken(*creds)
+	return b.bearerToken(ctx, *creds, current.authVersion)
+}
+
+// bearerToken returns the cached bearer token for the credentials at authVersion, or
+// generates one. Generation runs on its own goroutine, which owns the token slot until it
+// ends, so a call whose context ends can return while the token is still cached for others.
+func (b *BaseController) bearerToken(ctx context.Context, creds fvcommon.Credentials, authVersion uint64) (string, *fverrors.SkyflowError) {
+	release, err := b.acquireTokenSlot(ctx)
 	if err != nil {
 		return "", err
 	}
-	// A call that started before a credentials change must not replace a newer token.
-	if current.authVersion >= b.tokenVersion {
-		b.token, b.tokenVersion = *token, current.authVersion
+	if token, ok := b.cachedToken(authVersion); ok {
+		release()
+		fvlogger.Info(logs.REUSE_BEARER_TOKEN)
+		return token, nil
 	}
-	return *token, nil
+	fvlogger.Info(logs.GENERATE_BEARER_TOKEN_TRIGGERED)
+	result := b.generateInBackground(creds, authVersion, release)
+	select {
+	case r := <-result:
+		return r.token, r.err
+	case <-ctx.Done():
+		return "", cancelled(ctx)
+	}
+}
+
+// acquireTokenSlot waits for the token slot and returns the function that frees it, or an
+// error when ctx ends first.
+func (b *BaseController) acquireTokenSlot(ctx context.Context) (release func(), err *fverrors.SkyflowError) {
+	// Checked first: select picks at random when the slot is also free.
+	if ctx.Err() != nil {
+		return nil, cancelled(ctx)
+	}
+	slot := b.tokenSlot()
+	select {
+	case slot <- struct{}{}:
+		return func() { <-slot }, nil
+	case <-ctx.Done():
+		return nil, cancelled(ctx)
+	}
+}
+
+// cachedToken returns the cached token when it belongs to authVersion and isn't about to
+// expire. The caller holds the token slot.
+func (b *BaseController) cachedToken(authVersion uint64) (string, bool) {
+	if b.token == "" || b.tokenVersion != authVersion || fvhelpers.Auth().ExpiresWithin(b.token, tokenRefreshMargin) {
+		return "", false
+	}
+	return b.token, true
+}
+
+// generateInBackground generates a token on a new goroutine, caches it, then calls release.
+// The returned channel receives the outcome.
+func (b *BaseController) generateInBackground(creds fvcommon.Credentials, authVersion uint64, release func()) <-chan tokenResult {
+	result := make(chan tokenResult, 1)
+	go func() {
+		defer release()
+		token, err := GenerateToken(creds)
+		if err != nil {
+			result <- tokenResult{err: err}
+			return
+		}
+		// A call that started before a credentials change must not replace a newer token.
+		if authVersion >= b.tokenVersion {
+			b.token, b.tokenVersion = *token, authVersion
+		}
+		result <- tokenResult{token: *token}
+	}()
+	return result
+}
+
+// tokenSlot returns the one-slot channel that guards the cached token, creating it on
+// first use.
+func (b *BaseController) tokenSlot() chan struct{} {
+	b.tokenSlotOnce.Do(func() { b.tokenSlotCh = make(chan struct{}, 1) })
+	return b.tokenSlotCh
+}
+
+// cancelled is the error for a call whose context ended while it waited for a bearer token.
+func cancelled(ctx context.Context) *fverrors.SkyflowError {
+	fvlogger.Error(logs.BEARER_TOKEN_CANCELLED)
+	return fverrors.NewSkyflowErrorWithCause(fverrors.REQUEST_CANCELLED, fverrors.BEARER_TOKEN_CANCELLED, ctx.Err())
 }
 
 func baseURL(config fvcommon.VaultConfig) string {

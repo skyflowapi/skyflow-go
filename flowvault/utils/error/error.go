@@ -16,10 +16,18 @@ const (
 	INVALID_INPUT_CODE ErrorCodesEnum = v2errors.INVALID_INPUT_CODE
 	INVALID_INDEX      ErrorCodesEnum = v2errors.INVALID_INDEX
 	PARTIAL            ErrorCodesEnum = v2errors.PARTIAL
+	// REQUEST_CANCELLED - The call's context ended before the call finished.
+	REQUEST_CANCELLED ErrorCodesEnum = v2errors.REQUEST_CANCELLED
 )
 
 func NewSkyflowError(code ErrorCodesEnum, message string) *SkyflowError {
 	return v2errors.NewSkyflowError(code, message)
+}
+
+// NewSkyflowErrorWithCause is NewSkyflowError keeping the error that caused it, so callers
+// can match it with errors.Is or errors.As, e.g. context.DeadlineExceeded.
+func NewSkyflowErrorWithCause(code ErrorCodesEnum, message string, cause error) *SkyflowError {
+	return v2errors.NewSkyflowErrorWithCause(code, message, cause)
 }
 
 func SkyflowApiError(responseHeaders http.Response) *SkyflowError {

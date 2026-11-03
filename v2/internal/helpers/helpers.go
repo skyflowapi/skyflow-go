@@ -340,6 +340,7 @@ func GetFileForFileUpload(request common.FileUploadRequest) (io.ReadCloser, erro
 // to that implementation configured with v2's SDK prefix.
 // ---------------------------------------------------------------------------
 
+// authSvc's token requests time out after auth.DefaultTimeout.
 var authSvc = auth.New(auth.Config{
 	SDKPrefix: constants.SDK_PREFIX,
 	LogPrefix: constants.SDK_LOG_PREFIX,

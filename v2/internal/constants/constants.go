@@ -57,10 +57,6 @@ const (
 	DETECT_STATUS_SUCCESS     = "SUCCESS"
 	DETECT_STATUS_FAILED      = "FAILED"
 
-	// HTTP schemes and protocols
-	HTTPS_PROTOCOL = "https"
-	HTTP_PROTOCOL  = "http"
-
 	// PEM key type
 	PRIVATE_KEY_PEM_TYPE = "PRIVATE KEY"
 

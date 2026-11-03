@@ -123,6 +123,7 @@ func WithCredentials(credentials vaultutils.Credentials) Option {
 }
 
 // WithLogLevel sets the logging level.
+// The level is process-wide: it is shared by every client of the v2 and flowvault SDKs.
 func WithLogLevel(logLevel logger.LogLevel) Option {
 	return func(s *Skyflow) *error.SkyflowError {
 		s.logLevel = logLevel
@@ -233,7 +234,8 @@ func (s *Skyflow) GetSkyflowCredentials() *vaultutils.Credentials {
 	return s.credentials
 }
 
-// UpdateLogLevel update methods
+// UpdateLogLevel changes the log level for the client.
+// The level is process-wide: it is shared by every client of the v2 and flowvault SDKs.
 func (s *Skyflow) UpdateLogLevel(logLevel logger.LogLevel) {
 	s.logLevel = logLevel
 	for _, service := range s.vaultServices {
@@ -382,7 +384,8 @@ func (s *Skyflow) UpdateConnectionConfig(updatedConfig vaultutils.ConnectionConf
 	return nil
 }
 
-// GetLoglevel returns the current log level of the client.
+// GetLoglevel returns the level last set on this client. Another client, in either SDK,
+// may have changed the process-wide level since.
 func (s *Skyflow) GetLoglevel() *logger.LogLevel {
 	loglevel := s.logLevel
 	return &loglevel

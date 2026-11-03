@@ -78,7 +78,4 @@ const (
 	UPLOAD_CONNECT_TIMEOUT_SECONDS         = 10
 	UPLOAD_RESPONSE_HEADER_TIMEOUT_SECONDS = 10
 	UPLOAD_KEEP_ALIVE_SECONDS              = 30
-
-	// Token requests: overall timeout, matching Java's default token client.
-	AUTH_TIMEOUT_SECONDS = 60
 )

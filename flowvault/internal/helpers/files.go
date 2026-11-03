@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"syscall"
 
 	fvcommon "github.com/skyflowapi/skyflow-go/flowvault/utils/common"
 	fverrors "github.com/skyflowapi/skyflow-go/flowvault/utils/error"
@@ -72,19 +73,27 @@ func ResolveFile(column fvcommon.UploadFilesRequestColumn) (ResolvedFile, *fverr
 
 // checkReadable reports why path can't be uploaded: it must be a regular file that opens.
 func checkReadable(path string) error {
-	f, err := os.Open(path)
+	f, _, err := openRegular(path)
 	if err != nil {
 		return err
 	}
-	defer func() { _ = f.Close() }()
-	info, err := f.Stat()
+	return f.Close()
+}
+
+// openRegular opens path for reading and returns it with its size, or an error when it is not
+// a regular file. It opens without blocking, so a FIFO or device, even one swapped in after an
+// earlier check, is refused instead of hanging the call; the check is made on the handle that
+// is then read.
+func openRegular(path string) (*os.File, int64, error) {
+	f, err := os.OpenFile(path, os.O_RDONLY|syscall.O_NONBLOCK, 0)
 	if err != nil {
-		return err
+		return nil, 0, err
 	}
-	if !info.Mode().IsRegular() {
-		return errors.New(notRegularFile)
+	if info, err := f.Stat(); err == nil && info.Mode().IsRegular() {
+		return f, info.Size(), nil
 	}
-	return nil
+	_ = f.Close()
+	return nil, 0, errors.New(notRegularFile)
 }
 
 // body returns the file's content to send and its length, or -1 when the length isn't
@@ -92,16 +101,11 @@ func checkReadable(path string) error {
 func (f ResolvedFile) body() (io.ReadCloser, int64, error) {
 	switch {
 	case f.Path != "":
-		file, err := os.Open(f.Path)
+		file, size, err := openRegular(f.Path)
 		if err != nil {
-			return nil, 0, err
+			return nil, 0, err // not a nil *os.File wrapped in a non-nil io.ReadCloser
 		}
-		info, err := file.Stat()
-		if err != nil {
-			_ = file.Close()
-			return nil, 0, err
-		}
-		return file, info.Size(), nil
+		return file, size, nil
 	case f.Object != nil:
 		return io.NopCloser(f.Object), remaining(f.Object), nil
 	}
@@ -111,12 +115,12 @@ func (f ResolvedFile) body() (io.ReadCloser, int64, error) {
 // remaining is the length from the file's current offset to its end, or -1 when it can't
 // be told, e.g. for a pipe.
 func remaining(file *os.File) int64 {
-	info, err := file.Stat()
-	if err != nil || !info.Mode().IsRegular() {
-		return -1
-	}
 	offset, err := file.Seek(0, io.SeekCurrent)
 	if err != nil {
+		return -1
+	}
+	info, err := file.Stat()
+	if err != nil || !info.Mode().IsRegular() {
 		return -1
 	}
 	return info.Size() - offset
@@ -166,6 +170,9 @@ func withoutURL(err error) error {
 
 // RunConcurrently runs tasks with at most limit running at once, and waits for all of them.
 func RunConcurrently(tasks []func(), limit int) {
+	if limit < 1 {
+		limit = 1
+	}
 	var wg sync.WaitGroup
 	slots := make(chan struct{}, limit)
 	for _, task := range tasks {
