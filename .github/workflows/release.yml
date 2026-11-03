@@ -1,0 +1,183 @@
+name: FlowVault public release
+
+# Triggered by publishing a GitHub Release, not a raw tag push: the Release carries
+# both facts needed here - target_commitish (the branch picked in the UI; a tag records
+# only a commit) and tag_name (module prefix + version).
+#
+# A Go module in a subdirectory is released by tagging <dir>/v<semver>, e.g.
+# flowvault/v1.0.0. Unlike Maven there is nothing to upload and no version to bump
+# after the fact: the tagged commit IS the release, so it must already carry the right
+# SDK_VERSION. This workflow checks that, runs the shared checks on the tagged commit
+# and has proxy.golang.org cache the version. Beta and final share it; the kind comes
+# from the tag. Releases of v2 (unprefixed vX.Y.Z tags) are skipped.
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  resolve-release:
+    if: ${{ startsWith(github.event.release.tag_name, 'flowvault/') || startsWith(github.event.release.tag_name, 'common/') }}
+    runs-on: ubuntu-latest
+    outputs:
+      module: ${{ steps.parse.outputs.module }}
+      version: ${{ steps.parse.outputs.version }}
+      kind: ${{ steps.parse.outputs.kind }}
+      sha: ${{ steps.validate.outputs.sha }}
+    steps:
+      - name: Parse module, version and release kind from the tag
+        id: parse
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+          BRANCH: ${{ github.event.release.target_commitish }}
+          PRERELEASE: ${{ github.event.release.prerelease }}
+        run: |
+          # Expected: <module>/v<semver>[-beta.N]  e.g. flowvault/v1.0.0,
+          # flowvault/v1.0.0-beta.1, common/v1.0.0
+          if [[ ! "$TAG" =~ ^(flowvault|common)/v([0-9]+)\.[0-9]+\.[0-9]+(-beta\.[0-9]+)?$ ]]; then
+            echo "::error::Tag '$TAG' is not <module>/v<semver>[-beta.N]." \
+                 "Examples: flowvault/v1.0.0, flowvault/v1.0.0-beta.1, common/v1.0.0"
+            exit 1
+          fi
+          MODULE="${BASH_REMATCH[1]}"
+          MAJOR="${BASH_REMATCH[2]}"
+          VERSION="${TAG#*/}"      # flowvault/v1.0.0 -> v1.0.0
+
+          # The module paths have no /vN suffix, so Go only accepts v0 and v1 tags for them.
+          if [ "$MAJOR" -gt 1 ]; then
+            echo "::error::$MODULE is a v0/v1 module path; a $VERSION tag needs a /v$MAJOR module path first."
+            exit 1
+          fi
+
+          # A Release made from an existing tag, or through the API with a SHA, does not
+          # carry the release branch: it has to be chosen as the target in the UI.
+          if [ -z "$BRANCH" ]; then
+            echo "::error::Release has no target_commitish - cannot determine the release branch."
+            exit 1
+          fi
+          case "$MODULE/$BRANCH" in
+            flowvault/flowvault-release/*) ;;
+            common/main | common/flowvault-release/*) ;;
+            *)
+              echo "::error::Release target is '$BRANCH', but $MODULE is released from a" \
+                   "flowvault-release/* branch (common may also use main). If the tag already" \
+                   "existed, recreate the Release and pick the release branch as its target."
+              exit 1
+              ;;
+          esac
+
+          if [[ "$VERSION" == *-beta.* ]]; then KIND="beta"; else KIND="public"; fi
+          if [[ "$KIND" == "beta" && "$PRERELEASE" != "true" ]]; then
+            echo "::warning::$TAG is a beta but the GitHub Release is not marked as a pre-release."
+          fi
+
+          echo "Tag '$TAG' -> module='$MODULE' version='$VERSION' kind='$KIND' branch='$BRANCH'"
+          echo "module=$MODULE"   >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "kind=$KIND"       >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate the tagged commit
+        id: validate
+        env:
+          BRANCH: ${{ github.event.release.target_commitish }}
+          MODULE: ${{ steps.parse.outputs.module }}
+          VERSION: ${{ steps.parse.outputs.version }}
+          KIND: ${{ steps.parse.outputs.kind }}
+        run: |
+          # The tagged commit must be on the release branch, or the release was cut from
+          # somewhere else.
+          if ! git merge-base --is-ancestor HEAD "origin/$BRANCH"; then
+            echo "::error::Tagged commit is not an ancestor of origin/$BRANCH."
+            exit 1
+          fi
+
+          # A replace directive is ignored for consumers, so a release built with one
+          # does not match what they get.
+          if grep -qE '^[[:space:]]*replace([[:space:]]|\()' "$MODULE/go.mod"; then
+            echo "::error file=$MODULE/go.mod::$MODULE/go.mod has a replace directive; remove it before releasing."
+            exit 1
+          fi
+
+          if [ "$MODULE" = "flowvault" ]; then
+            # The SDK reports SDK_VERSION in its metrics header; it must match the tag.
+            CONSTANTS=flowvault/internal/constants/constants.go
+            SDK_VERSION=$(sed -nE 's/^[[:space:]]*SDK_VERSION[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' "$CONSTANTS")
+            if [ -z "$SDK_VERSION" ]; then
+              echo "::error file=$CONSTANTS::Could not find the SDK_VERSION constant; update this check if it moved."
+              exit 1
+            fi
+            if [ "$SDK_VERSION" != "$VERSION" ]; then
+              echo "::error file=$CONSTANTS::SDK_VERSION is '$SDK_VERSION' but the tag is '$VERSION'." \
+                   "Bump it on $BRANCH, then re-tag."
+              exit 1
+            fi
+
+            # A public flowvault release must depend on a released common, not a commit.
+            if grep -qE 'github\.com/skyflowapi/skyflow-go/common v[^ ]*[0-9]{14}-[0-9a-f]{12}' flowvault/go.mod; then
+              MESSAGE="flowvault/go.mod requires common at a pseudo-version; release common/vX.Y.Z and bump the requirement first."
+              if [ "$KIND" = "public" ]; then
+                echo "::error file=flowvault/go.mod::$MESSAGE"
+                exit 1
+              fi
+              echo "::warning file=flowvault/go.mod::$MESSAGE"
+            fi
+          fi
+
+          # Later jobs use this exact commit, so moving the tag mid-run can't swap in
+          # unvalidated code.
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  checks:
+    needs: resolve-release
+    uses: ./.github/workflows/shared-flowvault-checks.yml
+    with:
+      ref: ${{ needs.resolve-release.outputs.sha }}
+
+  publish:
+    needs: [resolve-release, checks]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve-release.outputs.sha }}
+          persist-credentials: false
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: flowvault/go.mod
+          cache: false
+
+      # The tag is already the release; this asks proxy.golang.org to fetch and cache it
+      # so the version is available to `go get` and listed on pkg.go.dev right away. The
+      # proxy records the version permanently, so it must be the commit validated above.
+      - name: Publish to proxy.golang.org
+        env:
+          MODULE: ${{ needs.resolve-release.outputs.module }}
+          MODULE_PATH: github.com/skyflowapi/skyflow-go/${{ needs.resolve-release.outputs.module }}
+          VERSION: ${{ needs.resolve-release.outputs.version }}
+          KIND: ${{ needs.resolve-release.outputs.kind }}
+          SHA: ${{ needs.resolve-release.outputs.sha }}
+        run: |
+          PROXY_SHA=$(bash .github/scripts/go-proxy-resolve.sh "$MODULE_PATH" "$VERSION" | jq -r '.Origin.Hash // empty')
+          if [ "$PROXY_SHA" != "$SHA" ]; then
+            echo "::error::proxy.golang.org has $MODULE_PATH@$VERSION at '$PROXY_SHA', but the validated commit is $SHA." \
+                 "The tag was moved during the release."
+            exit 1
+          fi
+          echo "::notice::Published $MODULE_PATH@$VERSION ($KIND) at $SHA"
+          {
+            echo "### $MODULE $KIND release"
+            echo
+            echo '```bash'
+            echo "go get $MODULE_PATH@$VERSION"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

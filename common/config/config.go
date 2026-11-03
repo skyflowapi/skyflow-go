@@ -9,22 +9,16 @@ package config
 
 import "time"
 
-// Env is the Skyflow environment a vault runs in. The zero value means "not set": it
-// resolves to PROD when the vault URL is built, and UpdateVaultConfig leaves the current
-// Env unchanged when the update doesn't set one.
+// Env is the Skyflow environment a vault runs in. The zero value is PROD, matching
+// the Java SDK's default.
 type Env int
 
 const (
-	PROD Env = iota + 1
+	PROD Env = iota
 	STAGE
 	SANDBOX
 	DEV
 )
-
-// IsSet reports whether the Env was set explicitly.
-func (e Env) IsSet() bool {
-	return e != 0
-}
 
 type Credentials struct {
 	Path              string

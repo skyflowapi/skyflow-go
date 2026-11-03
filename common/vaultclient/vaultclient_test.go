@@ -2,6 +2,8 @@ package vaultclient
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -225,5 +227,87 @@ func TestProfileLogsReplaceAndAddLines(t *testing.T) {
 	}
 	if out.Len() != 0 {
 		t.Fatalf("logs = %q", out.String())
+	}
+}
+
+func TestFirstDurationAndBackoffEdgeCases(t *testing.T) {
+	if firstDuration() != 0 || firstDuration(0, -time.Second) != 0 {
+		t.Fatal("firstDuration should be zero when no positive duration is set")
+	}
+	if delay := backoff(1, 10*time.Second, time.Second); delay < 800*time.Millisecond || delay > 1200*time.Millisecond {
+		t.Fatalf("backoff not capped at max: %v", delay)
+	}
+	if backoff(3, 0, 0) != 0 || backoff(1, time.Nanosecond, time.Nanosecond) != time.Nanosecond {
+		t.Fatal("backoff should skip jitter that rounds to zero")
+	}
+}
+
+func newUnavailableServer(calls *int32) *httptest.Server {
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(calls, 1)
+		_, _ = io.Copy(io.Discard, r.Body)
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+}
+
+func TestRetryTransportDoesNotRetryABodyItCannotResend(t *testing.T) {
+	var calls int32
+	server := newUnavailableServer(&calls)
+	defer server.Close()
+	transport := &retryTransport{base: http.DefaultTransport, config: ResolvedHttpConfig{MaxRetries: 3}, sleep: func(time.Duration) {}}
+
+	// A body that isn't a bytes/strings reader gets no GetBody.
+	req, _ := http.NewRequest(http.MethodPost, server.URL, io.NopCloser(strings.NewReader("payload")))
+	resp, err := transport.RoundTrip(req)
+	if err != nil || resp.StatusCode != http.StatusServiceUnavailable || atomic.LoadInt32(&calls) != 1 {
+		t.Fatalf("resp=%v err=%v calls=%d", resp, err, calls)
+	}
+	_ = resp.Body.Close()
+
+	// GetBody that fails stops the retries too.
+	req, _ = http.NewRequest(http.MethodPost, server.URL, strings.NewReader("payload"))
+	req.GetBody = func() (io.ReadCloser, error) { return nil, errors.New("no body") }
+	resp, err = transport.RoundTrip(req)
+	if err != nil || atomic.LoadInt32(&calls) != 2 {
+		t.Fatalf("err=%v calls=%d", err, calls)
+	}
+	_ = resp.Body.Close()
+}
+
+func TestRetryTransportWaitsAndStopsWhenCancelled(t *testing.T) {
+	var calls int32
+	server := newUnavailableServer(&calls)
+	defer server.Close()
+
+	transport := &retryTransport{base: http.DefaultTransport, config: ResolvedHttpConfig{MaxRetries: 1, InitialRetryDelay: time.Millisecond, MaxRetryDelay: time.Millisecond}}
+	req, _ := http.NewRequest(http.MethodGet, server.URL, nil)
+	resp, err := transport.RoundTrip(req)
+	if err != nil || atomic.LoadInt32(&calls) != 2 {
+		t.Fatalf("err=%v calls=%d", err, calls)
+	}
+	_ = resp.Body.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	transport.config = ResolvedHttpConfig{MaxRetries: 1, InitialRetryDelay: time.Hour, MaxRetryDelay: time.Hour}
+	req, _ = http.NewRequestWithContext(ctx, http.MethodGet, server.URL, nil)
+	done := make(chan error, 1)
+	go func() {
+		_, err := transport.RoundTrip(req)
+		done <- err
+	}()
+	for atomic.LoadInt32(&calls) < 3 {
+		time.Sleep(time.Millisecond)
+	}
+	cancel()
+	if err := <-done; !errors.Is(err, context.Canceled) {
+		t.Fatalf("err = %v, want context.Canceled", err)
+	}
+}
+
+func TestShouldRetry(t *testing.T) {
+	for status, want := range map[int]bool{http.StatusOK: false, http.StatusBadRequest: false, http.StatusRequestTimeout: true, http.StatusTooManyRequests: true, http.StatusInternalServerError: true, http.StatusServiceUnavailable: true} {
+		if ShouldRetry(status) != want {
+			t.Errorf("ShouldRetry(%d) = %v", status, !want)
+		}
 	}
 }

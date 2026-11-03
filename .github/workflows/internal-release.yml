@@ -1,0 +1,63 @@
+name: FlowVault internal release
+
+# Every push to a flowvault-release/* branch is an internal release. Go has no
+# artifact to upload: a pushed commit can already be fetched as a pseudo-version
+# (v0.0.0-<time>-<sha>). This workflow gates the commit on the shared checks, then has
+# proxy.golang.org resolve and cache it, and reports the `go get` line to use.
+# Tag pushes never trigger it, because only branches are listed.
+
+on:
+  push:
+    branches:
+      - flowvault-release/**
+    paths-ignore:
+      - "**.md"
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    uses: ./.github/workflows/shared-flowvault-checks.yml
+    with:
+      ref: ${{ github.sha }}
+
+  publish:
+    needs: checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      # Consumers ignore replace directives, so a build that relied on one is not what
+      # they would get.
+      - name: Check flowvault/go.mod has no replace
+        run: |
+          if grep -qE '^[[:space:]]*replace([[:space:]]|\()' flowvault/go.mod; then
+            echo "::error file=flowvault/go.mod::flowvault/go.mod has a replace directive; remove it before releasing."
+            exit 1
+          fi
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: flowvault/go.mod
+          cache: false
+
+      - name: Resolve pseudo-version through proxy.golang.org
+        env:
+          MODULE_PATH: github.com/skyflowapi/skyflow-go/flowvault
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          VERSION=$(bash .github/scripts/go-proxy-resolve.sh "$MODULE_PATH" "$GITHUB_SHA" | jq -r .Version)
+          echo "::notice::Internal release $MODULE_PATH@$VERSION from $BRANCH"
+          {
+            echo "### flowvault internal release"
+            echo
+            echo "Branch \`$BRANCH\` at \`$GITHUB_SHA\`:"
+            echo
+            echo '```bash'
+            echo "go get $MODULE_PATH@$VERSION"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

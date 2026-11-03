@@ -106,8 +106,7 @@ func (s *Skyflow) updateDetect(service *detectService, updated common.VaultConfi
 	if updated.ClusterId != "" {
 		config.ClusterId = updated.ClusterId
 	}
-	if updated.Env.IsSet() {
-		config.Env = updated.Env
-	}
+	// As in Java, Env is always applied: it defaults to PROD, so an update that omits it resets it.
+	config.Env = updated.Env
 	service.base.SetConfig(config, credentialsChanged)
 }

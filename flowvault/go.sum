@@ -40,8 +40,8 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/rogpeppe/go-internal v1.13.1 h1:KvO1DLK/DRN07sQ1LQKScxyZJuNnedQ5/wKSR38lUII=
 github.com/rogpeppe/go-internal v1.13.1/go.mod h1:uMEvuHeurkdAXX61udpOXGD/AzZDWNMNyH2VO9fmH0o=
-github.com/skyflowapi/skyflow-go/common v0.0.0-20261019104456-6115e81fcef9 h1:0SNuvxkS+mr+sy7lDZvwmgjgAIC+HrqEr81lsTTXEgQ=
-github.com/skyflowapi/skyflow-go/common v0.0.0-20261019104456-6115e81fcef9/go.mod h1:T9roW4Qpv1WFo6tgLjbfLrdOCOz20lVE8ENf2bGb7zI=
+github.com/skyflowapi/skyflow-go/common v0.0.0-20261030081216-ae1fcd2242aa h1:wtxldef4g806PHgEvnbuxIPtpqWRj78q0X2U99DCgdg=
+github.com/skyflowapi/skyflow-go/common v0.0.0-20261030081216-ae1fcd2242aa/go.mod h1:I6xXP+DO77cf3u2b9rLY+eg+njGoNtxhWzhCp9O+YWs=
 github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcUk=
 github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
 github.com/tidwall/gjson v1.18.0 h1:FIDeeyB800efLX89e5a8Y0BNH+LOngJyGrIWxG2FKQY=

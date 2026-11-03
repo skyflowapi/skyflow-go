@@ -35,6 +35,10 @@ var (
 	log atomic.Pointer[slog.Logger]
 )
 
+// levelOff is above every level the SDK logs at, so OFF silences output without
+// replacing the writer, and a later SetLogLevel turns logging back on.
+const levelOff = slog.LevelError + 1
+
 func init() {
 	levelVar.Set(slog.LevelError)
 	rebuild()
@@ -168,7 +172,7 @@ func SetLogLevel(level LogLevel) {
 	case ERROR:
 		levelVar.Set(slog.LevelError)
 	case OFF:
-		SetOutput(io.Discard)
+		levelVar.Set(levelOff)
 	default:
 		levelVar.Set(slog.LevelError)
 	}

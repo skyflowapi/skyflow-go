@@ -16,7 +16,7 @@ const (
 	errMissingClientId              = " Initialization failed. Unable to read client ID in credentials. Verify your client ID."
 	errMissingKeyId                 = " Initialization failed. Unable to read key ID in credentials. Verify your key ID."
 	errMissingTokenUri              = " Initialization failed. Unable to read token URI in credentials. Verify your token URI."
-	errInvalidTokenUri              = " Initialization failed. Token URI in not a valid URL in credentials. Verify your token URI."
+	errInvalidTokenUri              = " Initialization failed. Token URI is not a valid URL in credentials. Verify your token URI."
 	errJwtInvalidFormat             = " Initialization failed. Invalid private key format. Verify your credentials."
 	errInvalidAlgorithm             = " Initialization failed. Invalid algorithm to parse private key. Specify valid algorithm."
 	errInvalidKeySpec               = " Initialization failed. Unable to parse RSA private key. Verify your credentials."

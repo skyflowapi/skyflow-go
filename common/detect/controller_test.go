@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -128,6 +130,43 @@ func TestDeidentifyStringSendsInlineConfigurationWithVaultId(t *testing.T) {
 	}
 	if req.header.Get("Authorization") != "Bearer "+testApiKey || req.header.Get("X-Request-Id") != "caller-req" || req.header.Get("sky-metadata") != "meta" {
 		t.Fatalf("headers = %v", req.header)
+	}
+}
+
+// A retryable status is final once the HTTP client's own retries are done, so the call
+// returns the API error at once instead of the generated client sleeping before giving up.
+func TestRetryableStatusIsReturnedWithoutGeneratedRetryDelay(t *testing.T) {
+	f := newFakeDetect(t)
+	f.status = http.StatusServiceUnavailable
+	c, _ := newTestController(f)
+
+	start := time.Now()
+	_, err := c.GetRun(context.Background(), GetRunRequest{RunId: "run-1"}, GetRunOptions{})
+	if elapsed := time.Since(start); elapsed >= 400*time.Millisecond {
+		t.Fatalf("call took %v; the generated retrier slept", elapsed)
+	}
+	if err == nil || err.GetRequestId() != "req-123" || !strings.Contains(err.GetMessage(), "Run not found") {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestRetryableResponseWithUnreadableBodyReportsTheReadError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		conn, buf, err := w.(http.Hijacker).Hijack()
+		if err != nil {
+			t.Errorf("hijack: %v", err)
+			return
+		}
+		defer conn.Close()
+		_, _ = buf.WriteString("HTTP/1.1 503 Service Unavailable\r\nContent-Type: application/json\r\nContent-Length: 100\r\n\r\nshort")
+		_ = buf.Flush()
+	}))
+	defer server.Close()
+
+	req, _ := http.NewRequest(http.MethodGet, server.URL, nil)
+	resp, err := finalResponseClient{http.DefaultClient}.Do(req)
+	if resp != nil || !errors.Is(err, io.ErrUnexpectedEOF) {
+		t.Fatalf("resp = %v, err = %v", resp, err)
 	}
 }
 
