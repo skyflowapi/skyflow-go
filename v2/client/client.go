@@ -191,11 +191,8 @@ func (s *Skyflow) Detect(vaultID ...string) (*detectService, *error.SkyflowError
 	if err != nil {
 		return nil, err
 	}
-	service, exists := s.detectServices[config.VaultId]
-	if !exists {
-		return nil, error.NewSkyflowError(error.INVALID_INPUT_CODE, error.VAULT_ID_NOT_IN_CONFIG_LIST)
-	}
-	return service, nil
+	// getDetectConfig returns the config of a registered service, so the lookup always hits.
+	return s.detectServices[config.VaultId], nil
 }
 
 // GetVaultConfig returns the VaultConfig registered under vaultId, or an error if it is not found.

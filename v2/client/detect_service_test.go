@@ -109,6 +109,22 @@ var _ = Describe("Detect", func() {
 		Expect(err.GetMessage()).To(ContainSubstring("Token provided is either invalid or has expired"))
 	})
 
+	It("validates DeidentifyFile, GetRun, ReidentifyFile and CheckGuardrails before calling the API", func() {
+		service, err := newClient().Detect(vaultId)
+		Expect(err).To(BeNil())
+		ctx := context.Background()
+
+		_, err = service.DeidentifyFile(ctx, common.DeidentifyFileRequest{}, common.DeidentifyFileOptions{})
+		Expect(err.GetMessage()).To(ContainSubstring("DeidentifyFile failed. Set exactly one of Value, FilePath or FileObject."))
+		_, err = service.GetRun(ctx, common.GetRunRequest{}, common.GetRunOptions{})
+		Expect(err.GetMessage()).To(ContainSubstring("RunId must not be empty"))
+		_, err = service.ReidentifyFile(ctx, common.ReidentifyFileRequest{}, common.ReidentifyFileOptions{})
+		Expect(err.GetMessage()).To(ContainSubstring("ReidentifyFile failed. Set exactly one of Value, FilePath or FileObject."))
+		_, err = service.CheckGuardrails(ctx, common.CheckGuardrailsRequest{}, common.CheckGuardrailsOptions{})
+		Expect(err.GetMessage()).To(ContainSubstring("CheckGuardrails failed. Text must not be empty."))
+		Expect(path).To(BeEmpty())
+	})
+
 	It("fails for an unknown or removed vault", func() {
 		client := newClient()
 		_, err := client.Detect("unknown")
