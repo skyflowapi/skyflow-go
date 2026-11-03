@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	cfg "github.com/skyflowapi/skyflow-go/common/config"
 	constants "github.com/skyflowapi/skyflow-go/v2/internal/constants"
 	vaultapis "github.com/skyflowapi/skyflow-go/v2/internal/generated"
 	"github.com/skyflowapi/skyflow-go/v2/internal/helpers"
@@ -152,7 +153,7 @@ func ValidateGetDetectRunRequest(req common.GetDetectRunRequest) *skyflowError.S
 
 // ValidateDeidentifyFileRequest validates the required fields of DeidentifyFileRequest.
 func ValidateDeidentifyFileRequest(req common.DeidentifyFileRequest) *skyflowError.SkyflowError {
-		tag := constants.REQUEST_DEIDENTIFY_FILE
+	tag := constants.REQUEST_DEIDENTIFY_FILE
 	// Validate if file or filepath is provided
 	if req.File.File == nil && req.File.FilePath == "" {
 		logger.Error(fmt.Sprintf(logs.EMPTY_FILE_AND_FILE_PATH_IN_DEIDENTIFY_FILE, tag))
@@ -471,41 +472,16 @@ func validateTokenForStrict(tokens map[string]interface{}, values map[string]int
 }
 
 // validateVaultConfig function
+// configValidator is the shared implementation (skyflow-go/common/config) of the
+// vault-config and credential checks, configured with v2's SDK prefix.
+var configValidator = cfg.NewValidator(constants.SDK_PREFIX, constants.SDK_LOG_PREFIX)
+
 func ValidateVaultConfig(vaultConfig common.VaultConfig) *skyflowError.SkyflowError {
-	// Validate VaultId
-	if vaultConfig.VaultId == "" {
-		logger.Error(logs.VAULT_ID_IS_REQUIRED)
-		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_VAULT_ID)
-	}
-	baseVaultUrl := vaultConfig.BaseVaultUrl
-	if vaultConfig.BaseVaultURL != "" {
-		if baseVaultUrl != "" {
-			logger.Warn(logs.DEPRECATED_FIELD_BASE_VAULT_URL)
-		} else {
-			logger.Warn(logs.DEPRECATED_FIELD_BASE_VAULT_URL)
-			baseVaultUrl = vaultConfig.BaseVaultURL
-		}
-	}
-	if baseVaultUrl == "" {
-		if vaultConfig.ClusterId == "" {
-			logger.Error(logs.CLUSTER_ID_IS_REQUIRED)
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_CLUSTER_ID)
-		}
-	} else {
-		if !isValidHTTPURL(baseVaultUrl) {
-			logger.Error(logs.VAULT_URL_IS_INVALID)
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_VAULT_URL)
-		}
-	}
-	return nil
+	return configValidator.ValidateVaultConfig(vaultConfig)
 }
+
 func ValidateUpdateVaultConfig(vaultConfig common.VaultConfig) *skyflowError.SkyflowError {
-	// Validate VaultId
-	if vaultConfig.VaultId == "" {
-		logger.Error(logs.VAULT_ID_IS_REQUIRED)
-		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_VAULT_ID)
-	}
-	return nil
+	return configValidator.ValidateUpdateVaultConfig(vaultConfig)
 }
 
 // ValidateConnectionConfig validates the ConnectionConfig struct
@@ -547,56 +523,7 @@ func ValidateUpdateConnectionConfig(config common.ConnectionConfig) *skyflowErro
 
 // ValidateCredentials validates the credentials object
 func ValidateCredentials(credentials common.Credentials) *skyflowError.SkyflowError {
-	credPresent := 0
-
-	// Count non-null members
-	if credentials.Path != "" {
-		credPresent++
-	}
-	if credentials.CredentialsString != "" {
-		credPresent++
-	}
-	if credentials.Token != "" {
-		credPresent++
-	}
-	if credentials.ApiKey != "" {
-		credPresent++
-	}
-
-	// Validation logic
-	if credPresent > 1 {
-		logger.Error(logs.MULTIPLE_TOKEN_GENERATION_MEANS_PASSED)
-		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.MULTIPLE_TOKEN_GENERATION_MEANS_PASSED)
-	} else if credPresent < 1 {
-		logger.Error(logs.NO_TOKEN_GENERATION_MEANS_PASSED)
-		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.NO_TOKEN_GENERATION_MEANS_PASSED)
-	}
-
-	// API key validation
-	if credentials.ApiKey != "" {
-		// Validate API key format
-		if len(credentials.ApiKey) != constants.API_KEY_LENGTH || !strings.Contains(credentials.ApiKey, constants.API_KEY_PREFIX) {
-			logger.Error(logs.INVALID_API_KEY)
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_API_KEY)
-
-		}
-	}
-
-	// Roles validation
-	if credentials.Roles != nil {
-		if len(credentials.Roles) == 0 {
-			logger.Error(logs.EMPTY_ROLES)
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_ROLES)
-		}
-		for index, role := range credentials.Roles {
-			if role == "" {
-				logger.Error(fmt.Sprintf(logs.EMPTY_OR_NULL_ROLE_IN_ROLES, index))
-				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_ROLE_IN_ROLES)
-			}
-		}
-	}
-
-	return nil
+	return configValidator.ValidateCredentials(credentials)
 }
 
 // ValidateInvokeConnectionRequest validates the fields of InvokeConnectionRequest
@@ -667,7 +594,7 @@ func ValidateInvokeConnectionRequest(request common.InvokeConnectionRequest) *sk
 }
 
 func ValidateDetokenizeRequest(request common.DetokenizeRequest) *skyflowError.SkyflowError {
-		tag := constants.REQUEST_DETOKENIZE
+	tag := constants.REQUEST_DETOKENIZE
 	if request.DetokenizeData == nil {
 		logger.Error(fmt.Sprintf(logs.DETOKENIZE_DATA_REQUIRED, tag))
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_DETOKENIZE_DATA)
@@ -866,7 +793,7 @@ func ValidateUpdateRequest(request common.UpdateRequest, options common.UpdateOp
 
 // ValidateFileUploadRequest validates the required fields of FileUploadRequest.
 func ValidateFileUploadRequest(req common.FileUploadRequest) *skyflowError.SkyflowError {
-tag := constants.REQUEST_UPLOAD_FILE
+	tag := constants.REQUEST_UPLOAD_FILE
 
 	if strings.TrimSpace(req.Table) == "" {
 		logger.Error(fmt.Sprintf(logs.EMPTY_TABLE, tag))
