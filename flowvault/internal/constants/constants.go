@@ -11,7 +11,7 @@ const (
 	PROD_DOMAIN            = ".skyvault.skyflowapis.com"
 	GRANT_TYPE             = "urn:ietf:params:oauth:grant-type:jwt-bearer"
 	SDK_NAME               = "Skyflow FlowVault Go SDK "
-	SDK_VERSION            = "v0.1.0" // flowvault module version; bump with each flowvault/vX.Y.Z tag
+	SDK_VERSION            = "v1.0.0" // flowvault module version; bump with each flowvault/vX.Y.Z tag
 	METRICS_SDK_NAME       = "skyflow-flowvault-go"
 	SDK_PREFIX             = SDK_NAME + SDK_VERSION
 	SDK_LOG_PREFIX         = "[ " + SDK_PREFIX + " ] "

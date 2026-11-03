@@ -24,9 +24,9 @@ import (
 // service-account authenticator, how it builds a vault URL from a cluster ID, the
 // sky-metadata header value and its HTTP defaults.
 type Profile struct {
-	// SDKPrefix is prepended to error messages, e.g. "Skyflow FlowVault Go SDK v0.1.0".
+	// SDKPrefix is prepended to error messages, e.g. "Skyflow FlowVault Go SDK v1.0.0".
 	SDKPrefix string
-	// LogPrefix is prepended to log lines, e.g. "[ Skyflow FlowVault Go SDK v0.1.0 ] ".
+	// LogPrefix is prepended to log lines, e.g. "[ Skyflow FlowVault Go SDK v1.0.0 ] ".
 	LogPrefix string
 	// Auth generates bearer tokens from service-account credentials.
 	Auth *auth.Service
