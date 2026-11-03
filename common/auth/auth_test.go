@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -24,6 +25,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	skyflowError "github.com/skyflowapi/skyflow-go/common/errors"
+	"github.com/skyflowapi/skyflow-go/common/logger"
 	sa "github.com/skyflowapi/skyflow-go/common/serviceaccount"
 )
 
@@ -295,6 +297,33 @@ var _ = Describe("Auth Service", func() {
 		})
 		It("should report a valid token as not expired", func() {
 			Expect(svc.IsExpired(signedJWT(jwt.MapClaims{"exp": time.Now().Add(time.Hour).Unix()}))).To(BeFalse())
+		})
+		It("should report a token that expires within the margin", func() {
+			token := signedJWT(jwt.MapClaims{"exp": time.Now().Add(time.Minute).Unix()})
+			var logs bytes.Buffer
+			logger.SetOutput(&logs)
+			logger.SetLogLevel(logger.INFO)
+			DeferCleanup(func() {
+				logger.SetOutput(os.Stderr)
+				logger.SetLogLevel(logger.ERROR)
+			})
+			Expect(svc.IsExpired(token)).To(BeFalse())
+			Expect(svc.ExpiresWithin(token, 2*time.Minute)).To(BeTrue())
+			Expect(logs.String()).To(ContainSubstring(logBearerTokenExpiresSoon))
+			Expect(logs.String()).NotTo(ContainSubstring(logBearerTokenExpired))
+			Expect(svc.ExpiresWithin(token, 10*time.Second)).To(BeFalse())
+		})
+		It("should give the token client a default timeout", func() {
+			Expect(New(Config{}).cfg.HTTPClient.Timeout).To(Equal(DefaultTimeout))
+
+			noTimeout := &http.Client{Transport: failingTransport{}}
+			svc := New(Config{HTTPClient: noTimeout})
+			Expect(svc.cfg.HTTPClient.Timeout).To(Equal(DefaultTimeout))
+			Expect(svc.cfg.HTTPClient.Transport).To(Equal(noTimeout.Transport))
+			Expect(noTimeout.Timeout).To(BeZero()) // the caller's client is not changed
+
+			own := &http.Client{Timeout: time.Second}
+			Expect(New(Config{HTTPClient: own}).cfg.HTTPClient).To(BeIdenticalTo(own))
 		})
 		It("should treat a token without exp as expired", func() {
 			Expect(svc.IsExpired(signedJWT(jwt.MapClaims{"sub": "x"}))).To(BeTrue())

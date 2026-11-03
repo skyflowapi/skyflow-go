@@ -1,3 +1,5 @@
+// Package logger is the logger shared by the v2 and flowvault SDKs. Its output and level
+// are process-wide: setting either affects every client of both SDKs.
 package logger
 
 import (
@@ -154,6 +156,7 @@ func Error(args ...interface{}) {
 	log.Load().Error(fmt.Sprint(args...))
 }
 
+// SetOutput sets where every SDK client in the process logs.
 func SetOutput(w io.Writer) {
 	mu.Lock()
 	defer mu.Unlock()
@@ -161,6 +164,7 @@ func SetOutput(w io.Writer) {
 	rebuild()
 }
 
+// SetLogLevel sets the log level for every SDK client in the process.
 func SetLogLevel(level LogLevel) {
 	switch level {
 	case INFO:

@@ -31,6 +31,7 @@ const (
 const (
 	logEmptyBearerToken                  = "BearerToken is Empty"
 	logBearerTokenExpired                = "Bearer Token provided is either invalid or has expired."
+	logBearerTokenExpiresSoon            = "Bearer token expires soon and will be replaced."
 	logGenerateBearerTokenTriggered      = "GenerateBearerToken is triggered"
 	logGenerateBearerTokenSuccess        = "BearerToken is generated"
 	logGenerateSignedDataTokenSuccess    = "Signed Data tokens are generated"

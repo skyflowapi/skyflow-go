@@ -11,4 +11,7 @@ const (
 	INVALID_INPUT_CODE ErrorCodesEnum = "400"
 	INVALID_INDEX      ErrorCodesEnum = "404"
 	PARTIAL            ErrorCodesEnum = "404"
+	// REQUEST_CANCELLED - The call's context was cancelled or its deadline passed before the
+	// call finished ("client closed request").
+	REQUEST_CANCELLED ErrorCodesEnum = "499"
 )
