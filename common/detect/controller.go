@@ -11,6 +11,8 @@ package detect
 import (
 	"context"
 	"fmt"
+	"slices"
+	"strings"
 	"time"
 
 	skyflowError "github.com/skyflowapi/skyflow-go/common/errors"
@@ -24,14 +26,48 @@ import (
 // It is safe for concurrent use; settings changes on the Base apply to the next call.
 type Controller struct {
 	base *vaultclient.Base
+	// deidentifySources are the DeidentifyFileRequest DataSource values the SDK's vaults accept.
+	deidentifySources []DeidentifySourceType
 	// sleep waits between run lookups; it returns false when ctx ends first. Replaced in tests.
 	sleep func(ctx context.Context, d time.Duration) bool
 }
 
 // NewController returns the detect controller for the vault that base serves. Share the
 // Base with the SDK's vault controller so both reuse one bearer token.
-func NewController(base *vaultclient.Base) *Controller {
-	return &Controller{base: base, sleep: sleepContext}
+//
+// deidentifySources are the DeidentifyFileRequest DataSource values the SDK's vaults accept;
+// any other is rejected before a call is made. None given accepts BASE64, SKYFLOW_ID and
+// PRESIGNED_URL.
+func NewController(base *vaultclient.Base, deidentifySources ...DeidentifySourceType) *Controller {
+	if len(deidentifySources) == 0 {
+		deidentifySources = []DeidentifySourceType{DeidentifySourceTypeBase64, DeidentifySourceTypeSkyflowID, DeidentifySourceTypePresignedURL}
+	}
+	return &Controller{base: base, deidentifySources: slices.Clone(deidentifySources), sleep: sleepContext}
+}
+
+// acceptsDeidentifySource reports whether the SDK's vaults accept source.
+func (c *Controller) acceptsDeidentifySource(source DeidentifySourceType) bool {
+	return slices.Contains(c.deidentifySources, source)
+}
+
+// deidentifySourceList names the accepted de-identify sources for error messages.
+func (c *Controller) deidentifySourceList() string {
+	return sourceList(c.deidentifySources)
+}
+
+// reidentifySources are the ReidentifyFileRequest DataSource values every vault accepts.
+var reidentifySources = []ReidentifySourceType{ReidentifySourceTypeBase64, ReidentifySourceTypePresignedURL}
+
+// sourceList names sources for error messages, e.g. "BASE64, SKYFLOW_ID or PRESIGNED_URL".
+func sourceList[T ~string](sources []T) string {
+	names := make([]string, len(sources))
+	for i, source := range sources {
+		names[i] = string(source)
+	}
+	if len(names) == 1 {
+		return names[0]
+	}
+	return strings.Join(names[:len(names)-1], ", ") + " or " + names[len(names)-1]
 }
 
 func sleepContext(ctx context.Context, d time.Duration) bool {
@@ -58,13 +94,13 @@ func (c *Controller) invalid(format string, args ...interface{}) *skyflowError.S
 }
 
 // prepare logs the call, validates the request and resolves auth, headers and HTTP settings.
-func (c *Controller) prepare(method, operation string, interceptor Interceptor, validate func() *skyflowError.SkyflowError) (*vaultclient.Call, *skyflowError.SkyflowError) {
+func (c *Controller) prepare(ctx context.Context, method, operation string, interceptor Interceptor, validate func() *skyflowError.SkyflowError) (*vaultclient.Call, *skyflowError.SkyflowError) {
 	logger.Info(fmt.Sprintf(c.logMsg(logMethodTriggered), method))
 	logger.Info(fmt.Sprintf(c.logMsg(logValidatingRequest), method))
 	if err := validate(); err != nil {
 		return nil, err
 	}
-	return c.base.Prepare(operation, interceptor)
+	return c.base.PrepareContext(ctx, operation, interceptor)
 }
 
 // finish logs how the call ended and passes its error through.
@@ -79,7 +115,7 @@ func (c *Controller) finish(method string, err *skyflowError.SkyflowError) *skyf
 
 // DeidentifyString de-identifies sensitive data in a string. Synchronous.
 func (c *Controller) DeidentifyString(ctx context.Context, request DeidentifyStringRequest, options DeidentifyStringOptions) (*DeidentifyStringResponse, *skyflowError.SkyflowError) {
-	call, err := c.prepare(methodDeidentifyString, OperationDeidentifyString, options.Interceptor, func() *skyflowError.SkyflowError {
+	call, err := c.prepare(ctx, methodDeidentifyString, OperationDeidentifyString, options.Interceptor, func() *skyflowError.SkyflowError {
 		return c.validateDeidentifyString(request)
 	})
 	if err != nil {
@@ -97,11 +133,11 @@ func (c *Controller) DeidentifyString(ctx context.Context, request DeidentifyStr
 // a non-terminal Status if the wait ran out. A successful polled run of a local file has
 // its outputs written to options.OutputDirectory.
 //
-// If writing the outputs fails, the response is returned together with the error, so the
-// run ID and outputs are not lost.
+// If a run lookup or writing the outputs fails, the response is returned together with the
+// error, so the run ID (and any outputs) are not lost.
 func (c *Controller) DeidentifyFile(ctx context.Context, request DeidentifyFileRequest, options DeidentifyFileOptions) (*DeidentifyFileResponse, *skyflowError.SkyflowError) {
 	var input *localFile
-	call, err := c.prepare(methodDeidentifyFile, OperationDeidentifyFile, options.Interceptor, func() *skyflowError.SkyflowError {
+	call, err := c.prepare(ctx, methodDeidentifyFile, OperationDeidentifyFile, options.Interceptor, func() *skyflowError.SkyflowError {
 		if err := c.validateDeidentifyFile(request, options); err != nil {
 			return err
 		}
@@ -127,15 +163,21 @@ func (c *Controller) DeidentifyFile(ctx context.Context, request DeidentifyFileR
 		return resp, nil
 	}
 
+	// Each lookup refreshes the token, so a wait of up to maxWaitTimeSeconds neither sends an
+	// expired token nor keeps one from settings that were changed meanwhile.
 	run, err := c.poll(ctx, runId, *options.Poll, func(ctx context.Context) (*GetRunResponse, *skyflowError.SkyflowError) {
-		return c.callGetRun(ctx, call, runId)
+		lookup, err := c.base.RefreshAuth(ctx, call)
+		if err != nil {
+			return nil, err
+		}
+		return c.callGetRun(ctx, lookup, runId)
 	})
 	if err != nil {
-		return nil, err
+		return resp, err
 	}
 	resp.Status, resp.OutputType, resp.Output, resp.Metrics, resp.Message = run.Status, run.OutputType, run.Output, run.Metrics, run.Message
 	if input != nil && run.Status == DetectRunStatusSuccess {
-		if err := c.writeOutputs(run.Output, string(run.OutputType), input.name, options.OutputDirectory); err != nil {
+		if err := c.writeOutputs(run.Output, run.OutputType, input.name, options.OutputDirectory); err != nil {
 			return resp, err
 		}
 	}
@@ -144,7 +186,7 @@ func (c *Controller) DeidentifyFile(ctx context.Context, request DeidentifyFileR
 
 // GetRun returns the current state of a de-identify file run.
 func (c *Controller) GetRun(ctx context.Context, request GetRunRequest, options GetRunOptions) (*GetRunResponse, *skyflowError.SkyflowError) {
-	call, err := c.prepare(methodGetRun, OperationGetRun, options.Interceptor, func() *skyflowError.SkyflowError {
+	call, err := c.prepare(ctx, methodGetRun, OperationGetRun, options.Interceptor, func() *skyflowError.SkyflowError {
 		if blank(request.RunId) {
 			return c.invalid(errEmptyRunId)
 		}
@@ -163,7 +205,7 @@ func (c *Controller) GetRun(ctx context.Context, request GetRunRequest, options 
 // ReidentifyString replaces tokens in a string with their original or redacted values.
 // Synchronous.
 func (c *Controller) ReidentifyString(ctx context.Context, request ReidentifyStringRequest, options ReidentifyStringOptions) (*ReidentifyStringResponse, *skyflowError.SkyflowError) {
-	call, err := c.prepare(methodReidentifyString, OperationReidentifyString, options.Interceptor, func() *skyflowError.SkyflowError {
+	call, err := c.prepare(ctx, methodReidentifyString, OperationReidentifyString, options.Interceptor, func() *skyflowError.SkyflowError {
 		if blank(request.Text) {
 			return c.invalid(errEmptyText, methodReidentifyString)
 		}
@@ -179,47 +221,25 @@ func (c *Controller) ReidentifyString(ctx context.Context, request ReidentifyStr
 	return resp, nil
 }
 
-// ReidentifyFile re-identifies a file. Synchronous: there is no run and no polling. A
-// successful result for a local file has its outputs written to options.OutputDirectory.
-//
-// If writing the outputs fails, the response is returned together with the error.
+// ReidentifyFile re-identifies a file. Synchronous: there is no run and no polling. The
+// output comes back in the response; the SDK writes nothing to disk.
 func (c *Controller) ReidentifyFile(ctx context.Context, request ReidentifyFileRequest, options ReidentifyFileOptions) (*ReidentifyFileResponse, *skyflowError.SkyflowError) {
-	var input *localFile
-	call, err := c.prepare(methodReidentifyFile, OperationReidentifyFile, options.Interceptor, func() *skyflowError.SkyflowError {
-		if err := c.validateFileSource(methodReidentifyFile, errMissingReidentifySource, string(request.DataSource), request.Value, request.FilePath, request.FileObject); err != nil {
-			return err
-		}
-		if err := c.validateRedactionLevels(methodReidentifyFile, request.RedactionLevel); err != nil {
-			return err
-		}
-		var readErr *skyflowError.SkyflowError
-		input, readErr = c.readLocalFile(methodReidentifyFile, request.FilePath, request.FileObject)
-		return readErr
+	call, err := c.prepare(ctx, methodReidentifyFile, OperationReidentifyFile, options.Interceptor, func() *skyflowError.SkyflowError {
+		return c.validateReidentifyFile(request)
 	})
 	if err != nil {
 		return nil, err
 	}
-	if input != nil {
-		request.DataSource, request.Value = ReidentifySourceTypeBase64, input.base64
-		if request.DataFormat == "" {
-			request.DataFormat = input.format
-		}
-	}
 	resp, err := c.callReidentifyFile(ctx, call, request)
 	if err := c.finish(methodReidentifyFile, err); err != nil {
 		return nil, err
-	}
-	if input != nil && resp.Status == DetectRunStatusSuccess {
-		if err := c.writeOutputs(resp.Output, string(resp.OutputType), input.name, options.OutputDirectory); err != nil {
-			return resp, err
-		}
 	}
 	return resp, nil
 }
 
 // CheckGuardrails screens text for toxicity and denied topics. Synchronous.
 func (c *Controller) CheckGuardrails(ctx context.Context, request CheckGuardrailsRequest, options CheckGuardrailsOptions) (*CheckGuardrailsResponse, *skyflowError.SkyflowError) {
-	call, err := c.prepare(methodCheckGuardrails, OperationCheckGuardrails, options.Interceptor, func() *skyflowError.SkyflowError {
+	call, err := c.prepare(ctx, methodCheckGuardrails, OperationCheckGuardrails, options.Interceptor, func() *skyflowError.SkyflowError {
 		if blank(request.Text) {
 			return c.invalid(errEmptyText, methodCheckGuardrails)
 		}

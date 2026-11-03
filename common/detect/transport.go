@@ -51,7 +51,9 @@ func (c finalResponseClient) Do(req *http.Request) (*http.Response, error) {
 }
 
 // apiError turns a generated-client error into a SkyflowError. API errors carry the response
-// header, so the request ID is kept.
+// header, so the request ID is kept. Any other error, such as a cancelled or timed-out
+// context or a network failure, is kept as the cause, so errors.Is(err,
+// context.DeadlineExceeded) works on the result.
 func apiError(err error) *skyflowError.SkyflowError {
 	var apiErr *core.APIError
 	if errors.As(err, &apiErr) {
@@ -61,7 +63,11 @@ func apiError(err error) *skyflowError.SkyflowError {
 		}
 		return skyflowError.SkyflowErrorApi(apiErr, header)
 	}
-	return skyflowError.NewSkyflowError(skyflowError.SERVER, err.Error())
+	code := skyflowError.SERVER
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		code = skyflowError.REQUEST_CANCELLED
+	}
+	return skyflowError.NewSkyflowErrorWithCause(code, err.Error(), err)
 }
 
 func (c *Controller) emptyResponse(method string) *skyflowError.SkyflowError {
@@ -152,7 +158,7 @@ func (c *Controller) callCheckGuardrails(ctx context.Context, call *vaultclient.
 	resp, err := newAPI(call).GuardrailsV2.CheckGuardrailsV2(ctx, &gen.DetectGuardrailsRequestV2{
 		VaultID:       call.VaultID,
 		Text:          request.Text,
-		CheckToxicity: optBool(request.CheckToxicity),
+		CheckToxicity: request.CheckToxicity,
 		DenyTopics:    request.DenyTopics,
 	})
 	if err != nil {

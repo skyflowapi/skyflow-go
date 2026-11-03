@@ -1,6 +1,7 @@
 package errors
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -726,4 +727,63 @@ var _ = Describe("Skyflow Error", func() {
 		})
 	})
 
+})
+
+var _ = Describe("NewSkyflowErrorWithCause", func() {
+	It("keeps the cause for errors.Is and errors.As", func() {
+		cause := fmt.Errorf("post: %w", context.DeadlineExceeded)
+		err := NewSkyflowErrorWithCause(SERVER, cause.Error(), cause)
+		Expect(errors.Is(err, context.DeadlineExceeded)).To(BeTrue())
+		Expect(err.GetHttpCode()).To(Equal(string(SERVER)))
+		Expect(err.GetMessage()).To(Equal("Message: post: context deadline exceeded"))
+		// A cause whose text is the message is not repeated.
+		Expect(err.Error()).To(Equal("Message: post: context deadline exceeded"))
+		Expect(NewSkyflowErrorWithCause(SERVER, "request failed", cause).Error()).
+			To(Equal("Message: request failed, Original Error (if any): post: context deadline exceeded"))
+	})
+
+	It("gives each code its own HTTP status", func() {
+		cause := errors.New("cause")
+		Expect(NewSkyflowErrorWithCause(SERVER, "m", cause).GetHttpStatusCode()).To(Equal("Internal Server Error"))
+		Expect(NewSkyflowErrorWithCause(REQUEST_CANCELLED, "m", cause).GetHttpStatusCode()).To(Equal("Client Closed Request"))
+		Expect(NewSkyflowErrorWithCause(INVALID_INPUT_CODE, "m", cause).GetHttpStatusCode()).To(Equal("Bad Request"))
+	})
+
+	It("unwraps to nil without a cause or a receiver", func() {
+		Expect(NewSkyflowError(SERVER, "x").Unwrap()).To(BeNil())
+		var nilErr *SkyflowError
+		Expect(nilErr.Unwrap()).To(BeNil())
+	})
+})
+
+var _ = Describe("raw error bodies", func() {
+	It("keeps a short body as it is", func() {
+		Expect(rawBodyMessage("bad gateway")).To(Equal("bad gateway"))
+	})
+
+	It("keeps only the start of a long body, without splitting a character", func() {
+		long := strings.Repeat("a", 511) + "é" + strings.Repeat("b", 100) // é spans bytes 511-512
+		got := rawBodyMessage(long)
+		Expect(got).To(Equal(strings.Repeat("a", 511) + "... (truncated)"))
+
+		exact := strings.Repeat("x", 600)
+		Expect(rawBodyMessage(exact)).To(Equal(strings.Repeat("x", 512) + "... (truncated)"))
+	})
+
+	It("truncates a long non-JSON body from an API client error", func() {
+		echoed := strings.Repeat("secret ", 200)
+		err := SkyflowErrorApi(errors.New("502: "+echoed), http.Header{})
+		Expect(len(err.GetMessage())).To(BeNumerically("<", 600))
+		Expect(err.GetMessage()).To(HaveSuffix("... (truncated)"))
+		Expect(err.GetHttpCode()).To(Equal("502"))
+	})
+
+	It("truncates a long plain-text response body", func() {
+		resp := http.Response{
+			Status: "502 Bad Gateway",
+			Header: http.Header{"Content-Type": []string{"text/plain"}},
+			Body:   io.NopCloser(strings.NewReader(strings.Repeat("z", 2000))),
+		}
+		Expect(SkyflowApiError(resp).GetMessage()).To(HaveSuffix("... (truncated)"))
+	})
 })

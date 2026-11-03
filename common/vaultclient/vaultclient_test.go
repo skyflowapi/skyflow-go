@@ -311,3 +311,78 @@ func TestShouldRetry(t *testing.T) {
 		}
 	}
 }
+
+// Credentials are compared by value, so a copy with the same values keeps the token, and a
+// change made to a struct the caller still holds is seen when it is set again.
+func TestAuthVersionComparesCredentialsByValue(t *testing.T) {
+	creds := &config.Credentials{ApiKey: testApiKey, Roles: []string{"r1"}}
+	b := New(testProfile(), config.VaultConfig{VaultId: "v"}, ClientSettings{Credentials: creds})
+	version := b.snapshot().authVersion
+
+	b.SetClientSettings(ClientSettings{Credentials: &config.Credentials{ApiKey: testApiKey, Roles: []string{"r1"}}})
+	b.SetConfig(b.Config(), false)
+	if got := b.snapshot().authVersion; got != version {
+		t.Fatalf("same values: %d, want %d", got, version)
+	}
+	creds.Roles[0] = "r2"
+	b.SetClientSettings(ClientSettings{Credentials: creds})
+	vaultConfig := b.Config()
+	vaultConfig.Credentials = config.Credentials{Token: "t"}
+	b.SetConfig(vaultConfig, false)
+	if got := b.snapshot().authVersion; got != version+2 {
+		t.Fatalf("changed client and vault credentials: %d, want %d", got, version+2)
+	}
+}
+
+// Settings are copied on the way in and out: changing what was passed in or returned does
+// not change the Base.
+func TestSettingsAreCopiedInAndOut(t *testing.T) {
+	retries := 2
+	creds := &config.Credentials{ApiKey: testApiKey, Roles: []string{"r1"}}
+	headers := map[config.CustomHeaderKey]string{config.SkyflowAccountId: "acc"}
+	vaultConfig := config.VaultConfig{VaultId: "v", ClusterId: "c", MaxRetries: &retries, Credentials: config.Credentials{Roles: []string{"v1"}}}
+	b := New(testProfile(), vaultConfig, ClientSettings{Credentials: creds, Headers: headers, HttpConfig: config.HttpConfig{MaxRetries: &retries}})
+
+	creds.ApiKey, creds.Roles[0] = "changed", "changed"
+	headers[config.SkyflowAccountId] = "changed"
+	retries = 9
+	vaultConfig.Credentials.Roles[0] = "changed"
+
+	got := b.ClientSettings()
+	if got.Credentials.ApiKey != testApiKey || got.Credentials.Roles[0] != "r1" || got.Headers[config.SkyflowAccountId] != "acc" || *got.HttpConfig.MaxRetries != 2 {
+		t.Fatalf("client settings changed through the caller's values: %+v", got)
+	}
+	gotConfig := b.Config()
+	if *gotConfig.MaxRetries != 2 || gotConfig.Credentials.Roles[0] != "v1" {
+		t.Fatalf("vault config changed through the caller's values: %+v", gotConfig)
+	}
+
+	got.Credentials.ApiKey, got.Headers[config.SkyflowAccountId] = "changed", "changed"
+	gotConfig.Credentials.Roles[0], *gotConfig.MaxRetries = "changed", 9
+	if again := b.ClientSettings(); again.Credentials.ApiKey != testApiKey || again.Headers[config.SkyflowAccountId] != "acc" {
+		t.Fatalf("client settings changed through a returned copy: %+v", again)
+	}
+	if again := b.Config(); again.Credentials.Roles[0] != "v1" || *again.MaxRetries != 2 {
+		t.Fatalf("vault config changed through a returned copy: %+v", again)
+	}
+}
+
+func TestRefreshAuthUsesTheCurrentCredentials(t *testing.T) {
+	b := New(testProfile(), config.VaultConfig{VaultId: "v", ClusterId: "c"}, ClientSettings{Credentials: &config.Credentials{ApiKey: testApiKey}})
+	call, err := b.Prepare("DEIDENTIFY_FILE", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	newKey := "sky-zzzzz-1234567890abcdef1234567890abcdef"
+	b.SetClientSettings(ClientSettings{Credentials: &config.Credentials{ApiKey: newKey}})
+	refreshed, err := b.RefreshAuth(context.Background(), call)
+	if err != nil || refreshed.AuthToken != newKey || refreshed.BaseURL != call.BaseURL || call.AuthToken != testApiKey {
+		t.Fatalf("refreshed = %+v, err = %v, original = %+v", refreshed, err, call)
+	}
+
+	t.Setenv(CredentialsEnv, "")
+	b.SetClientSettings(ClientSettings{})
+	if _, err := b.RefreshAuth(context.Background(), call); err == nil {
+		t.Fatal("no credentials should fail")
+	}
+}

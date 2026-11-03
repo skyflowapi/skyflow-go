@@ -95,9 +95,9 @@ const (
 type IncludePrefix string
 
 const (
-	IncludePrefixIncludePrefixUnspecified IncludePrefix = "INCLUDE_PREFIX_UNSPECIFIED"
-	IncludePrefixYes                      IncludePrefix = "YES"
-	IncludePrefixNo                       IncludePrefix = "NO"
+	IncludePrefixUnspecified IncludePrefix = "INCLUDE_PREFIX_UNSPECIFIED"
+	IncludePrefixYes         IncludePrefix = "YES"
+	IncludePrefixNo          IncludePrefix = "NO"
 )
 
 // ReturnEntitiesType is which detected values the response carries. The server default is EXCLUDE_SENSITIVE_DATA.
@@ -122,11 +122,13 @@ const (
 
 // DeidentifySourceType is what a DeidentifyFileRequest's Value holds, and the OutputType of
 // DeidentifyFileResponse and GetRunResponse (where the API returns BASE64 or PRESIGNED_URL).
+// Each SDK offers the sources its vaults accept: v2 (SkyVault) all three, flowvault
+// BASE64 and PRESIGNED_URL only, as FlowVault vaults do not accept a Skyflow ID.
 type DeidentifySourceType string
 
 const (
 	DeidentifySourceTypeBase64       DeidentifySourceType = "BASE64"
-	DeidentifySourceTypeSkyflowID    DeidentifySourceType = "SKYFLOW_ID"
+	DeidentifySourceTypeSkyflowID    DeidentifySourceType = "SKYFLOW_ID" // SkyVault vaults only
 	DeidentifySourceTypePresignedURL DeidentifySourceType = "PRESIGNED_URL"
 )
 

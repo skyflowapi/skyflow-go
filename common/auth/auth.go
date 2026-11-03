@@ -43,9 +43,14 @@ type Config struct {
 	SDKPrefix string
 	// LogPrefix is prepended to log lines, e.g. "[ Skyflow Go SDK v2.1.0 ] ".
 	LogPrefix string
-	// HTTPClient used for the token endpoint. Nil uses the generated client's default.
+	// HTTPClient used for the token endpoint. Nil uses a client with DefaultTimeout; a client
+	// without a timeout is used through a copy with DefaultTimeout set.
 	HTTPClient *http.Client
 }
+
+// DefaultTimeout bounds a token request when Config sets no HTTPClient, so a token endpoint
+// that stops answering can't block calls. It matches the Java SDK's token client.
+const DefaultTimeout = 60 * time.Second
 
 // Service performs service-account authentication for one SDK.
 type Service struct {
@@ -54,7 +59,18 @@ type Service struct {
 }
 
 // New returns a Service for the SDK described by cfg.
+//
+// Token requests always time out: a token request holds the vault's token lock in
+// common/vaultclient until it ends, so one that never did would block every later call.
 func New(cfg Config) *Service {
+	switch {
+	case cfg.HTTPClient == nil:
+		cfg.HTTPClient = &http.Client{Timeout: DefaultTimeout}
+	case cfg.HTTPClient.Timeout == 0:
+		client := *cfg.HTTPClient // the caller's client is left unchanged
+		client.Timeout = DefaultTimeout
+		cfg.HTTPClient = &client
+	}
 	return &Service{cfg: cfg}
 }
 
@@ -161,6 +177,13 @@ func (s *Service) GenerateSignedDataTokensFromCreds(credentials string, options 
 // IsExpired reports whether a JWT's exp claim is in the past. The signature is
 // not verified; this is a local pre-check before hitting the API.
 func (s *Service) IsExpired(tokenString string) bool {
+	return s.ExpiresWithin(tokenString, 0)
+}
+
+// ExpiresWithin reports whether a JWT is expired or expires within margin. A cached token is
+// checked with a margin so it is replaced before it expires during a call or between the
+// lookups of a long wait, and clock skew with the server does not make it fail early.
+func (s *Service) ExpiresWithin(tokenString string, margin time.Duration) bool {
 	if tokenString == "" {
 		logger.Info(s.logMsg(logEmptyBearerToken))
 		return true
@@ -171,7 +194,7 @@ func (s *Service) IsExpired(tokenString string) bool {
 	}
 	// The parser decodes numbers as float64; a missing or non-numeric exp counts as expired.
 	exp, _ := claims[jwtClaimExp].(float64)
-	expired := time.Unix(int64(exp), 0).Before(time.Now())
+	expired := time.Unix(int64(exp), 0).Before(time.Now().Add(margin))
 	if expired {
 		logger.Info(s.logMsg(logBearerTokenExpired))
 	}
@@ -393,11 +416,7 @@ func (s *Service) GenerateBearerTokenHelper(credKeys map[string]interface{}, opt
 // client (common/internal/generated), which owns the endpoint path, retries
 // and error decoding.
 func (s *Service) postAuthToken(baseURL string, body *gen.GetAuthTokenRequest) (*TokenResult, *skyflowError.SkyflowError) {
-	opts := []option.RequestOption{option.WithBaseURL(baseURL)}
-	if s.cfg.HTTPClient != nil {
-		opts = append(opts, option.WithHTTPClient(s.cfg.HTTPClient))
-	}
-	client := genauth.NewClient(opts...)
+	client := genauth.NewClient(option.WithBaseURL(baseURL), option.WithHTTPClient(s.cfg.HTTPClient))
 	resp, err := client.WithRawResponse.GetBearerToken(context.Background(), body)
 	if err != nil {
 		return nil, skyflowError.SkyflowErrorApi(err, responseHeader(err))

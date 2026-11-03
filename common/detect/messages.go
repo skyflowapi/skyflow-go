@@ -42,8 +42,13 @@ const (
 	defaultOutputName   = "output"
 	binaryExtension     = "bin"
 	nameSeparator       = "-"
-	extensionSeparator  = "."
-	fileTypeSeparator   = "_"
+	// firstClashSuffix numbers the second output that would get a used name: -2, then -3, ...
+	firstClashSuffix   = 2
+	extensionSeparator = "."
+	fileTypeSeparator  = "_"
+	// Temporary files are hidden and end in .tmp: .<output name>.<random>.tmp
+	tempFilePrefix = "."
+	tempFileSuffix = ".*.tmp"
 )
 
 // Message bodies without the SDK prefix; the controller prepends the owning SDK's prefix
@@ -52,21 +57,23 @@ const (
 
 // Error messages: prefixed with the SDK prefix.
 const (
-	errEmptyText               = " Validation error. %s failed. Text must not be empty."
-	errFileSource              = " Validation error. %s failed. Set exactly one of Value, FilePath or FileObject."
-	errMissingDeidentifySource = " Validation error. %s failed. DataSource is required with Value. Specify BASE64, SKYFLOW_ID or PRESIGNED_URL."
-	errMissingReidentifySource = " Validation error. %s failed. DataSource is required with Value. Specify BASE64 or PRESIGNED_URL."
-	errLocalFileDataSource     = " Validation error. %s failed. A local file is sent as BASE64; DataSource must be empty or BASE64."
-	errFileNotReadable         = " Validation error. %s failed. Could not read file: %s"
-	errInvalidWaitTime         = " Validation error. DeidentifyFile failed. Poll WaitTime must be between 1 and 300 seconds."
-	errInvalidMaxAttempts      = " Validation error. DeidentifyFile failed. Poll MaxAttempts must be between 1 and 23."
-	errOutputDirectoryNeedPoll = " Validation error. DeidentifyFile failed. OutputDirectory requires Poll."
-	errEmptyRunId              = " Validation error. GetRun failed. RunId must not be empty."
-	errRedactionSource         = " Validation error. %s failed. Redaction level at index %d needs exactly one of TokenGroupName or EntityName."
-	errRedactionReplacement    = " Validation error. %s failed. Redaction level at index %d needs exactly one of RedactionPattern or RedactionType."
-	errEmptyDenyTopic          = " Validation error. CheckGuardrails failed. DenyTopics must not contain empty values."
-	errOutputNotWritten        = " Error occurred. The run succeeded but its output could not be written to %s: %s"
-	errEmptyResponse           = " API error. %s returned an empty response."
+	errEmptyText                   = " Validation error. %s failed. Text must not be empty."
+	errFileSource                  = " Validation error. %s failed. Set exactly one of Value, FilePath or FileObject."
+	errMissingDeidentifySource     = " Validation error. %s failed. DataSource is required with Value. Specify %s."
+	errUnsupportedDeidentifySource = " Validation error. %s failed. DataSource %q is not supported. Specify %s."
+	errMissingReidentifySource     = " Validation error. %s failed. DataSource is required. Specify %s."
+	errUnsupportedReidentifySource = " Validation error. %s failed. DataSource %q is not supported. Specify %s."
+	errEmptyValue                  = " Validation error. %s failed. Value must not be empty."
+	errFileNotReadable             = " Validation error. %s failed. Could not read file: %s"
+	errInvalidWaitTime             = " Validation error. DeidentifyFile failed. Poll WaitTime must be between 1 and 300 seconds."
+	errInvalidMaxAttempts          = " Validation error. DeidentifyFile failed. Poll MaxAttempts must be between 1 and 23."
+	errOutputDirectoryNeedPoll     = " Validation error. DeidentifyFile failed. OutputDirectory requires Poll."
+	errEmptyRunId                  = " Validation error. GetRun failed. RunId must not be empty."
+	errRedactionSource             = " Validation error. %s failed. Redaction level at index %d needs exactly one of TokenGroupName or EntityName."
+	errRedactionReplacement        = " Validation error. %s failed. Redaction level at index %d needs exactly one of RedactionPattern or RedactionType."
+	errEmptyDenyTopic              = " Validation error. CheckGuardrails failed. DenyTopics must not contain empty values."
+	errOutputNotWritten            = " Error occurred. The run succeeded but its output could not be written to %s: %s"
+	errEmptyResponse               = " API error. %s returned an empty response."
 
 	// Cause appended to errFileNotReadable and errOutputNotWritten.
 	notRegularFile = "not a regular file"

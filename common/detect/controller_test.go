@@ -339,7 +339,6 @@ func TestDeidentifyFileValidation(t *testing.T) {
 	}{
 		{"exactly one of Value, FilePath or FileObject", DeidentifyFileRequest{ConfigurationId: "c"}, DeidentifyFileOptions{}},
 		{"DataSource is required", DeidentifyFileRequest{Value: "v", ConfigurationId: "c"}, DeidentifyFileOptions{}},
-		{"DataSource must be empty or BASE64", DeidentifyFileRequest{FilePath: "a.pdf", DataSource: DeidentifySourceTypeSkyflowID, ConfigurationId: "c"}, DeidentifyFileOptions{}},
 		{"OutputDirectory requires Poll", DeidentifyFileRequest{Value: "v", DataSource: DeidentifySourceTypeBase64, ConfigurationId: "c"}, DeidentifyFileOptions{OutputDirectory: "out"}},
 		{"WaitTime must be between", DeidentifyFileRequest{Value: "v", DataSource: DeidentifySourceTypeBase64, ConfigurationId: "c"}, DeidentifyFileOptions{Poll: &PollOptions{WaitTime: 301 * time.Second}}},
 		{"MaxAttempts must be between", DeidentifyFileRequest{Value: "v", DataSource: DeidentifySourceTypeBase64, ConfigurationId: "c"}, DeidentifyFileOptions{Poll: &PollOptions{MaxAttempts: 24}}},
@@ -404,27 +403,40 @@ func TestReidentifyStringSendsVaultIdAndRedactionLevels(t *testing.T) {
 	}
 }
 
-func TestReidentifyFileWritesOutputsForLocalFile(t *testing.T) {
+func TestReidentifyFileReturnsTheOutputInTheResponse(t *testing.T) {
 	f := newFakeDetect(t)
 	plain := base64.StdEncoding.EncodeToString([]byte("plain text"))
 	f.responses[pathReidentifyFile] = []string{`{"status":"SUCCESS","outputType":"BASE64","output":[{"processedFile":"` + plain + `","processedFileType":"REIDENTIFIED_FILE","processedFileExtension":"txt"}]}`}
 	c, _ := newTestController(f)
 
-	dir := t.TempDir()
-	input, _ := os.Create(filepath.Join(dir, "redacted.txt"))
-	_, _ = input.WriteString("[NAME_1]")
-	_, _ = input.Seek(0, 0)
-	defer func() { _ = input.Close() }()
-
-	resp, err := c.ReidentifyFile(context.Background(), ReidentifyFileRequest{FileObject: input}, ReidentifyFileOptions{OutputDirectory: dir})
-	if err != nil || resp.Status != DetectRunStatusSuccess || resp.OutputType != ReidentifySourceTypeBase64 {
+	redacted := base64.StdEncoding.EncodeToString([]byte("[NAME_1]"))
+	resp, err := c.ReidentifyFile(context.Background(), ReidentifyFileRequest{DataSource: ReidentifySourceTypeBase64, Value: redacted, DataFormat: FileDataFormatTXT},
+		ReidentifyFileOptions{})
+	if err != nil || resp.Status != DetectRunStatusSuccess || resp.OutputType != ReidentifySourceTypeBase64 ||
+		len(resp.Output) != 1 || resp.Output[0].ProcessedFile != plain {
 		t.Fatalf("resp = %+v, err = %v", resp, err)
 	}
-	if body := f.last().body; body["vaultId"] != "vault1" || body["dataFormat"] != "txt" || body["dataSource"] != "BASE64" {
+	if body := f.last().body; body["vaultId"] != "vault1" || body["value"] != redacted || body["dataFormat"] != "txt" || body["dataSource"] != "BASE64" {
 		t.Fatalf("body = %v", body)
 	}
-	if got, _ := os.ReadFile(filepath.Join(dir, "processed-redacted.txt")); string(got) != "plain text" {
-		t.Fatalf("output = %q", got)
+}
+
+// A local file is always sent as base64: DataSource is ignored next to it.
+func TestDeidentifyFileIgnoresDataSourceForALocalFile(t *testing.T) {
+	f := newFakeDetect(t)
+	f.responses[pathDeidentifyFile] = []string{`{"runId":"run-1"}`}
+	c, _ := newTestController(f)
+	input := filepath.Join(t.TempDir(), "in.txt")
+	if err := os.WriteFile(input, []byte("data"), outputFileMode); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := c.DeidentifyFile(context.Background(), DeidentifyFileRequest{FilePath: input, DataSource: DeidentifySourceTypePresignedURL},
+		DeidentifyFileOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	if body := f.last().body; body["dataSource"] != "BASE64" || body["value"] != base64.StdEncoding.EncodeToString([]byte("data")) {
+		t.Fatalf("body = %v", body)
 	}
 }
 
@@ -433,12 +445,26 @@ func TestCheckGuardrails(t *testing.T) {
 	f.responses[pathGuardrails] = []string{`{"text":"hi","validation":"FAILED","toxic":true,"deniedTopic":false}`}
 	c, _ := newTestController(f)
 
-	resp, err := c.CheckGuardrails(context.Background(), CheckGuardrailsRequest{Text: "hi", CheckToxicity: true, DenyTopics: []string{"politics"}}, CheckGuardrailsOptions{})
+	resp, err := c.CheckGuardrails(context.Background(), CheckGuardrailsRequest{Text: "hi", CheckToxicity: ptr(true), DenyTopics: []string{"politics"}}, CheckGuardrailsOptions{})
 	if err != nil || resp.Validation != GuardrailsValidationFailed || !resp.Toxic {
 		t.Fatalf("resp = %+v, err = %v", resp, err)
 	}
 	if body := f.last().body; body["vaultId"] != "vault1" || body["checkToxicity"] != true {
 		t.Fatalf("body = %v", body)
+	}
+	// false is sent, so the server's default (true) can be turned off; nil is omitted.
+	f.responses[pathGuardrails] = []string{`{"validation":"PASSED"}`, `{"validation":"PASSED"}`}
+	if _, err := c.CheckGuardrails(context.Background(), CheckGuardrailsRequest{Text: "hi", CheckToxicity: ptr(false)}, CheckGuardrailsOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	if got, sent := f.last().body["checkToxicity"]; !sent || got != false {
+		t.Fatalf("checkToxicity = %v (sent %v), want false", got, sent)
+	}
+	if _, err := c.CheckGuardrails(context.Background(), CheckGuardrailsRequest{Text: "hi"}, CheckGuardrailsOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	if _, sent := f.last().body["checkToxicity"]; sent {
+		t.Fatal("an unset checkToxicity should be omitted")
 	}
 	if _, err := c.CheckGuardrails(context.Background(), CheckGuardrailsRequest{Text: "hi", DenyTopics: []string{" "}}, CheckGuardrailsOptions{}); err == nil {
 		t.Fatal("blank deny topic should fail")
@@ -456,6 +482,68 @@ func TestOutputFileNames(t *testing.T) {
 	for i := range want {
 		if names[i] != want[i] {
 			t.Fatalf("names = %v, want %v", names, want)
+		}
+	}
+}
+
+func TestOutputFileNamesStayUniqueWhenOutputsRepeat(t *testing.T) {
+	used := map[string]bool{}
+	redacted := FileOutput{ProcessedFileType: ProcessedFileTypeRedactedFile, ProcessedFileExtension: FileDataFormatPDF}
+	unknown := FileOutput{ProcessedFileType: "NEW_TYPE", ProcessedFileExtension: FileDataFormatPDF}
+	var names []string
+	for _, output := range []FileOutput{redacted, redacted, redacted, unknown, unknown} {
+		names = append(names, outputFileName("doc", output, used))
+	}
+	want := []string{"processed-doc.pdf", "processed-doc.redacted_file.pdf", "processed-doc.redacted_file-2.pdf", "processed-doc.3.pdf", "processed-doc.4.pdf"}
+	for i := range want {
+		if names[i] != want[i] {
+			t.Fatalf("names = %v, want %v", names, want)
+		}
+	}
+}
+
+func TestWriteOutputsKeepsEveryOutputOfTheSameType(t *testing.T) {
+	c, _ := newTestController(newFakeDetect(t))
+	var outputs []FileOutput
+	for _, content := range []string{"one", "two", "three"} {
+		outputs = append(outputs, FileOutput{ProcessedFile: base64.StdEncoding.EncodeToString([]byte(content)),
+			ProcessedFileType: ProcessedFileTypeRedactedFile, ProcessedFileExtension: FileDataFormatTXT})
+	}
+	dir := t.TempDir()
+	if err := c.writeOutputs(outputs, DeidentifySourceTypeBase64, "in.txt", dir); err != nil {
+		t.Fatal(err)
+	}
+	for name, want := range map[string]string{
+		"processed-in.txt":                 "one",
+		"processed-in.redacted_file.txt":   "two",
+		"processed-in.redacted_file-2.txt": "three",
+	} {
+		if got, err := os.ReadFile(filepath.Join(dir, name)); err != nil || string(got) != want {
+			t.Errorf("%s = %q, %v; want %q", name, got, err, want)
+		}
+	}
+}
+
+func TestFileObjectIsSentInFullWhateverItsOffset(t *testing.T) {
+	f := newFakeDetect(t)
+	f.responses[pathDeidentifyFile] = []string{`{"runId":"run-1"}`, `{"runId":"run-2"}`}
+	c, _ := newTestController(f)
+
+	input, err := os.Create(filepath.Join(t.TempDir(), "in.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = input.Close() }()
+	_, _ = input.WriteString("My name is John.") // the offset is now at the end
+	want := base64.StdEncoding.EncodeToString([]byte("My name is John."))
+
+	// Sent twice: the first read must not consume the file either.
+	for i := 0; i < 2; i++ {
+		if _, err := c.DeidentifyFile(context.Background(), DeidentifyFileRequest{FileObject: input}, DeidentifyFileOptions{}); err != nil {
+			t.Fatal(err)
+		}
+		if got := f.last().body["value"]; got != want {
+			t.Fatalf("call %d sent value %q, want %q", i+1, got, want)
 		}
 	}
 }

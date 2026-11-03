@@ -50,8 +50,10 @@ func (c *Controller) readLocalFile(method, filePath string, fileObject *os.File)
 	return &localFile{name: name, base64: base64.StdEncoding.EncodeToString(content), format: formatFromName(name)}, nil
 }
 
-// readRegularFile reads file, refusing anything but a regular file: a device or pipe such as
-// /dev/zero has no end and would never finish reading.
+// readRegularFile reads the whole of file, refusing anything but a regular file: a device or
+// pipe such as /dev/zero has no end and would never finish reading. It reads from the start
+// whatever the file's offset, and leaves the offset unchanged, so a FileObject that was
+// written or read before is still sent in full.
 func readRegularFile(file *os.File) ([]byte, error) {
 	info, err := file.Stat()
 	if err != nil {
@@ -60,7 +62,7 @@ func readRegularFile(file *os.File) ([]byte, error) {
 	if !info.Mode().IsRegular() {
 		return nil, errNotRegularFile
 	}
-	return io.ReadAll(file)
+	return io.ReadAll(io.NewSectionReader(file, 0, info.Size()))
 }
 
 var knownFormats = func() map[string]FileDataFormat {
@@ -88,14 +90,14 @@ func formatFromName(name string) FileDataFormat {
 //
 // Names: processed-<input name>.<ext> for a processed file, and
 // processed-entities-<input name>.json / processed-object-entities-<input name>.json for
-// entity outputs. If two outputs would share a name, the output type goes before the
-// extension. outputType is the response's DeidentifySourceType or ReidentifySourceType;
-// both use the same BASE64 wire value.
-func (c *Controller) writeOutputs(outputs []FileOutput, outputType string, inputName, dir string) *skyflowError.SkyflowError {
+// entity outputs. If two outputs would share a name, the output type (or, when it is
+// unknown, a counter) goes before the extension, and a further clash adds -2, -3, and so on.
+// Only DeidentifyFile writes outputs, so outputType is the run's DeidentifySourceType.
+func (c *Controller) writeOutputs(outputs []FileOutput, outputType DeidentifySourceType, inputName, dir string) *skyflowError.SkyflowError {
 	if len(outputs) == 0 {
 		return nil
 	}
-	if outputType != string(DeidentifySourceTypeBase64) {
+	if outputType != DeidentifySourceTypeBase64 {
 		logger.Info(fmt.Sprintf(c.logMsg(logOutputNotWritten), outputType))
 		return nil
 	}
@@ -118,7 +120,7 @@ func (c *Controller) writeOutputs(outputs []FileOutput, outputType string, input
 		if err != nil {
 			return c.writeFailure(target, err)
 		}
-		if err := writeOutputFile(target, content); err != nil {
+		if err := writeOutputFile(target, content, os.Rename); err != nil {
 			return c.writeFailure(target, err)
 		}
 		logger.Info(fmt.Sprintf(c.logMsg(logOutputFileWritten), target))
@@ -148,36 +150,60 @@ func outputFileName(stem string, output FileOutput, used map[string]bool) string
 		// ENTITIES -> processed-entities-<stem>, OBJECT_ENTITIES -> processed-object-entities-<stem>
 		prefix += strings.ReplaceAll(fileType, fileTypeSeparator, nameSeparator) + nameSeparator
 	}
-	name := prefix + stem + extensionSeparator + extension
+	// build gives <prefix><stem>[.<qualifier>].<extension>.
+	build := func(qualifier string) string {
+		if qualifier == "" {
+			return prefix + stem + extensionSeparator + extension
+		}
+		return prefix + stem + extensionSeparator + qualifier + extensionSeparator + extension
+	}
+	name := build("")
 	if used[name] {
 		suffix := fileType
 		if suffix == "" {
 			suffix = fmt.Sprint(len(used))
 		}
-		name = prefix + stem + extensionSeparator + suffix + extensionSeparator + extension
+		name = build(suffix)
+		for i := firstClashSuffix; used[name]; i++ {
+			name = build(suffix + nameSeparator + fmt.Sprint(i))
+		}
 	}
 	used[name] = true
 	return name
 }
 
-// writeOutputFile writes content to a new owner-only file at target. An existing regular file is
-// removed first, so its mode is not kept. Anything else at target, such as a symlink or a
-// directory, is refused, and O_EXCL fails rather than follow a link created in the meantime.
-func writeOutputFile(target string, content []byte) error {
-	if info, err := os.Lstat(target); err == nil {
-		if !info.Mode().IsRegular() {
-			return errNotRegularFile
-		}
-		if err := os.Remove(target); err != nil {
-			return err
-		}
+// writeOutputFile writes content to an owner-only (outputFileMode) file at target. It writes
+// a temporary file in the same directory and renames it over target with rename (os.Rename
+// outside tests), so a failed write leaves any existing output in place and never a partial
+// file at target. An existing regular file is replaced, so its mode is not kept. Anything else
+// at target, such as a symlink or a directory, is refused; a link created in the meantime is
+// replaced by the rename, not followed.
+//
+// If the process dies between creating and renaming the temporary file, a hidden
+// ".processed-*.tmp" file (owner-only, holding de-identified data) is left in the directory;
+// nothing removes it later.
+func writeOutputFile(target string, content []byte, rename func(oldpath, newpath string) error) (err error) {
+	if info, statErr := os.Lstat(target); statErr == nil && !info.Mode().IsRegular() {
+		return errNotRegularFile
 	}
-	file, err := os.OpenFile(target, os.O_WRONLY|os.O_CREATE|os.O_EXCL, outputFileMode)
+	// CreateTemp opens a new file with O_EXCL; the mode is set explicitly below.
+	temp, err := os.CreateTemp(filepath.Dir(target), tempFilePrefix+filepath.Base(target)+tempFileSuffix)
 	if err != nil {
 		return err
 	}
-	_, err = file.Write(content)
-	return errors.Join(err, file.Close())
+	defer func() {
+		if err != nil {
+			_ = os.Remove(temp.Name())
+		}
+	}()
+	err = temp.Chmod(outputFileMode)
+	if err == nil {
+		_, err = temp.Write(content)
+	}
+	if err = errors.Join(err, temp.Close()); err == nil {
+		err = rename(temp.Name(), target)
+	}
+	return err
 }
 
 func (c *Controller) writeFailure(path string, err error) *skyflowError.SkyflowError {

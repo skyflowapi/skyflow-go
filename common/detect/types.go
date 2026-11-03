@@ -95,8 +95,8 @@ type EntityLocation struct {
 // one of Value (with DataSource), FilePath or FileObject. ConfigurationId and Configuration are optional:
 // with neither, the vault's default Detect settings apply. Setting both is rejected by the API.
 type DeidentifyFileRequest struct {
-	// DataSource says what Value holds. A local file (FilePath or FileObject) is sent as
-	// DeidentifySourceTypeBase64, which is also the only value allowed with one.
+	// DataSource says what Value holds, and is required with it. It is ignored for a local
+	// file (FilePath or FileObject), which is always sent as DeidentifySourceTypeBase64.
 	DataSource DeidentifySourceType `json:"dataSource"`
 	// Value is base64 content, a Skyflow ID or a presigned URL.
 	Value string `json:"value"`
@@ -119,7 +119,9 @@ type DeidentifyFileOptions struct {
 	// returns as soon as the run is submitted, with only RunId set.
 	Poll *PollOptions
 	// OutputDirectory is where a successful polled run's outputs are written for a local
-	// file input. Empty means the current directory. Requires Poll.
+	// file input. Empty means the current directory. Requires Poll. Each output is written
+	// to a hidden temporary file first and renamed into place; a process that dies while
+	// writing can leave such a ".processed-*.tmp" file behind.
 	OutputDirectory string
 }
 
@@ -135,12 +137,12 @@ type PollOptions struct {
 // was polled: Status is empty when it wasn't, and Output, Metrics and OutputType are set
 // once the run succeeded.
 type DeidentifyFileResponse struct {
-	RunId      string
-	Status     DetectRunStatus
-	OutputType DeidentifySourceType
-	Output     []FileOutput
-	Metrics    *Metrics
-	Message    string // failure detail when Status is DetectRunStatusFailed
+	RunId      string               `json:"runId"`
+	Status     DetectRunStatus      `json:"status"`
+	OutputType DeidentifySourceType `json:"outputType"`
+	Output     []FileOutput         `json:"output"`
+	Metrics    *Metrics             `json:"metrics"`
+	Message    string               `json:"message"` // failure detail when Status is DetectRunStatusFailed
 }
 
 // ---------------------------------------------------------------------------
@@ -195,28 +197,21 @@ type ReidentifyStringResponse struct {
 // ---------------------------------------------------------------------------
 
 // ReidentifyFileRequest re-identifies a file. It is synchronous: there is no run to poll.
-// Supply the file as exactly one of Value (with DataSource), FilePath or FileObject.
+// DataSource and Value are required; to send a local file, base64-encode it into Value.
 type ReidentifyFileRequest struct {
-	// DataSource says what Value holds. A local file (FilePath or FileObject) is sent as
-	// ReidentifySourceTypeBase64, which is also the only value allowed with one.
 	DataSource     ReidentifySourceType `json:"dataSource"`
 	Value          string               `json:"value"` // base64 content or a presigned URL
 	DataFormat     FileDataFormat       `json:"dataFormat,omitempty"`
 	RedactionLevel []RedactionLevel     `json:"redactionLevel,omitempty"`
-
-	FilePath   string   `json:"-"`
-	FileObject *os.File `json:"-"`
 }
 
 // ReidentifyFileOptions customise a ReidentifyFile call.
 type ReidentifyFileOptions struct {
 	Interceptor Interceptor
-	// OutputDirectory is where the outputs are written for a local file input. Empty means
-	// the current directory.
-	OutputDirectory string
 }
 
-// ReidentifyFileResponse is the re-identified file.
+// ReidentifyFileResponse is the re-identified file. The SDK writes nothing to disk: Output
+// holds base64 content or presigned URLs, as OutputType says, for the caller to handle.
 type ReidentifyFileResponse struct {
 	Status     DetectRunStatus      `json:"status"`
 	OutputType ReidentifySourceType `json:"outputType"`
@@ -230,8 +225,9 @@ type ReidentifyFileResponse struct {
 
 // CheckGuardrailsRequest screens Text for toxicity and denied topics.
 type CheckGuardrailsRequest struct {
-	Text          string   `json:"text"`
-	CheckToxicity bool     `json:"checkToxicity,omitempty"`
+	Text string `json:"text"`
+	// CheckToxicity nil leaves it to the server, which checks toxicity by default.
+	CheckToxicity *bool    `json:"checkToxicity,omitempty"`
 	DenyTopics    []string `json:"denyTopics,omitempty"`
 }
 

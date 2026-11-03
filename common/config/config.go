@@ -30,8 +30,10 @@ type Credentials struct {
 }
 
 type VaultConfig struct {
-	VaultId      string
-	ClusterId    string
+	VaultId   string
+	ClusterId string
+	// BaseVaultUrl overrides the URL built from ClusterId and Env. It must use https; http
+	// is accepted only for localhost and loopback addresses.
 	BaseVaultUrl string
 	// Deprecated: Use BaseVaultUrl instead.
 	BaseVaultURL string

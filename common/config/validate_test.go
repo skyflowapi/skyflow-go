@@ -78,7 +78,20 @@ var _ = Describe("Validator", func() {
 				Expect(v.ValidateVaultConfig(VaultConfig{VaultId: "v", BaseVaultUrl: u})).To(BeNil())
 			},
 			Entry("https", "https://example.vault.skyflowapis.com"),
-			Entry("http with port and path", "http://localhost:8080/v1"),
+			Entry("http localhost with port and path", "http://localhost:8080/v1"),
+			Entry("http LOCALHOST", "http://LOCALHOST"),
+			Entry("http IPv4 loopback", "http://127.0.0.1:9000"),
+			Entry("http IPv6 loopback", "http://[::1]:9000"),
+		)
+
+		DescribeTable("should reject plain http for a non-loopback host",
+			func(u string) {
+				expectInvalid(v.ValidateVaultConfig(VaultConfig{VaultId: "v", BaseVaultUrl: u}), errInsecureVaultUrl)
+				Expect(logBuf.String()).To(ContainSubstring(logVaultUrlIsInsecure))
+			},
+			Entry("public host", "http://example.vault.skyflowapis.com"),
+			Entry("private IP", "http://10.0.0.5"),
+			Entry("localhost lookalike", "http://localhost.example.com"),
 		)
 
 		DescribeTable("should reject an invalid BaseVaultUrl",
@@ -159,6 +172,11 @@ var _ = Describe("Validator", func() {
 		It("should check a base vault URL only when one is set", func() {
 			Expect(v.ValidateUpdateVaultConfig(VaultConfig{VaultId: "v", BaseVaultUrl: "https://vault.example.com"})).To(BeNil())
 			expectInvalid(v.ValidateUpdateVaultConfig(VaultConfig{VaultId: "v", BaseVaultUrl: "ftp://vault.example.com"}), errInvalidVaultUrl)
+		})
+
+		It("should reject an update to a plain http vault URL", func() {
+			expectInvalid(v.ValidateUpdateVaultConfig(VaultConfig{VaultId: "v", BaseVaultUrl: "http://vault.example.com"}), errInsecureVaultUrl)
+			Expect(v.ValidateUpdateVaultConfig(VaultConfig{VaultId: "v", BaseVaultUrl: "http://127.0.0.1:8080"})).To(BeNil())
 		})
 
 		It("should check the deprecated base vault URL when it is the only one set", func() {
