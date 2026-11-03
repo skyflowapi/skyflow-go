@@ -1,7 +1,7 @@
 # Description
 > **This is the current, recommended version of the Skyflow SDK.** V2.1.0 brings flexible auth, multi-vault support, native data types, and rich error diagnostics.
 >
-> Migrating from v1? See the **[Migration Guide](./docs/migrate_to_v2.md)** for step-by-step instructions. V1 is in maintenance mode and will reach End of Life on October 31, 2026.
+> :warning: **skyflow-go v1 reached End of Life on October 31, 2026 and is no longer supported.** It will not receive any further security patches, bug fixes, or updates. Please upgrade to the latest skyflow-go v2 ([v2.1.0](https://github.com/skyflowapi/skyflow-go/releases/tag/v2.1.0)) using the **[Migration Guide](./docs/migrate_to_v2.md)**.
 
 
 The Skyflow Go SDK is designed to help with integrating Skyflow into a go backend.
