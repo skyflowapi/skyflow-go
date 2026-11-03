@@ -13,4 +13,6 @@ const (
 	INVALID_INPUT_CODE ErrorCodesEnum = ce.INVALID_INPUT_CODE
 	INVALID_INDEX      ErrorCodesEnum = ce.INVALID_INDEX
 	PARTIAL            ErrorCodesEnum = ce.PARTIAL
+	// REQUEST_CANCELLED - The call's context ended before the call finished.
+	REQUEST_CANCELLED ErrorCodesEnum = ce.REQUEST_CANCELLED
 )

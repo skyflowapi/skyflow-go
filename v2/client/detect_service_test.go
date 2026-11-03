@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -82,6 +83,73 @@ var _ = Describe("Detect", func() {
 		Expect(path).To(Equal("/v2/detect/reidentify/string")) // BaseVaultUrl kept by the update
 	})
 
+	It("uses the base vault URL and HTTP settings of UpdateVaultConfig", func() {
+		var calls int
+		updated := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			calls++
+			if calls == 1 {
+				w.WriteHeader(http.StatusServiceUnavailable) // retried only with the updated MaxRetries
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"processedText":"updated"}`))
+		}))
+		defer updated.Close()
+		client := newClient()
+		service, err := client.Detect(vaultId)
+		Expect(err).To(BeNil())
+
+		retries := 1
+		Expect(client.UpdateVaultConfig(common.VaultConfig{VaultId: vaultId, BaseVaultUrl: updated.URL,
+			MaxRetries: &retries, InitialRetryDelay: time.Millisecond})).To(BeNil())
+		resp, err := service.ReidentifyString(context.Background(), common.ReidentifyStringRequest{Text: "x"}, common.ReidentifyStringOptions{})
+		Expect(err).To(BeNil())
+		Expect(resp.ProcessedText).To(Equal("updated"))
+		Expect(calls).To(Equal(2))
+		Expect(path).To(BeEmpty()) // the original server was not called
+
+		// An update that sets neither keeps them.
+		Expect(client.UpdateVaultConfig(common.VaultConfig{VaultId: vaultId, ClusterId: "other"})).To(BeNil())
+		_, err = service.ReidentifyString(context.Background(), common.ReidentifyStringRequest{Text: "x"}, common.ReidentifyStringOptions{})
+		Expect(err).To(BeNil())
+		Expect(calls).To(Equal(3))
+		Expect(path).To(BeEmpty())
+	})
+
+	It("merges every field UpdateVaultConfig sets into the Detect config", func() {
+		client := newClient()
+		service := client.detectServices[vaultId]
+		retries := 3
+		client.updateDetect(service, common.VaultConfig{
+			VaultId:           vaultId,
+			ClusterId:         "new-cluster",
+			BaseVaultURL:      "https://legacy.example.com",
+			Env:               common.SANDBOX,
+			Timeout:           7 * time.Second,
+			MaxRetries:        &retries,
+			InitialRetryDelay: 2 * time.Millisecond,
+			MaxRetryDelay:     9 * time.Millisecond,
+		})
+		retries = 8 // the stored config keeps its own copy
+		got := service.base.Config()
+		Expect(got.ClusterId).To(Equal("new-cluster"))
+		Expect(got.BaseVaultUrl).To(BeEmpty()) // replaced together with BaseVaultURL
+		Expect(got.BaseVaultURL).To(Equal("https://legacy.example.com"))
+		Expect(got.Env).To(Equal(common.SANDBOX))
+		Expect(got.Timeout).To(Equal(7 * time.Second))
+		Expect(*got.MaxRetries).To(Equal(3))
+		Expect(got.InitialRetryDelay).To(Equal(2 * time.Millisecond))
+		Expect(got.MaxRetryDelay).To(Equal(9 * time.Millisecond))
+
+		// Unset fields keep their values; Env is always applied.
+		client.updateDetect(service, common.VaultConfig{VaultId: vaultId})
+		kept := service.base.Config()
+		Expect(kept.Timeout).To(Equal(7 * time.Second))
+		Expect(kept.MaxRetryDelay).To(Equal(9 * time.Millisecond))
+		Expect(kept.BaseVaultURL).To(Equal("https://legacy.example.com"))
+		Expect(kept.Env).To(Equal(common.PROD))
+	})
+
 	It("reports validation errors with the v2 SDK prefix", func() {
 		service, err := newClient().Detect(vaultId)
 		Expect(err).To(BeNil())
@@ -119,7 +187,7 @@ var _ = Describe("Detect", func() {
 		_, err = service.GetRun(ctx, common.GetRunRequest{}, common.GetRunOptions{})
 		Expect(err.GetMessage()).To(ContainSubstring("RunId must not be empty"))
 		_, err = service.ReidentifyFile(ctx, common.ReidentifyFileRequest{}, common.ReidentifyFileOptions{})
-		Expect(err.GetMessage()).To(ContainSubstring("ReidentifyFile failed. Set exactly one of Value, FilePath or FileObject."))
+		Expect(err.GetMessage()).To(ContainSubstring("ReidentifyFile failed. DataSource is required."))
 		_, err = service.CheckGuardrails(ctx, common.CheckGuardrailsRequest{}, common.CheckGuardrailsOptions{})
 		Expect(err.GetMessage()).To(ContainSubstring("CheckGuardrails failed. Text must not be empty."))
 		Expect(path).To(BeEmpty())

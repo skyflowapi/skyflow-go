@@ -7,7 +7,7 @@ require github.com/skyflowapi/skyflow-go/flowvault v0.0.0
 require (
 	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/skyflowapi/skyflow-go/common v0.0.0-20261103043851-ac875ebfd0c7 // indirect
+	github.com/skyflowapi/skyflow-go/common v0.0.0-20261103122316-1146f842496e // indirect
 )
 
 // FlowVault isn't published yet; build the samples against the code in this repository.

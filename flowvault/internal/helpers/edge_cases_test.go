@@ -41,9 +41,14 @@ var _ = Describe("URL, metadata and shared services", func() {
 		Expect(Auth()).ToNot(BeNil())
 		Expect(Auth()).To(BeIdenticalTo(Auth()))
 		Expect(Auth().IsExpired("")).To(BeTrue())
+		Expect(Profile().Auth).To(BeIdenticalTo(Auth())) // the vault plumbing reuses the authenticator
 
 		Expect(ConfigValidator().ValidateUpdateVaultConfig(fvcommon.VaultConfig{})).ToNot(BeNil())
 		Expect(ConfigValidator().ValidateUpdateVaultConfig(fvcommon.VaultConfig{VaultId: "v"})).To(BeNil())
+		// Plain http is rejected for hosts other than localhost.
+		err := ConfigValidator().ValidateUpdateVaultConfig(fvcommon.VaultConfig{VaultId: "v", BaseVaultUrl: "http://vault.example.com"})
+		Expect(err).NotTo(BeNil())
+		Expect(err.GetMessage()).To(ContainSubstring("Insecure vault URL"))
 	})
 })
 
@@ -91,6 +96,22 @@ var _ = Describe("Files, edge cases", func() {
 		Expect(status).To(Equal(fvcommon.UploadStatusUploaded))
 		Expect(length).To(Equal(int64(-1)))
 		Expect(body).To(Equal("piped"))
+	})
+
+	It("has no known length for a directory", func() {
+		dir, err := os.Open(GinkgoT().TempDir())
+		Expect(err).To(BeNil())
+		defer dir.Close()
+		Expect(remaining(dir)).To(Equal(int64(-1)))
+	})
+
+	It("reports a file it can't open", func() {
+		if os.Geteuid() == 0 {
+			Skip("root can open any file")
+		}
+		path := filepath.Join(GinkgoT().TempDir(), "locked.txt")
+		Expect(os.WriteFile(path, []byte("x"), 0o000)).To(Succeed())
+		Expect(checkReadable(path)).To(MatchError(os.ErrPermission))
 	})
 
 	It("returns errors that carry no URL as they are", func() {

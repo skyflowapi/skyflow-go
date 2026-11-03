@@ -145,7 +145,7 @@ const (
 	DeidentificationTypeEntityOnly                            = cdetect.DeidentificationTypeEntityOnly
 	DeidentificationTypeVaultToken                            = cdetect.DeidentificationTypeVaultToken
 	DeidentificationTypeMask                                  = cdetect.DeidentificationTypeMask
-	IncludePrefixIncludePrefixUnspecified                     = cdetect.IncludePrefixIncludePrefixUnspecified
+	IncludePrefixUnspecified                                  = cdetect.IncludePrefixUnspecified
 	IncludePrefixYes                                          = cdetect.IncludePrefixYes
 	IncludePrefixNo                                           = cdetect.IncludePrefixNo
 	ReturnEntitiesTypeExcludeSensitiveData                    = cdetect.ReturnEntitiesTypeExcludeSensitiveData
@@ -155,7 +155,6 @@ const (
 	RedactionTypeMasked                                       = cdetect.RedactionTypeMasked
 	RedactionTypePlainText                                    = cdetect.RedactionTypePlainText
 	DeidentifySourceTypeBase64                                = cdetect.DeidentifySourceTypeBase64
-	DeidentifySourceTypeSkyflowID                             = cdetect.DeidentifySourceTypeSkyflowID
 	DeidentifySourceTypePresignedURL                          = cdetect.DeidentifySourceTypePresignedURL
 	ReidentifySourceTypeBase64                                = cdetect.ReidentifySourceTypeBase64
 	ReidentifySourceTypePresignedURL                          = cdetect.ReidentifySourceTypePresignedURL
@@ -228,3 +227,9 @@ const (
 
 // Deprecated: the server rejects DEFAULT in a redaction level. Use REDACTED, MASKED or PLAIN_TEXT.
 const RedactionTypeDefault = cdetect.RedactionTypeDefault
+
+// Ptr returns a pointer to v, for the optional *bool, *int and *float32 Detect options,
+// where nil leaves the value to the server:
+//
+//	common.CheckGuardrailsRequest{Text: text, CheckToxicity: common.Ptr(true)}
+func Ptr[T any](v T) *T { return &v }

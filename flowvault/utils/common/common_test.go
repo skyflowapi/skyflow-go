@@ -44,3 +44,14 @@ var _ = Describe("RequestContext", func() {
 		Expect(rc.Headers()).ToNot(HaveKey(SkyflowAccountName))
 	})
 })
+
+var _ = Describe("Ptr", func() {
+	It("returns a pointer to its own copy of the value", func() {
+		value := 2
+		pointer := Ptr(value)
+		value = 3
+		Expect(*pointer).To(Equal(2))
+		Expect(*Ptr(true)).To(BeTrue())
+		Expect(*Ptr(float32(0.5))).To(Equal(float32(0.5)))
+	})
+})

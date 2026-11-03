@@ -16,6 +16,8 @@ const (
 	INVALID_INPUT_CODE ErrorCodesEnum = v2errors.INVALID_INPUT_CODE
 	INVALID_INDEX      ErrorCodesEnum = v2errors.INVALID_INDEX
 	PARTIAL            ErrorCodesEnum = v2errors.PARTIAL
+	// REQUEST_CANCELLED - The call's context ended before the call finished.
+	REQUEST_CANCELLED ErrorCodesEnum = v2errors.REQUEST_CANCELLED
 )
 
 func NewSkyflowError(code ErrorCodesEnum, message string) *SkyflowError {

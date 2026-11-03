@@ -34,36 +34,6 @@ var (
 	mockUpdateErrorJSON       = `{"error":{"grpc_code":3,"http_code":400,"message":"Invalid request. No fields were present. Specify valid fields and values.","http_status":"Bad Request","details":[]}}`
 	mockTokenizeSuccessJSON   = `{"records":[{"token":"token1"}]}`
 	mockTokenizeErrorJSON     = `{"error":{"grpc_code":3,"http_code":400,"message":"Tokenization failed. Column group group_name is invalid. Specify a valid column group.","http_status":"Bad Request","details":[]}}`
-	mockDeidentifyTextJSON    = `{"processed_text": "My name is [NAME] and my email is [EMAIL]", "word_count": 8, "character_count": 45, "entities": [{"token": "token1", "value": "John Doe", "entity_type": "NAME", "entity_scores": {"score": 0.9}, "location": {"start_index": 11, "end_index": 19, "start_index_processed": 11, "end_index_processed": 17}}, {"token": "token2", "value": "john@example.com", "entity_type": "EMAIL_ADDRESS", "entity_scores": {"score": 0.95}, "location": {"start_index": 30, "end_index": 45, "start_index_processed": 30, "end_index_processed": 37}}]}`
-	mockNoEntitiesFoundJSON   = `{"processed_text": "No entities found in this text", "word_count": 6, "character_count": 30, "entities": []}`
-	mockReidentifyTextJSON    = `{"text": "My SSN is 123-45-6789 and my card is *REDACTED*."}`
-	mockDetectErrorJSON       = `{"error":{"grpc_code":3,"http_code":400,"message":"Invalid request","http_status":"Bad Request","details":[]}}`
-	mockInvalidRunIdJSON      = `{ "status": "UNKNOWN", "outputType": "UNKNOWN", "output": [], "message": "", "size": 0}`
-	mockDetectRunResponse     = map[string]interface{}{
-		"status": "SUCCESS",
-		"output": []map[string]interface{}{
-			{
-				"processedFile":          "dGVzdCBjb250ZW50",
-				"processedFileExtension": "txt",
-				"processedFileType":      "TEXT",
-			},
-			{
-				"processedFile":          "eyJlbnRpdGllcyI6W119",
-				"processedFileType":      "ENTITIES",
-				"processedFileExtension": "json",
-			},
-		},
-		"outputType": "FILE",
-		"message":    "Processing completed successfully",
-		"size":       1024.5,
-		"duration":   1.2,
-		"pages":      0,
-		"slides":     0,
-		"wordCharacterCount": map[string]interface{}{
-			"wordCount":      150,
-			"characterCount": 750,
-		},
-	}
 )
 
 var _ = Describe("Vault controller Test cases", func() {

@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
-	github.com/skyflowapi/skyflow-go/common v0.0.0-20261103043851-ac875ebfd0c7
+	github.com/skyflowapi/skyflow-go/common v0.0.0-20261103122316-1146f842496e
 )
 
 require (
