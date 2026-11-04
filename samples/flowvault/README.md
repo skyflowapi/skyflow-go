@@ -49,10 +49,10 @@ go run vaultapi/insert_records.go
 | Sample | Demonstrates |
 |---|---|
 | [deidentify_string.go](detectapi/deidentify_string.go) | De-identify a string with a stored or an inline configuration |
-| [deidentify_file.go](detectapi/deidentify_file.go) | Submit a file, or submit a local file and wait for the run with `Poll` |
+| [deidentify_file.go](detectapi/deidentify_file.go) | Submit a file by presigned URL, or submit a local file and wait for the run with `Poll` |
 | [get_run.go](detectapi/get_run.go) | Get the state and outputs of a `DeidentifyFile` run |
 | [reidentify_string.go](detectapi/reidentify_string.go) | Re-identify a string with a token group's redaction pattern |
-| [reidentify_file.go](detectapi/reidentify_file.go) | Re-identify a file and write the outputs |
+| [reidentify_file.go](detectapi/reidentify_file.go) | Re-identify a base64 file and save the output yourself |
 | [check_guardrails.go](detectapi/check_guardrails.go) | Screen text for toxicity and denied topics |
 
 ## Custom headers and HTTP config

@@ -2322,7 +2322,7 @@ After the Skyflow client is initialized, you can add, update, retrieve, and remo
 |--------|-------------|
 | `AddVaultConfig(config VaultConfig)` | Add a new vault after initialization |
 | `RemoveVaultConfig(vaultId string)` | Remove a vault by ID |
-| `UpdateVaultConfig(config VaultConfig)` | Update an existing vault configuration. Only the `ClusterId`, `Env`, and `Credentials` you set change. |
+| `UpdateVaultConfig(config VaultConfig)` | Update an existing vault configuration. Only the `ClusterId` and `Credentials` you set change. The SDK always applies `Env`: an update that leaves it unset sets the vault to `PROD`. |
 | `GetVaultConfig(vaultId string)` | Retrieve a vault configuration by ID |
 
 ```go
