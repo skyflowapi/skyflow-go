@@ -21,7 +21,7 @@ type VaultService struct {
 }
 
 func newVaultService(controller *controller.VaultController) *VaultService {
-	return &VaultService{controller: controller, detect: newDetectService(cdetect.NewController(controller.Base))}
+	return &VaultService{controller: controller, detect: newDetectService(cdetect.NewController(controller.Base, cdetect.DeidentifySourceTypeBase64, cdetect.DeidentifySourceTypePresignedURL))}
 }
 
 // Insert inserts records into the vault, optionally upserting on unique columns.

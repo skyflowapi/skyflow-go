@@ -38,10 +38,11 @@ type Transformation struct {
 	ShiftDates *ShiftDates `json:"shiftDates,omitempty"`
 }
 
-// ShiftDates moves dates by a random number of days in [MinDays, MaxDays].
+// ShiftDates moves dates by a random number of days in [MinDays, MaxDays]. A nil bound is
+// left to the server.
 type ShiftDates struct {
-	MinDays int `json:"minDays"`
-	MaxDays int `json:"maxDays"`
+	MinDays *int `json:"minDays,omitempty"`
+	MaxDays *int `json:"maxDays,omitempty"`
 }
 
 // CustomType detects values matching regexes as a custom entity. Label becomes the
@@ -70,7 +71,8 @@ type FileMapping struct {
 	ObjectEntitiesDestination string `json:"objectEntitiesDestination,omitempty"`
 }
 
-// Media holds the per-media-type options of a file run.
+// Media holds the per-media-type options of a file run. Their option fields are pointers:
+// nil leaves the option to the server default, and a pointer to a zero value sends zero.
 type Media struct {
 	Audio    *Audio    `json:"audio,omitempty"`
 	Document *Document `json:"document,omitempty"`
@@ -79,17 +81,17 @@ type Media struct {
 
 // Audio options.
 type Audio struct {
-	OutputProcessedAudio bool                    `json:"outputProcessedAudio,omitempty"`
+	OutputProcessedAudio *bool                   `json:"outputProcessedAudio,omitempty"`
 	OutputTranscription  OutputTranscriptionType `json:"outputTranscription,omitempty"`
 	Bleep                *Bleep                  `json:"bleep,omitempty"`
 }
 
 // Bleep sets the tone that replaces sensitive audio.
 type Bleep struct {
-	StartPadding float32 `json:"startPadding,omitempty"`
-	StopPadding  float32 `json:"stopPadding,omitempty"`
-	Frequency    int     `json:"frequency,omitempty"`
-	Gain         int     `json:"gain,omitempty"`
+	StartPadding *float32 `json:"startPadding,omitempty"` // seconds, 0–20; server default 0.5
+	StopPadding  *float32 `json:"stopPadding,omitempty"`  // seconds, 0–20; server default 0.2
+	Frequency    *int     `json:"frequency,omitempty"`    // Hz
+	Gain         *int     `json:"gain,omitempty"`
 }
 
 // Document options.
@@ -100,13 +102,13 @@ type Document struct {
 // Pdf options.
 type Pdf struct {
 	ProcessingMode PdfProcessingMode `json:"processingMode,omitempty"`
-	Density        int               `json:"density,omitempty"`
-	MaxResolution  int               `json:"maxResolution,omitempty"`
+	Density        *int              `json:"density,omitempty"`
+	MaxResolution  *int              `json:"maxResolution,omitempty"`
 }
 
 // Image options.
 type Image struct {
-	OutputProcessedImage bool          `json:"outputProcessedImage,omitempty"`
-	OutputOcrText        bool          `json:"outputOcrText,omitempty"`
+	OutputProcessedImage *bool         `json:"outputProcessedImage,omitempty"`
+	OutputOcrText        *bool         `json:"outputOcrText,omitempty"`
 	MaskingMethod        MaskingMethod `json:"maskingMethod,omitempty"`
 }

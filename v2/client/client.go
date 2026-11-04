@@ -121,6 +121,7 @@ func WithCredentials(credentials vaultutils.Credentials) Option {
 }
 
 // WithLogLevel sets the logging level.
+// The level is process-wide: it is shared by every client of the v2 and flowvault SDKs.
 func WithLogLevel(logLevel logger.LogLevel) Option {
 	return func(s *Skyflow) *error.SkyflowError {
 		s.logLevel = logLevel
@@ -191,11 +192,8 @@ func (s *Skyflow) Detect(vaultID ...string) (*detectService, *error.SkyflowError
 	if err != nil {
 		return nil, err
 	}
-	service, exists := s.detectServices[config.VaultId]
-	if !exists {
-		return nil, error.NewSkyflowError(error.INVALID_INPUT_CODE, error.VAULT_ID_NOT_IN_CONFIG_LIST)
-	}
-	return service, nil
+	// getDetectConfig returns the config of a registered service, so the lookup always hits.
+	return s.detectServices[config.VaultId], nil
 }
 
 // GetVaultConfig returns the VaultConfig registered under vaultId, or an error if it is not found.
@@ -221,9 +219,9 @@ func (s *Skyflow) GetSkyflowCredentials() *vaultutils.Credentials {
 	return s.credentials
 }
 
-// UpdateLogLevel update methods
+// UpdateLogLevel changes the log level for the client.
+// The level is process-wide: it is shared by every client of the v2 and flowvault SDKs.
 func (s *Skyflow) UpdateLogLevel(logLevel logger.LogLevel) {
-	logger.Info(fmt.Sprintf(logs.CURRENT_LOG_LEVEL, s.logLevel))
 	s.logLevel = logLevel
 	for _, service := range s.vaultServices {
 		service.logLevel = &s.logLevel
@@ -235,6 +233,7 @@ func (s *Skyflow) UpdateLogLevel(logLevel logger.LogLevel) {
 		service.logLevel = &s.logLevel
 	}
 	logger.SetLogLevel(logLevel)
+	logger.Info(fmt.Sprintf(logs.CURRENT_LOG_LEVEL, logLevel))
 }
 
 func (s *Skyflow) UpdateSkyflowCredentials(credentials vaultutils.Credentials) *error.SkyflowError {
@@ -290,23 +289,40 @@ func (s *Skyflow) UpdateVaultConfig(updatedConfig vaultutils.VaultConfig) *error
 		if updatedConfig.ClusterId != "" {
 			vaultSvc.controller.Config.ClusterId = updatedConfig.ClusterId
 		}
-		if updatedConfig.Env.IsSet() {
-			vaultSvc.controller.Config.Env = updatedConfig.Env
-		}
+		vaultSvc.controller.Config.Env = updatedConfig.Env
 	}
 	// Merge the update into the detect service's config
 	if detectExists {
 		s.updateDetect(detectSvc, updatedConfig)
 	}
 
-	// Update the config in the vaultapi service
+	// Update the config in the vaultapi service, keeping the stored values of the fields the
+	// update leaves unset, so a controller built later by Vault or Detect still sees them.
 	if vaultExists {
-		vaultSvc.config = &updatedConfig
+		vaultSvc.config = mergeVaultConfig(updatedConfig, vaultSvc.config)
 	}
 	if detectExists {
-		detectSvc.config = &updatedConfig
+		detectSvc.config = mergeVaultConfig(updatedConfig, detectSvc.config)
 	}
 	return nil
+}
+
+// mergeVaultConfig returns updated, with the credentials, cluster ID and base vault URL of
+// current wherever updated leaves them unset. Env is always taken from updated.
+func mergeVaultConfig(updated vaultutils.VaultConfig, current *vaultutils.VaultConfig) *vaultutils.VaultConfig {
+	if current != nil {
+		if isCredentialsEmpty(updated.Credentials) {
+			updated.Credentials = current.Credentials
+		}
+		if updated.ClusterId == "" {
+			updated.ClusterId = current.ClusterId
+		}
+		if updated.BaseVaultUrl == "" && updated.BaseVaultURL == "" {
+			updated.BaseVaultUrl = current.BaseVaultUrl
+			updated.BaseVaultURL = current.BaseVaultURL
+		}
+	}
+	return &updated
 }
 
 // UpdateConnectionConfig updates the credentials or URL of an existing connection config.
@@ -337,7 +353,8 @@ func (s *Skyflow) UpdateConnectionConfig(updatedConfig vaultutils.ConnectionConf
 	return nil
 }
 
-// GetLoglevel returns the current log level of the client.
+// GetLoglevel returns the level last set on this client. Another client, in either SDK,
+// may have changed the process-wide level since.
 func (s *Skyflow) GetLoglevel() *logger.LogLevel {
 	loglevel := s.logLevel
 	return &loglevel

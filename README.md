@@ -1850,7 +1850,7 @@ All types are in `github.com/skyflowapi/skyflow-go/v2/utils/common`.
 > This is the Detect V2 API (`/v2/detect/...`). It replaces the V1 methods: see [Migrate from Detect V1](#migrate-from-detect-v1).
 
 ### Deidentify String
-`DeidentifyString` replaces sensitive data in `Text` with tokens. Set exactly one of `ConfigurationId` (a stored configuration) or `Configuration` (an inline one).
+`DeidentifyString` replaces sensitive data in `Text` with tokens. `ConfigurationId` (a stored configuration) and `Configuration` (an inline one) are optional and sent as given: with neither, the vault's default Detect settings apply, and setting both is rejected by the API.
 
 ```go
 // With a stored configuration
@@ -1859,7 +1859,7 @@ response, err := service.DeidentifyString(ctx, common.DeidentifyStringRequest{
 	ConfigurationId: "<CONFIGURATION_ID>",
 }, common.DeidentifyStringOptions{})
 
-// With an inline configuration
+// With an inline configuration. Optional numbers and flags are pointers (set them with common.Ptr): nil is left to the server.
 response, err = service.DeidentifyString(ctx, common.DeidentifyStringRequest{
 	Text: "My name is John Doe, and my email is johndoe@acme.com.",
 	Configuration: &common.DetectConfiguration{
@@ -1869,7 +1869,7 @@ response, err = service.DeidentifyString(ctx, common.DeidentifyStringRequest{
 				{
 					EntityType:           common.EntityTypeDOB,
 					DeidentificationType: common.DeidentificationTypeEntityUniqueCounter,
-					Transformation:       &common.Transformation{ShiftDates: &common.ShiftDates{MinDays: 10, MaxDays: 30}},
+					Transformation:       &common.Transformation{ShiftDates: &common.ShiftDates{MinDays: common.Ptr(10), MaxDays: common.Ptr(30)}},
 				},
 				{EntityType: common.EntityTypeAll, DeidentificationType: common.DeidentificationTypeEntityUniqueCounter},
 			},
@@ -1914,16 +1914,20 @@ Sample response:
 
 | Field | Input |
 |---|---|
-| `FilePath` | A local file. Sent as base64; the format is inferred from the extension. |
-| `FileObject` | An open `*os.File`. The caller closes it. |
-| `DataSource` + `Value` | `DataSourceTypeBase64`, `DataSourceTypeSkyflowID` or `DataSourceTypePresignedURL`. |
+| `FilePath` | A local file. Sent as base64; the format is inferred from the extension. `DataSource` is ignored. |
+| `FileObject` | An open `*os.File`, sent the same way. The caller closes it. |
+| `DataSource` + `Value` | `DeidentifySourceTypeBase64`, `DeidentifySourceTypeSkyflowID` or `DeidentifySourceTypePresignedURL`. |
 
-By default the call returns as soon as the file is submitted; get the result later with [GetRun](#get-run). Set `Poll` to wait for the run instead. For a local file, a successful polled run's outputs are written to `OutputDirectory` as `processed-<name>.<ext>` and `processed-entities-<name>.json`.
+By default the call returns as soon as the file is submitted; get the result later with [GetRun](#get-run). Set `Poll` to wait for the run instead.
+
+Outputs are written to disk only when the input is a local file (`FilePath` or `FileObject`), the polled run reached `SUCCESS` and its outputs are base64. They are named `processed-<name>.<ext>`, `processed-entities-<name>.json` and `processed-object-entities-<name>.json`. `OutputDirectory` requires `Poll`, is created if missing and defaults to the current directory. Presigned-URL outputs are not fetched: read them from `Output`.
+
+`DeidentificationTypeVaultToken` is supported only for `txt`, `csv`, `json`, `jsonl`, `xml`, `docx`, `xlsx` and `pptx` files.
 
 ```go
 // Submit and return: only RunId is set
 submitted, err := service.DeidentifyFile(ctx, common.DeidentifyFileRequest{
-	DataSource:      common.DataSourceTypeSkyflowID,
+	DataSource:      common.DeidentifySourceTypeSkyflowID,
 	Value:           "<SKYFLOW_ID>",
 	DataFormat:      common.FileDataFormatPDF, // optional
 	ConfigurationId: "<CONFIGURATION_ID>",
@@ -1962,15 +1966,15 @@ Polling backs off 1s, 2s, 4s … up to 32s between lookups, and stops at the fir
 Sample response (polled, successful):
 ```json
 {
-  "RunId": "89699e2c-4301-4f9f-bcff-0a8fd3057489",
-  "Status": "SUCCESS",
-  "OutputType": "BASE64",
-  "Output": [
+  "runId": "89699e2c-4301-4f9f-bcff-0a8fd3057489",
+  "status": "SUCCESS",
+  "outputType": "BASE64",
+  "output": [
     { "processedFile": "TXkgU1NOIGlzIFtTU0==", "processedFileType": "REDACTED_FILE", "processedFileExtension": "pdf" },
     { "processedFile": "0X2xhYmVsIjoiQ1JFRElUX0NB==", "processedFileType": "ENTITIES", "processedFileExtension": "json" }
   ],
-  "Metrics": { "size": 12.4, "wordCount": 210, "characterCount": 1180, "pages": 2 },
-  "Message": ""
+  "metrics": { "size": 12.4, "wordCount": 210, "characterCount": 1180, "pages": 2 },
+  "message": ""
 }
 ```
 
@@ -1997,7 +2001,9 @@ if run.Status == common.DetectRunStatusSuccess {
 > See the full example in the samples directory: [get_run.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v2/detectapi/get_run.go)
 
 ### Reidentify String
-`ReidentifyString` replaces the tokens in `Text`. Without `RedactionLevel`, every token gets its original value. Each `RedactionLevel` selects tokens by `EntityName` and shows them through a `RedactionType`: `common.PLAIN_TEXT`, `common.MASKED`, `common.REDACTED` or `common.DEFAULT`.
+`ReidentifyString` replaces the tokens in `Text`. Re-identification looks the tokens up in the vault, so it applies only to values de-identified with `DeidentificationTypeVaultToken`; `ENTITY_UNIQUE_COUNTER`, `ENTITY_ONLY` and `MASK` placeholders are not stored and cannot be re-identified.
+
+Without `RedactionLevel`, every token gets its original value. Each `RedactionLevel` selects tokens by `EntityName` and shows them through a `RedactionType`: `common.PLAIN_TEXT` (original value), `common.MASKED` or `common.REDACTED` (keeps the token).
 
 ```go
 response, err := service.ReidentifyString(ctx, common.ReidentifyStringRequest{
@@ -2018,32 +2024,59 @@ fmt.Println(response.ProcessedText) // My name is John Doe, and my email is j***
 > See the full example in the samples directory: [reidentify_string.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v2/detectapi/reidentify_string.go)
 
 ### Reidentify File
-`ReidentifyFile` takes the same file inputs and `RedactionLevel` as above. It is synchronous: there is no run to poll. For a local file the outputs are written to `OutputDirectory`.
+`ReidentifyFile` is synchronous: there is no run to poll. `DataSource` and `Value` are required: `ReidentifySourceTypeBase64` with base64 content, or `ReidentifySourceTypePresignedURL` with a URL (a Skyflow ID is not accepted). There is no `FilePath` / `FileObject`: encode a local file into `Value`. `DataFormat` is optional and limited to `txt`, `csv`, `json`, `jsonl`, `xml`, `docx`, `xlsx` and `pptx`. `RedactionLevel` works as in [Reidentify String](#reidentify-string).
+
+The SDK writes nothing to disk: the re-identified output is in `response.Output` for you to handle.
 
 ```go
+content, readErr := os.ReadFile("<PATH_TO_FILE>/processed-notes.txt")
+if readErr != nil {
+	fmt.Println(readErr)
+	return
+}
 response, err := service.ReidentifyFile(ctx, common.ReidentifyFileRequest{
-	FilePath: "<PATH_TO_FILE>/processed-notes.txt",
+	DataSource: common.ReidentifySourceTypeBase64,
+	Value:      base64.StdEncoding.EncodeToString(content),
 	RedactionLevel: []common.RedactionLevel{
 		{EntityName: common.EntityTypeName, RedactionType: common.PLAIN_TEXT},
 	},
-}, common.ReidentifyFileOptions{OutputDirectory: "<OUTPUT_DIRECTORY>"})
+}, common.ReidentifyFileOptions{})
 if err != nil {
 	fmt.Println(err.GetHttpCode(), err.GetMessage(), err.GetRequestId())
 	return
 }
-fmt.Println(response.Status, len(response.Output))
+for i, output := range response.Output {
+	if response.OutputType != common.ReidentifySourceTypeBase64 {
+		// A presigned URL: anyone holding it can download the data, so don't log it.
+		fmt.Println("Output", i, "of type", output.ProcessedFileType, "is at a presigned URL")
+		continue
+	}
+	decoded, decodeErr := base64.StdEncoding.DecodeString(output.ProcessedFile)
+	if decodeErr != nil {
+		fmt.Println(decodeErr)
+		return
+	}
+	// The type and extension come from the server: keep only safe characters (namePart in
+	// the sample below allows a-z, 0-9 and _), so the name can't leave this directory.
+	name := fmt.Sprintf("reidentified-notes-%d-%s.%s", i,
+		namePart(string(output.ProcessedFileType), "output"), namePart(string(output.ProcessedFileExtension), "bin"))
+	if writeErr := os.WriteFile(name, decoded, 0o600); writeErr != nil {
+		fmt.Println(writeErr)
+		return
+	}
+}
 ```
 
 > [!TIP]
 > See the full example in the samples directory: [reidentify_file.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v2/detectapi/reidentify_file.go)
 
 ### Check Guardrails
-`CheckGuardrails` screens text for toxicity and denied topics.
+`CheckGuardrails` screens text for toxicity and denied topics. `CheckToxicity` is a `*bool`: nil leaves it to the server, which checks toxicity by default, and false turns it off.
 
 ```go
 response, err := service.CheckGuardrails(ctx, common.CheckGuardrailsRequest{
 	Text:          "<USER_PROMPT>",
-	CheckToxicity: true,
+	CheckToxicity: common.Ptr(true),
 	DenyTopics:    []string{"politics", "medical advice"},
 }, common.CheckGuardrailsOptions{})
 if err != nil {
@@ -2088,7 +2121,7 @@ options := common.DeidentifyStringOptions{
 | `AllowRegexList` / `RestrictRegexList` | `Detect.Skip` / `Detect.Restrict` |
 | `TokenFormat` | `Entity.DeidentificationType` per entity |
 | `CustomHeaders` in options | `Interceptor` in options |
-| `File`, `OutputDirectory`, `WaitTime` (seconds) on the request | `FilePath` / `FileObject` on the request; `OutputDirectory` and `Poll.WaitTime` (`time.Duration`) on the options |
+| `File`, `OutputDirectory`, `WaitTime` (seconds) on the request | `FilePath` / `FileObject` on the request; `OutputDirectory` and `Poll.WaitTime` (`time.Duration`) on `DeidentifyFileOptions` |
 
 ## Connections
 Skyflow Connections is a gateway service leveraging tokenization to securely send and receive data between your systems and first- or third-party services. The [connections](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v2/vaultapi/invoke_connection.go) module is used to invoke both INBOUND and/or OUTBOUND connections.

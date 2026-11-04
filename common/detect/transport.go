@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 
 	skyflowError "github.com/skyflowapi/skyflow-go/common/errors"
@@ -22,15 +23,37 @@ import (
 func newAPI(call *vaultclient.Call) *apiclient.Client {
 	return apiclient.NewClient(
 		option.WithBaseURL(call.BaseURL),
-		option.WithHTTPClient(call.HTTPClient),
+		option.WithHTTPClient(finalResponseClient{call.HTTPClient}),
 		option.WithHTTPHeader(call.Headers),
 		option.WithToken(call.AuthToken),
 		option.WithMaxAttempts(1),
 	)
 }
 
+// finalResponseClient returns a response that would be retried as the generated client's
+// APIError, because retries are already done. The generated retrier would otherwise sleep
+// before giving up, outside the call's timeout and ignoring cancellation.
+type finalResponseClient struct {
+	client *http.Client
+}
+
+func (c finalResponseClient) Do(req *http.Request) (*http.Response, error) {
+	resp, err := c.client.Do(req)
+	if err != nil || !vaultclient.ShouldRetry(resp.StatusCode) {
+		return resp, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	return nil, core.NewAPIError(resp.StatusCode, resp.Header, errors.New(string(raw)))
+}
+
 // apiError turns a generated-client error into a SkyflowError. API errors carry the response
-// header, so the request ID is kept.
+// header, so the request ID is kept. Any other error, such as a cancelled or timed-out
+// context or a network failure, is kept as the cause, so errors.Is(err,
+// context.DeadlineExceeded) works on the result.
 func apiError(err error) *skyflowError.SkyflowError {
 	var apiErr *core.APIError
 	if errors.As(err, &apiErr) {
@@ -40,7 +63,11 @@ func apiError(err error) *skyflowError.SkyflowError {
 		}
 		return skyflowError.SkyflowErrorApi(apiErr, header)
 	}
-	return skyflowError.NewSkyflowError(skyflowError.SERVER, err.Error())
+	code := skyflowError.SERVER
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		code = skyflowError.REQUEST_CANCELLED
+	}
+	return skyflowError.NewSkyflowErrorWithCause(code, err.Error(), err)
 }
 
 func (c *Controller) emptyResponse(method string) *skyflowError.SkyflowError {
@@ -51,7 +78,7 @@ func (c *Controller) callDeidentifyString(ctx context.Context, call *vaultclient
 	resp, err := newAPI(call).StringsV2.DeidentifyStringV2(ctx, &gen.DeidentifyStringRequestV2{
 		Text:            request.Text,
 		ConfigurationID: optString(request.ConfigurationId),
-		Configuration:   toGenConfiguration(request.Configuration, call.VaultID),
+		Configuration:   toGenConfiguration(request.Configuration, request.ConfigurationId, call.VaultID),
 	})
 	if err != nil {
 		return nil, apiError(err)
@@ -68,7 +95,7 @@ func (c *Controller) callDeidentifyFile(ctx context.Context, call *vaultclient.C
 		Value:           request.Value,
 		DataFormat:      optEnum[gen.DeidentifyFileRequestV2DataFormat](request.DataFormat),
 		ConfigurationID: optString(request.ConfigurationId),
-		Configuration:   toGenConfiguration(request.Configuration, call.VaultID),
+		Configuration:   toGenConfiguration(request.Configuration, request.ConfigurationId, call.VaultID),
 	})
 	if err != nil {
 		return "", apiError(err)
@@ -121,7 +148,7 @@ func (c *Controller) callReidentifyFile(ctx context.Context, call *vaultclient.C
 	}
 	return &ReidentifyFileResponse{
 		Status:     DetectRunStatus(derefEnum(resp.Status)),
-		OutputType: DataSourceType(derefEnum(resp.OutputType)),
+		OutputType: ReidentifySourceType(derefEnum(resp.OutputType)),
 		Output:     fromGenOutputs(resp.Output),
 		Metrics:    fromGenMetrics(resp.Metrics),
 	}, nil
@@ -131,7 +158,7 @@ func (c *Controller) callCheckGuardrails(ctx context.Context, call *vaultclient.
 	resp, err := newAPI(call).GuardrailsV2.CheckGuardrailsV2(ctx, &gen.DetectGuardrailsRequestV2{
 		VaultID:       call.VaultID,
 		Text:          request.Text,
-		CheckToxicity: optBool(request.CheckToxicity),
+		CheckToxicity: request.CheckToxicity,
 		DenyTopics:    request.DenyTopics,
 	})
 	if err != nil {

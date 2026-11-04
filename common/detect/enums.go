@@ -88,15 +88,16 @@ const (
 	DeidentificationTypeEntityUniqueCounter DeidentificationType = "ENTITY_UNIQUE_COUNTER"
 	DeidentificationTypeEntityOnly          DeidentificationType = "ENTITY_ONLY"
 	DeidentificationTypeVaultToken          DeidentificationType = "VAULT_TOKEN"
+	DeidentificationTypeMask                DeidentificationType = "MASK"
 )
 
 // IncludePrefix is whether the replacement carries the entity-type prefix. The server default is YES.
 type IncludePrefix string
 
 const (
-	IncludePrefixIncludePrefixUnspecified IncludePrefix = "INCLUDE_PREFIX_UNSPECIFIED"
-	IncludePrefixYes                      IncludePrefix = "YES"
-	IncludePrefixNo                       IncludePrefix = "NO"
+	IncludePrefixUnspecified IncludePrefix = "INCLUDE_PREFIX_UNSPECIFIED"
+	IncludePrefixYes         IncludePrefix = "YES"
+	IncludePrefixNo          IncludePrefix = "NO"
 )
 
 // ReturnEntitiesType is which detected values the response carries. The server default is EXCLUDE_SENSITIVE_DATA.
@@ -112,20 +113,32 @@ const (
 type RedactionType string
 
 const (
+	// Deprecated: the server rejects DEFAULT in a redaction level. Use REDACTED, MASKED or PLAIN_TEXT.
 	RedactionTypeDefault   RedactionType = "DEFAULT"
 	RedactionTypeRedacted  RedactionType = "REDACTED"
 	RedactionTypeMasked    RedactionType = "MASKED"
 	RedactionTypePlainText RedactionType = "PLAIN_TEXT"
 )
 
-// DataSourceType is where a file request's Value comes from, and the form a run's outputs take.
-type DataSourceType string
+// DeidentifySourceType is what a DeidentifyFileRequest's Value holds, and the OutputType of
+// DeidentifyFileResponse and GetRunResponse (where the API returns BASE64 or PRESIGNED_URL).
+// Each SDK offers the sources its vaults accept: v2 (SkyVault) all three, flowvault
+// BASE64 and PRESIGNED_URL only, as FlowVault vaults do not accept a Skyflow ID.
+type DeidentifySourceType string
 
 const (
-	DataSourceTypeFile         DataSourceType = "FILE"
-	DataSourceTypeBase64       DataSourceType = "BASE64"
-	DataSourceTypeSkyflowID    DataSourceType = "SKYFLOW_ID"
-	DataSourceTypePresignedURL DataSourceType = "PRESIGNED_URL"
+	DeidentifySourceTypeBase64       DeidentifySourceType = "BASE64"
+	DeidentifySourceTypeSkyflowID    DeidentifySourceType = "SKYFLOW_ID" // SkyVault vaults only
+	DeidentifySourceTypePresignedURL DeidentifySourceType = "PRESIGNED_URL"
+)
+
+// ReidentifySourceType is what a ReidentifyFileRequest's Value holds, and the OutputType of
+// ReidentifyFileResponse. Re-identification does not accept a Skyflow ID.
+type ReidentifySourceType string
+
+const (
+	ReidentifySourceTypeBase64       ReidentifySourceType = "BASE64"
+	ReidentifySourceTypePresignedURL ReidentifySourceType = "PRESIGNED_URL"
 )
 
 // FileDataFormat is a file format. The wire values are lowercase.
@@ -182,6 +195,20 @@ const (
 	ProcessedFileTypeRedactedDeepgramTranscriptionDiarizeJSON ProcessedFileType = "REDACTED_DEEPGRAM_TRANSCRIPTION_DIARIZE_JSON"
 	ProcessedFileTypeObjectEntities                           ProcessedFileType = "OBJECT_ENTITIES"
 )
+
+// knownFileTypes holds every ProcessedFileType; add new values here too, or output file names
+// leave out the type.
+var knownFileTypes = func() map[ProcessedFileType]bool {
+	types := map[ProcessedFileType]bool{}
+	for _, t := range []ProcessedFileType{
+		ProcessedFileTypeNone, ProcessedFileTypeRedactedFile, ProcessedFileTypeRedactedText, ProcessedFileTypeEntities,
+		ProcessedFileTypeReidentifiedFile, ProcessedFileTypeRedactedTranscription,
+		ProcessedFileTypeRedactedDeepgramTranscriptionDiarizeJSON, ProcessedFileTypeObjectEntities,
+	} {
+		types[t] = true
+	}
+	return types
+}()
 
 // ObjectEntityType is an object Detect can find in images and video.
 type ObjectEntityType string

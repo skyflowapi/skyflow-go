@@ -72,7 +72,8 @@ func (d *detectService) ReidentifyString(ctx context.Context, request common.Rei
 	return d.controller.ReidentifyString(ctx, request, options)
 }
 
-// ReidentifyFile re-identifies a file. Synchronous; for a local file the outputs are written.
+// ReidentifyFile re-identifies a file given as BASE64 or a presigned URL. It is synchronous
+// and returns the outputs in the response; nothing is written to disk.
 func (d *detectService) ReidentifyFile(ctx context.Context, request common.ReidentifyFileRequest, options common.ReidentifyFileOptions) (*common.ReidentifyFileResponse, *skyflowError.SkyflowError) {
 	return d.controller.ReidentifyFile(ctx, request, options)
 }
@@ -97,6 +98,7 @@ func (s *Skyflow) syncDetect() {
 }
 
 // updateDetect merges the fields UpdateVaultConfig changes into the vault's Detect config.
+// Only the fields set on updated change, except Env.
 func (s *Skyflow) updateDetect(service *detectService, updated common.VaultConfig) {
 	config := service.base.Config()
 	credentialsChanged := !isCredentialsEmpty(updated.Credentials)
@@ -106,8 +108,24 @@ func (s *Skyflow) updateDetect(service *detectService, updated common.VaultConfi
 	if updated.ClusterId != "" {
 		config.ClusterId = updated.ClusterId
 	}
-	if updated.Env.IsSet() {
-		config.Env = updated.Env
+	// Both URL fields are replaced together, so an update that sets only one clears the other:
+	// a stale value in the other field can't take precedence over the new URL.
+	if updated.BaseVaultUrl != "" || updated.BaseVaultURL != "" {
+		config.BaseVaultUrl, config.BaseVaultURL = updated.BaseVaultUrl, updated.BaseVaultURL
+	}
+	// Env is always applied: its zero value is PROD, so an update that omits it resets it.
+	config.Env = updated.Env
+	if updated.Timeout != 0 {
+		config.Timeout = updated.Timeout
+	}
+	if updated.MaxRetries != nil {
+		config.MaxRetries = updated.MaxRetries // SetConfig stores a copy
+	}
+	if updated.InitialRetryDelay != 0 {
+		config.InitialRetryDelay = updated.InitialRetryDelay
+	}
+	if updated.MaxRetryDelay != 0 {
+		config.MaxRetryDelay = updated.MaxRetryDelay
 	}
 	service.base.SetConfig(config, credentialsChanged)
 }

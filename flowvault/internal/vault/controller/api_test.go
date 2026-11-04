@@ -154,6 +154,32 @@ var _ = Describe("VaultController API calls", func() {
 		Expect(err.GetMessage()).To(ContainSubstring("upstream down"))
 	})
 
+	It("keeps the status code and request ID when the error body isn't a Skyflow error", func() {
+		fake.respond("/v2/query", http.StatusForbidden, `<html>denied</html>`)
+		_, err := v.Query(ctx, fvcommon.QueryRequest{Query: "SELECT 1"}, fvcommon.QueryOptions{})
+		Expect(err.GetHttpCode()).To(Equal("403"))
+		Expect(err.GetMessage()).To(ContainSubstring("<html>denied</html>"))
+		Expect(err.GetRequestId()).To(Equal("req-123"))
+
+		fake.respond("/v2/query", http.StatusBadRequest, `{"error":{"message":"no code"}}`)
+		_, err = v.Query(ctx, fvcommon.QueryRequest{Query: "SELECT 1"}, fvcommon.QueryOptions{})
+		Expect(err.GetHttpCode()).To(Equal("400"))
+		Expect(err.GetMessage()).To(ContainSubstring("no code"))
+	})
+
+	It("returns a final retryable response without waiting", func() {
+		noRetries := 0
+		v = NewVaultController(fvcommon.VaultConfig{VaultId: "vault1", BaseVaultUrl: fake.server.URL, MaxRetries: &noRetries},
+			ClientSettings{Credentials: &fvcommon.Credentials{ApiKey: testApiKey}})
+		fake.respond("/v2/query", http.StatusServiceUnavailable, `{"error":{"http_code":503,"message":"busy"}}`)
+		start := time.Now()
+		_, err := v.Query(ctx, fvcommon.QueryRequest{Query: "SELECT 1"}, fvcommon.QueryOptions{})
+		Expect(time.Since(start)).To(BeNumerically("<", 300*time.Millisecond))
+		Expect(err.GetHttpCode()).To(Equal("503"))
+		Expect(err.GetMessage()).To(ContainSubstring("busy"))
+		Expect(err.GetRequestId()).To(Equal("req-123"))
+	})
+
 	It("gets from one table with limit, offset and redactions", func() {
 		fake.respond("/v2/records/get", http.StatusOK, `{"records":[{"skyflowID":"id1","data":{"name":"j"},"httpCode":200}]}`)
 		resp, err := v.Get(ctx, fvcommon.GetRequest{

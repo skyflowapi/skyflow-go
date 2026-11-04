@@ -12,25 +12,11 @@ func optString(v string) *string {
 	return &v
 }
 
-func optBool(v bool) *bool {
-	if !v {
+func optFloat(v *float32) *float64 {
+	if v == nil {
 		return nil
 	}
-	return &v
-}
-
-func optInt(v int) *int {
-	if v == 0 {
-		return nil
-	}
-	return &v
-}
-
-func optFloat(v float32) *float64 {
-	if v == 0 {
-		return nil
-	}
-	f := float64(v)
+	f := float64(*v)
 	return &f
 }
 
@@ -62,10 +48,15 @@ func derefEnum[G ~string](p *G) string {
 // Requests
 // ---------------------------------------------------------------------------
 
-// toGenConfiguration adds the vault ID the API requires on an inline configuration.
-func toGenConfiguration(c *DetectConfiguration, vaultId string) *gen.DetectConfigV2 {
+// toGenConfiguration adds the vault ID the API requires on an inline configuration. The vault ID
+// travels inside the configuration, so with neither a configuration nor a configuration ID it
+// sends one holding only the vault ID, and the server applies the vault's defaults.
+func toGenConfiguration(c *DetectConfiguration, configurationId, vaultId string) *gen.DetectConfigV2 {
 	if c == nil {
-		return nil
+		if configurationId != "" {
+			return nil
+		}
+		return &gen.DetectConfigV2{VaultID: vaultId}
 	}
 	out := &gen.DetectConfigV2{
 		Name:        optString(c.Name),
@@ -106,8 +97,7 @@ func toGenDetect(s *Detect) *gen.Detect {
 		if e.Transformation != nil {
 			entity.Transformation = &gen.EntityTransformation{}
 			if shift := e.Transformation.ShiftDates; shift != nil {
-				minDays, maxDays := shift.MinDays, shift.MaxDays
-				entity.Transformation.ShiftDates = &gen.TransformationShiftDates{MinDays: &minDays, MaxDays: &maxDays}
+				entity.Transformation.ShiftDates = &gen.TransformationShiftDates{MinDays: shift.MinDays, MaxDays: shift.MaxDays}
 			}
 		}
 		out.Entities = append(out.Entities, entity)
@@ -138,15 +128,15 @@ func toGenMedia(m *Media) *gen.Media {
 	out := &gen.Media{}
 	if a := m.Audio; a != nil {
 		out.Audio = &gen.AudioV2{
-			OutputProcessedAudio: optBool(a.OutputProcessedAudio),
+			OutputProcessedAudio: a.OutputProcessedAudio,
 			OutputTranscription:  optEnum[gen.AudioV2OutputTranscription](a.OutputTranscription),
 		}
 		if b := a.Bleep; b != nil {
 			out.Audio.Bleep = &gen.AudioV2Bleep{
 				StartPadding: optFloat(b.StartPadding),
 				StopPadding:  optFloat(b.StopPadding),
-				Frequency:    optInt(b.Frequency),
-				Gain:         optInt(b.Gain),
+				Frequency:    b.Frequency,
+				Gain:         b.Gain,
 			}
 		}
 	}
@@ -155,15 +145,15 @@ func toGenMedia(m *Media) *gen.Media {
 		if p := d.Pdf; p != nil {
 			out.Document.Pdf = &gen.DocumentV2Pdf{
 				ProcessingMode: optEnum[gen.DocumentV2PdfProcessingMode](p.ProcessingMode),
-				Density:        optInt(p.Density),
-				MaxResolution:  optInt(p.MaxResolution),
+				Density:        p.Density,
+				MaxResolution:  p.MaxResolution,
 			}
 		}
 	}
 	if i := m.Image; i != nil {
 		out.Image = &gen.ImageV2{
-			OutputProcessedImage: optBool(i.OutputProcessedImage),
-			OutputOcrText:        optBool(i.OutputOcrText),
+			OutputProcessedImage: i.OutputProcessedImage,
+			OutputOcrText:        i.OutputOcrText,
 			MaskingMethod:        optEnum[gen.ImageV2MaskingMethod](i.MaskingMethod),
 		}
 	}
@@ -214,7 +204,7 @@ func fromGenRun(runId string, r *gen.DetectRunsResponseV2) *GetRunResponse {
 	return &GetRunResponse{
 		RunId:      runId,
 		Status:     status,
-		OutputType: DataSourceType(derefEnum(r.OutputType)),
+		OutputType: DeidentifySourceType(derefEnum(r.OutputType)),
 		Output:     fromGenOutputs(r.Output),
 		Metrics:    fromGenMetrics(r.Metrics),
 		Message:    deref(r.Message),

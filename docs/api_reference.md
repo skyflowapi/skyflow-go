@@ -110,7 +110,7 @@ level := skyflowClient.GetLoglevel()
 | `ClusterId` | `string` | _(required)_ Cluster ID — the first segment of the vault URL. |
 | `Env` | `Env` | Deployment environment. Default: `PROD`. See [`Env`](#env). |
 | `Credentials` | `Credentials` | Vault-specific credentials. Overrides client-level credentials for this vault. |
-| `BaseVaultUrl` | `string` | _(optional)_ Override the base vault URL. |
+| `BaseVaultUrl` | `string` | _(optional)_ Override the base vault URL. Must use `https`; `http` is accepted only for `localhost` and loopback addresses. |
 
 ### `ConnectionConfig`
 

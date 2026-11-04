@@ -1,14 +1,20 @@
 package controller
 
 import (
+	"context"
+	"errors"
+	"io"
 	"net/http"
 
 	"github.com/skyflowapi/skyflow-go/common/vaultclient"
 	apiclient "github.com/skyflowapi/skyflow-go/flowvault/internal/generated/client"
+	"github.com/skyflowapi/skyflow-go/flowvault/internal/generated/core"
 	"github.com/skyflowapi/skyflow-go/flowvault/internal/generated/option"
 	fvhelpers "github.com/skyflowapi/skyflow-go/flowvault/internal/helpers"
 	fvcommon "github.com/skyflowapi/skyflow-go/flowvault/utils/common"
 	fverrors "github.com/skyflowapi/skyflow-go/flowvault/utils/error"
+	fvlogger "github.com/skyflowapi/skyflow-go/flowvault/utils/logger"
+	logs "github.com/skyflowapi/skyflow-go/flowvault/utils/messages"
 )
 
 // BaseController holds one vault's settings and cached bearer token. flowvault's
@@ -52,9 +58,13 @@ func GenerateToken(creds fvcommon.Credentials) (*string, *fverrors.SkyflowError)
 }
 
 // SetupRequest resolves auth, headers and HTTP settings for one call. The interceptor,
-// when set, can add per-call headers.
-func (b BaseController) SetupRequest(operation string, interceptor fvcommon.Interceptor) (*RequestSetup, *fverrors.SkyflowError) {
-	call, err := b.Prepare(operation, interceptor)
+// when set, can add per-call headers. It stops waiting for a bearer token when ctx ends.
+func (b BaseController) SetupRequest(ctx context.Context, operation string, interceptor fvcommon.Interceptor) (*RequestSetup, *fverrors.SkyflowError) {
+	if ctx == nil {
+		fvlogger.Error(logs.NIL_CONTEXT)
+		return nil, fverrors.NewSkyflowError(fverrors.INVALID_INPUT_CODE, fverrors.NIL_CONTEXT)
+	}
+	call, err := b.PrepareContext(ctx, operation, interceptor)
 	if err != nil {
 		return nil, err
 	}
@@ -68,10 +78,30 @@ func (b BaseController) SetupRequest(operation string, interceptor fvcommon.Inte
 	// Retries happen in setup.HTTPClient, so the generated client makes a single attempt.
 	setup.API = apiclient.NewClient(
 		option.WithBaseURL(setup.BaseURL),
-		option.WithHTTPClient(setup.HTTPClient),
+		option.WithHTTPClient(finalResponseClient{setup.HTTPClient}),
 		option.WithHTTPHeader(setup.Headers),
 		option.WithToken(setup.AuthToken),
 		option.WithMaxAttempts(1),
 	)
 	return setup, nil
+}
+
+// finalResponseClient returns a response that would be retried as the generated client's
+// APIError, because retries are already done. The generated retrier would otherwise sleep
+// before giving up, outside the call's timeout and ignoring cancellation.
+type finalResponseClient struct {
+	client *http.Client
+}
+
+func (c finalResponseClient) Do(req *http.Request) (*http.Response, error) {
+	resp, err := c.client.Do(req)
+	if err != nil || !vaultclient.ShouldRetry(resp.StatusCode) {
+		return resp, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	return nil, core.NewAPIError(resp.StatusCode, resp.Header, errors.New(string(raw)))
 }

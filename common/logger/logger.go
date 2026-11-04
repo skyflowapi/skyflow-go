@@ -1,3 +1,5 @@
+// Package logger is the logger shared by the v2 and flowvault SDKs. Its output and level
+// are process-wide: setting either affects every client of both SDKs.
 package logger
 
 import (
@@ -34,6 +36,10 @@ var (
 	// concurrent log calls never race with SetOutput/SetLogLevel rebuilding it.
 	log atomic.Pointer[slog.Logger]
 )
+
+// levelOff is above every level the SDK logs at, so OFF silences output without
+// replacing the writer, and a later SetLogLevel turns logging back on.
+const levelOff = slog.LevelError + 1
 
 func init() {
 	levelVar.Set(slog.LevelError)
@@ -150,6 +156,7 @@ func Error(args ...interface{}) {
 	log.Load().Error(fmt.Sprint(args...))
 }
 
+// SetOutput sets where every SDK client in the process logs.
 func SetOutput(w io.Writer) {
 	mu.Lock()
 	defer mu.Unlock()
@@ -157,6 +164,7 @@ func SetOutput(w io.Writer) {
 	rebuild()
 }
 
+// SetLogLevel sets the log level for every SDK client in the process.
 func SetLogLevel(level LogLevel) {
 	switch level {
 	case INFO:
@@ -168,7 +176,7 @@ func SetLogLevel(level LogLevel) {
 	case ERROR:
 		levelVar.Set(slog.LevelError)
 	case OFF:
-		SetOutput(io.Discard)
+		levelVar.Set(levelOff)
 	default:
 		levelVar.Set(slog.LevelError)
 	}

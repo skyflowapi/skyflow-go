@@ -35,8 +35,8 @@ type FileOutput struct {
 
 // RedactionLevel controls how one group of tokens is re-identified. Set exactly one source
 // (TokenGroupName for FlowVault, EntityName for SkyVault) and exactly one replacement
-// (RedactionPattern for FlowVault, RedactionType for SkyVault). The server checks that
-// they suit the vault type.
+// (RedactionPattern for FlowVault, RedactionType for SkyVault). The server does not check
+// that they suit the vault type: a level using the other vault type's fields is ignored.
 type RedactionLevel struct {
 	TokenGroupName   string        `json:"tokenGroupName,omitempty"`
 	EntityName       EntityType    `json:"entityName,omitempty"`
@@ -48,8 +48,8 @@ type RedactionLevel struct {
 // DeidentifyString
 // ---------------------------------------------------------------------------
 
-// DeidentifyStringRequest de-identifies sensitive data in Text. Set exactly one of
-// ConfigurationId and Configuration.
+// DeidentifyStringRequest de-identifies sensitive data in Text. ConfigurationId and Configuration are optional:
+// with neither, the vault's default Detect settings apply. Setting both is rejected by the API.
 type DeidentifyStringRequest struct {
 	Text            string               `json:"text"`
 	ConfigurationId string               `json:"configurationId,omitempty"`
@@ -92,12 +92,12 @@ type EntityLocation struct {
 // ---------------------------------------------------------------------------
 
 // DeidentifyFileRequest submits a file for de-identification. Supply the file as exactly
-// one of Value (with DataSource), FilePath or FileObject. Set exactly one of
-// ConfigurationId and Configuration.
+// one of Value (with DataSource), FilePath or FileObject. ConfigurationId and Configuration are optional:
+// with neither, the vault's default Detect settings apply. Setting both is rejected by the API.
 type DeidentifyFileRequest struct {
-	// DataSource says what Value holds. A local file (FilePath or FileObject) is sent as
-	// DataSourceTypeBase64, which is also the only value allowed with one.
-	DataSource DataSourceType `json:"dataSource"`
+	// DataSource says what Value holds, and is required with it. It is ignored for a local
+	// file (FilePath or FileObject), which is always sent as DeidentifySourceTypeBase64.
+	DataSource DeidentifySourceType `json:"dataSource"`
 	// Value is base64 content, a Skyflow ID or a presigned URL.
 	Value string `json:"value"`
 	// DataFormat is optional: the server infers it, and for a local file the SDK infers
@@ -119,7 +119,9 @@ type DeidentifyFileOptions struct {
 	// returns as soon as the run is submitted, with only RunId set.
 	Poll *PollOptions
 	// OutputDirectory is where a successful polled run's outputs are written for a local
-	// file input. Empty means the current directory. Requires Poll.
+	// file input. Empty means the current directory. Requires Poll. Each output is written
+	// to a hidden temporary file first and renamed into place; a process that dies while
+	// writing can leave such a ".processed-*.tmp" file behind.
 	OutputDirectory string
 }
 
@@ -135,12 +137,12 @@ type PollOptions struct {
 // was polled: Status is empty when it wasn't, and Output, Metrics and OutputType are set
 // once the run succeeded.
 type DeidentifyFileResponse struct {
-	RunId      string
-	Status     DetectRunStatus
-	OutputType DataSourceType
-	Output     []FileOutput
-	Metrics    *Metrics
-	Message    string // failure detail when Status is DetectRunStatusFailed
+	RunId      string               `json:"runId"`
+	Status     DetectRunStatus      `json:"status"`
+	OutputType DeidentifySourceType `json:"outputType"`
+	Output     []FileOutput         `json:"output"`
+	Metrics    *Metrics             `json:"metrics"`
+	Message    string               `json:"message"` // failure detail when Status is DetectRunStatusFailed
 }
 
 // ---------------------------------------------------------------------------
@@ -160,12 +162,12 @@ type GetRunOptions struct {
 // GetRunResponse is the current state of a run. Output, Metrics and OutputType are set
 // once it succeeded.
 type GetRunResponse struct {
-	RunId      string          `json:"runId"` // echoed from the request
-	Status     DetectRunStatus `json:"status"`
-	OutputType DataSourceType  `json:"outputType"`
-	Output     []FileOutput    `json:"output"`
-	Metrics    *Metrics        `json:"metrics"`
-	Message    string          `json:"message"` // failure detail when Status is DetectRunStatusFailed
+	RunId      string               `json:"runId"` // echoed from the request
+	Status     DetectRunStatus      `json:"status"`
+	OutputType DeidentifySourceType `json:"outputType"`
+	Output     []FileOutput         `json:"output"`
+	Metrics    *Metrics             `json:"metrics"`
+	Message    string               `json:"message"` // failure detail when Status is DetectRunStatusFailed
 }
 
 // ---------------------------------------------------------------------------
@@ -195,31 +197,26 @@ type ReidentifyStringResponse struct {
 // ---------------------------------------------------------------------------
 
 // ReidentifyFileRequest re-identifies a file. It is synchronous: there is no run to poll.
-// Supply the file as exactly one of Value (with DataSource), FilePath or FileObject.
+// DataSource and Value are required; to send a local file, base64-encode it into Value.
 type ReidentifyFileRequest struct {
-	DataSource     DataSourceType   `json:"dataSource"`
-	Value          string           `json:"value"`
-	DataFormat     FileDataFormat   `json:"dataFormat,omitempty"`
-	RedactionLevel []RedactionLevel `json:"redactionLevel,omitempty"`
-
-	FilePath   string   `json:"-"`
-	FileObject *os.File `json:"-"`
+	DataSource     ReidentifySourceType `json:"dataSource"`
+	Value          string               `json:"value"` // base64 content or a presigned URL
+	DataFormat     FileDataFormat       `json:"dataFormat,omitempty"`
+	RedactionLevel []RedactionLevel     `json:"redactionLevel,omitempty"`
 }
 
 // ReidentifyFileOptions customise a ReidentifyFile call.
 type ReidentifyFileOptions struct {
 	Interceptor Interceptor
-	// OutputDirectory is where the outputs are written for a local file input. Empty means
-	// the current directory.
-	OutputDirectory string
 }
 
-// ReidentifyFileResponse is the re-identified file.
+// ReidentifyFileResponse is the re-identified file. The SDK writes nothing to disk: Output
+// holds base64 content or presigned URLs, as OutputType says, for the caller to handle.
 type ReidentifyFileResponse struct {
-	Status     DetectRunStatus `json:"status"`
-	OutputType DataSourceType  `json:"outputType"`
-	Output     []FileOutput    `json:"output"`
-	Metrics    *Metrics        `json:"metrics"`
+	Status     DetectRunStatus      `json:"status"`
+	OutputType ReidentifySourceType `json:"outputType"`
+	Output     []FileOutput         `json:"output"`
+	Metrics    *Metrics             `json:"metrics"`
 }
 
 // ---------------------------------------------------------------------------
@@ -228,8 +225,9 @@ type ReidentifyFileResponse struct {
 
 // CheckGuardrailsRequest screens Text for toxicity and denied topics.
 type CheckGuardrailsRequest struct {
-	Text          string   `json:"text"`
-	CheckToxicity bool     `json:"checkToxicity,omitempty"`
+	Text string `json:"text"`
+	// CheckToxicity nil leaves it to the server, which checks toxicity by default.
+	CheckToxicity *bool    `json:"checkToxicity,omitempty"`
 	DenyTopics    []string `json:"denyTopics,omitempty"`
 }
 

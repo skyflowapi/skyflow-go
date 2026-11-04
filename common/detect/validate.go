@@ -2,6 +2,7 @@ package detect
 
 import (
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -26,14 +27,11 @@ func (c *Controller) validateDeidentifyString(request DeidentifyStringRequest) *
 	if blank(request.Text) {
 		return c.invalid(errEmptyText, methodDeidentifyString)
 	}
-	return c.validateConfigurationSource(methodDeidentifyString, request.ConfigurationId, request.Configuration)
+	return nil
 }
 
 func (c *Controller) validateDeidentifyFile(request DeidentifyFileRequest, options DeidentifyFileOptions) *skyflowError.SkyflowError {
-	if err := c.validateFileSource(methodDeidentifyFile, request.DataSource, request.Value, request.FilePath, request.FileObject); err != nil {
-		return err
-	}
-	if err := c.validateConfigurationSource(methodDeidentifyFile, request.ConfigurationId, request.Configuration); err != nil {
+	if err := c.validateDeidentifyFileSource(request.DataSource, request.Value, request.FilePath, request.FileObject); err != nil {
 		return err
 	}
 	if options.Poll == nil {
@@ -51,33 +49,41 @@ func (c *Controller) validateDeidentifyFile(request DeidentifyFileRequest, optio
 	return nil
 }
 
-func (c *Controller) validateConfigurationSource(method, configurationId string, configuration *DetectConfiguration) *skyflowError.SkyflowError {
-	if countSet(!blank(configurationId), configuration != nil) != 1 {
-		return c.invalid(errConfigurationSource, method)
+// validateDeidentifyFileSource checks that the file comes from exactly one of Value, FilePath
+// and FileObject, and that Value has a DataSource the SDK's vaults accept. DataSource is
+// ignored for a local file.
+func (c *Controller) validateDeidentifyFileSource(dataSource DeidentifySourceType, value, filePath string, fileObject *os.File) *skyflowError.SkyflowError {
+	if countSet(!blank(value), !blank(filePath), fileObject != nil) != 1 {
+		return c.invalid(errFileSource, methodDeidentifyFile)
+	}
+	if blank(value) {
+		return nil
+	}
+	if dataSource == "" {
+		return c.invalid(errMissingDeidentifySource, methodDeidentifyFile, c.deidentifySourceList())
+	}
+	if !c.acceptsDeidentifySource(dataSource) {
+		return c.invalid(errUnsupportedDeidentifySource, methodDeidentifyFile, dataSource, c.deidentifySourceList())
 	}
 	return nil
 }
 
-// validateFileSource checks that the file comes from exactly one of Value, FilePath and
-// FileObject, and that DataSource suits it.
-func (c *Controller) validateFileSource(method string, dataSource DataSourceType, value, filePath string, fileObject *os.File) *skyflowError.SkyflowError {
-	if countSet(!blank(value), !blank(filePath), fileObject != nil) != 1 {
-		return c.invalid(errFileSource, method)
+// validateReidentifyFile checks the file's DataSource and Value, and the redaction levels.
+func (c *Controller) validateReidentifyFile(request ReidentifyFileRequest) *skyflowError.SkyflowError {
+	if request.DataSource == "" {
+		return c.invalid(errMissingReidentifySource, methodReidentifyFile, sourceList(reidentifySources))
 	}
-	if !blank(value) {
-		if dataSource == "" {
-			return c.invalid(errMissingDataSource, method)
-		}
-		return nil
+	if !slices.Contains(reidentifySources, request.DataSource) {
+		return c.invalid(errUnsupportedReidentifySource, methodReidentifyFile, request.DataSource, sourceList(reidentifySources))
 	}
-	if dataSource != "" && dataSource != DataSourceTypeBase64 {
-		return c.invalid(errLocalFileDataSource, method)
+	if blank(request.Value) {
+		return c.invalid(errEmptyValue, methodReidentifyFile)
 	}
-	return nil
+	return c.validateRedactionLevels(methodReidentifyFile, request.RedactionLevel)
 }
 
 // validateRedactionLevels checks each level has exactly one source and one replacement.
-// Whether they suit the vault type is checked by the server.
+// Whether they suit the vault type is not checked here or by the server; see RedactionLevel.
 func (c *Controller) validateRedactionLevels(method string, levels []RedactionLevel) *skyflowError.SkyflowError {
 	for i, level := range levels {
 		if countSet(!blank(level.TokenGroupName), level.EntityName != "") != 1 {

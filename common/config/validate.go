@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"net"
 	"net/url"
 	"strings"
 
@@ -14,6 +15,7 @@ const (
 	apiKeyLength  = 42
 	httpProtocol  = "http"
 	httpsProtocol = "https"
+	localhostHost = "localhost"
 )
 
 // Validator validates the shared configuration types. The prefixes identify
@@ -41,21 +43,27 @@ func (v Validator) ValidateVaultConfig(vaultConfig VaultConfig) *skyflowError.Sk
 	if vaultConfig.VaultId == "" {
 		return v.invalid(logVaultIdIsRequired, errInvalidVaultId)
 	}
-	baseVaultUrl := vaultConfig.BaseVaultUrl
-	if vaultConfig.BaseVaultURL != "" {
-		logger.Warn(v.logMsg(logDeprecatedFieldBaseVaultUrl))
-		if baseVaultUrl == "" {
-			baseVaultUrl = vaultConfig.BaseVaultURL
-		}
-	}
+	baseVaultUrl := v.baseVaultUrl(vaultConfig)
 	if baseVaultUrl == "" {
 		if vaultConfig.ClusterId == "" {
 			return v.invalid(logClusterIdIsRequired, errInvalidClusterId)
 		}
-	} else if !isValidHTTPURL(baseVaultUrl) {
-		return v.invalid(logVaultUrlIsInvalid, errInvalidVaultUrl)
+	} else if err := v.validateBaseVaultUrl(baseVaultUrl); err != nil {
+		return err
 	}
 	return v.ValidateHttpConfig(vaultConfig.HttpConfig())
+}
+
+// baseVaultUrl returns BaseVaultUrl, falling back to the deprecated BaseVaultURL,
+// and warns when the deprecated field is set.
+func (v Validator) baseVaultUrl(vaultConfig VaultConfig) string {
+	if vaultConfig.BaseVaultURL != "" {
+		logger.Warn(v.logMsg(logDeprecatedFieldBaseVaultUrl))
+		if vaultConfig.BaseVaultUrl == "" {
+			return vaultConfig.BaseVaultURL
+		}
+	}
+	return vaultConfig.BaseVaultUrl
 }
 
 // ValidateHttpConfig checks that timeout, retry count and retry delays are not negative.
@@ -68,9 +76,27 @@ func (v Validator) ValidateHttpConfig(httpConfig HttpConfig) *skyflowError.Skyfl
 }
 
 // ValidateUpdateVaultConfig checks a vault config used to update a registered vault.
+// Fields left unset keep their stored values, so only the ones that are set are checked.
 func (v Validator) ValidateUpdateVaultConfig(vaultConfig VaultConfig) *skyflowError.SkyflowError {
 	if vaultConfig.VaultId == "" {
 		return v.invalid(logVaultIdIsRequired, errInvalidVaultId)
+	}
+	if baseVaultUrl := v.baseVaultUrl(vaultConfig); baseVaultUrl != "" {
+		return v.validateBaseVaultUrl(baseVaultUrl)
+	}
+	return nil
+}
+
+// validateBaseVaultUrl checks that the vault URL is well formed and uses https.
+// Bearer tokens and sensitive data travel on it, so plain http is allowed only for
+// loopback hosts (local development and tests).
+func (v Validator) validateBaseVaultUrl(raw string) *skyflowError.SkyflowError {
+	u, err := url.Parse(raw)
+	if err != nil || (u.Scheme != httpProtocol && u.Scheme != httpsProtocol) || u.Host == "" {
+		return v.invalid(logVaultUrlIsInvalid, errInvalidVaultUrl)
+	}
+	if u.Scheme == httpProtocol && !isLoopbackHost(u.Hostname()) {
+		return v.invalid(logVaultUrlIsInsecure, errInsecureVaultUrl)
 	}
 	return nil
 }
@@ -120,13 +146,11 @@ func IsCredentialsEmpty(c Credentials) bool {
 	return c.Path == "" && c.CredentialsString == "" && c.Token == "" && c.ApiKey == ""
 }
 
-func isValidHTTPURL(raw string) bool {
-	u, err := url.Parse(raw)
-	if err != nil {
-		return false
+// isLoopbackHost reports whether host is localhost or a loopback IP address.
+func isLoopbackHost(host string) bool {
+	if strings.EqualFold(host, localhostHost) {
+		return true
 	}
-	if u.Scheme != httpProtocol && u.Scheme != httpsProtocol {
-		return false
-	}
-	return u.Host != ""
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
 }

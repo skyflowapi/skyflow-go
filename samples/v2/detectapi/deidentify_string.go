@@ -58,7 +58,8 @@ func main() {
 	}
 	fmt.Println(response.ProcessedText) // My name is [NAME_1], and my email is [EMAIL_ADDRESS_1].
 
-	// ...or with an inline configuration: no stored configuration needed
+	// ...or with an inline configuration: no stored configuration needed. Optional numbers
+	// and flags in a configuration are pointers (common.Ptr), so nil is left to the server.
 	configuration := &common.DetectConfiguration{
 		Detect: &common.Detect{
 			Entities: []common.Entity{
@@ -66,7 +67,7 @@ func main() {
 				{
 					EntityType:           common.EntityTypeDOB,
 					DeidentificationType: common.DeidentificationTypeEntityUniqueCounter,
-					Transformation:       &common.Transformation{ShiftDates: &common.ShiftDates{MinDays: 10, MaxDays: 30}},
+					Transformation:       &common.Transformation{ShiftDates: &common.ShiftDates{MinDays: common.Ptr(10), MaxDays: common.Ptr(30)}},
 				},
 				{EntityType: common.EntityTypeAll, DeidentificationType: common.DeidentificationTypeEntityUniqueCounter},
 			},

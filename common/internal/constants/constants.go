@@ -10,7 +10,18 @@ const (
 	CONTENT_TYPE_TEXT_CHARSET   = "text/plain; charset=utf-8"
 	UNKNOWN_ERROR               = "Unknown error"
 	HTTP_STATUS_BAD_REQUEST     = "Bad Request"
-	ERROR_FAILED_TO_READ        = "Failed to read error"
+	// HTTP_STATUS_CLIENT_CLOSED_REQUEST is the status text of REQUEST_CANCELLED (499).
+	HTTP_STATUS_CLIENT_CLOSED_REQUEST = "Client Closed Request"
+	ERROR_FAILED_TO_READ              = "Failed to read error"
+
+	// MAX_RAW_ERROR_BODY is how many bytes of a non-JSON error body an error message keeps.
+	MAX_RAW_ERROR_BODY = 512
+	TRUNCATED_SUFFIX   = "... (truncated)"
+
+	// Generated clients format API errors as "<status>: <body>".
+	API_ERROR_SEPARATOR = ": "
+	MIN_HTTP_STATUS     = 100
+	MAX_HTTP_STATUS     = 599
 
 	ERROR_KEY_ERROR       = "error"
 	ERROR_KEY_MESSAGE     = "message"

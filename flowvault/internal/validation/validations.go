@@ -203,7 +203,7 @@ func ValidateGetTokens(req fvcommon.GetTokensRequest) *fverrors.SkyflowError {
 		return invalid(fverrors.EMPTY_RECORDS, fvconsts.METHOD_GET_TOKENS)
 	}
 	for i, record := range req.Records {
-		if record.Value == nil {
+		if text, isString := record.Value.(string); record.Value == nil || isString && blank(text) {
 			return invalid(fverrors.MISSING_VALUE, i)
 		}
 		if blank(record.TokenGroupName) {
@@ -232,10 +232,15 @@ func ValidateUploadFiles(req fvcommon.UploadFilesRequest) *fverrors.SkyflowError
 		if len(record.Columns) == 0 {
 			return invalid(fverrors.EMPTY_COLUMNS, name, i)
 		}
+		seen := make(map[string]bool, len(record.Columns))
 		for _, column := range record.Columns {
 			if blank(column.Column) {
 				return invalid(fverrors.EMPTY_COLUMN_NAME, name, i)
 			}
+			if seen[column.Column] {
+				return invalid(fverrors.DUPLICATE_COLUMN, name, column.Column, i)
+			}
+			seen[column.Column] = true
 			sources := 0
 			if column.FilePath != "" {
 				sources++

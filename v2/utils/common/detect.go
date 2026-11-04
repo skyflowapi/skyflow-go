@@ -31,7 +31,8 @@ type (
 	IncludePrefix              = cdetect.IncludePrefix
 	ReturnEntitiesType         = cdetect.ReturnEntitiesType
 	RedactionType              = cdetect.RedactionType
-	DataSourceType             = cdetect.DataSourceType
+	DeidentifySourceType       = cdetect.DeidentifySourceType
+	ReidentifySourceType       = cdetect.ReidentifySourceType
 	FileDataFormat             = cdetect.FileDataFormat
 	DetectRunStatus            = cdetect.DetectRunStatus
 	ProcessedFileType          = cdetect.ProcessedFileType
@@ -143,20 +144,21 @@ const (
 	DeidentificationTypeEntityUniqueCounter                   = cdetect.DeidentificationTypeEntityUniqueCounter
 	DeidentificationTypeEntityOnly                            = cdetect.DeidentificationTypeEntityOnly
 	DeidentificationTypeVaultToken                            = cdetect.DeidentificationTypeVaultToken
-	IncludePrefixIncludePrefixUnspecified                     = cdetect.IncludePrefixIncludePrefixUnspecified
+	DeidentificationTypeMask                                  = cdetect.DeidentificationTypeMask
+	IncludePrefixUnspecified                                  = cdetect.IncludePrefixUnspecified
 	IncludePrefixYes                                          = cdetect.IncludePrefixYes
 	IncludePrefixNo                                           = cdetect.IncludePrefixNo
 	ReturnEntitiesTypeExcludeSensitiveData                    = cdetect.ReturnEntitiesTypeExcludeSensitiveData
 	ReturnEntitiesTypeAll                                     = cdetect.ReturnEntitiesTypeAll
 	ReturnEntitiesTypeNone                                    = cdetect.ReturnEntitiesTypeNone
-	RedactionTypeDefault                                      = cdetect.RedactionTypeDefault
 	RedactionTypeRedacted                                     = cdetect.RedactionTypeRedacted
 	RedactionTypeMasked                                       = cdetect.RedactionTypeMasked
 	RedactionTypePlainText                                    = cdetect.RedactionTypePlainText
-	DataSourceTypeFile                                        = cdetect.DataSourceTypeFile
-	DataSourceTypeBase64                                      = cdetect.DataSourceTypeBase64
-	DataSourceTypeSkyflowID                                   = cdetect.DataSourceTypeSkyflowID
-	DataSourceTypePresignedURL                                = cdetect.DataSourceTypePresignedURL
+	DeidentifySourceTypeBase64                                = cdetect.DeidentifySourceTypeBase64
+	DeidentifySourceTypeSkyflowID                             = cdetect.DeidentifySourceTypeSkyflowID
+	DeidentifySourceTypePresignedURL                          = cdetect.DeidentifySourceTypePresignedURL
+	ReidentifySourceTypeBase64                                = cdetect.ReidentifySourceTypeBase64
+	ReidentifySourceTypePresignedURL                          = cdetect.ReidentifySourceTypePresignedURL
 	FileDataFormatUnknown                                     = cdetect.FileDataFormatUnknown
 	FileDataFormatMP3                                         = cdetect.FileDataFormatMP3
 	FileDataFormatWAV                                         = cdetect.FileDataFormatWAV
@@ -223,3 +225,12 @@ const (
 	OperationReidentifyFile                                   = cdetect.OperationReidentifyFile
 	OperationCheckGuardrails                                  = cdetect.OperationCheckGuardrails
 )
+
+// Deprecated: the server rejects DEFAULT in a redaction level. Use REDACTED, MASKED or PLAIN_TEXT.
+const RedactionTypeDefault = cdetect.RedactionTypeDefault
+
+// Ptr returns a pointer to v, for the optional *bool, *int and *float32 Detect options,
+// where nil leaves the value to the server:
+//
+//	common.CheckGuardrailsRequest{Text: text, CheckToxicity: common.Ptr(true)}
+func Ptr[T any](v T) *T { return &v }

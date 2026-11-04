@@ -2,6 +2,8 @@ package vaultclient
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -225,5 +227,162 @@ func TestProfileLogsReplaceAndAddLines(t *testing.T) {
 	}
 	if out.Len() != 0 {
 		t.Fatalf("logs = %q", out.String())
+	}
+}
+
+func TestFirstDurationAndBackoffEdgeCases(t *testing.T) {
+	if firstDuration() != 0 || firstDuration(0, -time.Second) != 0 {
+		t.Fatal("firstDuration should be zero when no positive duration is set")
+	}
+	if delay := backoff(1, 10*time.Second, time.Second); delay < 800*time.Millisecond || delay > 1200*time.Millisecond {
+		t.Fatalf("backoff not capped at max: %v", delay)
+	}
+	if backoff(3, 0, 0) != 0 || backoff(1, time.Nanosecond, time.Nanosecond) != time.Nanosecond {
+		t.Fatal("backoff should skip jitter that rounds to zero")
+	}
+}
+
+func newUnavailableServer(calls *int32) *httptest.Server {
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(calls, 1)
+		_, _ = io.Copy(io.Discard, r.Body)
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+}
+
+func TestRetryTransportDoesNotRetryABodyItCannotResend(t *testing.T) {
+	var calls int32
+	server := newUnavailableServer(&calls)
+	defer server.Close()
+	transport := &retryTransport{base: http.DefaultTransport, config: ResolvedHttpConfig{MaxRetries: 3}, sleep: func(time.Duration) {}}
+
+	// A body that isn't a bytes/strings reader gets no GetBody.
+	req, _ := http.NewRequest(http.MethodPost, server.URL, io.NopCloser(strings.NewReader("payload")))
+	resp, err := transport.RoundTrip(req)
+	if err != nil || resp.StatusCode != http.StatusServiceUnavailable || atomic.LoadInt32(&calls) != 1 {
+		t.Fatalf("resp=%v err=%v calls=%d", resp, err, calls)
+	}
+	_ = resp.Body.Close()
+
+	// GetBody that fails stops the retries too.
+	req, _ = http.NewRequest(http.MethodPost, server.URL, strings.NewReader("payload"))
+	req.GetBody = func() (io.ReadCloser, error) { return nil, errors.New("no body") }
+	resp, err = transport.RoundTrip(req)
+	if err != nil || atomic.LoadInt32(&calls) != 2 {
+		t.Fatalf("err=%v calls=%d", err, calls)
+	}
+	_ = resp.Body.Close()
+}
+
+func TestRetryTransportWaitsAndStopsWhenCancelled(t *testing.T) {
+	var calls int32
+	server := newUnavailableServer(&calls)
+	defer server.Close()
+
+	transport := &retryTransport{base: http.DefaultTransport, config: ResolvedHttpConfig{MaxRetries: 1, InitialRetryDelay: time.Millisecond, MaxRetryDelay: time.Millisecond}}
+	req, _ := http.NewRequest(http.MethodGet, server.URL, nil)
+	resp, err := transport.RoundTrip(req)
+	if err != nil || atomic.LoadInt32(&calls) != 2 {
+		t.Fatalf("err=%v calls=%d", err, calls)
+	}
+	_ = resp.Body.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	transport.config = ResolvedHttpConfig{MaxRetries: 1, InitialRetryDelay: time.Hour, MaxRetryDelay: time.Hour}
+	req, _ = http.NewRequestWithContext(ctx, http.MethodGet, server.URL, nil)
+	done := make(chan error, 1)
+	go func() {
+		_, err := transport.RoundTrip(req)
+		done <- err
+	}()
+	for atomic.LoadInt32(&calls) < 3 {
+		time.Sleep(time.Millisecond)
+	}
+	cancel()
+	if err := <-done; !errors.Is(err, context.Canceled) {
+		t.Fatalf("err = %v, want context.Canceled", err)
+	}
+}
+
+func TestShouldRetry(t *testing.T) {
+	for status, want := range map[int]bool{http.StatusOK: false, http.StatusBadRequest: false, http.StatusRequestTimeout: true, http.StatusTooManyRequests: true, http.StatusInternalServerError: true, http.StatusServiceUnavailable: true} {
+		if ShouldRetry(status) != want {
+			t.Errorf("ShouldRetry(%d) = %v", status, !want)
+		}
+	}
+}
+
+// Credentials are compared by value, so a copy with the same values keeps the token, and a
+// change made to a struct the caller still holds is seen when it is set again.
+func TestAuthVersionComparesCredentialsByValue(t *testing.T) {
+	creds := &config.Credentials{ApiKey: testApiKey, Roles: []string{"r1"}}
+	b := New(testProfile(), config.VaultConfig{VaultId: "v"}, ClientSettings{Credentials: creds})
+	version := b.snapshot().authVersion
+
+	b.SetClientSettings(ClientSettings{Credentials: &config.Credentials{ApiKey: testApiKey, Roles: []string{"r1"}}})
+	b.SetConfig(b.Config(), false)
+	if got := b.snapshot().authVersion; got != version {
+		t.Fatalf("same values: %d, want %d", got, version)
+	}
+	creds.Roles[0] = "r2"
+	b.SetClientSettings(ClientSettings{Credentials: creds})
+	vaultConfig := b.Config()
+	vaultConfig.Credentials = config.Credentials{Token: "t"}
+	b.SetConfig(vaultConfig, false)
+	if got := b.snapshot().authVersion; got != version+2 {
+		t.Fatalf("changed client and vault credentials: %d, want %d", got, version+2)
+	}
+}
+
+// Settings are copied on the way in and out: changing what was passed in or returned does
+// not change the Base.
+func TestSettingsAreCopiedInAndOut(t *testing.T) {
+	retries := 2
+	creds := &config.Credentials{ApiKey: testApiKey, Roles: []string{"r1"}}
+	headers := map[config.CustomHeaderKey]string{config.SkyflowAccountId: "acc"}
+	vaultConfig := config.VaultConfig{VaultId: "v", ClusterId: "c", MaxRetries: &retries, Credentials: config.Credentials{Roles: []string{"v1"}}}
+	b := New(testProfile(), vaultConfig, ClientSettings{Credentials: creds, Headers: headers, HttpConfig: config.HttpConfig{MaxRetries: &retries}})
+
+	creds.ApiKey, creds.Roles[0] = "changed", "changed"
+	headers[config.SkyflowAccountId] = "changed"
+	retries = 9
+	vaultConfig.Credentials.Roles[0] = "changed"
+
+	got := b.ClientSettings()
+	if got.Credentials.ApiKey != testApiKey || got.Credentials.Roles[0] != "r1" || got.Headers[config.SkyflowAccountId] != "acc" || *got.HttpConfig.MaxRetries != 2 {
+		t.Fatalf("client settings changed through the caller's values: %+v", got)
+	}
+	gotConfig := b.Config()
+	if *gotConfig.MaxRetries != 2 || gotConfig.Credentials.Roles[0] != "v1" {
+		t.Fatalf("vault config changed through the caller's values: %+v", gotConfig)
+	}
+
+	got.Credentials.ApiKey, got.Headers[config.SkyflowAccountId] = "changed", "changed"
+	gotConfig.Credentials.Roles[0], *gotConfig.MaxRetries = "changed", 9
+	if again := b.ClientSettings(); again.Credentials.ApiKey != testApiKey || again.Headers[config.SkyflowAccountId] != "acc" {
+		t.Fatalf("client settings changed through a returned copy: %+v", again)
+	}
+	if again := b.Config(); again.Credentials.Roles[0] != "v1" || *again.MaxRetries != 2 {
+		t.Fatalf("vault config changed through a returned copy: %+v", again)
+	}
+}
+
+func TestRefreshAuthUsesTheCurrentCredentials(t *testing.T) {
+	b := New(testProfile(), config.VaultConfig{VaultId: "v", ClusterId: "c"}, ClientSettings{Credentials: &config.Credentials{ApiKey: testApiKey}})
+	call, err := b.Prepare("DEIDENTIFY_FILE", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	newKey := "sky-zzzzz-1234567890abcdef1234567890abcdef"
+	b.SetClientSettings(ClientSettings{Credentials: &config.Credentials{ApiKey: newKey}})
+	refreshed, err := b.RefreshAuth(context.Background(), call)
+	if err != nil || refreshed.AuthToken != newKey || refreshed.BaseURL != call.BaseURL || call.AuthToken != testApiKey {
+		t.Fatalf("refreshed = %+v, err = %v, original = %+v", refreshed, err, call)
+	}
+
+	t.Setenv(CredentialsEnv, "")
+	b.SetClientSettings(ClientSettings{})
+	if _, err := b.RefreshAuth(context.Background(), call); err == nil {
+		t.Fatal("no credentials should fail")
 	}
 }

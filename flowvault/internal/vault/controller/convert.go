@@ -3,9 +3,11 @@ package controller
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
+	fvconsts "github.com/skyflowapi/skyflow-go/flowvault/internal/constants"
 	api "github.com/skyflowapi/skyflow-go/flowvault/internal/generated"
 	"github.com/skyflowapi/skyflow-go/flowvault/internal/generated/core"
 	fvhelpers "github.com/skyflowapi/skyflow-go/flowvault/internal/helpers"
@@ -47,7 +49,34 @@ func result[T any](resp *core.Response[*T], err error, hasRecords func(*T) bool)
 	if header == nil {
 		header = http.Header{}
 	}
-	return nil, nil, fverrors.SkyflowErrorApi(apiErr, header)
+	return nil, nil, apiError(apiErr, header)
+}
+
+// apiError converts a failed call. The status code and request ID are kept even when the
+// body isn't a Skyflow error: such a body becomes the message.
+func apiError(apiErr *core.APIError, header http.Header) *fverrors.SkyflowError {
+	raw := ""
+	if apiErr.Unwrap() != nil {
+		raw = apiErr.Unwrap().Error()
+	}
+	var body map[string]interface{}
+	_ = json.Unmarshal([]byte(raw), &body)
+	errorBody, ok := body[fvconsts.ERROR_KEY_ERROR].(map[string]interface{})
+	if !ok {
+		message := raw
+		if text, isText := body[fvconsts.ERROR_KEY_ERROR].(string); isText {
+			message = text
+		}
+		if strings.TrimSpace(message) == "" {
+			message = http.StatusText(apiErr.StatusCode)
+		}
+		errorBody = map[string]interface{}{fvconsts.ERROR_KEY_MESSAGE: message}
+	}
+	if _, ok := errorBody[fvconsts.ERROR_KEY_HTTP_CODE].(float64); !ok {
+		errorBody[fvconsts.ERROR_KEY_HTTP_CODE] = apiErr.StatusCode
+	}
+	normalized, _ := json.Marshal(map[string]interface{}{fvconsts.ERROR_KEY_ERROR: errorBody})
+	return fverrors.SkyflowErrorApi(fmt.Errorf("%d: %s", apiErr.StatusCode, normalized), header)
 }
 
 func deref[T any](value *T) T {

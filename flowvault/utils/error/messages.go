@@ -46,6 +46,8 @@ const (
 	DUPLICATE_COLUMN              string = internal.SDK_PREFIX + " Validation error. %s failed. Column %q is listed more than once for record at index %d."
 	EMPTY_CREDENTIALS             string = internal.SDK_PREFIX + " Validation error. Invalid credentials. Specify a valid credentials."
 	BEARER_TOKEN_EXPIRED          string = internal.SDK_PREFIX + " Validation error. Bearer token is expired. Specify a valid bearer token."
+	NIL_CONTEXT                   string = internal.SDK_PREFIX + " Validation error. Context is nil. Pass a context, e.g. context.Background()."
+	BEARER_TOKEN_CANCELLED        string = internal.SDK_PREFIX + " Request cancelled. The context ended before a bearer token was available."
 	MULTIPLE_VAULT_CONFIGS        string = internal.SDK_PREFIX + " Validation error. Multiple vault configurations found. Specify a vaultId."
 	INVALID_HEADER_KEY            string = internal.SDK_PREFIX + " Validation error. %s: header key %q is not supported. Use x-skyflow-account-id, x-skyflow-account-name or x-request-id."
 	EMPTY_HEADER_VALUE            string = internal.SDK_PREFIX + " Validation error. %s: header %q must have a value."

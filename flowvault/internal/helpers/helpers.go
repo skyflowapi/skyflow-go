@@ -36,14 +36,12 @@ func CreateSDKMetadata() string {
 		"os_details":       fmt.Sprintf("%s %s", runtime.GOOS, runtime.GOARCH),
 		"runtime_details":  runtime.Version(),
 	}
-	b, err := json.Marshal(data)
-	if err != nil {
-		return ""
-	}
+	b, _ := json.Marshal(data) // a map of strings always marshals
 	return string(b)
 }
 
-// authSvc is the shared service-account authenticator configured for flowvault.
+// authSvc is the shared service-account authenticator configured for flowvault. Its token
+// requests time out after auth.DefaultTimeout, like Java's.
 var authSvc = auth.New(auth.Config{
 	SDKPrefix: fvconsts.SDK_PREFIX,
 	LogPrefix: fvconsts.SDK_LOG_PREFIX,
