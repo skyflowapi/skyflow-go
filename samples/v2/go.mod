@@ -2,7 +2,7 @@ module github.com/skyflowapi/skyflow-go/samples/v2
 
 go 1.25.0
 
-require github.com/skyflowapi/skyflow-go/v2 v2.1.1-0.20261103123847-618a06fef025
+require github.com/skyflowapi/skyflow-go/v2 v2.1.1-0.20261104074321-9af387c8b2cb
 
 require (
 	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
