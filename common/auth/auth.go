@@ -61,8 +61,8 @@ type Service struct {
 
 // New returns a Service for the SDK described by cfg.
 //
-// Token requests always time out: a caller may hold a lock while a token request runs, so
-// one that never ended would block every later call waiting for that lock.
+// Token requests always time out: a token request holds the vault's token lock in
+// common/vaultclient until it ends, so one that never did would block every later call.
 func New(cfg Config) *Service {
 	switch {
 	case cfg.HTTPClient == nil:
@@ -400,7 +400,7 @@ func (s *Service) GenerateBearerTokenHelper(credKeys map[string]interface{}, opt
 		return nil, err
 	}
 
-	body := &gen.V1GetAuthTokenRequest{
+	body := &gen.GetAuthTokenRequest{
 		GrantType: grantType,
 		Assertion: signedUserJWT,
 	}
@@ -421,9 +421,9 @@ func (s *Service) GenerateBearerTokenHelper(credKeys map[string]interface{}, opt
 // postAuthToken calls the token endpoint through the generated authentication
 // client (common/internal/generated), which owns the endpoint path, retries
 // and error decoding.
-func (s *Service) postAuthToken(baseURL string, body *gen.V1GetAuthTokenRequest) (*TokenResult, *skyflowError.SkyflowError) {
+func (s *Service) postAuthToken(baseURL string, body *gen.GetAuthTokenRequest) (*TokenResult, *skyflowError.SkyflowError) {
 	client := genauth.NewClient(option.WithBaseURL(baseURL), option.WithHTTPClient(s.cfg.HTTPClient))
-	resp, err := client.WithRawResponse.AuthenticationServiceGetAuthToken(context.Background(), body)
+	resp, err := client.WithRawResponse.GetBearerToken(context.Background(), body)
 	if err != nil {
 		return nil, skyflowError.SkyflowErrorApi(err, responseHeader(err))
 	}

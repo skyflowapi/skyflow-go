@@ -8,7 +8,6 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -42,39 +41,6 @@ var _ = Describe("HTTP config", func() {
 		Expect(defaults.Timeout).To(Equal(60 * time.Second))
 		Expect(defaults.MaxRetries).To(Equal(0))
 		Expect(defaults.MaxRetryDelay).To(Equal(2000 * time.Millisecond))
-	})
-
-	It("keeps backoff within the jittered bounds", func() {
-		for attempt := 1; attempt <= 5; attempt++ {
-			delay := backoff(attempt, 500*time.Millisecond, 2*time.Second)
-			Expect(delay).To(BeNumerically("<=", 2400*time.Millisecond))
-			Expect(delay).To(BeNumerically(">=", 400*time.Millisecond))
-		}
-	})
-
-	It("retries retryable statuses up to MaxRetries and resends the body", func() {
-		var calls int32
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			body, _ := io.ReadAll(r.Body)
-			Expect(string(body)).To(Equal("payload"))
-			if atomic.AddInt32(&calls, 1) < 3 {
-				w.WriteHeader(http.StatusServiceUnavailable)
-				return
-			}
-			w.WriteHeader(http.StatusOK)
-		}))
-		defer server.Close()
-
-		transport := &retryTransport{
-			base:   http.DefaultTransport,
-			config: ResolvedHttpConfig{MaxRetries: 3, InitialRetryDelay: time.Millisecond, MaxRetryDelay: time.Millisecond},
-			sleep:  func(time.Duration) {},
-		}
-		req, _ := http.NewRequest(http.MethodPost, server.URL, strings.NewReader("payload"))
-		resp, err := transport.RoundTrip(req)
-		Expect(err).To(BeNil())
-		Expect(resp.StatusCode).To(Equal(http.StatusOK))
-		Expect(atomic.LoadInt32(&calls)).To(Equal(int32(3)))
 	})
 
 	It("does not retry when retries are off", func() {

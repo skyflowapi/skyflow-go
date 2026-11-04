@@ -25,12 +25,7 @@ type VaultController struct {
 }
 
 func NewVaultController(config fvcommon.VaultConfig, client ClientSettings) *VaultController {
-	return &VaultController{
-		BaseController: BaseController{
-			config: config,
-			client: client,
-		},
-	}
+	return &VaultController{BaseController: NewBaseController(config, client)}
 }
 
 // prepare logs the call, validates the request and resolves auth, headers and HTTP settings.

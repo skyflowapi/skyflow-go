@@ -37,7 +37,7 @@ func (r *RawClient) PatchV2VaultsID(
 	baseURL := internal.ResolveBaseURL(
 		options.BaseURL,
 		r.baseURL,
-		"https://manage.skyflowapis.com",
+		"https://%7B%7Bvault_url%7D%7D",
 	)
 	endpointURL := internal.EncodeURL(
 		baseURL+"/v2/vaults/%v",

@@ -10,9 +10,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
-	"sync/atomic"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -44,6 +41,7 @@ var _ = Describe("URL, metadata and shared services", func() {
 		Expect(Auth()).ToNot(BeNil())
 		Expect(Auth()).To(BeIdenticalTo(Auth()))
 		Expect(Auth().IsExpired("")).To(BeTrue())
+		Expect(Profile().Auth).To(BeIdenticalTo(Auth())) // the vault plumbing reuses the authenticator
 
 		Expect(ConfigValidator().ValidateUpdateVaultConfig(fvcommon.VaultConfig{})).ToNot(BeNil())
 		Expect(ConfigValidator().ValidateUpdateVaultConfig(fvcommon.VaultConfig{VaultId: "v"})).To(BeNil())
@@ -54,78 +52,12 @@ var _ = Describe("URL, metadata and shared services", func() {
 	})
 })
 
-var _ = Describe("HTTP config and retries, edge cases", func() {
-	It("falls back to the client's retries and returns zero when no duration is set", func() {
+// The retry transport itself is tested in common/vaultclient.
+var _ = Describe("HTTP config, edge cases", func() {
+	It("falls back to the client's retries", func() {
 		clientRetries := 4
 		resolved := ResolveHttpConfig(fvcommon.HttpConfig{}, fvcommon.HttpConfig{MaxRetries: &clientRetries})
 		Expect(resolved.MaxRetries).To(Equal(4))
-		Expect(firstDuration()).To(BeZero())
-		Expect(firstDuration(0, -time.Second)).To(BeZero())
-	})
-
-	It("caps the delay at max and skips jitter when it rounds to zero", func() {
-		delay := backoff(1, 10*time.Second, time.Second)
-		Expect(delay).To(BeNumerically(">=", 800*time.Millisecond))
-		Expect(delay).To(BeNumerically("<=", 1200*time.Millisecond))
-		Expect(backoff(3, 0, 0)).To(BeZero())
-		Expect(backoff(1, time.Nanosecond, time.Nanosecond)).To(Equal(time.Nanosecond))
-	})
-
-	newRetryServer := func(calls *int32) *httptest.Server {
-		return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			atomic.AddInt32(calls, 1)
-			_, _ = io.Copy(io.Discard, r.Body)
-			w.WriteHeader(http.StatusServiceUnavailable)
-		}))
-	}
-
-	It("doesn't retry a body it can't send again", func() {
-		var calls int32
-		server := newRetryServer(&calls)
-		defer server.Close()
-		transport := &retryTransport{base: http.DefaultTransport, config: ResolvedHttpConfig{MaxRetries: 3}, sleep: func(time.Duration) {}}
-
-		// A body that isn't a bytes/strings reader gets no GetBody.
-		req, _ := http.NewRequest(http.MethodPost, server.URL, io.NopCloser(strings.NewReader("payload")))
-		Expect(req.GetBody).To(BeNil())
-		resp, err := transport.RoundTrip(req)
-		Expect(err).To(BeNil())
-		_ = resp.Body.Close()
-		Expect(resp.StatusCode).To(Equal(http.StatusServiceUnavailable))
-		Expect(atomic.LoadInt32(&calls)).To(Equal(int32(1)))
-
-		// GetBody that fails stops the retries too.
-		req, _ = http.NewRequest(http.MethodPost, server.URL, strings.NewReader("payload"))
-		req.GetBody = func() (io.ReadCloser, error) { return nil, errors.New("no body") }
-		resp, err = transport.RoundTrip(req)
-		Expect(err).To(BeNil())
-		_ = resp.Body.Close()
-		Expect(atomic.LoadInt32(&calls)).To(Equal(int32(2)))
-	})
-
-	It("waits with a real timer and stops waiting when the request is cancelled", func() {
-		var calls int32
-		server := newRetryServer(&calls)
-		defer server.Close()
-
-		transport := &retryTransport{base: http.DefaultTransport, config: ResolvedHttpConfig{MaxRetries: 1, InitialRetryDelay: time.Millisecond, MaxRetryDelay: time.Millisecond}}
-		req, _ := http.NewRequest(http.MethodGet, server.URL, nil)
-		resp, err := transport.RoundTrip(req)
-		Expect(err).To(BeNil())
-		_ = resp.Body.Close()
-		Expect(atomic.LoadInt32(&calls)).To(Equal(int32(2)))
-
-		ctx, cancel := context.WithCancel(context.Background())
-		transport.config = ResolvedHttpConfig{MaxRetries: 1, InitialRetryDelay: time.Hour, MaxRetryDelay: time.Hour}
-		req, _ = http.NewRequestWithContext(ctx, http.MethodGet, server.URL, nil)
-		done := make(chan error, 1)
-		go func() {
-			_, err := transport.RoundTrip(req)
-			done <- err
-		}()
-		Eventually(func() int32 { return atomic.LoadInt32(&calls) }).Should(Equal(int32(3)))
-		cancel()
-		Eventually(done).Should(Receive(MatchError(context.Canceled)))
 	})
 })
 
@@ -169,6 +101,22 @@ var _ = Describe("Files, edge cases", func() {
 		Expect(status).To(Equal(fvcommon.UploadStatusUploaded))
 		Expect(length).To(Equal(int64(-1)))
 		Expect(body).To(Equal("piped"))
+	})
+
+	It("has no known length for a directory", func() {
+		dir, err := os.Open(GinkgoT().TempDir())
+		Expect(err).To(BeNil())
+		defer dir.Close()
+		Expect(remaining(dir)).To(Equal(int64(-1)))
+	})
+
+	It("reports a file it can't open", func() {
+		if os.Geteuid() == 0 {
+			Skip("root can open any file")
+		}
+		path := filepath.Join(GinkgoT().TempDir(), "locked.txt")
+		Expect(os.WriteFile(path, []byte("x"), 0o000)).To(Succeed())
+		Expect(checkReadable(path)).To(MatchError(os.ErrPermission))
 	})
 
 	It("returns errors that carry no URL as they are", func() {
