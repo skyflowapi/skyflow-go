@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net/http"
@@ -12,6 +13,8 @@ import (
 	fvhelpers "github.com/skyflowapi/skyflow-go/flowvault/internal/helpers"
 	fvcommon "github.com/skyflowapi/skyflow-go/flowvault/utils/common"
 	fverrors "github.com/skyflowapi/skyflow-go/flowvault/utils/error"
+	fvlogger "github.com/skyflowapi/skyflow-go/flowvault/utils/logger"
+	logs "github.com/skyflowapi/skyflow-go/flowvault/utils/messages"
 )
 
 // BaseController holds one vault's settings and cached bearer token. flowvault's
@@ -55,9 +58,13 @@ func GenerateToken(creds fvcommon.Credentials) (*string, *fverrors.SkyflowError)
 }
 
 // SetupRequest resolves auth, headers and HTTP settings for one call. The interceptor,
-// when set, can add per-call headers.
-func (b BaseController) SetupRequest(operation string, interceptor fvcommon.Interceptor) (*RequestSetup, *fverrors.SkyflowError) {
-	call, err := b.Prepare(operation, interceptor)
+// when set, can add per-call headers. It stops waiting for a bearer token when ctx ends.
+func (b BaseController) SetupRequest(ctx context.Context, operation string, interceptor fvcommon.Interceptor) (*RequestSetup, *fverrors.SkyflowError) {
+	if ctx == nil {
+		fvlogger.Error(logs.NIL_CONTEXT)
+		return nil, fverrors.NewSkyflowError(fverrors.INVALID_INPUT_CODE, fverrors.NIL_CONTEXT)
+	}
+	call, err := b.PrepareContext(ctx, operation, interceptor)
 	if err != nil {
 		return nil, err
 	}

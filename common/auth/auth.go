@@ -48,8 +48,9 @@ type Config struct {
 	HTTPClient *http.Client
 }
 
-// DefaultTimeout bounds a token request when Config sets no HTTPClient, so a token endpoint
-// that stops answering can't block calls. It matches the Java SDK's token client.
+// DefaultTimeout bounds a token request when Config sets no HTTPClient or one without a
+// timeout, so a token endpoint that stops answering can't block calls. It matches the Java
+// SDK's token client.
 const DefaultTimeout = 60 * time.Second
 
 // Service performs service-account authentication for one SDK.
@@ -194,11 +195,16 @@ func (s *Service) ExpiresWithin(tokenString string, margin time.Duration) bool {
 	}
 	// The parser decodes numbers as float64; a missing or non-numeric exp counts as expired.
 	exp, _ := claims[jwtClaimExp].(float64)
-	expired := time.Unix(int64(exp), 0).Before(time.Now().Add(margin))
-	if expired {
+	expiry, now := time.Unix(int64(exp), 0), time.Now()
+	switch {
+	case expiry.Before(now):
 		logger.Info(s.logMsg(logBearerTokenExpired))
+		return true
+	case expiry.Before(now.Add(margin)):
+		logger.Info(s.logMsg(logBearerTokenExpiresSoon))
+		return true
 	}
-	return expired
+	return false
 }
 
 // ---------------------------------------------------------------------------

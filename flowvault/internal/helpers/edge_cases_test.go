@@ -87,6 +87,11 @@ var _ = Describe("Files, edge cases", func() {
 		Expect(err).To(BeNil())
 		defer reader.Close()
 		Expect(remaining(reader)).To(Equal(int64(-1)))
+		// A seekable file that isn't a regular file has no known length either.
+		devNull, err := os.Open(os.DevNull)
+		Expect(err).To(BeNil())
+		defer devNull.Close()
+		Expect(remaining(devNull)).To(Equal(int64(-1)))
 		go func() {
 			_, _ = writer.WriteString("piped")
 			_ = writer.Close()

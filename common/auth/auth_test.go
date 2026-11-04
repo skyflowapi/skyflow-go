@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -24,6 +25,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	skyflowError "github.com/skyflowapi/skyflow-go/common/errors"
+	"github.com/skyflowapi/skyflow-go/common/logger"
 	sa "github.com/skyflowapi/skyflow-go/common/serviceaccount"
 )
 
@@ -298,8 +300,17 @@ var _ = Describe("Auth Service", func() {
 		})
 		It("should report a token that expires within the margin", func() {
 			token := signedJWT(jwt.MapClaims{"exp": time.Now().Add(time.Minute).Unix()})
+			var logs bytes.Buffer
+			logger.SetOutput(&logs)
+			logger.SetLogLevel(logger.INFO)
+			DeferCleanup(func() {
+				logger.SetOutput(os.Stderr)
+				logger.SetLogLevel(logger.ERROR)
+			})
 			Expect(svc.IsExpired(token)).To(BeFalse())
 			Expect(svc.ExpiresWithin(token, 2*time.Minute)).To(BeTrue())
+			Expect(logs.String()).To(ContainSubstring(logBearerTokenExpiresSoon))
+			Expect(logs.String()).NotTo(ContainSubstring(logBearerTokenExpired))
 			Expect(svc.ExpiresWithin(token, 10*time.Second)).To(BeFalse())
 		})
 		It("should give the token client a default timeout", func() {

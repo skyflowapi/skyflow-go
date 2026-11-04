@@ -170,6 +170,9 @@ func withoutURL(err error) error {
 
 // RunConcurrently runs tasks with at most limit running at once, and waits for all of them.
 func RunConcurrently(tasks []func(), limit int) {
+	if limit < 1 {
+		limit = 1
+	}
 	var wg sync.WaitGroup
 	slots := make(chan struct{}, limit)
 	for _, task := range tasks {

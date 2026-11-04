@@ -62,6 +62,7 @@ func WithCredentials(credentials fvcommon.Credentials) Option {
 }
 
 // WithLogLevel sets the logging level.
+// The level is process-wide: it is shared by every client of the v2 and flowvault SDKs.
 func WithLogLevel(logLevel fvlogger.LogLevel) Option {
 	return func(s *Skyflow) *fverrors.SkyflowError {
 		s.mu.Lock()
@@ -224,8 +225,11 @@ func (s *Skyflow) UpdateVaultConfig(updatedConfig fvcommon.VaultConfig) *fverror
 	if updatedConfig.ClusterId != "" {
 		config.ClusterId = updatedConfig.ClusterId
 	}
-	if updatedConfig.BaseVaultUrl != "" {
+	// A URL set through either field replaces both, so the deprecated BaseVaultURL is
+	// honored and an older BaseVaultUrl can't take precedence over it (as in v2).
+	if updatedConfig.BaseVaultUrl != "" || updatedConfig.BaseVaultURL != "" {
 		config.BaseVaultUrl = updatedConfig.BaseVaultUrl
+		config.BaseVaultURL = updatedConfig.BaseVaultURL
 	}
 	// As in Java, Env is always applied: it defaults to PROD, so an update that omits it
 	// moves the vault to PROD.
@@ -322,6 +326,7 @@ func (s *Skyflow) GetSkyflowCredentials() *fvcommon.Credentials {
 // ---------------------------------------------------------------------------
 
 // UpdateLogLevel changes the log level for the client.
+// The level is process-wide: it is shared by every client of the v2 and flowvault SDKs.
 func (s *Skyflow) UpdateLogLevel(logLevel fvlogger.LogLevel) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -330,7 +335,8 @@ func (s *Skyflow) UpdateLogLevel(logLevel fvlogger.LogLevel) {
 	fvlogger.Info(fmt.Sprintf(logs.CURRENT_LOG_LEVEL, logLevel))
 }
 
-// GetLoglevel returns the current log level of the client.
+// GetLoglevel returns the level last set on this client. Another client, in either SDK,
+// may have changed the process-wide level since.
 func (s *Skyflow) GetLoglevel() *fvlogger.LogLevel {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

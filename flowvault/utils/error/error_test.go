@@ -19,6 +19,13 @@ func TestErrors(t *testing.T) {
 }
 
 var _ = Describe("SkyflowError", func() {
+	It("keeps the cause of a cancelled request", func() {
+		cause := errors.New("context canceled")
+		err := NewSkyflowErrorWithCause(REQUEST_CANCELLED, "cancelled", cause)
+		Expect(errors.Is(err, cause)).To(BeTrue())
+		Expect(err.GetHttpCode()).To(Equal("499"))
+	})
+
 	It("builds an error from a code and message", func() {
 		err := NewSkyflowError(INVALID_INPUT_CODE, "bad input")
 		Expect(err.GetMessage()).To(ContainSubstring("bad input"))

@@ -335,6 +335,11 @@ func (b *Base) authToken(ctx context.Context, current settings) (string, *skyflo
 		logOptional(logger.Info, b.profile.Logs.UsingBearerToken)
 		return creds.Token, nil
 	}
+	// Checked first: select picks at random when the lock is also free, so a call whose
+	// context already ended could otherwise start a token request.
+	if ctx.Err() != nil {
+		return "", b.cancelled(ctx)
+	}
 	select {
 	case b.tokenLock <- struct{}{}:
 	case <-ctx.Done():

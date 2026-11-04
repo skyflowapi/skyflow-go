@@ -68,6 +68,19 @@ var _ = Describe("Skyflow client, edge cases", func() {
 		Expect(config.BaseVaultUrl).To(BeEmpty())
 	})
 
+	It("applies the deprecated BaseVaultURL on update and keeps the URL when neither is set", func() {
+		client := newTestClient()
+		Expect(client.UpdateVaultConfig(fvcommon.VaultConfig{VaultId: testVaultID, BaseVaultUrl: "https://old.example.com"})).To(BeNil())
+		Expect(client.UpdateVaultConfig(fvcommon.VaultConfig{VaultId: testVaultID, BaseVaultURL: "https://new.example.com"})).To(BeNil())
+		config, _ := client.GetVaultConfig(testVaultID)
+		Expect(config.BaseVaultUrl).To(BeEmpty())
+		Expect(config.BaseVaultURL).To(Equal("https://new.example.com"))
+
+		Expect(client.UpdateVaultConfig(fvcommon.VaultConfig{VaultId: testVaultID})).To(BeNil())
+		config, _ = client.GetVaultConfig(testVaultID)
+		Expect(config.BaseVaultURL).To(Equal("https://new.example.com"))
+	})
+
 	It("updates credentials, base URL and retry delays without sharing the caller's values", func() {
 		client := newTestClient()
 		roles := []string{"r1"}

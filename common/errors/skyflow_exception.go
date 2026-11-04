@@ -289,8 +289,8 @@ func SkyflowErrorApi(error error, header http.Header) *SkyflowError {
 }
 
 // rawBodyMessage is a response body that is not a Skyflow JSON error, used as the message.
-// A gateway or proxy can echo the request in such a body, and Detect requests carry sensitive
-// text, so only its first constants.MAX_RAW_ERROR_BODY bytes are kept.
+// A gateway or proxy can echo the request in such a body, and requests carry sensitive
+// data, so only its first constants.MAX_RAW_ERROR_BODY bytes are kept.
 func rawBodyMessage(body string) string {
 	if len(body) <= constants.MAX_RAW_ERROR_BODY {
 		return body

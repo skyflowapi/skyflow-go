@@ -138,6 +138,22 @@ func TestContextEndsWhileWaitingForTheTokenLock(t *testing.T) {
 	}
 }
 
+func TestEndedContextNeverStartsATokenRequest(t *testing.T) {
+	f := newFakeAuth(t, nil)
+	b := New(f.profile(), config.VaultConfig{VaultId: "v", ClusterId: "c", Credentials: config.Credentials{CredentialsString: f.creds}}, ClientSettings{})
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	for range 20 { // the lock is free, so a random select would sometimes take it
+		if _, err := b.PrepareContext(ctx, "GET", nil); err == nil || !errors.Is(err, context.Canceled) {
+			t.Fatalf("err = %v", err)
+		}
+	}
+	time.Sleep(50 * time.Millisecond) // a request started in the background would land by now
+	if calls := f.calls.Load(); calls != 0 {
+		t.Fatalf("calls = %d, want 0", calls)
+	}
+}
+
 func TestContextEndsWhileATokenIsGeneratedAndTheTokenIsStillCached(t *testing.T) {
 	release := make(chan struct{})
 	f := newFakeAuth(t, release)

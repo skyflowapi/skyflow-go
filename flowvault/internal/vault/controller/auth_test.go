@@ -1,12 +1,14 @@
 package controller
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -41,13 +43,24 @@ type fakeAuthServer struct {
 	calls  int32
 	scope  atomic.Value
 	status int32
+	// hold, when set, makes each token request wait until it is closed.
+	hold chan struct{}
+	// hit receives a value when a token request arrives.
+	hit chan struct{}
 }
 
 func newFakeAuthServer() *fakeAuthServer {
-	f := &fakeAuthServer{}
+	f := &fakeAuthServer{hit: make(chan struct{}, 8)}
 	f.scope.Store("")
 	f.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		atomic.AddInt32(&f.calls, 1)
+		select {
+		case f.hit <- struct{}{}:
+		default: // nobody is watching; don't block the handler
+		}
+		if f.hold != nil {
+			<-f.hold
+		}
 		raw, _ := io.ReadAll(r.Body)
 		var body map[string]interface{}
 		_ = json.Unmarshal(raw, &body)
@@ -68,6 +81,11 @@ func newFakeAuthServer() *fakeAuthServer {
 		f.server.Close()
 	})
 	return f
+}
+
+// fakeVaultConfig is a vault config with service-account credentials from fakeCredentials.
+func fakeVaultConfig() fvcommon.VaultConfig {
+	return fvcommon.VaultConfig{VaultId: "v", ClusterId: "c", Credentials: fvcommon.Credentials{CredentialsString: fakeCredentials()}}
 }
 
 // fakeCredentials returns service-account credentials signed with a key made for the test,
@@ -124,28 +142,73 @@ var _ = Describe("GenerateToken", func() {
 })
 
 var _ = Describe("Bearer token handling", func() {
+
+	It("fails a call whose context already ended, every time, without generating a token", func() {
+		auth := newFakeAuthServer()
+		v := NewVaultController(fakeVaultConfig(), ClientSettings{})
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+		for range 20 {
+			_, err := v.SetupRequest(ctx, "GET", nil)
+			Expect(errors.Is(err, context.Canceled)).To(BeTrue())
+		}
+		Expect(atomic.LoadInt32(&auth.calls)).To(BeZero())
+	})
+
+	It("rejects a nil context", func() {
+		var ctx context.Context
+		_, err := NewVaultController(fvcommon.VaultConfig{VaultId: "v", ClusterId: "c"}, ClientSettings{}).SetupRequest(ctx, "GET", nil)
+		Expect(err).ToNot(BeNil())
+		Expect(err.GetMessage()).To(ContainSubstring(fverrors.NIL_CONTEXT))
+	})
+
+	It("stops waiting for a token being generated and still caches it", func() {
+		auth := newFakeAuthServer()
+		auth.hold = make(chan struct{})
+		config := fakeVaultConfig()
+		v := NewVaultController(config, ClientSettings{})
+
+		ctx, cancel := context.WithCancel(context.Background())
+		done := make(chan *fverrors.SkyflowError, 1)
+		go func() {
+			_, err := v.SetupRequest(ctx, "GET", nil)
+			done <- err
+		}()
+		Eventually(auth.hit, 5*time.Second).Should(Receive()) // the generation is in flight
+		cancel()
+		var err *fverrors.SkyflowError
+		Eventually(done, 5*time.Second).Should(Receive(&err))
+		Expect(errors.Is(err, context.Canceled)).To(BeTrue())
+
+		close(auth.hold) // the generation started for the cancelled call finishes and is cached
+		setup, err := v.SetupRequest(context.Background(), "GET", nil)
+		Expect(err).To(BeNil())
+		Expect(setup.AuthToken).ToNot(BeEmpty())
+		Expect(atomic.LoadInt32(&auth.calls)).To(Equal(int32(1)))
+	})
+
 	It("sends a bearer token that hasn't expired", func() {
 		bearer := unsignedJWT(time.Now().Add(time.Hour))
 		config := fvcommon.VaultConfig{VaultId: "v", ClusterId: "c", Credentials: fvcommon.Credentials{Token: bearer}}
-		setup, err := NewVaultController(config, ClientSettings{}).SetupRequest("GET", nil)
+		setup, err := NewVaultController(config, ClientSettings{}).SetupRequest(context.Background(), "GET", nil)
 		Expect(err).To(BeNil())
 		Expect(setup.AuthToken).To(Equal(bearer))
 	})
 
 	It("generates a token once, reuses it, and generates again after the credentials change", func() {
 		auth := newFakeAuthServer()
-		config := fvcommon.VaultConfig{VaultId: "v", ClusterId: "c", Credentials: fvcommon.Credentials{CredentialsString: fakeCredentials()}}
+		config := fakeVaultConfig()
 		v := NewVaultController(config, ClientSettings{})
 
-		first, err := v.SetupRequest("GET", nil)
+		first, err := v.SetupRequest(context.Background(), "GET", nil)
 		Expect(err).To(BeNil())
-		second, err := v.SetupRequest("GET", nil)
+		second, err := v.SetupRequest(context.Background(), "GET", nil)
 		Expect(err).To(BeNil())
 		Expect(second.AuthToken).To(Equal(first.AuthToken))
 		Expect(atomic.LoadInt32(&auth.calls)).To(Equal(int32(1)))
 
 		v.ResetAuth()
-		_, err = v.SetupRequest("GET", nil)
+		_, err = v.SetupRequest(context.Background(), "GET", nil)
 		Expect(err).To(BeNil())
 		Expect(atomic.LoadInt32(&auth.calls)).To(Equal(int32(2)))
 	})
@@ -153,8 +216,8 @@ var _ = Describe("Bearer token handling", func() {
 	It("fails the call when the token endpoint rejects the credentials", func() {
 		auth := newFakeAuthServer()
 		atomic.StoreInt32(&auth.status, http.StatusUnauthorized)
-		config := fvcommon.VaultConfig{VaultId: "v", ClusterId: "c", Credentials: fvcommon.Credentials{CredentialsString: fakeCredentials()}}
-		_, err := NewVaultController(config, ClientSettings{}).SetupRequest("GET", nil)
+		config := fakeVaultConfig()
+		_, err := NewVaultController(config, ClientSettings{}).SetupRequest(context.Background(), "GET", nil)
 		Expect(err).ToNot(BeNil())
 		Expect(err.GetMessage()).To(ContainSubstring("bad assertion"))
 	})
@@ -170,7 +233,7 @@ var _ = Describe("Bearer token handling", func() {
 				_ = os.Unsetenv("SKYFLOW_CREDENTIALS")
 			}
 		})
-		setup, err := NewVaultController(fvcommon.VaultConfig{VaultId: "v", ClusterId: "c"}, ClientSettings{}).SetupRequest("GET", nil)
+		setup, err := NewVaultController(fvcommon.VaultConfig{VaultId: "v", ClusterId: "c"}, ClientSettings{}).SetupRequest(context.Background(), "GET", nil)
 		Expect(err).To(BeNil())
 		Expect(setup.AuthToken).ToNot(BeEmpty())
 		Expect(atomic.LoadInt32(&auth.calls)).To(Equal(int32(1)))
@@ -180,14 +243,14 @@ var _ = Describe("Bearer token handling", func() {
 var _ = Describe("SetupRequest, edge cases", func() {
 	It("uses the deprecated BaseVaultURL field", func() {
 		config := fvcommon.VaultConfig{VaultId: "v", BaseVaultURL: "https://legacy.example.com"}
-		setup, err := NewVaultController(config, ClientSettings{Credentials: &fvcommon.Credentials{ApiKey: testApiKey}}).SetupRequest("GET", nil)
+		setup, err := NewVaultController(config, ClientSettings{Credentials: &fvcommon.Credentials{ApiKey: testApiKey}}).SetupRequest(context.Background(), "GET", nil)
 		Expect(err).To(BeNil())
 		Expect(setup.BaseURL).To(Equal("https://legacy.example.com"))
 	})
 
 	It("rejects an unsupported interceptor header before authenticating", func() {
 		_, err := NewVaultController(fvcommon.VaultConfig{VaultId: "v", ClusterId: "c"}, ClientSettings{}).
-			SetupRequest("GET", func(rc *fvcommon.RequestContext) { rc.AddHeader("x-other", "v") })
+			SetupRequest(context.Background(), "GET", func(rc *fvcommon.RequestContext) { rc.AddHeader("x-other", "v") })
 		Expect(err.GetMessage()).To(ContainSubstring("is not supported"))
 	})
 
@@ -201,7 +264,7 @@ var _ = Describe("SetupRequest, edge cases", func() {
 		}))
 		defer server.Close()
 		v := NewVaultController(fvcommon.VaultConfig{VaultId: "v", BaseVaultUrl: server.URL}, ClientSettings{Credentials: &fvcommon.Credentials{ApiKey: testApiKey}})
-		setup, err := v.SetupRequest("QUERY", nil)
+		setup, err := v.SetupRequest(context.Background(), "QUERY", nil)
 		Expect(err).To(BeNil())
 
 		req, _ := http.NewRequest(http.MethodGet, server.URL, nil)

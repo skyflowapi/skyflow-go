@@ -94,6 +94,16 @@ var _ = Describe("Files", func() {
 		Expect(err.GetMessage()).To(ContainSubstring("invalid base64"))
 	})
 
+	It("rejects a regular file that can't be opened", func() {
+		if os.Geteuid() == 0 {
+			Skip("root can open a file without read permission")
+		}
+		locked := filepath.Join(GinkgoT().TempDir(), "locked.txt")
+		Expect(os.WriteFile(locked, []byte("x"), 0o000)).To(Succeed())
+		_, err := ResolveFile(fvcommon.UploadFilesRequestColumn{Column: "c", FilePath: locked})
+		Expect(err.GetMessage()).To(ContainSubstring("Could not read file"))
+	})
+
 	It("PUTs a file without an Authorization header and reports failures", func() {
 		var got *http.Request
 		var body string
@@ -208,6 +218,18 @@ var _ = Describe("Files", func() {
 		Expect(atomic.LoadInt32(&timedOut)).To(BeZero(), "fewer than limit tasks ran at once")
 		Expect(atomic.LoadInt32(&peak)).To(Equal(int32(limit)))
 		Expect(atomic.LoadInt32(&running)).To(Equal(int32(0)))
+	})
+
+	It("runs tasks one at a time when the limit is below 1", func() {
+		for _, limit := range []int{0, -3} {
+			var done int32
+			tasks := []func(){
+				func() { atomic.AddInt32(&done, 1) },
+				func() { atomic.AddInt32(&done, 1) },
+			}
+			RunConcurrently(tasks, limit)
+			Expect(atomic.LoadInt32(&done)).To(Equal(int32(2)))
+		}
 	})
 })
 
