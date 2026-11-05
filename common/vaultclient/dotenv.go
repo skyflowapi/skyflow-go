@@ -9,6 +9,9 @@ import (
 // Java and Python SDKs do.
 const dotenvFile = ".env"
 
+// newline is the line separator parseDotenv splits on and joins multi-line values with.
+const newline = "\n"
+
 // EnvCredentials returns SKYFLOW_CREDENTIALS from the environment or, when the environment
 // does not set it, from the .env file in the working directory. It returns "" when neither
 // has it. The .env file is only read, never loaded into the environment.
@@ -35,7 +38,7 @@ func dotenvLookup(path, key string) string {
 // (a " #" starts a comment). A quoted value may span lines. A later line wins.
 func parseDotenv(content string) map[string]string {
 	values := map[string]string{}
-	lines := strings.Split(strings.ReplaceAll(content, "\r\n", "\n"), "\n")
+	lines := strings.Split(strings.ReplaceAll(content, "\r\n", newline), newline)
 	for i := 0; i < len(lines); i++ {
 		line := strings.TrimSpace(lines[i])
 		if line == "" || strings.HasPrefix(line, "#") {
@@ -59,7 +62,7 @@ func parseDotenv(content string) map[string]string {
 		// Join the following lines until one ends with the closing quote.
 		for !closesQuote(value, quote) && i+1 < len(lines) {
 			i++
-			value += "\n" + strings.TrimRight(lines[i], " \t")
+			value += newline + strings.TrimRight(lines[i], " \t")
 		}
 		if !closesQuote(value, quote) {
 			continue // unterminated: ignore the entry
