@@ -12,7 +12,6 @@ import (
 	"context"
 	"maps"
 	"net/http"
-	"os"
 	"reflect"
 	"slices"
 	"sync"
@@ -123,6 +122,9 @@ type Base struct {
 	tokenLock    chan struct{}
 	token        string
 	tokenVersion uint64
+	// refreshFailedFor is the rejected token whose replacement after a 401 failed, so other
+	// calls still holding it don't try again. Guarded by tokenLock.
+	refreshFailedFor string
 }
 
 // settings is a consistent copy of the Base's settings for one call.
@@ -257,7 +259,7 @@ func (b *Base) PrepareContext(ctx context.Context, operation string, interceptor
 		BaseURL:    b.baseURL(current.config),
 		AuthToken:  authToken,
 		Headers:    headers,
-		HTTPClient: NewHTTPClient(httpConfig),
+		HTTPClient: b.newCallClient(httpConfig),
 	}, nil
 }
 
@@ -358,7 +360,7 @@ func (b *Base) authToken(ctx context.Context, current settings) (string, *skyflo
 		token, err := b.profile.GenerateToken(*creds)
 		// A call that started before a credentials change must not replace a newer token.
 		if err == nil && current.authVersion >= b.tokenVersion {
-			b.token, b.tokenVersion = token, current.authVersion
+			b.storeToken(token, current.authVersion)
 		}
 		result <- tokenResult{token: token, err: err}
 	}()
@@ -376,7 +378,8 @@ func (b *Base) cancelled(ctx context.Context) *skyflowError.SkyflowError {
 	return skyflowError.NewSkyflowErrorWithCause(skyflowError.REQUEST_CANCELLED, b.profile.errMsg(errBearerTokenCancelled), ctx.Err())
 }
 
-// resolveCredentials picks vault credentials, then client credentials, then SKYFLOW_CREDENTIALS.
+// resolveCredentials picks vault credentials, then client credentials, then SKYFLOW_CREDENTIALS
+// from the environment or the .env file.
 func (b *Base) resolveCredentials(current settings) (*config.Credentials, *skyflowError.SkyflowError) {
 	if !config.IsCredentialsEmpty(current.config.Credentials) {
 		creds := current.config.Credentials
@@ -385,7 +388,7 @@ func (b *Base) resolveCredentials(current settings) (*config.Credentials, *skyfl
 	if current.client.Credentials != nil && !config.IsCredentialsEmpty(*current.client.Credentials) {
 		return current.client.Credentials, nil
 	}
-	if envCreds := os.Getenv(CredentialsEnv); envCreds != "" {
+	if envCreds := EnvCredentials(); envCreds != "" {
 		return &config.Credentials{CredentialsString: envCreds}, nil
 	}
 	logger.Error(b.profile.logMsg(logEmptyCredentials))

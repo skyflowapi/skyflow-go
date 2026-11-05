@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"slices"
 	"sync"
 
 	fvhelpers "github.com/skyflowapi/skyflow-go/flowvault/internal/helpers"
@@ -17,9 +18,12 @@ import (
 type Skyflow struct {
 	mu            sync.RWMutex
 	vaultServices map[string]*VaultService
-	credentials   *fvcommon.Credentials
-	logLevel      fvlogger.LogLevel
-	httpConfig    fvcommon.HttpConfig
+	// vaultOrder holds the registered vault IDs in the order they were added; Vault() with
+	// no ID returns the first.
+	vaultOrder  []string
+	credentials *fvcommon.Credentials
+	logLevel    fvlogger.LogLevel
+	httpConfig  fvcommon.HttpConfig
 }
 
 type Option func(*Skyflow) *fverrors.SkyflowError
@@ -149,21 +153,29 @@ func copyValue(value interface{}) interface{} {
 	return value
 }
 
-// Vault returns the vault service registered under vaultId.
-func (s *Skyflow) Vault(vaultId string) (*VaultService, *fverrors.SkyflowError) {
+// Vault returns the vault service registered under vaultId. With no vaultId it returns the
+// first vault registered, as the other Skyflow SDKs do; only the first vaultId is used.
+func (s *Skyflow) Vault(vaultId ...string) (*VaultService, *fverrors.SkyflowError) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	svc, ok := s.vaultServices[vaultId]
+	var svc *VaultService
+	ok := false
+	if len(vaultId) > 0 {
+		svc, ok = s.vaultServices[vaultId[0]]
+	} else if len(s.vaultOrder) > 0 {
+		svc, ok = s.vaultServices[s.vaultOrder[0]]
+	}
 	if !ok {
 		return nil, fverrors.NewSkyflowError(fverrors.INVALID_INPUT_CODE, fverrors.VAULT_ID_NOT_IN_CONFIG_LIST)
 	}
 	return svc, nil
 }
 
-// Detect returns the Detect V2 service of the vault registered under vaultId. It uses
-// the same vault config, credentials and bearer token as Vault(vaultId).
-func (s *Skyflow) Detect(vaultId string) (*DetectService, *fverrors.SkyflowError) {
-	svc, err := s.Vault(vaultId)
+// Detect returns the Detect service of the vault registered under vaultId, or of the
+// first vault registered when no vaultId is given. It uses the same vault config,
+// credentials and bearer token as Vault(vaultId).
+func (s *Skyflow) Detect(vaultId ...string) (*DetectService, *fverrors.SkyflowError) {
+	svc, err := s.Vault(vaultId...)
 	if err != nil {
 		return nil, err
 	}
@@ -191,6 +203,7 @@ func (s *Skyflow) AddVaultConfig(cfg fvcommon.VaultConfig) *fverrors.SkyflowErro
 		return fverrors.NewSkyflowError(fverrors.INVALID_INPUT_CODE, fmt.Sprintf(fverrors.VAULT_ID_EXISTS_IN_CONFIG_LIST, cfg.VaultId))
 	}
 	s.vaultServices[cfg.VaultId] = newVaultService(controller.NewVaultController(copyVaultConfig(cfg), s.clientSettings()))
+	s.vaultOrder = append(s.vaultOrder, cfg.VaultId)
 	fvlogger.Info(fmt.Sprintf(logs.VAULT_CONTROLLER_INITIALIZED, cfg.VaultId))
 	return nil
 }
@@ -237,6 +250,15 @@ func (s *Skyflow) UpdateVaultConfig(updatedConfig fvcommon.VaultConfig) *fverror
 	if updatedConfig.Timeout != 0 {
 		config.Timeout = updatedConfig.Timeout
 	}
+	if updatedConfig.ConnectTimeout != 0 {
+		config.ConnectTimeout = updatedConfig.ConnectTimeout
+	}
+	if updatedConfig.ReadTimeout != 0 {
+		config.ReadTimeout = updatedConfig.ReadTimeout
+	}
+	if updatedConfig.WriteTimeout != 0 {
+		config.WriteTimeout = updatedConfig.WriteTimeout
+	}
 	if updatedConfig.MaxRetries != nil {
 		retries := *updatedConfig.MaxRetries
 		config.MaxRetries = &retries
@@ -270,6 +292,7 @@ func (s *Skyflow) RemoveVaultConfig(vaultId string) *fverrors.SkyflowError {
 		return fverrors.NewSkyflowError(fverrors.INVALID_INPUT_CODE, fverrors.VAULT_ID_NOT_IN_CONFIG_LIST)
 	}
 	delete(s.vaultServices, vaultId)
+	s.vaultOrder = slices.DeleteFunc(s.vaultOrder, func(id string) bool { return id == vaultId })
 	return nil
 }
 

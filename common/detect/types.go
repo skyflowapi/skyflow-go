@@ -15,11 +15,13 @@ type Interceptor = vaultclient.Interceptor
 // Shared response types
 // ---------------------------------------------------------------------------
 
-// Metrics describe the processed input. At most one of Slides, Pages and Duration is set.
+// Metrics describe the processed input. Every field is optional in the API, so each is nil
+// when the server leaves it out, as in the Java SDK. At most one of Slides, Pages and
+// Duration is set.
 type Metrics struct {
-	Size           float64  `json:"size"` // kilobytes
-	WordCount      int      `json:"wordCount"`
-	CharacterCount int      `json:"characterCount"`
+	Size           *float64 `json:"size,omitempty"` // kilobytes
+	WordCount      *int     `json:"wordCount,omitempty"`
+	CharacterCount *int     `json:"characterCount,omitempty"`
 	Slides         *int     `json:"slides,omitempty"`
 	Pages          *int     `json:"pages,omitempty"`
 	Duration       *float64 `json:"duration,omitempty"` // seconds
@@ -33,23 +35,40 @@ type FileOutput struct {
 	ProcessedFileExtension FileDataFormat    `json:"processedFileExtension"`
 }
 
-// RedactionLevel controls how one group of tokens is re-identified. Set exactly one source
-// (TokenGroupName for FlowVault, EntityName for SkyVault) and exactly one replacement
-// (RedactionPattern for FlowVault, RedactionType for SkyVault). The server does not check
-// that they suit the vault type: a level using the other vault type's fields is ignored.
-type RedactionLevel struct {
-	TokenGroupName   string        `json:"tokenGroupName,omitempty"`
-	EntityName       EntityType    `json:"entityName,omitempty"`
-	RedactionPattern string        `json:"redactionPattern,omitempty"`
-	RedactionType    RedactionType `json:"redactionType,omitempty"`
+// RedactionRule is one element of ReidentifyStringRequest.RedactionLevel and
+// ReidentifyFileRequest.RedactionLevel. Each SDK exports its own RedactionLevel that
+// implements it, carrying the pair of fields its vault type uses: FlowVault names a
+// TokenGroupName and a RedactionPattern (FlowRedactionLevel); SkyVault names an EntityName
+// and a RedactionType (SkyRedactionLevel). Only those types implement it.
+type RedactionRule interface {
+	// apiFields returns the wire fields the rule carries; the others are empty.
+	apiFields() (tokenGroupName, redactionPattern string, entityName EntityType, redactionType RedactionType)
+}
+
+// FlowRedactionLevel controls how one group of tokens is rendered when re-identifying on a
+// FlowVault vault: the token group the rule applies to and the named redaction pattern,
+// configured in the vault, to render its values with. Both fields are optional on the API
+// and are sent as given.
+type FlowRedactionLevel struct {
+	TokenGroupName   string `json:"tokenGroupName,omitempty"`
+	RedactionPattern string `json:"redactionPattern,omitempty"`
+}
+
+// SkyRedactionLevel controls how one group of tokens is rendered when re-identifying on a
+// SkyVault vault: the entity type the rule applies to and the RedactionType to render it
+// with. Both fields are optional on the API and are sent as given.
+type SkyRedactionLevel struct {
+	EntityName    EntityType    `json:"entityName,omitempty"`
+	RedactionType RedactionType `json:"redactionType,omitempty"`
 }
 
 // ---------------------------------------------------------------------------
 // DeidentifyString
 // ---------------------------------------------------------------------------
 
-// DeidentifyStringRequest de-identifies sensitive data in Text. ConfigurationId and Configuration are optional:
-// with neither, the vault's default Detect settings apply. Setting both is rejected by the API.
+// DeidentifyStringRequest de-identifies sensitive data in Text. ConfigurationId (a stored
+// configuration) and Configuration (an inline one) are optional and sent as given; with
+// neither, a configuration carrying only the vault ID is sent.
 type DeidentifyStringRequest struct {
 	Text            string               `json:"text"`
 	ConfigurationId string               `json:"configurationId,omitempty"`
@@ -92,13 +111,16 @@ type EntityLocation struct {
 // ---------------------------------------------------------------------------
 
 // DeidentifyFileRequest submits a file for de-identification. Supply the file as exactly
-// one of Value (with DataSource), FilePath or FileObject. ConfigurationId and Configuration are optional:
-// with neither, the vault's default Detect settings apply. Setting both is rejected by the API.
+// one of Value (with DataSource), FilePath or FileObject. ConfigurationId (a stored
+// configuration) and Configuration (an inline one) are optional and sent as given; with
+// neither, a configuration carrying only the vault ID is sent.
 type DeidentifyFileRequest struct {
-	// DataSource says what Value holds, and is required with it. It is ignored for a local
-	// file (FilePath or FileObject), which is always sent as DeidentifySourceTypeBase64.
-	DataSource DeidentifySourceType `json:"dataSource"`
-	// Value is base64 content, a Skyflow ID or a presigned URL.
+	// DataSource says what Value holds, and is required with it: the SDK's
+	// DeidentifySourceType. It is ignored for a local file (FilePath or FileObject), which
+	// is always sent as BASE64.
+	DataSource DeidentifyFileSource `json:"dataSource"`
+	// Value is what DataSource names: base64 content, a presigned URL or (SkyVault) a
+	// Skyflow ID.
 	Value string `json:"value"`
 	// DataFormat is optional: the server infers it, and for a local file the SDK infers
 	// it from the extension. Set it to override either.
@@ -119,7 +141,7 @@ type DeidentifyFileOptions struct {
 	// returns as soon as the run is submitted, with only RunId set.
 	Poll *PollOptions
 	// OutputDirectory is where a successful polled run's outputs are written for a local
-	// file input. Empty means the current directory. Requires Poll. Each output is written
+	// file input. Empty or blank means the current directory. Requires Poll. Each output is written
 	// to a hidden temporary file first and renamed into place; a process that dies while
 	// writing can leave such a ".processed-*.tmp" file behind.
 	OutputDirectory string
@@ -139,7 +161,7 @@ type PollOptions struct {
 type DeidentifyFileResponse struct {
 	RunId      string               `json:"runId"`
 	Status     DetectRunStatus      `json:"status"`
-	OutputType DeidentifySourceType `json:"outputType"`
+	OutputType DeidentifyFileSource `json:"outputType"`
 	Output     []FileOutput         `json:"output"`
 	Metrics    *Metrics             `json:"metrics"`
 	Message    string               `json:"message"` // failure detail when Status is DetectRunStatusFailed
@@ -164,7 +186,7 @@ type GetRunOptions struct {
 type GetRunResponse struct {
 	RunId      string               `json:"runId"` // echoed from the request
 	Status     DetectRunStatus      `json:"status"`
-	OutputType DeidentifySourceType `json:"outputType"`
+	OutputType DeidentifyFileSource `json:"outputType"`
 	Output     []FileOutput         `json:"output"`
 	Metrics    *Metrics             `json:"metrics"`
 	Message    string               `json:"message"` // failure detail when Status is DetectRunStatusFailed
@@ -175,10 +197,10 @@ type GetRunResponse struct {
 // ---------------------------------------------------------------------------
 
 // ReidentifyStringRequest replaces the tokens in Text with their original values, or a
-// redacted form per RedactionLevel.
+// redacted form per RedactionLevel, built with the SDK's RedactionLevel.
 type ReidentifyStringRequest struct {
-	Text           string           `json:"text"`
-	RedactionLevel []RedactionLevel `json:"redactionLevel,omitempty"`
+	Text           string          `json:"text"`
+	RedactionLevel []RedactionRule `json:"redactionLevel,omitempty"`
 }
 
 // ReidentifyStringOptions customise a ReidentifyString call.
@@ -199,10 +221,11 @@ type ReidentifyStringResponse struct {
 // ReidentifyFileRequest re-identifies a file. It is synchronous: there is no run to poll.
 // DataSource and Value are required; to send a local file, base64-encode it into Value.
 type ReidentifyFileRequest struct {
-	DataSource     ReidentifySourceType `json:"dataSource"`
+	// DataSource says what Value holds: the SDK's ReidentifySourceType.
+	DataSource     ReidentifyFileSource `json:"dataSource"`
 	Value          string               `json:"value"` // base64 content or a presigned URL
 	DataFormat     FileDataFormat       `json:"dataFormat,omitempty"`
-	RedactionLevel []RedactionLevel     `json:"redactionLevel,omitempty"`
+	RedactionLevel []RedactionRule      `json:"redactionLevel,omitempty"`
 }
 
 // ReidentifyFileOptions customise a ReidentifyFile call.
@@ -213,8 +236,9 @@ type ReidentifyFileOptions struct {
 // ReidentifyFileResponse is the re-identified file. The SDK writes nothing to disk: Output
 // holds base64 content or presigned URLs, as OutputType says, for the caller to handle.
 type ReidentifyFileResponse struct {
-	Status     DetectRunStatus      `json:"status"`
-	OutputType ReidentifySourceType `json:"outputType"`
+	Status DetectRunStatus `json:"status"`
+	// OutputType is the SDK's ReidentifySourceType, or nil for a value the SDK doesn't know.
+	OutputType ReidentifyFileSource `json:"outputType"`
 	Output     []FileOutput         `json:"output"`
 	Metrics    *Metrics             `json:"metrics"`
 }
@@ -238,8 +262,9 @@ type CheckGuardrailsOptions struct {
 
 // CheckGuardrailsResponse is the screening result.
 type CheckGuardrailsResponse struct {
-	Text        string               `json:"text"`
-	Validation  GuardrailsValidation `json:"validation"`
-	Toxic       bool                 `json:"toxic"`
-	DeniedTopic bool                 `json:"deniedTopic"`
+	Text       string               `json:"text"`
+	Validation GuardrailsValidation `json:"validation"`
+	// Toxic and DeniedTopic are nil when the API leaves them out.
+	Toxic       *bool `json:"toxic"`
+	DeniedTopic *bool `json:"deniedTopic"`
 }

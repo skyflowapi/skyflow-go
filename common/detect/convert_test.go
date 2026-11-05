@@ -24,7 +24,7 @@ func TestConfigurationMapsToWireJSON(t *testing.T) {
 			Image:    &Image{OutputOcrText: ptr(true), MaskingMethod: MaskingMethodBlur},
 		},
 	}
-	raw, err := json.Marshal(toGenConfiguration(config, "", "vault1"))
+	raw, err := json.Marshal(toGenConfiguration(config, "vault1"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -48,11 +48,8 @@ func TestConfigurationMapsToWireJSON(t *testing.T) {
 	if string(gotJSON) != string(wantJSON) {
 		t.Fatalf("got  %s\nwant %s", gotJSON, wantJSON)
 	}
-	if toGenConfiguration(nil, "cfg", "v") != nil {
+	if toGenConfiguration(nil, "v") != nil {
 		t.Fatal("a configuration ID alone sends no configuration")
-	}
-	if got := toGenConfiguration(nil, "", "v"); got == nil || got.VaultID != "v" || got.Detect != nil {
-		t.Fatalf("no configuration source should send only the vault ID: %+v", got)
 	}
 }
 
@@ -65,7 +62,7 @@ func TestMediaOptionsSendZeroValues(t *testing.T) {
 		Document: &Document{Pdf: &Pdf{Density: ptr(0)}},
 		Image:    &Image{OutputProcessedImage: ptr(false), OutputOcrText: ptr(false)},
 	}
-	raw, err := json.Marshal(toGenConfiguration(&DetectConfiguration{Media: media}, "", "v").Media)
+	raw, err := json.Marshal(toGenConfiguration(&DetectConfiguration{Media: media}, "v").Media)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,7 +70,7 @@ func TestMediaOptionsSendZeroValues(t *testing.T) {
 	if string(raw) != want {
 		t.Fatalf("got  %s\nwant %s", raw, want)
 	}
-	if raw, err = json.Marshal(toGenConfiguration(&DetectConfiguration{Media: &Media{Audio: &Audio{Bleep: &Bleep{}}}}, "", "v").Media); err != nil {
+	if raw, err = json.Marshal(toGenConfiguration(&DetectConfiguration{Media: &Media{Audio: &Audio{Bleep: &Bleep{}}}}, "v").Media); err != nil {
 		t.Fatal(err)
 	}
 	if string(raw) != `{"audio":{"bleep":{}}}` {

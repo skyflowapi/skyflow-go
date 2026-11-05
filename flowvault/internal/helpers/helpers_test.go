@@ -3,6 +3,7 @@ package helpers
 import (
 	"context"
 	"encoding/base64"
+	"github.com/skyflowapi/skyflow-go/common/vaultclient"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -32,6 +33,9 @@ var _ = Describe("HTTP config", func() {
 		)
 		Expect(resolved).To(Equal(ResolvedHttpConfig{
 			Timeout:           5 * time.Second,
+			ConnectTimeout:    10 * time.Second,
+			ReadTimeout:       10 * time.Second,
+			WriteTimeout:      10 * time.Second,
 			MaxRetries:        2,
 			InitialRetryDelay: 500 * time.Millisecond,
 			MaxRetryDelay:     time.Second,
@@ -39,6 +43,10 @@ var _ = Describe("HTTP config", func() {
 
 		defaults := ResolveHttpConfig(fvcommon.HttpConfig{}, fvcommon.HttpConfig{})
 		Expect(defaults.Timeout).To(Equal(60 * time.Second))
+		// Per-attempt timeouts default to 10s, as in Java (OkHttp) and Python.
+		Expect(defaults.ConnectTimeout).To(Equal(10 * time.Second))
+		Expect(defaults.ReadTimeout).To(Equal(10 * time.Second))
+		Expect(defaults.WriteTimeout).To(Equal(10 * time.Second))
 		Expect(defaults.MaxRetries).To(Equal(0))
 		Expect(defaults.MaxRetryDelay).To(Equal(2000 * time.Millisecond))
 	})
@@ -173,14 +181,13 @@ var _ = Describe("Files", func() {
 		Expect(length).To(Equal(int64(0)))
 	})
 
-	It("uploads with no retries and no overall timeout, but bounded connect and response waits", func() {
-		client := UploadHTTPClient()
-		Expect(client).To(BeIdenticalTo(UploadHTTPClient()))
+	It("uploads with the vault's per-attempt timeouts, but no retries and no overall timeout", func() {
+		api := NewHTTPClient(ResolveHttpConfig(fvcommon.HttpConfig{ReadTimeout: 7 * time.Second}, fvcommon.HttpConfig{}))
+		client := vaultclient.SignedURLClient(api)
 		Expect(client.Timeout).To(BeZero())
 		transport, ok := client.Transport.(*http.Transport)
-		Expect(ok).To(BeTrue())
-		Expect(transport.TLSHandshakeTimeout).To(Equal(10 * time.Second))
-		Expect(transport.ResponseHeaderTimeout).To(Equal(10 * time.Second))
+		Expect(ok).To(BeTrue()) // the bare transport: no retry wrapper
+		Expect(transport.ResponseHeaderTimeout).To(Equal(7 * time.Second))
 	})
 
 	It("runs exactly limit tasks at once", func() {

@@ -90,6 +90,9 @@ var _ = Describe("Skyflow client, edge cases", func() {
 			BaseVaultUrl:      "https://vault.example.com",
 			InitialRetryDelay: 100 * time.Millisecond,
 			MaxRetryDelay:     time.Second,
+			ConnectTimeout:    3 * time.Second,
+			ReadTimeout:       4 * time.Second,
+			WriteTimeout:      5 * time.Second,
 		})).To(BeNil())
 		roles[0] = "changed"
 
@@ -100,6 +103,9 @@ var _ = Describe("Skyflow client, edge cases", func() {
 		Expect(config.BaseVaultUrl).To(Equal("https://vault.example.com"))
 		Expect(config.InitialRetryDelay).To(Equal(100 * time.Millisecond))
 		Expect(config.MaxRetryDelay).To(Equal(time.Second))
+		Expect(config.ConnectTimeout).To(Equal(3 * time.Second))
+		Expect(config.ReadTimeout).To(Equal(4 * time.Second))
+		Expect(config.WriteTimeout).To(Equal(5 * time.Second))
 		Expect(config.ClusterId).To(Equal("cluster"))
 	})
 

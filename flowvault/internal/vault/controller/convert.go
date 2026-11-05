@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
+	"strconv"
 	"strings"
 
 	fvconsts "github.com/skyflowapi/skyflow-go/flowvault/internal/constants"
@@ -16,9 +18,9 @@ import (
 )
 
 // result returns the response body and headers. A non-2xx response whose body still
-// carries per-record results (hasRecords) is returned as a body, not an error, so callers
-// see which records failed.
-func result[T any](resp *core.Response[*T], err error, hasRecords func(*T) bool) (*T, http.Header, *fverrors.SkyflowError) {
+// carries per-record results (in the shape fallback describes) is returned as a body, not
+// an error, so callers see which records failed.
+func result[T any](resp *core.Response[*T], err error, fallback *recordsFallback) (*T, http.Header, *fverrors.SkyflowError) {
 	if err == nil {
 		body, header := new(T), http.Header{}
 		if resp != nil {
@@ -35,9 +37,9 @@ func result[T any](resp *core.Response[*T], err error, hasRecords func(*T) bool)
 	if !errors.As(err, &apiErr) {
 		return nil, nil, fverrors.NewSkyflowError(fverrors.SERVER, err.Error())
 	}
-	if hasRecords != nil && apiErr.Unwrap() != nil {
+	if fallback != nil && apiErr.Unwrap() != nil {
 		body := new(T)
-		if json.Unmarshal([]byte(apiErr.Unwrap().Error()), body) == nil && hasRecords(body) {
+		if normalized, ok := fallback.normalize(apiErr.Unwrap().Error(), apiErr.StatusCode); ok && json.Unmarshal(normalized, body) == nil {
 			header := apiErr.Header
 			if header == nil {
 				header = http.Header{}
@@ -66,6 +68,8 @@ func apiError(apiErr *core.APIError, header http.Header) *fverrors.SkyflowError 
 		message := raw
 		if text, isText := body[fvconsts.ERROR_KEY_ERROR].(string); isText {
 			message = text
+		} else if recordErrors := recordErrorMessages(body); recordErrors != "" {
+			message = recordErrors
 		}
 		if strings.TrimSpace(message) == "" {
 			message = http.StatusText(apiErr.StatusCode)
@@ -77,6 +81,134 @@ func apiError(apiErr *core.APIError, header http.Header) *fverrors.SkyflowError 
 	}
 	normalized, _ := json.Marshal(map[string]interface{}{fvconsts.ERROR_KEY_ERROR: errorBody})
 	return fverrors.SkyflowErrorApi(fmt.Errorf("%d: %s", apiErr.StatusCode, normalized), header)
+}
+
+// recordErrorMessages joins the distinct record errors of a records-shaped error body
+// ({"records":[{"error":"..."}]}) with "; ", or returns "" when there are none.
+func recordErrorMessages(body map[string]interface{}) string {
+	records, _ := body[fvconsts.ERROR_KEY_RECORDS].([]interface{})
+	var messages []string
+	for _, record := range records {
+		fields, _ := record.(map[string]interface{})
+		if text, _ := fields[fvconsts.ERROR_KEY_ERROR].(string); text != "" && !slices.Contains(messages, text) {
+			messages = append(messages, text)
+		}
+	}
+	return strings.Join(messages, "; ")
+}
+
+// recordsFallback is the records-shaped error body of an operation: the vault can fail a
+// call outright yet still list its records, for example when the request's only record has
+// an invalid column. As in the Java SDK, each listed record becomes a failed record of the
+// response:
+//   - httpCode is the record's http_code, httpCode or statusCode (a number or numeric
+//     string), else the call's HTTP status;
+//   - error is the record's error, else its message, else "Unknown error";
+//   - only the identifying fields in keep are carried over; data, tokens and values are not.
+//
+// The mappers then set the request ID on every record, since each one has an error.
+type recordsFallback struct {
+	key  string   // the records array: "records", or "response" for Detokenize
+	keep []string // wire fields carried over from each record
+}
+
+var (
+	recordFallback      = &recordsFallback{key: fvconsts.ERROR_KEY_RECORDS, keep: []string{wireSkyflowID, wireTableName}}
+	deleteFallback      = &recordsFallback{key: fvconsts.ERROR_KEY_RECORDS, keep: []string{wireSkyflowID}}
+	detokenizeFallback  = &recordsFallback{key: wireDetokenizeRecords, keep: []string{wireToken, wireTokenGroupName}}
+	getTokensFallback   = &recordsFallback{key: fvconsts.ERROR_KEY_RECORDS, keep: []string{wireValue, wireTokenGroupName, wireToken}}
+	deleteFilesFallback = &recordsFallback{key: fvconsts.ERROR_KEY_RECORDS, keep: []string{wireSkyflowID, wireTableName}}
+)
+
+// Wire field names used by the fallback.
+const (
+	wireDetokenizeRecords = "response"
+	wireSkyflowID         = "skyflowID"
+	wireTableName         = "tableName"
+	wireToken             = "token"
+	wireTokenGroupName    = "tokenGroupName"
+	wireValue             = "value"
+	wireHttpCode          = "httpCode"
+	wireMessage           = "message"
+	unknownRecordError    = "Unknown error"
+)
+
+// fallbackHttpCodeKeys are the spellings a record's status is read from, in order.
+var fallbackHttpCodeKeys = []string{fvconsts.ERROR_KEY_HTTP_CODE, wireHttpCode, "statusCode"}
+
+// normalize rewrites raw into the success body shape, or reports false when raw lists no
+// records, so the call fails with an error instead.
+func (f *recordsFallback) normalize(raw string, status int) ([]byte, bool) {
+	var body map[string]interface{}
+	if json.Unmarshal([]byte(raw), &body) != nil {
+		return nil, false
+	}
+	listed, _ := body[f.key].([]interface{})
+	records := make([]interface{}, 0, len(listed))
+	for _, item := range listed {
+		fields, isObject := item.(map[string]interface{})
+		if !isObject {
+			continue
+		}
+		record := map[string]interface{}{}
+		for _, key := range f.keep {
+			if value, present := fields[key]; present {
+				record[key] = value
+			}
+		}
+		record[wireHttpCode] = fallbackHttpCode(fields, status)
+		record[fvconsts.ERROR_KEY_ERROR] = fallbackError(fields)
+		records = append(records, record)
+	}
+	if len(records) == 0 {
+		return nil, false
+	}
+	normalized, err := json.Marshal(map[string]interface{}{f.key: records})
+	return normalized, err == nil
+}
+
+func fallbackHttpCode(fields map[string]interface{}, status int) int {
+	for _, key := range fallbackHttpCodeKeys {
+		switch value := fields[key].(type) {
+		case float64:
+			return int(value)
+		case string:
+			if code, err := strconv.Atoi(strings.TrimSpace(value)); err == nil {
+				return code
+			}
+		}
+	}
+	return status
+}
+
+func fallbackError(fields map[string]interface{}) string {
+	for _, key := range []string{fvconsts.ERROR_KEY_ERROR, wireMessage} {
+		switch value := fields[key].(type) {
+		case nil:
+		case string:
+			if value != "" {
+				return value
+			}
+		default:
+			if text, err := json.Marshal(value); err == nil {
+				return string(text)
+			}
+		}
+	}
+	return unknownRecordError
+}
+
+// recordHttpCode is a record's status on a 2xx response. The vault can leave it out, which
+// reads as 0; as in the Java SDK it then follows the record's outcome: 500 for a record with
+// an error, 200 for one without.
+func recordHttpCode(httpCode int, recordErr string) int {
+	switch {
+	case httpCode != 0:
+		return httpCode
+	case recordErr != "":
+		return http.StatusInternalServerError
+	}
+	return http.StatusOK
 }
 
 func deref[T any](value *T) T {
@@ -271,7 +403,7 @@ func toRecordResults(records []*api.RecordResponseObject, header http.Header) []
 			Tokens:     fvhelpers.ParseTokens(record.Tokens),
 			Data:       record.Data,
 			HashedData: fvhelpers.ParseHashedData(record.HashedData),
-			HttpCode:   record.HTTPCode,
+			HttpCode:   recordHttpCode(record.HTTPCode, recordErr),
 			Error:      recordErr,
 			RequestId:  fvhelpers.RequestIdFor(header, recordErr),
 		})
@@ -288,7 +420,7 @@ func toDeleteResults(records []*api.DeleteResponseObject, header http.Header) []
 		recordErr := deref(record.Error)
 		results = append(results, fvcommon.DeleteResponseRecord{
 			SkyflowId: record.SkyflowID,
-			HttpCode:  record.HTTPCode,
+			HttpCode:  recordHttpCode(record.HTTPCode, recordErr),
 			Error:     recordErr,
 			RequestId: fvhelpers.RequestIdFor(header, recordErr),
 		})
@@ -308,7 +440,7 @@ func toDetokenizeResults(records []*api.DetokenizeResponseObject, header http.He
 			Value:          deref(record.Value),
 			TokenGroupName: deref(record.TokenGroupName),
 			Metadata:       fvhelpers.ParseDetokenizeMetadata(record.Metadata),
-			HttpCode:       deref(record.HTTPCode),
+			HttpCode:       recordHttpCode(deref(record.HTTPCode), recordErr),
 			Error:          recordErr,
 			RequestId:      fvhelpers.RequestIdFor(header, recordErr),
 		})
@@ -327,7 +459,7 @@ func toGetTokensResults(records []*api.TokenizeResponseObject, header http.Heade
 			Value:          deref(record.Value),
 			TokenGroupName: deref(record.TokenGroupName),
 			Token:          record.Token,
-			HttpCode:       deref(record.HTTPCode),
+			HttpCode:       recordHttpCode(deref(record.HTTPCode), recordErr),
 			Error:          recordErr,
 			RequestId:      fvhelpers.RequestIdFor(header, recordErr),
 		})
@@ -346,7 +478,7 @@ func toDeleteFilesResults(records []*api.FileDeleteResponseObject, header http.H
 			SkyflowId: deref(record.SkyflowID),
 			TableName: record.TableName,
 			Columns:   fvhelpers.ParseDeleteFilesColumns(record.Data),
-			HttpCode:  record.HTTPCode,
+			HttpCode:  recordHttpCode(record.HTTPCode, recordErr),
 			Error:     recordErr,
 			RequestId: fvhelpers.RequestIdFor(header, recordErr),
 		})

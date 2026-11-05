@@ -42,7 +42,11 @@ type VaultConfig struct {
 
 	// Optional HTTP settings for this vault. Zero values (and a nil MaxRetries)
 	// mean "not set": the client-level HttpConfig applies, then the SDK default.
+	// See HttpConfig for what each one bounds.
 	Timeout           time.Duration
+	ConnectTimeout    time.Duration
+	ReadTimeout       time.Duration
+	WriteTimeout      time.Duration
 	MaxRetries        *int
 	InitialRetryDelay time.Duration
 	MaxRetryDelay     time.Duration
@@ -51,7 +55,15 @@ type VaultConfig struct {
 // HttpConfig holds client-level call timeout and retry settings. A value set on
 // VaultConfig wins over the one here.
 type HttpConfig struct {
-	Timeout           time.Duration
+	// Timeout bounds the whole call, retries included.
+	Timeout time.Duration
+	// ConnectTimeout bounds opening a connection, per attempt.
+	ConnectTimeout time.Duration
+	// ReadTimeout bounds the wait for the server to start responding once the request is
+	// sent, per attempt.
+	ReadTimeout time.Duration
+	// WriteTimeout bounds each write of the request to the connection, per attempt.
+	WriteTimeout      time.Duration
 	MaxRetries        *int
 	InitialRetryDelay time.Duration
 	MaxRetryDelay     time.Duration
@@ -61,6 +73,9 @@ type HttpConfig struct {
 func (c VaultConfig) HttpConfig() HttpConfig {
 	return HttpConfig{
 		Timeout:           c.Timeout,
+		ConnectTimeout:    c.ConnectTimeout,
+		ReadTimeout:       c.ReadTimeout,
+		WriteTimeout:      c.WriteTimeout,
 		MaxRetries:        c.MaxRetries,
 		InitialRetryDelay: c.InitialRetryDelay,
 		MaxRetryDelay:     c.MaxRetryDelay,

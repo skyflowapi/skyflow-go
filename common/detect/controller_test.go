@@ -83,7 +83,7 @@ func newTestController(f *fakeDetect) (*Controller, *[]time.Duration) {
 	}
 	base := vaultclient.New(profile, config.VaultConfig{VaultId: "vault1", BaseVaultUrl: f.server.URL},
 		vaultclient.ClientSettings{Credentials: &config.Credentials{ApiKey: testApiKey}})
-	c := NewController(base)
+	c := NewController(base, SkySources)
 	var pauses []time.Duration
 	c.sleep = func(_ context.Context, d time.Duration) bool {
 		pauses = append(pauses, d)
@@ -115,7 +115,7 @@ func TestDeidentifyStringSendsInlineConfigurationWithVaultId(t *testing.T) {
 	if resp.ProcessedText != "My name is [NAME_1]." || len(resp.Entities) != 1 || resp.Entities[0].EntityScores["NAME"] != 0.91 {
 		t.Fatalf("unexpected response %+v", resp)
 	}
-	if resp.Metrics.WordCount != 4 || resp.Metrics.Pages != nil {
+	if m := resp.Metrics; m.WordCount == nil || *m.WordCount != 4 || m.Pages != nil {
 		t.Fatalf("metrics = %+v", resp.Metrics)
 	}
 
@@ -173,7 +173,7 @@ func TestRetryableResponseWithUnreadableBodyReportsTheReadError(t *testing.T) {
 func TestDeidentifyStringValidation(t *testing.T) {
 	c, _ := newTestController(newFakeDetect(t))
 	cases := map[string]DeidentifyStringRequest{
-		"Text must not be empty": {Text: " ", ConfigurationId: "cfg"},
+		"Invalid text in deidentify string request": {Text: " ", ConfigurationId: "cfg"},
 	}
 	for want, request := range cases {
 		_, err := c.DeidentifyString(context.Background(), request, DeidentifyStringOptions{})
@@ -184,50 +184,63 @@ func TestDeidentifyStringValidation(t *testing.T) {
 }
 
 // Configuration sources match the Java SDK: both are optional and sent as given.
-func TestConfigurationSourcesAreSentAsGiven(t *testing.T) {
+func TestConfigurationSourceIsSent(t *testing.T) {
 	f := newFakeDetect(t)
-	f.responses[pathDeidentifyString] = []string{`{"processedText":"x"}`, `{"processedText":"x"}`, `{"processedText":"x"}`}
+	f.responses[pathDeidentifyString] = []string{`{"processedText":"x"}`, `{"processedText":"x"}`}
 	f.responses[pathDeidentifyFile] = []string{`{"runId":"run-1"}`}
 	c, _ := newTestController(f)
 	ctx := context.Background()
 
-	cases := []struct {
-		name          string
-		request       DeidentifyStringRequest
-		wantId        interface{}
-		wantVaultOnly bool
-	}{
-		{"neither: vault defaults", DeidentifyStringRequest{Text: "x"}, nil, true},
-		{"configuration ID only", DeidentifyStringRequest{Text: "x", ConfigurationId: "cfg"}, nil, false},
-		{"both: passed through for the API to reject", DeidentifyStringRequest{Text: "x", ConfigurationId: "cfg", Configuration: &DetectConfiguration{}}, "cfg", false},
+	// A stored configuration is sent by ID, without a configuration.
+	if _, err := c.DeidentifyString(ctx, DeidentifyStringRequest{Text: "x", ConfigurationId: "cfg"}, DeidentifyStringOptions{}); err != nil {
+		t.Fatal(err)
 	}
-	for _, tc := range cases {
-		if _, err := c.DeidentifyString(ctx, tc.request, DeidentifyStringOptions{}); err != nil {
-			t.Fatalf("%s: %v", tc.name, err)
-		}
-		body := f.last().body
-		cfg, hasCfg := body["configuration"].(map[string]interface{})
-		switch {
-		case tc.wantVaultOnly:
-			if !hasCfg || len(cfg) != 1 || cfg["vaultId"] != "vault1" || body["configurationId"] != nil {
-				t.Errorf("%s: body = %v", tc.name, body)
-			}
-		case tc.request.Configuration == nil:
-			if hasCfg || body["configurationId"] != "cfg" {
-				t.Errorf("%s: body = %v", tc.name, body)
-			}
-		default:
-			if !hasCfg || cfg["vaultId"] != "vault1" || body["configurationId"] != tc.wantId {
-				t.Errorf("%s: body = %v", tc.name, body)
-			}
-		}
+	if body := f.last().body; body["configuration"] != nil || body["configurationId"] != "cfg" {
+		t.Errorf("configuration ID: body = %v", body)
 	}
-
-	if _, err := c.DeidentifyFile(ctx, DeidentifyFileRequest{Value: "v", DataSource: DeidentifySourceTypeBase64}, DeidentifyFileOptions{}); err != nil {
+	// An inline configuration carries the vault ID, without a configuration ID.
+	if _, err := c.DeidentifyString(ctx, DeidentifyStringRequest{Text: "x", Configuration: &DetectConfiguration{}}, DeidentifyStringOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	if body := f.last().body; body["configurationId"] != nil {
+		t.Errorf("inline configuration: body = %v", body)
+	} else if cfg, ok := body["configuration"].(map[string]interface{}); !ok || cfg["vaultId"] != "vault1" {
+		t.Errorf("inline configuration: body = %v", body)
+	}
+	if _, err := c.DeidentifyFile(ctx, DeidentifyFileRequest{Value: "v", DataSource: SkyDeidentifySourceTypeBase64, Configuration: &DetectConfiguration{}}, DeidentifyFileOptions{}); err != nil {
 		t.Fatal(err)
 	}
 	if cfg, ok := f.last().body["configuration"].(map[string]interface{}); !ok || cfg["vaultId"] != "vault1" {
-		t.Fatalf("deidentify file without configuration: body = %v", f.last().body)
+		t.Fatalf("deidentify file with an inline configuration: body = %v", f.last().body)
+	}
+}
+
+// As in the Java SDK, neither configuration source is required: with neither, a configuration
+// holding only the vault ID is sent; with both, both are sent.
+func TestConfigurationSourceIsOptional(t *testing.T) {
+	f := newFakeDetect(t)
+	f.responses[pathDeidentifyString] = []string{`{"processedText":"x"}`}
+	f.responses[pathDeidentifyFile] = []string{`{"runId":"run-1"}`}
+	c, _ := newTestController(f)
+	ctx := context.Background()
+
+	if _, err := c.DeidentifyString(ctx, DeidentifyStringRequest{Text: "x"}, DeidentifyStringOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	if cfg, ok := f.last().body["configuration"].(map[string]interface{}); !ok || len(cfg) != 1 || cfg["vaultId"] != "vault1" || f.last().body["configurationId"] != nil {
+		t.Errorf("deidentify string, neither: body = %v", f.last().body)
+	}
+	if _, err := c.DeidentifyFile(ctx, DeidentifyFileRequest{Value: "v", DataSource: SkyDeidentifySourceTypeBase64}, DeidentifyFileOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	if cfg, ok := f.last().body["configuration"].(map[string]interface{}); !ok || len(cfg) != 1 || cfg["vaultId"] != "vault1" {
+		t.Errorf("deidentify file, neither: body = %v", f.last().body)
+	}
+	if _, err := c.DeidentifyString(ctx, DeidentifyStringRequest{Text: "x", ConfigurationId: "cfg", Configuration: &DetectConfiguration{}}, DeidentifyStringOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	if body := f.last().body; body["configurationId"] != "cfg" || body["configuration"] == nil {
+		t.Errorf("both: body = %v", body)
 	}
 }
 
@@ -237,7 +250,7 @@ func TestDeidentifyFileSubmitOnly(t *testing.T) {
 	c, _ := newTestController(f)
 
 	resp, err := c.DeidentifyFile(context.Background(), DeidentifyFileRequest{
-		DataSource: DeidentifySourceTypeSkyflowID, Value: "sid", DataFormat: FileDataFormatPDF, ConfigurationId: "cfg",
+		DataSource: SkyDeidentifySourceTypeSkyflowID, Value: "sid", DataFormat: FileDataFormatPDF, ConfigurationId: "cfg",
 	}, DeidentifyFileOptions{})
 	if err != nil {
 		t.Fatal(err)
@@ -278,7 +291,7 @@ func TestDeidentifyFilePollsAndWritesOutputs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if resp.RunId != "run-9" || resp.Status != DetectRunStatusSuccess || resp.OutputType != DeidentifySourceTypeBase64 ||
+	if resp.RunId != "run-9" || resp.Status != DetectRunStatusSuccess || resp.OutputType != SkyDeidentifySourceTypeBase64 ||
 		len(resp.Output) != 2 || *resp.Metrics.Pages != 3 {
 		t.Fatalf("resp = %+v", resp)
 	}
@@ -337,12 +350,12 @@ func TestDeidentifyFileValidation(t *testing.T) {
 		request DeidentifyFileRequest
 		options DeidentifyFileOptions
 	}{
-		{"exactly one of Value, FilePath or FileObject", DeidentifyFileRequest{ConfigurationId: "c"}, DeidentifyFileOptions{}},
-		{"DataSource is required", DeidentifyFileRequest{Value: "v", ConfigurationId: "c"}, DeidentifyFileOptions{}},
-		{"OutputDirectory requires Poll", DeidentifyFileRequest{Value: "v", DataSource: DeidentifySourceTypeBase64, ConfigurationId: "c"}, DeidentifyFileOptions{OutputDirectory: "out"}},
-		{"WaitTime must be between", DeidentifyFileRequest{Value: "v", DataSource: DeidentifySourceTypeBase64, ConfigurationId: "c"}, DeidentifyFileOptions{Poll: &PollOptions{WaitTime: 301 * time.Second}}},
-		{"MaxAttempts must be between", DeidentifyFileRequest{Value: "v", DataSource: DeidentifySourceTypeBase64, ConfigurationId: "c"}, DeidentifyFileOptions{Poll: &PollOptions{MaxAttempts: 24}}},
-		{"Could not read file", DeidentifyFileRequest{FilePath: "/does/not/exist.pdf", ConfigurationId: "c"}, DeidentifyFileOptions{}},
+		{errMissingFileSource, DeidentifyFileRequest{ConfigurationId: "c"}, DeidentifyFileOptions{}},
+		{errInvalidDeidentifyDataSource, DeidentifyFileRequest{Value: "v", ConfigurationId: "c"}, DeidentifyFileOptions{}},
+		{errOutputDirectoryNeedPoll, DeidentifyFileRequest{Value: "v", DataSource: SkyDeidentifySourceTypeBase64, ConfigurationId: "c"}, DeidentifyFileOptions{OutputDirectory: "out"}},
+		{errInvalidWaitTime, DeidentifyFileRequest{Value: "v", DataSource: SkyDeidentifySourceTypeBase64, ConfigurationId: "c"}, DeidentifyFileOptions{Poll: &PollOptions{WaitTime: 301 * time.Second}}},
+		{errInvalidMaxAttempts, DeidentifyFileRequest{Value: "v", DataSource: SkyDeidentifySourceTypeBase64, ConfigurationId: "c"}, DeidentifyFileOptions{Poll: &PollOptions{MaxAttempts: 24}}},
+		{errFileNotFound, DeidentifyFileRequest{FilePath: "/does/not/exist.pdf", ConfigurationId: "c"}, DeidentifyFileOptions{}},
 	}
 	for _, tc := range cases {
 		_, err := c.DeidentifyFile(context.Background(), tc.request, tc.options)
@@ -368,7 +381,7 @@ func TestGetRunEchoesRunIdAndMapsApiErrors(t *testing.T) {
 		t.Fatalf("err = %v", err)
 	}
 
-	if _, err := c.GetRun(context.Background(), GetRunRequest{}, GetRunOptions{}); err == nil || !strings.Contains(err.GetMessage(), "RunId must not be empty") {
+	if _, err := c.GetRun(context.Background(), GetRunRequest{}, GetRunOptions{}); err == nil || !strings.Contains(err.GetMessage(), errEmptyRunId) {
 		t.Fatalf("err = %v", err)
 	}
 }
@@ -380,7 +393,7 @@ func TestReidentifyStringSendsVaultIdAndRedactionLevels(t *testing.T) {
 
 	resp, err := c.ReidentifyString(context.Background(), ReidentifyStringRequest{
 		Text:           "My name is [NAME_1].",
-		RedactionLevel: []RedactionLevel{{TokenGroupName: "persons", RedactionPattern: "mask"}},
+		RedactionLevel: []RedactionRule{FlowRedactionLevel{TokenGroupName: "persons", RedactionPattern: "mask"}},
 	}, ReidentifyStringOptions{})
 	if err != nil || resp.ProcessedText != "My name is J**n D*e" {
 		t.Fatalf("resp = %+v, err = %v", resp, err)
@@ -391,15 +404,53 @@ func TestReidentifyStringSendsVaultIdAndRedactionLevels(t *testing.T) {
 		t.Fatalf("body = %v", body)
 	}
 
-	for _, levels := range [][]RedactionLevel{
-		{{RedactionType: RedactionTypeMasked}},
-		{{TokenGroupName: "g", EntityName: EntityTypeName, RedactionType: RedactionTypeMasked}},
-		{{EntityName: EntityTypeName}},
-		{{EntityName: EntityTypeName, RedactionType: RedactionTypeMasked, RedactionPattern: "p"}},
+	// Rules are sent as given, as in the other SDKs: partial or empty rules are not rejected.
+	for _, levels := range [][]RedactionRule{
+		{FlowRedactionLevel{RedactionPattern: "p"}},
+		{FlowRedactionLevel{}},
+		{SkyRedactionLevel{RedactionType: RedactionTypeMasked}},
 	} {
-		if _, err := c.ReidentifyString(context.Background(), ReidentifyStringRequest{Text: "x", RedactionLevel: levels}, ReidentifyStringOptions{}); err == nil {
-			t.Errorf("levels %+v should fail", levels)
+		f.responses[pathReidentifyString] = []string{`{"processedText":"x"}`}
+		if _, err := c.ReidentifyString(context.Background(), ReidentifyStringRequest{Text: "x", RedactionLevel: levels}, ReidentifyStringOptions{}); err != nil {
+			t.Errorf("levels %+v: err = %v", levels, err)
 		}
+	}
+
+	// Nil rules, including nil pointers to the rule types, are skipped as in the other SDKs.
+	var nilFlow *FlowRedactionLevel
+	var nilSky *SkyRedactionLevel
+	f.responses[pathReidentifyString] = []string{`{"processedText":"x"}`}
+	f.responses[pathReidentifyFile] = []string{`{"status":"SUCCESS"}`}
+	rules := []RedactionRule{nil, nilFlow, nilSky, &FlowRedactionLevel{TokenGroupName: "g"}}
+	if _, err := c.ReidentifyString(context.Background(), ReidentifyStringRequest{Text: "x", RedactionLevel: rules}, ReidentifyStringOptions{}); err != nil {
+		t.Fatalf("nil rules: err = %v", err)
+	}
+	sent := f.last().body["redactionLevel"].([]interface{})
+	if len(sent) != 1 || sent[0].(map[string]interface{})["tokenGroupName"] != "g" {
+		t.Fatalf("redactionLevel = %v", sent)
+	}
+	if _, err := c.ReidentifyFile(context.Background(), ReidentifyFileRequest{DataSource: SkyReidentifySourceTypeBase64, Value: "aGk=", RedactionLevel: []RedactionRule{nil}}, ReidentifyFileOptions{}); err != nil {
+		t.Fatalf("nil rule on file: err = %v", err)
+	}
+	if _, sent := f.last().body["redactionLevel"]; sent {
+		t.Fatal("only nil rules: redactionLevel should be omitted")
+	}
+}
+
+func TestReidentifySendsSkyVaultRedactionLevels(t *testing.T) {
+	f := newFakeDetect(t)
+	f.responses[pathReidentifyString] = []string{`{"processedText":"x"}`}
+	c, _ := newTestController(f)
+
+	if _, err := c.ReidentifyString(context.Background(), ReidentifyStringRequest{
+		Text:           "[NAME_1]",
+		RedactionLevel: []RedactionRule{SkyRedactionLevel{EntityName: EntityTypeName, RedactionType: RedactionTypePlainText}},
+	}, ReidentifyStringOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	level := f.last().body["redactionLevel"].([]interface{})[0].(map[string]interface{})
+	if level["entityName"] != "NAME" || level["redactionType"] != "PLAIN_TEXT" || level["tokenGroupName"] != nil || level["redactionPattern"] != nil {
+		t.Fatalf("level = %v", level)
 	}
 }
 
@@ -410,9 +461,9 @@ func TestReidentifyFileReturnsTheOutputInTheResponse(t *testing.T) {
 	c, _ := newTestController(f)
 
 	redacted := base64.StdEncoding.EncodeToString([]byte("[NAME_1]"))
-	resp, err := c.ReidentifyFile(context.Background(), ReidentifyFileRequest{DataSource: ReidentifySourceTypeBase64, Value: redacted, DataFormat: FileDataFormatTXT},
+	resp, err := c.ReidentifyFile(context.Background(), ReidentifyFileRequest{DataSource: SkyReidentifySourceTypeBase64, Value: redacted, DataFormat: FileDataFormatTXT},
 		ReidentifyFileOptions{})
-	if err != nil || resp.Status != DetectRunStatusSuccess || resp.OutputType != ReidentifySourceTypeBase64 ||
+	if err != nil || resp.Status != DetectRunStatusSuccess || resp.OutputType != SkyReidentifySourceTypeBase64 ||
 		len(resp.Output) != 1 || resp.Output[0].ProcessedFile != plain {
 		t.Fatalf("resp = %+v, err = %v", resp, err)
 	}
@@ -431,7 +482,7 @@ func TestDeidentifyFileIgnoresDataSourceForALocalFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := c.DeidentifyFile(context.Background(), DeidentifyFileRequest{FilePath: input, DataSource: DeidentifySourceTypePresignedURL},
+	if _, err := c.DeidentifyFile(context.Background(), DeidentifyFileRequest{FilePath: input, DataSource: SkyDeidentifySourceTypePresignedURL, ConfigurationId: "cfg"},
 		DeidentifyFileOptions{}); err != nil {
 		t.Fatal(err)
 	}
@@ -446,7 +497,7 @@ func TestCheckGuardrails(t *testing.T) {
 	c, _ := newTestController(f)
 
 	resp, err := c.CheckGuardrails(context.Background(), CheckGuardrailsRequest{Text: "hi", CheckToxicity: ptr(true), DenyTopics: []string{"politics"}}, CheckGuardrailsOptions{})
-	if err != nil || resp.Validation != GuardrailsValidationFailed || !resp.Toxic {
+	if err != nil || resp.Validation != GuardrailsValidationFailed || resp.Toxic == nil || !*resp.Toxic || resp.DeniedTopic == nil || *resp.DeniedTopic {
 		t.Fatalf("resp = %+v, err = %v", resp, err)
 	}
 	if body := f.last().body; body["vaultId"] != "vault1" || body["checkToxicity"] != true {
@@ -466,8 +517,23 @@ func TestCheckGuardrails(t *testing.T) {
 	if _, sent := f.last().body["checkToxicity"]; sent {
 		t.Fatal("an unset checkToxicity should be omitted")
 	}
-	if _, err := c.CheckGuardrails(context.Background(), CheckGuardrailsRequest{Text: "hi", DenyTopics: []string{" "}}, CheckGuardrailsOptions{}); err == nil {
-		t.Fatal("blank deny topic should fail")
+	// DenyTopics are sent as given, as in the other SDKs.
+	f.responses[pathGuardrails] = []string{`{"validation":"PASSED"}`}
+	if _, err := c.CheckGuardrails(context.Background(), CheckGuardrailsRequest{Text: "hi", DenyTopics: []string{" "}}, CheckGuardrailsOptions{}); err != nil {
+		t.Fatalf("blank deny topic: err = %v", err)
+	}
+}
+
+// A missing or unknown validation is UNKNOWN, and missing flags stay nil.
+func TestCheckGuardrailsUnknownValidation(t *testing.T) {
+	for _, body := range []string{`{"text":"hi"}`, `{"text":"hi","validation":"MAYBE"}`} {
+		f := newFakeDetect(t)
+		f.responses[pathGuardrails] = []string{body}
+		c, _ := newTestController(f)
+		resp, err := c.CheckGuardrails(context.Background(), CheckGuardrailsRequest{Text: "hi"}, CheckGuardrailsOptions{})
+		if err != nil || resp.Validation != GuardrailsValidationUnknown || resp.Toxic != nil || resp.DeniedTopic != nil {
+			t.Fatalf("%s: resp = %+v, err = %v", body, resp, err)
+		}
 	}
 }
 
@@ -510,7 +576,7 @@ func TestWriteOutputsKeepsEveryOutputOfTheSameType(t *testing.T) {
 			ProcessedFileType: ProcessedFileTypeRedactedFile, ProcessedFileExtension: FileDataFormatTXT})
 	}
 	dir := t.TempDir()
-	if err := c.writeOutputs(outputs, DeidentifySourceTypeBase64, "in.txt", dir); err != nil {
+	if err := c.writeOutputs(outputs, SkyDeidentifySourceTypeBase64, "in.txt", dir); err != nil {
 		t.Fatal(err)
 	}
 	for name, want := range map[string]string{
@@ -539,11 +605,97 @@ func TestFileObjectIsSentInFullWhateverItsOffset(t *testing.T) {
 
 	// Sent twice: the first read must not consume the file either.
 	for i := 0; i < 2; i++ {
-		if _, err := c.DeidentifyFile(context.Background(), DeidentifyFileRequest{FileObject: input}, DeidentifyFileOptions{}); err != nil {
+		if _, err := c.DeidentifyFile(context.Background(), DeidentifyFileRequest{FileObject: input, ConfigurationId: "cfg"}, DeidentifyFileOptions{}); err != nil {
 			t.Fatal(err)
 		}
 		if got := f.last().body["value"]; got != want {
 			t.Fatalf("call %d sent value %q, want %q", i+1, got, want)
 		}
+	}
+}
+
+// As in the other SDKs, a status this SDK does not know is UNKNOWN, which ends polling, and
+// the run ID is trimmed before the lookup.
+func TestUnknownRunStatusIsTerminal(t *testing.T) {
+	f := newFakeDetect(t)
+	f.responses[pathRuns+"run-3"] = []string{`{"status":"PAUSED"}`}
+	f.responses[pathReidentifyFile] = []string{`{"outputType":"BASE64","output":[]}`}
+	c, pauses := newTestController(f)
+
+	run, err := c.GetRun(context.Background(), GetRunRequest{RunId: " run-3 "}, GetRunOptions{})
+	if err != nil || run.Status != DetectRunStatusUnknown || run.RunId != "run-3" || f.last().path != pathRuns+"run-3" {
+		t.Fatalf("run = %+v, err = %v, path = %s", run, err, f.last().path)
+	}
+	if !isTerminal(runStatus("PAUSED")) || runStatus("QUEUED") != DetectRunStatusQueued {
+		t.Fatal("unknown statuses must be terminal; known ones kept")
+	}
+
+	resp, err := c.ReidentifyFile(context.Background(), ReidentifyFileRequest{DataSource: SkyReidentifySourceTypeBase64, Value: "aGk="}, ReidentifyFileOptions{})
+	if err != nil || resp.Status != DetectRunStatusUnknown {
+		t.Fatalf("resp = %+v, err = %v", resp, err)
+	}
+	if len(*pauses) != 0 {
+		t.Fatalf("pauses = %v", *pauses)
+	}
+}
+
+// As in the other SDKs, an output type or file extension this SDK doesn't know is empty.
+// A file extension is matched case-insensitively, as Java does.
+func TestUnknownOutputTypeAndExtensionAreEmpty(t *testing.T) {
+	f := newFakeDetect(t)
+	f.responses[pathRuns+"run-4"] = []string{`{"status":"SUCCESS","outputType":"SOMETHING","output":[{"processedFileExtension":"PDF"},{"processedFileExtension":"xyz"}]}`}
+	f.responses[pathReidentifyFile] = []string{`{"status":"SUCCESS","outputType":"SKYFLOW_ID"}`}
+	c, _ := newTestController(f)
+
+	run, err := c.GetRun(context.Background(), GetRunRequest{RunId: "run-4"}, GetRunOptions{})
+	if err != nil || run.OutputType != nil || run.Output[0].ProcessedFileExtension != FileDataFormatPDF || run.Output[1].ProcessedFileExtension != "" {
+		t.Fatalf("run = %+v, err = %v", run, err)
+	}
+	resp, err := c.ReidentifyFile(context.Background(), ReidentifyFileRequest{DataSource: SkyReidentifySourceTypeBase64, Value: "aGk="}, ReidentifyFileOptions{})
+	if err != nil || resp.OutputType != nil {
+		t.Fatalf("resp = %+v, err = %v", resp, err)
+	}
+
+	// The output type is the vault type's own source: a FlowVault controller reports SKYFLOW_ID
+	// as nil and the others as FlowDeidentifySourceType values.
+	flow := NewController(c.base, FlowSources)
+	flow.sleep = c.sleep
+	f.responses[pathRuns+"run-5"] = []string{`{"status":"SUCCESS","outputType":"SKYFLOW_ID"}`, `{"status":"SUCCESS","outputType":"PRESIGNED_URL"}`}
+	if run, err := flow.GetRun(context.Background(), GetRunRequest{RunId: "run-5"}, GetRunOptions{}); err != nil || run.OutputType != nil {
+		t.Fatalf("run = %+v, err = %v", run, err)
+	}
+	run, err = flow.GetRun(context.Background(), GetRunRequest{RunId: "run-5"}, GetRunOptions{})
+	if err != nil || run.OutputType != FlowDeidentifySourceTypePresignedURL || run.OutputType == SkyDeidentifySourceTypePresignedURL {
+		t.Fatalf("run = %+v, err = %v", run, err)
+	}
+	// Re-identify output types resolve the same way: each vault type has its own.
+	f.responses[pathReidentifyFile] = []string{`{"status":"SUCCESS","outputType":"PRESIGNED_URL"}`}
+	flowResp, err := flow.ReidentifyFile(context.Background(), ReidentifyFileRequest{DataSource: FlowReidentifySourceTypeBase64, Value: "aGk="}, ReidentifyFileOptions{})
+	if err != nil || flowResp.OutputType != FlowReidentifySourceTypePresignedURL || flowResp.OutputType == SkyReidentifySourceTypePresignedURL {
+		t.Fatalf("flow reidentify = %+v, err = %v", flowResp, err)
+	}
+	skyResp, err := c.ReidentifyFile(context.Background(), ReidentifyFileRequest{DataSource: SkyReidentifySourceTypeBase64, Value: "aGk="}, ReidentifyFileOptions{})
+	if err != nil || skyResp.OutputType != SkyReidentifySourceTypePresignedURL {
+		t.Fatalf("sky reidentify = %+v, err = %v", skyResp, err)
+	}
+	f.responses[pathRuns+"run-6"] = []string{`{"status":"SUCCESS","outputType":"SKYFLOW_ID"}`}
+	if run, err := c.GetRun(context.Background(), GetRunRequest{RunId: "run-6"}, GetRunOptions{}); err != nil || run.OutputType != SkyDeidentifySourceTypeSkyflowID {
+		t.Fatalf("sky run = %+v, err = %v", run, err)
+	}
+}
+
+// Every metric is optional in the API: a count the server leaves out is nil, unlike a
+// count of zero, as in the Java SDK.
+func TestMissingMetricsAreNil(t *testing.T) {
+	f := newFakeDetect(t)
+	f.responses[pathDeidentifyString] = []string{`{"processedText":"x","metrics":{"wordCount":0}}`}
+	c, _ := newTestController(f)
+	resp, err := c.DeidentifyString(context.Background(), DeidentifyStringRequest{Text: "x"}, DeidentifyStringOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := resp.Metrics
+	if m == nil || m.WordCount == nil || *m.WordCount != 0 || m.CharacterCount != nil || m.Size != nil {
+		t.Fatalf("metrics = %+v", m)
 	}
 }

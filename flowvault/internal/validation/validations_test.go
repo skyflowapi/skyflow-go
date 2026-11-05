@@ -35,6 +35,15 @@ var _ = Describe("ValidateInsert", func() {
 		Entry("no records", fvcommon.InsertRequest{TableName: "t"}, "Records must not be empty"),
 		Entry("empty data", fvcommon.InsertRequest{TableName: "t", Records: []fvcommon.InsertRequestRecord{{}}}, "Data must not be empty"),
 		Entry("empty column name", fvcommon.InsertRequest{TableName: "t", Records: []fvcommon.InsertRequestRecord{{Data: map[string]interface{}{" ": 1}}}}, "empty column name"),
+		// As in the Java SDK: no nil or blank value, and Tokens, when set, non-empty with
+		// non-blank names and values. Non-string values such as 0 and false are fine.
+		Entry("nil value", fvcommon.InsertRequest{TableName: "t", Records: []fvcommon.InsertRequestRecord{{Data: map[string]interface{}{"name": nil}}}}, `empty value for column "name"`),
+		Entry("blank value", fvcommon.InsertRequest{TableName: "t", Records: []fvcommon.InsertRequestRecord{{Data: map[string]interface{}{"name": "  "}}}}, `empty value for column "name"`),
+		Entry("zero and false values", fvcommon.InsertRequest{TableName: "t", Records: []fvcommon.InsertRequestRecord{{Data: map[string]interface{}{"n": 0, "b": false}}}}, ""),
+		Entry("empty tokens", fvcommon.InsertRequest{TableName: "t", Records: []fvcommon.InsertRequestRecord{{Data: data, Tokens: map[string]interface{}{}}}}, "Tokens must not be empty"),
+		Entry("blank token column", fvcommon.InsertRequest{TableName: "t", Records: []fvcommon.InsertRequestRecord{{Data: data, Tokens: map[string]interface{}{"": "tok"}}}}, "Tokens contain an empty column name"),
+		Entry("blank token value", fvcommon.InsertRequest{TableName: "t", Records: []fvcommon.InsertRequestRecord{{Data: data, Tokens: map[string]interface{}{"name": ""}}}}, `Tokens have an empty value for column "name"`),
+		Entry("valid tokens", fvcommon.InsertRequest{TableName: "t", Records: []fvcommon.InsertRequestRecord{{Data: data, Tokens: map[string]interface{}{"name": "tok"}}}}, ""),
 		Entry("table in both places", fvcommon.InsertRequest{TableName: "t", Records: []fvcommon.InsertRequestRecord{{Data: data, TableName: "t"}}}, "not both"),
 		Entry("table missing on a record", fvcommon.InsertRequest{Records: []fvcommon.InsertRequestRecord{{Data: data, TableName: "t"}, {Data: data}}}, "Table name is missing"),
 		Entry("record upsert with request table", fvcommon.InsertRequest{TableName: "t", Records: []fvcommon.InsertRequestRecord{{Data: data, Upsert: &fvcommon.UpsertOptions{UniqueColumns: []string{"a"}}}}}, "Set upsert on the request"),
@@ -126,4 +135,30 @@ var _ = Describe("Other validators", func() {
 		expectError(ValidateCustomHeaders(map[fvcommon.CustomHeaderKey]string{fvcommon.RequestIdHeader: " "}, "Insert"), "must have a value")
 		expectError(ValidateCustomHeaders(map[fvcommon.CustomHeaderKey]string{fvcommon.SkyflowAccountId: "acc"}, "Insert"), "")
 	})
+})
+
+var _ = Describe("Java parity checks on Update and Get", func() {
+	It("checks update data values and tokens", func() {
+		err := ValidateUpdate(fvcommon.UpdateRequest{TableName: "t", Records: []fvcommon.UpdateRequestRecord{{SkyflowId: "id", Data: map[string]interface{}{"a": nil}}}})
+		Expect(err.GetMessage()).To(ContainSubstring(`empty value for column "a" in record at index 0`))
+		err = ValidateUpdate(fvcommon.UpdateRequest{TableName: "t", Records: []fvcommon.UpdateRequestRecord{{SkyflowId: "id", Data: map[string]interface{}{"a": 1}, Tokens: map[string]interface{}{}}}})
+		Expect(err.GetMessage()).To(ContainSubstring("Tokens must not be empty"))
+	})
+
+	DescribeTable("get columns, when set, are non-empty with no blank names",
+		func(req fvcommon.GetRequest, want string) {
+			err := ValidateGet(req)
+			if want == "" {
+				Expect(err).To(BeNil())
+				return
+			}
+			Expect(err).ToNot(BeNil())
+			Expect(err.GetMessage()).To(ContainSubstring(want))
+		},
+		Entry("not set", fvcommon.GetRequest{TableName: "t", SkyflowIds: []string{"id"}}, ""),
+		Entry("set", fvcommon.GetRequest{TableName: "t", SkyflowIds: []string{"id"}, Columns: []string{"a"}}, ""),
+		Entry("empty", fvcommon.GetRequest{TableName: "t", SkyflowIds: []string{"id"}, Columns: []string{}}, "Columns must not be empty when set"),
+		Entry("blank", fvcommon.GetRequest{TableName: "t", SkyflowIds: []string{"id"}, Columns: []string{"a", " "}}, "Columns must not contain an empty column name"),
+		Entry("empty on a record", fvcommon.GetRequest{Records: []fvcommon.GetRequestRecord{{TableName: "t", SkyflowIds: []string{"id"}, Columns: []string{}}}}, "Columns must not be empty when set"),
+	)
 })

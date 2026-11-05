@@ -8,7 +8,7 @@ import (
 	fverrors "github.com/skyflowapi/skyflow-go/flowvault/utils/error"
 )
 
-// DetectService runs the Detect V2 operations for a single vault. The vault ID comes from
+// DetectService runs the Detect operations for a single vault. The vault ID comes from
 // the vault config, and the service shares the vault's credentials, HTTP settings and
 // cached bearer token with its VaultService.
 //
@@ -43,7 +43,8 @@ func (d *DetectService) ReidentifyString(ctx context.Context, request fvcommon.R
 	return d.controller.ReidentifyString(ctx, request, options)
 }
 
-// ReidentifyFile re-identifies a file. Synchronous; for a local file the outputs are written.
+// ReidentifyFile re-identifies a file given as BASE64 or a presigned URL. It is synchronous
+// and returns the outputs in the response; nothing is written to disk.
 func (d *DetectService) ReidentifyFile(ctx context.Context, request fvcommon.ReidentifyFileRequest, options fvcommon.ReidentifyFileOptions) (*fvcommon.ReidentifyFileResponse, *fverrors.SkyflowError) {
 	return d.controller.ReidentifyFile(ctx, request, options)
 }

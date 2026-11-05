@@ -55,27 +55,29 @@ const (
 // (same pattern as auth, config and vaultclient). Messages containing %s / %d are
 // formatted with fmt.Sprintf.
 
-// Error messages: prefixed with the SDK prefix.
+// Error messages: prefixed with the SDK prefix. The wording is the Java SDK's, with Go's
+// field names.
 const (
-	errEmptyText                   = " Validation error. %s failed. Text must not be empty."
-	errFileSource                  = " Validation error. %s failed. Set exactly one of Value, FilePath or FileObject."
-	errMissingDeidentifySource     = " Validation error. %s failed. DataSource is required with Value. Specify %s."
-	errUnsupportedDeidentifySource = " Validation error. %s failed. DataSource %q is not supported. Specify %s."
-	errMissingReidentifySource     = " Validation error. %s failed. DataSource is required. Specify %s."
-	errUnsupportedReidentifySource = " Validation error. %s failed. DataSource %q is not supported. Specify %s."
-	errEmptyValue                  = " Validation error. %s failed. Value must not be empty."
-	errFileNotReadable             = " Validation error. %s failed. Could not read file: %s"
-	errInvalidWaitTime             = " Validation error. DeidentifyFile failed. Poll WaitTime must be between 1 and 300 seconds."
-	errInvalidMaxAttempts          = " Validation error. DeidentifyFile failed. Poll MaxAttempts must be between 1 and 23."
-	errOutputDirectoryNeedPoll     = " Validation error. DeidentifyFile failed. OutputDirectory requires Poll."
-	errEmptyRunId                  = " Validation error. GetRun failed. RunId must not be empty."
-	errRedactionSource             = " Validation error. %s failed. Redaction level at index %d needs exactly one of TokenGroupName or EntityName."
-	errRedactionReplacement        = " Validation error. %s failed. Redaction level at index %d needs exactly one of RedactionPattern or RedactionType."
-	errEmptyDenyTopic              = " Validation error. CheckGuardrails failed. DenyTopics must not contain empty values."
-	errOutputNotWritten            = " Error occurred. The run succeeded but its output could not be written to %s: %s"
-	errEmptyResponse               = " API error. %s returned an empty response."
+	errInvalidTextDeidentifyString = " Validation error. Invalid text in deidentify string request. Specify a non-empty text."
+	errInvalidTextReidentifyString = " Validation error. Invalid text in reidentify string request. Specify a non-empty text."
+	errInvalidTextCheckGuardrails  = " Validation error. Invalid text in check guardrails request. Specify a non-empty text."
+	errMissingFileSource           = " Validation error. Specify one of FilePath, FileObject or Value in deidentify file request."
+	errMultipleFileSources         = " Validation error. Specify only one of FilePath, FileObject or Value in deidentify file request."
+	errInvalidDeidentifyDataSource = " Validation error. Invalid DataSource in deidentify file request. Specify a DeidentifySourceType."
+	errInvalidDeidentifyValue      = " Validation error. Invalid Value in deidentify file request. Specify the non-empty content or reference that DataSource describes."
+	errFileNotFound                = " Validation error. The file to deidentify was not found at the specified path. Verify the file path and try again."
+	errFileNotReadable             = " Validation error. The file to deidentify is not readable. Check the file permissions and try again."
+	errInvalidWaitTime             = " Validation error. WaitTime in Poll must be between 1 and 300 seconds."
+	errInvalidMaxAttempts          = " Validation error. MaxAttempts in Poll must be between 1 and 23."
+	errOutputDirectoryNeedPoll     = " Validation error. OutputDirectory in deidentify file options requires Poll."
+	errEmptyRunId                  = " Validation error. Invalid RunId in get run request. Specify a non-empty run id."
+	errInvalidReidentifyDataSource = " Validation error. Invalid DataSource in reidentify file request. Specify a ReidentifySourceType."
+	errInvalidReidentifyValue      = " Validation error. Invalid Value in reidentify file request. Specify the non-empty base64 content or presigned URL of the file."
+	// errOutputNotWritten is the Java text with the cause appended.
+	errOutputNotWritten = " Failed to write the processed output to %s: %s"
+	errEmptyResponse    = " API error. %s returned an empty response."
 
-	// Cause appended to errFileNotReadable and errOutputNotWritten.
+	// Cause appended to errOutputNotWritten.
 	notRegularFile = "not a regular file"
 )
 

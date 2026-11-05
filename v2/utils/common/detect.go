@@ -1,6 +1,6 @@
 package common
 
-// Detect V2 types, shared with the other Skyflow Go SDKs through type aliases of
+// Detect types, shared with the other Skyflow Go SDKs through type aliases of
 // skyflow-go/common/detect. Use them with the client's detect service:
 //
 //	service, err := skyflowClient.Detect("<VAULT_ID>")
@@ -31,8 +31,10 @@ type (
 	IncludePrefix              = cdetect.IncludePrefix
 	ReturnEntitiesType         = cdetect.ReturnEntitiesType
 	RedactionType              = cdetect.RedactionType
-	DeidentifySourceType       = cdetect.DeidentifySourceType
-	ReidentifySourceType       = cdetect.ReidentifySourceType
+	DeidentifyFileSource       = cdetect.DeidentifyFileSource
+	DeidentifySourceType       = cdetect.SkyDeidentifySourceType
+	ReidentifyFileSource       = cdetect.ReidentifyFileSource
+	ReidentifySourceType       = cdetect.SkyReidentifySourceType
 	FileDataFormat             = cdetect.FileDataFormat
 	DetectRunStatus            = cdetect.DetectRunStatus
 	ProcessedFileType          = cdetect.ProcessedFileType
@@ -44,7 +46,8 @@ type (
 	GuardrailsValidation       = cdetect.GuardrailsValidation
 	Metrics                    = cdetect.Metrics
 	FileOutput                 = cdetect.FileOutput
-	RedactionLevel             = cdetect.RedactionLevel
+	RedactionRule              = cdetect.RedactionRule
+	RedactionLevel             = cdetect.SkyRedactionLevel
 	DeidentifyStringRequest    = cdetect.DeidentifyStringRequest
 	DeidentifyStringOptions    = cdetect.DeidentifyStringOptions
 	DeidentifyStringResponse   = cdetect.DeidentifyStringResponse
@@ -145,7 +148,6 @@ const (
 	DeidentificationTypeEntityOnly                            = cdetect.DeidentificationTypeEntityOnly
 	DeidentificationTypeVaultToken                            = cdetect.DeidentificationTypeVaultToken
 	DeidentificationTypeMask                                  = cdetect.DeidentificationTypeMask
-	IncludePrefixUnspecified                                  = cdetect.IncludePrefixUnspecified
 	IncludePrefixYes                                          = cdetect.IncludePrefixYes
 	IncludePrefixNo                                           = cdetect.IncludePrefixNo
 	ReturnEntitiesTypeExcludeSensitiveData                    = cdetect.ReturnEntitiesTypeExcludeSensitiveData
@@ -154,12 +156,11 @@ const (
 	RedactionTypeRedacted                                     = cdetect.RedactionTypeRedacted
 	RedactionTypeMasked                                       = cdetect.RedactionTypeMasked
 	RedactionTypePlainText                                    = cdetect.RedactionTypePlainText
-	DeidentifySourceTypeBase64                                = cdetect.DeidentifySourceTypeBase64
-	DeidentifySourceTypeSkyflowID                             = cdetect.DeidentifySourceTypeSkyflowID
-	DeidentifySourceTypePresignedURL                          = cdetect.DeidentifySourceTypePresignedURL
-	ReidentifySourceTypeBase64                                = cdetect.ReidentifySourceTypeBase64
-	ReidentifySourceTypePresignedURL                          = cdetect.ReidentifySourceTypePresignedURL
-	FileDataFormatUnknown                                     = cdetect.FileDataFormatUnknown
+	DeidentifySourceTypeBase64                                = cdetect.SkyDeidentifySourceTypeBase64
+	DeidentifySourceTypeSkyflowID                             = cdetect.SkyDeidentifySourceTypeSkyflowID
+	DeidentifySourceTypePresignedURL                          = cdetect.SkyDeidentifySourceTypePresignedURL
+	ReidentifySourceTypeBase64                                = cdetect.SkyReidentifySourceTypeBase64
+	ReidentifySourceTypePresignedURL                          = cdetect.SkyReidentifySourceTypePresignedURL
 	FileDataFormatMP3                                         = cdetect.FileDataFormatMP3
 	FileDataFormatWAV                                         = cdetect.FileDataFormatWAV
 	FileDataFormatPDF                                         = cdetect.FileDataFormatPDF
@@ -218,6 +219,7 @@ const (
 	MaskingMethodBlackbox                                     = cdetect.MaskingMethodBlackbox
 	GuardrailsValidationFailed                                = cdetect.GuardrailsValidationFailed
 	GuardrailsValidationPassed                                = cdetect.GuardrailsValidationPassed
+	GuardrailsValidationUnknown                               = cdetect.GuardrailsValidationUnknown
 	OperationDeidentifyString                                 = cdetect.OperationDeidentifyString
 	OperationDeidentifyFile                                   = cdetect.OperationDeidentifyFile
 	OperationGetRun                                           = cdetect.OperationGetRun

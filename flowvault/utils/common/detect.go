@@ -1,6 +1,6 @@
 package common
 
-// Detect V2 types, shared with the other Skyflow Go SDKs through type aliases of
+// Detect types, shared with the other Skyflow Go SDKs through type aliases of
 // skyflow-go/common/detect. Use them with the client's detect service:
 //
 //	service, err := skyflowClient.Detect("<VAULT_ID>")
@@ -30,9 +30,10 @@ type (
 	DeidentificationType       = cdetect.DeidentificationType
 	IncludePrefix              = cdetect.IncludePrefix
 	ReturnEntitiesType         = cdetect.ReturnEntitiesType
-	RedactionType              = cdetect.RedactionType
-	DeidentifySourceType       = cdetect.DeidentifySourceType
-	ReidentifySourceType       = cdetect.ReidentifySourceType
+	DeidentifyFileSource       = cdetect.DeidentifyFileSource
+	DeidentifySourceType       = cdetect.FlowDeidentifySourceType
+	ReidentifyFileSource       = cdetect.ReidentifyFileSource
+	ReidentifySourceType       = cdetect.FlowReidentifySourceType
 	FileDataFormat             = cdetect.FileDataFormat
 	DetectRunStatus            = cdetect.DetectRunStatus
 	ProcessedFileType          = cdetect.ProcessedFileType
@@ -44,7 +45,8 @@ type (
 	GuardrailsValidation       = cdetect.GuardrailsValidation
 	Metrics                    = cdetect.Metrics
 	FileOutput                 = cdetect.FileOutput
-	RedactionLevel             = cdetect.RedactionLevel
+	RedactionRule              = cdetect.RedactionRule
+	RedactionLevel             = cdetect.FlowRedactionLevel
 	DeidentifyStringRequest    = cdetect.DeidentifyStringRequest
 	DeidentifyStringOptions    = cdetect.DeidentifyStringOptions
 	DeidentifyStringResponse   = cdetect.DeidentifyStringResponse
@@ -145,20 +147,15 @@ const (
 	DeidentificationTypeEntityOnly                            = cdetect.DeidentificationTypeEntityOnly
 	DeidentificationTypeVaultToken                            = cdetect.DeidentificationTypeVaultToken
 	DeidentificationTypeMask                                  = cdetect.DeidentificationTypeMask
-	IncludePrefixUnspecified                                  = cdetect.IncludePrefixUnspecified
 	IncludePrefixYes                                          = cdetect.IncludePrefixYes
 	IncludePrefixNo                                           = cdetect.IncludePrefixNo
 	ReturnEntitiesTypeExcludeSensitiveData                    = cdetect.ReturnEntitiesTypeExcludeSensitiveData
 	ReturnEntitiesTypeAll                                     = cdetect.ReturnEntitiesTypeAll
 	ReturnEntitiesTypeNone                                    = cdetect.ReturnEntitiesTypeNone
-	RedactionTypeRedacted                                     = cdetect.RedactionTypeRedacted
-	RedactionTypeMasked                                       = cdetect.RedactionTypeMasked
-	RedactionTypePlainText                                    = cdetect.RedactionTypePlainText
-	DeidentifySourceTypeBase64                                = cdetect.DeidentifySourceTypeBase64
-	DeidentifySourceTypePresignedURL                          = cdetect.DeidentifySourceTypePresignedURL
-	ReidentifySourceTypeBase64                                = cdetect.ReidentifySourceTypeBase64
-	ReidentifySourceTypePresignedURL                          = cdetect.ReidentifySourceTypePresignedURL
-	FileDataFormatUnknown                                     = cdetect.FileDataFormatUnknown
+	DeidentifySourceTypeBase64                                = cdetect.FlowDeidentifySourceTypeBase64
+	DeidentifySourceTypePresignedURL                          = cdetect.FlowDeidentifySourceTypePresignedURL
+	ReidentifySourceTypeBase64                                = cdetect.FlowReidentifySourceTypeBase64
+	ReidentifySourceTypePresignedURL                          = cdetect.FlowReidentifySourceTypePresignedURL
 	FileDataFormatMP3                                         = cdetect.FileDataFormatMP3
 	FileDataFormatWAV                                         = cdetect.FileDataFormatWAV
 	FileDataFormatPDF                                         = cdetect.FileDataFormatPDF
@@ -217,6 +214,7 @@ const (
 	MaskingMethodBlackbox                                     = cdetect.MaskingMethodBlackbox
 	GuardrailsValidationFailed                                = cdetect.GuardrailsValidationFailed
 	GuardrailsValidationPassed                                = cdetect.GuardrailsValidationPassed
+	GuardrailsValidationUnknown                               = cdetect.GuardrailsValidationUnknown
 	OperationDeidentifyString                                 = cdetect.OperationDeidentifyString
 	OperationDeidentifyFile                                   = cdetect.OperationDeidentifyFile
 	OperationGetRun                                           = cdetect.OperationGetRun
@@ -224,9 +222,6 @@ const (
 	OperationReidentifyFile                                   = cdetect.OperationReidentifyFile
 	OperationCheckGuardrails                                  = cdetect.OperationCheckGuardrails
 )
-
-// Deprecated: the server rejects DEFAULT in a redaction level. Use REDACTED, MASKED or PLAIN_TEXT.
-const RedactionTypeDefault = cdetect.RedactionTypeDefault
 
 // Ptr returns a pointer to v, for the optional *bool, *int and *float32 Detect options,
 // where nil leaves the value to the server:

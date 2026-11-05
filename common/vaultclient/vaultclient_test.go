@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -34,12 +35,17 @@ func testProfile() Profile {
 
 func TestResolveHttpConfigPrecedence(t *testing.T) {
 	vaultRetries, clientRetries := 2, 5
+	defaults := testProfile().Defaults
+	defaults.ConnectTimeout, defaults.ReadTimeout, defaults.WriteTimeout = 10*time.Second, 10*time.Second, 10*time.Second
 	got := ResolveHttpConfig(
-		config.HttpConfig{Timeout: 5 * time.Second, MaxRetries: &vaultRetries},
-		config.HttpConfig{Timeout: 9 * time.Second, MaxRetries: &clientRetries, MaxRetryDelay: time.Second},
-		testProfile().Defaults,
+		config.HttpConfig{Timeout: 5 * time.Second, MaxRetries: &vaultRetries, ReadTimeout: 2 * time.Second},
+		config.HttpConfig{Timeout: 9 * time.Second, MaxRetries: &clientRetries, MaxRetryDelay: time.Second, ReadTimeout: 3 * time.Second, ConnectTimeout: 4 * time.Second},
+		defaults,
 	)
-	want := ResolvedHttpConfig{Timeout: 5 * time.Second, MaxRetries: 2, InitialRetryDelay: 500 * time.Millisecond, MaxRetryDelay: time.Second}
+	want := ResolvedHttpConfig{
+		Timeout: 5 * time.Second, ConnectTimeout: 4 * time.Second, ReadTimeout: 2 * time.Second, WriteTimeout: 10 * time.Second,
+		MaxRetries: 2, InitialRetryDelay: 500 * time.Millisecond, MaxRetryDelay: time.Second,
+	}
 	if got != want {
 		t.Fatalf("got %+v, want %+v", got, want)
 	}
@@ -384,5 +390,102 @@ func TestRefreshAuthUsesTheCurrentCredentials(t *testing.T) {
 	b.SetClientSettings(ClientSettings{})
 	if _, err := b.RefreshAuth(context.Background(), call); err == nil {
 		t.Fatal("no credentials should fail")
+	}
+}
+
+func TestTransportsAreSharedPerTimeoutSet(t *testing.T) {
+	if transportFor(ResolvedHttpConfig{Timeout: time.Second}) != http.DefaultTransport {
+		t.Fatal("no per-attempt timeouts should use http.DefaultTransport")
+	}
+	resolved := ResolvedHttpConfig{ConnectTimeout: time.Second, ReadTimeout: 2 * time.Second, WriteTimeout: 3 * time.Second}
+	first, second := transportFor(resolved), transportFor(resolved)
+	if first != second {
+		t.Fatal("the same timeouts should share one transport")
+	}
+	if transportFor(ResolvedHttpConfig{ReadTimeout: time.Second}) == first {
+		t.Fatal("different timeouts should not share a transport")
+	}
+	if first.(*http.Transport).ResponseHeaderTimeout != 2*time.Second {
+		t.Fatal("ReadTimeout should bound the wait for the response headers")
+	}
+}
+
+func TestReadTimeoutBoundsTheWaitForTheResponse(t *testing.T) {
+	release := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/slow" {
+			<-release
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+	defer close(release)
+
+	client := NewHTTPClient(ResolvedHttpConfig{Timeout: 5 * time.Second, ConnectTimeout: time.Second, ReadTimeout: 50 * time.Millisecond, WriteTimeout: time.Second})
+	resp, err := client.Get(server.URL + "/fast")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = resp.Body.Close()
+	if _, err := client.Get(server.URL + "/slow"); err == nil || !strings.Contains(err.Error(), "timeout") {
+		t.Fatalf("err = %v, want a read timeout", err)
+	}
+}
+
+func TestConnectTimeoutFailsTheDial(t *testing.T) {
+	transport := newTransport(transportKey{connect: time.Nanosecond})
+	if _, err := transport.DialContext(context.Background(), "tcp", "127.0.0.1:1"); err == nil {
+		t.Fatal("dial should fail")
+	}
+}
+
+func TestWriteDeadlineConn(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = listener.Close() }()
+	go func() {
+		conn, err := listener.Accept()
+		if err == nil {
+			_, _ = io.Copy(io.Discard, conn)
+		}
+	}()
+
+	transport := newTransport(transportKey{write: time.Second})
+	conn, err := transport.DialContext(context.Background(), "tcp", listener.Addr().String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := conn.(*writeDeadlineConn); !ok {
+		t.Fatalf("conn = %T, want *writeDeadlineConn", conn)
+	}
+	if n, err := conn.Write([]byte("hi")); err != nil || n != 2 {
+		t.Fatalf("n = %d, err = %v", n, err)
+	}
+	_ = conn.Close()
+	if _, err := conn.Write([]byte("hi")); err == nil {
+		t.Fatal("a write on a closed conn should fail")
+	}
+
+	plain, err := newTransport(transportKey{read: time.Second}).DialContext(context.Background(), "tcp", listener.Addr().String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = plain.Close() }()
+	if _, ok := plain.(*writeDeadlineConn); ok {
+		t.Fatal("no WriteTimeout should leave the conn unwrapped")
+	}
+}
+
+func TestSignedURLClientDropsRetriesAndTheOverallTimeout(t *testing.T) {
+	api := NewHTTPClient(ResolvedHttpConfig{Timeout: time.Minute, MaxRetries: 3, ReadTimeout: 2 * time.Second})
+	upload := SignedURLClient(api)
+	if upload.Timeout != 0 || upload.Transport != transportFor(ResolvedHttpConfig{ReadTimeout: 2 * time.Second}) {
+		t.Fatalf("upload client = %+v", upload)
+	}
+	plain := &http.Client{Transport: http.DefaultTransport}
+	if SignedURLClient(plain).Transport != http.DefaultTransport {
+		t.Fatal("a non-retrying transport should be kept")
 	}
 }

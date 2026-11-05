@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/skyflowapi/skyflow-go/common/vaultclient"
 	fvconsts "github.com/skyflowapi/skyflow-go/flowvault/internal/constants"
 	api "github.com/skyflowapi/skyflow-go/flowvault/internal/generated"
 	fvhelpers "github.com/skyflowapi/skyflow-go/flowvault/internal/helpers"
@@ -48,10 +49,6 @@ func finish(method string, err *fverrors.SkyflowError) *fverrors.SkyflowError {
 	return nil
 }
 
-func hasRecords[T any](records func(*T) int) func(*T) bool {
-	return func(body *T) bool { return records(body) > 0 }
-}
-
 // Insert inserts records, optionally upserting on unique columns.
 func (v *VaultController) Insert(ctx context.Context, request fvcommon.InsertRequest, options fvcommon.InsertOptions) (*fvcommon.InsertResponse, *fverrors.SkyflowError) {
 	setup, err := v.prepare(ctx, fvconsts.METHOD_INSERT, fvconsts.OPERATION_INSERT, options.Interceptor, func() *fverrors.SkyflowError {
@@ -61,7 +58,7 @@ func (v *VaultController) Insert(ctx context.Context, request fvcommon.InsertReq
 		return nil, err
 	}
 	resp, callErr := setup.API.Records.WithRawResponse.InsertRecords(ctx, toWireInsert(setup.VaultID, request))
-	body, header, err := result(resp, callErr, hasRecords(func(b *api.InsertResponse) int { return len(b.Records) }))
+	body, header, err := result(resp, callErr, recordFallback)
 	if err := finish(fvconsts.METHOD_INSERT, err); err != nil {
 		return nil, err
 	}
@@ -77,7 +74,7 @@ func (v *VaultController) Update(ctx context.Context, request fvcommon.UpdateReq
 		return nil, err
 	}
 	resp, callErr := setup.API.Records.WithRawResponse.UpdateRecords(ctx, toWireUpdate(setup.VaultID, request))
-	body, header, err := result(resp, callErr, hasRecords(func(b *api.UpdateResponse) int { return len(b.Records) }))
+	body, header, err := result(resp, callErr, recordFallback)
 	if err := finish(fvconsts.METHOD_UPDATE, err); err != nil {
 		return nil, err
 	}
@@ -93,7 +90,7 @@ func (v *VaultController) Get(ctx context.Context, request fvcommon.GetRequest, 
 		return nil, err
 	}
 	resp, callErr := setup.API.Records.WithRawResponse.GetRecords(ctx, toWireGet(setup.VaultID, request))
-	body, header, err := result(resp, callErr, hasRecords(func(b *api.GetResponse) int { return len(b.Records) }))
+	body, header, err := result(resp, callErr, recordFallback)
 	if err := finish(fvconsts.METHOD_GET, err); err != nil {
 		return nil, err
 	}
@@ -109,7 +106,7 @@ func (v *VaultController) Delete(ctx context.Context, request fvcommon.DeleteReq
 		return nil, err
 	}
 	resp, callErr := setup.API.Records.WithRawResponse.DeleteRecords(ctx, toWireDelete(setup.VaultID, request))
-	body, header, err := result(resp, callErr, hasRecords(func(b *api.DeleteResponse) int { return len(b.Records) }))
+	body, header, err := result(resp, callErr, deleteFallback)
 	if err := finish(fvconsts.METHOD_DELETE, err); err != nil {
 		return nil, err
 	}
@@ -125,7 +122,7 @@ func (v *VaultController) Detokenize(ctx context.Context, request fvcommon.Detok
 		return nil, err
 	}
 	resp, callErr := setup.API.Tokens.WithRawResponse.Detokenize(ctx, toWireDetokenize(setup.VaultID, request))
-	body, header, err := result(resp, callErr, hasRecords(func(b *api.DetokenizeResponse) int { return len(b.Response) }))
+	body, header, err := result(resp, callErr, detokenizeFallback)
 	if err := finish(fvconsts.METHOD_DETOKENIZE, err); err != nil {
 		return nil, err
 	}
@@ -141,7 +138,7 @@ func (v *VaultController) GetTokens(ctx context.Context, request fvcommon.GetTok
 		return nil, err
 	}
 	resp, callErr := setup.API.Tokens.WithRawResponse.GetTokens(ctx, toWireGetTokens(setup.VaultID, request))
-	body, header, err := result(resp, callErr, hasRecords(func(b *api.GetTokensFromValuesResponse) int { return len(b.Records) }))
+	body, header, err := result(resp, callErr, getTokensFallback)
 	if err := finish(fvconsts.METHOD_GET_TOKENS, err); err != nil {
 		return nil, err
 	}
@@ -176,7 +173,8 @@ func (v *VaultController) Query(ctx context.Context, request fvcommon.QueryReque
 
 // UploadFiles uploads files into file columns. It requests a signed upload URL per column,
 // then PUTs each file to its URL, at most MAX_CONCURRENT_UPLOADS at once. The PUTs use
-// fvhelpers.UploadHTTPClient: no retries, no overall timeout and no SDK headers. A column
+// vaultclient.SignedURLClient: the vault's connect, read and write timeouts, but no retries,
+// no overall timeout and no SDK headers. A column
 // that can't be uploaded is reported as FAILED or SKIPPED; the other columns are unaffected.
 func (v *VaultController) UploadFiles(ctx context.Context, request fvcommon.UploadFilesRequest, options fvcommon.UploadFilesOptions) (*fvcommon.UploadFilesResponse, *fverrors.SkyflowError) {
 	files := make([][]fvhelpers.ResolvedFile, len(request.Records))
@@ -201,13 +199,17 @@ func (v *VaultController) UploadFiles(ctx context.Context, request fvcommon.Uplo
 		return nil, err
 	}
 	resp, callErr := setup.API.Files.WithRawResponse.UploadFiles(ctx, toWireUploadFiles(setup.VaultID, request, files))
-	body, header, err := result(resp, callErr, hasRecords(func(b *api.FileUploadResponse) int { return len(b.Records) }))
+	// Unlike the record operations, a non-2xx response is an error even when it carries
+	// records (as in the other SDKs): no record got a signed URL, so nothing was uploaded.
+	// apiError lifts the record errors into the message.
+	body, header, err := result[api.FileUploadResponse](resp, callErr, nil)
 	if err := finish(fvconsts.METHOD_UPLOAD_FILES, err); err != nil {
 		return nil, err
 	}
 
 	// Records come back in request order, so record i holds the signed URLs for request record i.
 	records := make([]fvcommon.UploadFilesResponseRecord, len(body.Records))
+	uploadClient := vaultclient.SignedURLClient(setup.HTTPClient)
 	var uploads []func()
 	for i, wireRecord := range body.Records {
 		if wireRecord == nil {
@@ -217,7 +219,7 @@ func (v *VaultController) UploadFiles(ctx context.Context, request fvcommon.Uplo
 		records[i] = fvcommon.UploadFilesResponseRecord{
 			SkyflowId: wireRecord.SkyflowID,
 			TableName: wireRecord.TableName,
-			HttpCode:  wireRecord.HTTPCode,
+			HttpCode:  recordHttpCode(wireRecord.HTTPCode, recordErr),
 			Error:     recordErr,
 			RequestId: fvhelpers.RequestIdFor(header, recordErr),
 		}
@@ -239,7 +241,7 @@ func (v *VaultController) UploadFiles(ctx context.Context, request fvcommon.Uplo
 				continue
 			}
 			uploads = append(uploads, func() {
-				columnResult.UploadStatus, columnResult.Error = fvhelpers.PutFile(ctx, fvhelpers.UploadHTTPClient(), signedURL, file)
+				columnResult.UploadStatus, columnResult.Error = fvhelpers.PutFile(ctx, uploadClient, signedURL, file)
 			})
 		}
 	}
@@ -256,7 +258,7 @@ func (v *VaultController) DeleteFiles(ctx context.Context, request fvcommon.Dele
 		return nil, err
 	}
 	resp, callErr := setup.API.Files.WithRawResponse.DeleteFiles(ctx, toWireDeleteFiles(setup.VaultID, request))
-	body, header, err := result(resp, callErr, hasRecords(func(b *api.FileDeleteResponse) int { return len(b.Records) }))
+	body, header, err := result(resp, callErr, deleteFilesFallback)
 	if err := finish(fvconsts.METHOD_DELETE_FILES, err); err != nil {
 		return nil, err
 	}
