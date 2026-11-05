@@ -13,7 +13,13 @@ import (
 )
 
 /**
- * This example re-identifies tokens in a string with the Detect V2 API.
+ * This example re-identifies vault tokens in a string with the Detect API.
+ *
+ * Only vault tokens can be re-identified: values de-identified with
+ * DeidentificationTypeVaultToken are stored in the vault, so their tokens map back to the
+ * original values. Placeholders such as [NAME_1] (ENTITY_UNIQUE_COUNTER) or masks are not
+ * stored and can't be reversed. So this example first de-identifies the text into vault
+ * tokens, then re-identifies the result.
  *
  * Without RedactionLevel every token is replaced by its original value. In a SkyVault
  * vault, a RedactionLevel selects tokens by EntityName and shows them through a
@@ -22,8 +28,9 @@ import (
  * Steps:
  * 1. Set up credentials and the vault config.
  * 2. Configure the Skyflow client.
- * 3. Re-identify the string.
- * 4. Handle the response and errors.
+ * 3. De-identify the text into vault tokens.
+ * 4. Re-identify the tokens.
+ * 5. Handle the response and errors.
  */
 func main() {
 	// Step 1: Set up credentials and the vault config
@@ -47,19 +54,37 @@ func main() {
 		return
 	}
 
-	// Step 3: Re-identify the string
-	response, err := service.ReidentifyString(context.Background(), common.ReidentifyStringRequest{
-		Text: "My name is [NAME_1].",
-		RedactionLevel: []common.RedactionLevel{
-			{EntityName: common.EntityTypeName, RedactionType: common.PLAIN_TEXT},
-			{EntityName: common.EntityTypeEmailAddress, RedactionType: common.MASKED},
+	// Step 3: De-identify the name and email into vault tokens. A stored configuration
+	// (ConfigurationId) that tokenizes into the vault works the same way.
+	deidentified, err := service.DeidentifyString(context.Background(), common.DeidentifyStringRequest{
+		Text: "My name is John Doe, and my email is johndoe@acme.com.",
+		Configuration: &common.DetectConfiguration{
+			Detect: &common.Detect{
+				Entities: []common.Entity{
+					{EntityType: common.EntityTypeName, DeidentificationType: common.DeidentificationTypeVaultToken, Destination: "<TABLE_NAME>.<COLUMN_NAME>"},
+					{EntityType: common.EntityTypeEmailAddress, DeidentificationType: common.DeidentificationTypeVaultToken, Destination: "<TABLE_NAME>.<COLUMN_NAME>"},
+				},
+			},
 		},
-	}, common.ReidentifyStringOptions{})
-
-	// Step 4: Handle the response and errors
+	}, common.DeidentifyStringOptions{})
 	if err != nil {
 		fmt.Println("Skyflow Specific Error:", err.GetHttpCode(), err.GetMessage(), err.GetRequestId(), err.GetDetails())
 		return
 	}
-	fmt.Println(response.ProcessedText) // My name is John Doe.
+
+	// Step 4: Re-identify the tokens: names in plain text, emails masked
+	response, err := service.ReidentifyString(context.Background(), common.ReidentifyStringRequest{
+		Text: deidentified.ProcessedText,
+		RedactionLevel: []common.RedactionRule{
+			common.RedactionLevel{EntityName: common.EntityTypeName, RedactionType: common.PLAIN_TEXT},
+			common.RedactionLevel{EntityName: common.EntityTypeEmailAddress, RedactionType: common.MASKED},
+		},
+	}, common.ReidentifyStringOptions{})
+
+	// Step 5: Handle the response and errors
+	if err != nil {
+		fmt.Println("Skyflow Specific Error:", err.GetHttpCode(), err.GetMessage(), err.GetRequestId(), err.GetDetails())
+		return
+	}
+	fmt.Println(response.ProcessedText) // My name is John Doe, and my email is the masked address.
 }

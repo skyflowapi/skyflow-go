@@ -19,6 +19,9 @@ import (
  * default.
  *
  *   Timeout            overall limit for one call, including retries and backoff. Default 60s.
+ *   ConnectTimeout     limit for opening a connection, per attempt. Default 10s.
+ *   ReadTimeout        limit for the server to start responding, per attempt. Default 10s.
+ *   WriteTimeout       limit for each write of the request, per attempt. Default 10s.
  *   MaxRetries         retries after the first attempt, for 408, 429 and 5xx. Default 0 (off).
  *   InitialRetryDelay  wait before the first retry. Default 500ms.
  *   MaxRetryDelay      the most the wait can grow to; it doubles each retry. Default 2000ms.
@@ -39,8 +42,9 @@ func main() {
 		Env:         common.PROD,
 		Credentials: common.Credentials{Path: "<PATH_TO_YOUR_CREDENTIALS_JSON>"},
 		// These win over the client-wide values below, for this vault only.
-		Timeout:    30 * time.Second,
-		MaxRetries: &vaultRetries,
+		Timeout:     30 * time.Second,
+		ReadTimeout: 20 * time.Second, // e.g. for slow queries
+		MaxRetries:  &vaultRetries,
 	}
 
 	// Step 2: Configure the Skyflow client with client-wide defaults.
@@ -49,6 +53,7 @@ func main() {
 	skyflowClient, err := client.NewSkyflow(
 		client.WithHttpConfig(common.HttpConfig{
 			Timeout:           60 * time.Second,
+			ConnectTimeout:    10 * time.Second,
 			MaxRetries:        &clientRetries,
 			InitialRetryDelay: 500 * time.Millisecond,
 			MaxRetryDelay:     4 * time.Second,

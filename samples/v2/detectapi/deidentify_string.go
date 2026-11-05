@@ -13,10 +13,11 @@ import (
 )
 
 /**
- * This example de-identifies sensitive data in a string with the Detect V2 API.
+ * This example de-identifies sensitive data in a string with the Detect API.
  *
  * The first call uses a stored configuration (created in Studio or through the REST API);
- * the second passes an inline configuration instead. Set exactly one of the two.
+ * the second passes an inline configuration instead. Both fields are optional and sent as
+ * given; with neither, the server decides whether the vault ID alone is enough.
  *
  * Steps:
  * 1. Set up credentials and the vault config.
@@ -91,5 +92,8 @@ func main() {
 		fmt.Printf("%-16s %-18s [%d,%d] %v\n", entity.EntityType, entity.Token,
 			entity.Location.StartIndex, entity.Location.EndIndex, entity.EntityScores)
 	}
-	fmt.Println("Words:", response.Metrics.WordCount, "Characters:", response.Metrics.CharacterCount)
+	// Metrics and each count are pointers: nil when the server leaves them out.
+	if m := response.Metrics; m != nil && m.WordCount != nil && m.CharacterCount != nil {
+		fmt.Println("Words:", *m.WordCount, "Characters:", *m.CharacterCount)
+	}
 }

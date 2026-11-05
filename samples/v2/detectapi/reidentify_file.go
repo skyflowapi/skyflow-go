@@ -16,7 +16,7 @@ import (
 )
 
 /**
- * This example re-identifies a file with the Detect V2 API. ReidentifyFile is synchronous:
+ * This example re-identifies a file with the Detect API. ReidentifyFile is synchronous:
  * there is no run to poll. The file is sent as base64 in Value, and the re-identified
  * output comes back in the response: the SDK writes nothing to disk.
  *
@@ -58,9 +58,9 @@ func main() {
 		DataSource: common.ReidentifySourceTypeBase64, // or ReidentifySourceTypePresignedURL with a URL in Value
 		Value:      base64.StdEncoding.EncodeToString(content),
 		DataFormat: common.FileDataFormatTXT,
-		RedactionLevel: []common.RedactionLevel{
-			{EntityName: common.EntityTypeName, RedactionType: common.PLAIN_TEXT},
-			{EntityName: common.EntityTypeEmailAddress, RedactionType: common.MASKED},
+		RedactionLevel: []common.RedactionRule{
+			common.RedactionLevel{EntityName: common.EntityTypeName, RedactionType: common.PLAIN_TEXT},
+			common.RedactionLevel{EntityName: common.EntityTypeEmailAddress, RedactionType: common.MASKED},
 		},
 	}, common.ReidentifyFileOptions{})
 
