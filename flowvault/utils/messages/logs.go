@@ -16,7 +16,7 @@ const (
 	REUSE_BEARER_TOKEN              = SDK_LOG_PREFIX + "Reusing the cached bearer token."
 	NIL_CONTEXT                     = SDK_LOG_PREFIX + "Context is nil."
 	BEARER_TOKEN_CANCELLED          = SDK_LOG_PREFIX + "The context ended before a bearer token was available."
-	EMPTY_CREDENTIALS               = SDK_LOG_PREFIX + "No credentials found in the vault config, client config or SKYFLOW_CREDENTIALS."
+	EMPTY_CREDENTIALS               = SDK_LOG_PREFIX + "No credentials found in the vault config, client config or SKYFLOW_CREDENTIALS (environment or .env file)."
 	METHOD_TRIGGERED                = SDK_LOG_PREFIX + "%s method triggered."
 	VALIDATING_REQUEST              = SDK_LOG_PREFIX + "Validating %s request."
 	REQUEST_RESOLVED                = SDK_LOG_PREFIX + "%s request resolved."

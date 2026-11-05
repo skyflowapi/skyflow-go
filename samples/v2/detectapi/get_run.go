@@ -13,7 +13,7 @@ import (
 )
 
 /**
- * This example looks up a de-identify file run with the Detect V2 API, using the run ID
+ * This example looks up a de-identify file run with the Detect API, using the run ID
  * DeidentifyFile returned.
  *
  * Steps:

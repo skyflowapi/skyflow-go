@@ -4,15 +4,17 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"regexp"
 	"strings"
 
 	skyflowError "github.com/skyflowapi/skyflow-go/common/errors"
 	"github.com/skyflowapi/skyflow-go/common/logger"
 )
 
+// apiKeyPattern is the API key format the Java and Python SDKs check.
+var apiKeyPattern = regexp.MustCompile(`^sky-[a-zA-Z0-9]{5}-[a-fA-F0-9]{32}$`)
+
 const (
-	apiKeyPrefix  = "sky-"
-	apiKeyLength  = 42
 	httpProtocol  = "http"
 	httpsProtocol = "https"
 	localhostHost = "localhost"
@@ -66,9 +68,10 @@ func (v Validator) baseVaultUrl(vaultConfig VaultConfig) string {
 	return vaultConfig.BaseVaultUrl
 }
 
-// ValidateHttpConfig checks that timeout, retry count and retry delays are not negative.
+// ValidateHttpConfig checks that timeouts, retry count and retry delays are not negative.
 func (v Validator) ValidateHttpConfig(httpConfig HttpConfig) *skyflowError.SkyflowError {
-	if httpConfig.Timeout < 0 || httpConfig.InitialRetryDelay < 0 || httpConfig.MaxRetryDelay < 0 ||
+	if httpConfig.Timeout < 0 || httpConfig.ConnectTimeout < 0 || httpConfig.ReadTimeout < 0 || httpConfig.WriteTimeout < 0 ||
+		httpConfig.InitialRetryDelay < 0 || httpConfig.MaxRetryDelay < 0 ||
 		(httpConfig.MaxRetries != nil && *httpConfig.MaxRetries < 0) {
 		return v.invalid(logNegativeHttpConfig, errNegativeHttpConfig)
 	}
@@ -122,7 +125,7 @@ func (v Validator) ValidateCredentials(credentials Credentials) *skyflowError.Sk
 	}
 
 	if credentials.ApiKey != "" {
-		if len(credentials.ApiKey) != apiKeyLength || !strings.Contains(credentials.ApiKey, apiKeyPrefix) {
+		if !apiKeyPattern.MatchString(credentials.ApiKey) {
 			return v.invalid(logInvalidApiKey, errInvalidApiKey)
 		}
 	}

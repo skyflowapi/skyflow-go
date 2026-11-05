@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -30,24 +31,34 @@ type localFile struct {
 var errNotRegularFile = errors.New(notRegularFile)
 
 // readLocalFile reads FileObject, or else FilePath. It returns nil when neither is set.
-func (c *Controller) readLocalFile(method, filePath string, fileObject *os.File) (*localFile, *skyflowError.SkyflowError) {
+func (c *Controller) readLocalFile(filePath string, fileObject *os.File) (*localFile, *skyflowError.SkyflowError) {
 	if fileObject == nil {
-		if blank(filePath) {
+		if filePath == "" {
 			return nil, nil
 		}
 		file, err := os.Open(filePath)
 		if err != nil {
-			return nil, c.invalid(errFileNotReadable, method, err.Error())
+			return nil, c.unreadable(err)
 		}
 		defer file.Close()
 		fileObject = file
 	}
 	content, err := readRegularFile(fileObject)
 	if err != nil {
-		return nil, c.invalid(errFileNotReadable, method, err.Error())
+		return nil, c.unreadable(err)
 	}
 	name := filepath.Base(fileObject.Name())
 	return &localFile{name: name, base64: base64.StdEncoding.EncodeToString(content), format: formatFromName(name)}, nil
+}
+
+// unreadable is the error for a local file that could not be read, with the Java SDK's
+// texts: one that does not exist or is not a regular file was not found; any other failure
+// (permissions, I/O) is not readable.
+func (c *Controller) unreadable(err error) *skyflowError.SkyflowError {
+	if errors.Is(err, fs.ErrNotExist) || errors.Is(err, errNotRegularFile) {
+		return c.invalid(errFileNotFound)
+	}
+	return c.invalid(errFileNotReadable)
 }
 
 // readRegularFile reads the whole of file, refusing anything but a regular file: a device or
@@ -92,19 +103,19 @@ func formatFromName(name string) FileDataFormat {
 // processed-entities-<input name>.json / processed-object-entities-<input name>.json for
 // entity outputs. If two outputs would share a name, the output type (or, when it is
 // unknown, a counter) goes before the extension, and a further clash adds -2, -3, and so on.
-// Only DeidentifyFile writes outputs, so outputType is the run's DeidentifySourceType.
-func (c *Controller) writeOutputs(outputs []FileOutput, outputType DeidentifySourceType, inputName, dir string) *skyflowError.SkyflowError {
+// Only DeidentifyFile writes outputs, so outputType is the run's DeidentifyFileSource.
+func (c *Controller) writeOutputs(outputs []FileOutput, outputType DeidentifyFileSource, inputName, dir string) *skyflowError.SkyflowError {
 	if len(outputs) == 0 {
 		return nil
 	}
-	if outputType != DeidentifySourceTypeBase64 {
-		logger.Info(fmt.Sprintf(c.logMsg(logOutputNotWritten), outputType))
+	if name := deidentifySourceName(outputType); name != base64Value {
+		logger.Info(fmt.Sprintf(c.logMsg(logOutputNotWritten), name))
 		return nil
 	}
-	if dir != "" {
-		if err := os.MkdirAll(dir, outputDirMode); err != nil {
-			return c.writeFailure(dir, err)
-		}
+	if blank(dir) {
+		dir = "" // a blank directory is the current one, as in the Java SDK
+	} else if err := os.MkdirAll(dir, outputDirMode); err != nil {
+		return c.writeFailure(dir, err)
 	}
 	stem := strings.TrimSuffix(inputName, filepath.Ext(inputName))
 	if stem == "" {

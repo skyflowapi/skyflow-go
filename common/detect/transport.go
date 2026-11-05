@@ -15,7 +15,7 @@ import (
 	"github.com/skyflowapi/skyflow-go/common/vaultclient"
 )
 
-// The Detect V2 endpoints are called through the Fern-generated client in
+// The Detect endpoints are called through the Fern-generated client in
 // common/internal/generated. convert.go maps between the public types and the generated ones.
 
 // newAPI builds the generated client for one call. Retries happen in call.HTTPClient, so the
@@ -78,7 +78,7 @@ func (c *Controller) callDeidentifyString(ctx context.Context, call *vaultclient
 	resp, err := newAPI(call).StringsV2.DeidentifyStringV2(ctx, &gen.DeidentifyStringRequestV2{
 		Text:            request.Text,
 		ConfigurationID: optString(request.ConfigurationId),
-		Configuration:   toGenConfiguration(request.Configuration, request.ConfigurationId, call.VaultID),
+		Configuration:   requestConfiguration(request.ConfigurationId, request.Configuration, call.VaultID),
 	})
 	if err != nil {
 		return nil, apiError(err)
@@ -91,11 +91,11 @@ func (c *Controller) callDeidentifyString(ctx context.Context, call *vaultclient
 
 func (c *Controller) callDeidentifyFile(ctx context.Context, call *vaultclient.Call, request DeidentifyFileRequest) (string, *skyflowError.SkyflowError) {
 	resp, err := newAPI(call).FilesV2.DeidentifyFileV2(ctx, &gen.DeidentifyFileRequestV2{
-		DataSource:      gen.DeidentifyFileRequestV2DataSource(request.DataSource),
+		DataSource:      gen.DeidentifyFileRequestV2DataSource(deidentifySourceName(request.DataSource)),
 		Value:           request.Value,
 		DataFormat:      optEnum[gen.DeidentifyFileRequestV2DataFormat](request.DataFormat),
 		ConfigurationID: optString(request.ConfigurationId),
-		Configuration:   toGenConfiguration(request.Configuration, request.ConfigurationId, call.VaultID),
+		Configuration:   requestConfiguration(request.ConfigurationId, request.Configuration, call.VaultID),
 	})
 	if err != nil {
 		return "", apiError(err)
@@ -114,7 +114,7 @@ func (c *Controller) callGetRun(ctx context.Context, call *vaultclient.Call, run
 	if resp == nil {
 		return nil, c.emptyResponse(methodGetRun)
 	}
-	return fromGenRun(runId, resp), nil
+	return fromGenRun(runId, resp, c.sources.Deidentify), nil
 }
 
 func (c *Controller) callReidentifyString(ctx context.Context, call *vaultclient.Call, request ReidentifyStringRequest) (*ReidentifyStringResponse, *skyflowError.SkyflowError) {
@@ -135,7 +135,7 @@ func (c *Controller) callReidentifyString(ctx context.Context, call *vaultclient
 func (c *Controller) callReidentifyFile(ctx context.Context, call *vaultclient.Call, request ReidentifyFileRequest) (*ReidentifyFileResponse, *skyflowError.SkyflowError) {
 	resp, err := newAPI(call).FilesV2.ReidentifyFileV2(ctx, &gen.ReidentifyFileRequestV2{
 		VaultID:        call.VaultID,
-		DataSource:     gen.ReidentifyFileRequestV2DataSource(request.DataSource),
+		DataSource:     gen.ReidentifyFileRequestV2DataSource(reidentifySourceName(request.DataSource)),
 		Value:          request.Value,
 		DataFormat:     optEnum[gen.ReidentifyFileRequestV2DataFormat](request.DataFormat),
 		RedactionLevel: toGenRedactionLevels(request.RedactionLevel),
@@ -147,8 +147,8 @@ func (c *Controller) callReidentifyFile(ctx context.Context, call *vaultclient.C
 		return nil, c.emptyResponse(methodReidentifyFile)
 	}
 	return &ReidentifyFileResponse{
-		Status:     DetectRunStatus(derefEnum(resp.Status)),
-		OutputType: ReidentifySourceType(derefEnum(resp.OutputType)),
+		Status:     runStatus(derefEnum(resp.Status)),
+		OutputType: resolveReidentifySource(derefEnum(resp.OutputType), c.sources.Reidentify),
 		Output:     fromGenOutputs(resp.Output),
 		Metrics:    fromGenMetrics(resp.Metrics),
 	}, nil
@@ -169,8 +169,8 @@ func (c *Controller) callCheckGuardrails(ctx context.Context, call *vaultclient.
 	}
 	return &CheckGuardrailsResponse{
 		Text:        resp.Text,
-		Validation:  GuardrailsValidation(resp.Validation),
-		Toxic:       deref(resp.Toxic),
-		DeniedTopic: deref(resp.DeniedTopic),
+		Validation:  knownOr(string(resp.Validation), guardrailsValidations, GuardrailsValidationUnknown),
+		Toxic:       resp.Toxic,
+		DeniedTopic: resp.DeniedTopic,
 	}, nil
 }

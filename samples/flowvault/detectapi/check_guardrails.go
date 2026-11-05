@@ -13,7 +13,7 @@ import (
 )
 
 /**
- * This example screens text for toxicity and denied topics with the Detect V2 API.
+ * This example screens text for toxicity and denied topics with the Detect API.
  *
  * Steps:
  * 1. Set up credentials and the vault config.
@@ -57,7 +57,8 @@ func main() {
 		return
 	}
 	if response.Validation == common.GuardrailsValidationFailed {
-		fmt.Println("Blocked. Toxic:", response.Toxic, "Denied topic:", response.DeniedTopic)
+		// Toxic and DeniedTopic are *bool: nil when the API leaves them out.
+		fmt.Println("Blocked. Toxic:", response.Toxic != nil && *response.Toxic, "Denied topic:", response.DeniedTopic != nil && *response.DeniedTopic)
 		return
 	}
 	fmt.Println("Passed")

@@ -21,6 +21,13 @@ const (
 	logBearerTokenExpired           = "Bearer token is expired."
 	logGenerateBearerTokenTriggered = "Generating a new bearer token."
 	logReuseBearerToken             = "Reusing the cached bearer token."
-	logEmptyCredentials             = "No credentials found in the vault config, client config or SKYFLOW_CREDENTIALS."
+	logEmptyCredentials             = "No credentials found in the vault config, client config or SKYFLOW_CREDENTIALS (environment or .env file)."
 	logBearerTokenCancelled         = "The context ended before a bearer token was available."
+
+	// The 401 retry; the same lines as the Java SDK.
+	logUnauthorizedRegenerating       = "Bearer token rejected with 401 and is past expiry; regenerating once and resending the request."
+	logUnauthorizedReusing            = "Bearer token rejected with 401; reusing the token another request already regenerated."
+	logUnauthorizedNotDue             = "Bearer token rejected with 401 but is not near expiry; not retrying."
+	logUnauthorizedAlreadyFailed      = "Bearer token rejected with 401; regeneration for this token already failed, not retrying."
+	logUnauthorizedRegenerationFailed = "Bearer token regeneration after 401 failed; returning the 401 response."
 )

@@ -29,7 +29,7 @@ func ValidateInsert(req fvcommon.InsertRequest) *fverrors.SkyflowError {
 	}
 	tableAtRequest := !blank(req.TableName)
 	for i, record := range req.Records {
-		if err := validateData(name, i, record.Data); err != nil {
+		if err := validateData(name, i, record.Data, record.Tokens); err != nil {
 			return err
 		}
 		tableAtRecord := !blank(record.TableName)
@@ -75,13 +75,58 @@ func validateUpdateType(name string, updateType fvcommon.UpdateType) *fverrors.S
 	return invalid(fverrors.INVALID_UPDATE_TYPE, name, string(updateType))
 }
 
-func validateData(name string, index int, data map[string]interface{}) *fverrors.SkyflowError {
+// validateData checks a record's data and tokens. As in the Java SDK, no column name or
+// value may be empty (nil or blank), and Tokens, when set, must not be empty.
+func validateData(name string, index int, data, tokens map[string]interface{}) *fverrors.SkyflowError {
 	if len(data) == 0 {
 		return invalid(fverrors.EMPTY_DATA, name, index)
 	}
-	for key := range data {
+	for key, value := range data {
 		if blank(key) {
 			return invalid(fverrors.EMPTY_KEY_IN_DATA, name, index)
+		}
+		if emptyValue(value) {
+			return invalid(fverrors.EMPTY_VALUE_IN_DATA, name, key, index)
+		}
+	}
+	if tokens == nil {
+		return nil
+	}
+	if len(tokens) == 0 {
+		return invalid(fverrors.EMPTY_RECORD_TOKENS, name, index)
+	}
+	for key, value := range tokens {
+		if blank(key) {
+			return invalid(fverrors.EMPTY_KEY_IN_TOKENS, name, index)
+		}
+		if emptyValue(value) {
+			return invalid(fverrors.EMPTY_VALUE_IN_TOKENS, name, key, index)
+		}
+	}
+	return nil
+}
+
+// emptyValue reports whether a data or token value is nil or a blank string.
+func emptyValue(value interface{}) bool {
+	if value == nil {
+		return true
+	}
+	text, isString := value.(string)
+	return isString && blank(text)
+}
+
+// validateColumns checks Get's Columns, which are optional: when set (non-nil) they must not
+// be empty or contain a blank column name, as in the Java SDK.
+func validateColumns(columns []string) *fverrors.SkyflowError {
+	if columns == nil {
+		return nil
+	}
+	if len(columns) == 0 {
+		return invalid(fverrors.EMPTY_GET_COLUMNS)
+	}
+	for _, column := range columns {
+		if blank(column) {
+			return invalid(fverrors.EMPTY_GET_COLUMN)
 		}
 	}
 	return nil
@@ -100,7 +145,7 @@ func ValidateUpdate(req fvcommon.UpdateRequest) *fverrors.SkyflowError {
 		if blank(record.SkyflowId) {
 			return invalid(fverrors.MISSING_SKYFLOW_ID, i)
 		}
-		if err := validateData(name, i, record.Data); err != nil {
+		if err := validateData(name, i, record.Data, record.Tokens); err != nil {
 			return err
 		}
 		tableAtRecord := !blank(record.TableName)
@@ -131,6 +176,9 @@ func ValidateGet(req fvcommon.GetRequest) *fverrors.SkyflowError {
 			if err := validateTableTarget(name, record.TableName, record.SkyflowIds, record.UniqueValues); err != nil {
 				return err
 			}
+			if err := validateColumns(record.Columns); err != nil {
+				return err
+			}
 			if err := validateColumnRedactions(name, record.ColumnRedactions); err != nil {
 				return err
 			}
@@ -138,6 +186,9 @@ func ValidateGet(req fvcommon.GetRequest) *fverrors.SkyflowError {
 		return nil
 	}
 	if err := validateTableTarget(name, req.TableName, req.SkyflowIds, req.UniqueValues); err != nil {
+		return err
+	}
+	if err := validateColumns(req.Columns); err != nil {
 		return err
 	}
 	return validateColumnRedactions(name, req.ColumnRedactions)

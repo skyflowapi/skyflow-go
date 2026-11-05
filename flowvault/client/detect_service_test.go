@@ -2,9 +2,12 @@ package client
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -43,7 +46,7 @@ var _ = Describe("Detect service", func() {
 		Expect(body["vaultId"]).To(Equal(testVaultID))
 	})
 
-	It("routes every Detect operation to its V2 endpoint", func() {
+	It("routes every Detect operation to its endpoint", func() {
 		var paths []string
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			paths = append(paths, r.URL.Path)
@@ -63,7 +66,7 @@ var _ = Describe("Detect service", func() {
 		service, err := client.Detect(testVaultID)
 		Expect(err).To(BeNil())
 		ctx := context.Background()
-		levels := []fvcommon.RedactionLevel{{TokenGroupName: "group", RedactionPattern: "pattern"}}
+		levels := []fvcommon.RedactionRule{fvcommon.RedactionLevel{TokenGroupName: "group", RedactionPattern: "pattern"}}
 
 		run, err := service.DeidentifyFile(ctx, fvcommon.DeidentifyFileRequest{
 			DataSource: fvcommon.DeidentifySourceTypeBase64, Value: "aGk=", DataFormat: fvcommon.FileDataFormatTXT, ConfigurationId: "cfg",
@@ -79,24 +82,74 @@ var _ = Describe("Detect service", func() {
 		Expect(err).To(BeNil())
 		Expect(text.ProcessedText).To(Equal("done"))
 
-		_, err = service.ReidentifyFile(ctx, fvcommon.ReidentifyFileRequest{
+		file, err := service.ReidentifyFile(ctx, fvcommon.ReidentifyFileRequest{
 			DataSource: fvcommon.ReidentifySourceTypeBase64, Value: "aGk=", DataFormat: fvcommon.FileDataFormatTXT, RedactionLevel: levels,
 		}, fvcommon.ReidentifyFileOptions{})
 		Expect(err).To(BeNil())
+		Expect(file.OutputType).To(Equal(fvcommon.ReidentifyFileSource(fvcommon.ReidentifySourceTypeBase64)))
 		Expect(paths).To(HaveLen(4))
 	})
 
-	It("does not accept a Skyflow ID as a file source", func() {
-		service, err := newTestClient().Detect(testVaultID)
+	It("uses the FlowVault source type, without SKYFLOW_ID", func() {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			if r.URL.Path == "/v2/detect/runs/sky" {
+				_, _ = w.Write([]byte(`{"status":"SUCCESS","outputType":"SKYFLOW_ID"}`))
+				return
+			}
+			_, _ = w.Write([]byte(`{"status":"SUCCESS","outputType":"PRESIGNED_URL"}`))
+		}))
+		defer server.Close()
+		client := newTestClient()
+		Expect(client.UpdateVaultConfig(fvcommon.VaultConfig{VaultId: testVaultID, BaseVaultUrl: server.URL})).To(BeNil())
+		service, err := client.Detect(testVaultID)
 		Expect(err).To(BeNil())
-		_, err = service.DeidentifyFile(context.Background(), fvcommon.DeidentifyFileRequest{
-			DataSource: "SKYFLOW_ID", Value: "id", ConfigurationId: "cfg",
-		}, fvcommon.DeidentifyFileOptions{})
-		Expect(err.GetMessage()).To(ContainSubstring(`DataSource "SKYFLOW_ID" is not supported. Specify BASE64 or PRESIGNED_URL.`))
+		ctx := context.Background()
 
-		_, err = service.DeidentifyFile(context.Background(), fvcommon.DeidentifyFileRequest{Value: "id", ConfigurationId: "cfg"}, fvcommon.DeidentifyFileOptions{})
-		Expect(err.GetMessage()).To(ContainSubstring("Specify BASE64 or PRESIGNED_URL."))
+		run, err := service.GetRun(ctx, fvcommon.GetRunRequest{RunId: "presigned"}, fvcommon.GetRunOptions{})
+		Expect(err).To(BeNil())
+		Expect(run.OutputType).To(Equal(fvcommon.DeidentifyFileSource(fvcommon.DeidentifySourceTypePresignedURL)))
+		// A value FlowVault does not offer is nil, as in the Java SDK.
+		run, err = service.GetRun(ctx, fvcommon.GetRunRequest{RunId: "sky"}, fvcommon.GetRunOptions{})
+		Expect(err).To(BeNil())
+		Expect(run.OutputType).To(BeNil())
+
+		_, err = service.DeidentifyFile(ctx, fvcommon.DeidentifyFileRequest{Value: "id"}, fvcommon.DeidentifyFileOptions{})
+		Expect(err.GetMessage()).To(ContainSubstring("Invalid DataSource in deidentify file request. Specify a DeidentifySourceType."))
 		Expect(err.GetMessage()).NotTo(ContainSubstring("SKYFLOW_ID"))
+	})
+
+	It("polls a local file's run and writes its outputs", func() {
+		output := base64.StdEncoding.EncodeToString([]byte("redacted"))
+		var sent map[string]interface{}
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			if r.URL.Path == "/v2/detect/deidentify/file" {
+				_ = json.NewDecoder(r.Body).Decode(&sent)
+				_, _ = w.Write([]byte(`{"runId":"run-1"}`))
+				return
+			}
+			_, _ = w.Write([]byte(`{"status":"SUCCESS","outputType":"BASE64","output":[{"processedFile":"` + output + `","processedFileType":"redacted_file","processedFileExtension":"txt"}]}`))
+		}))
+		defer server.Close()
+		client := newTestClient()
+		Expect(client.UpdateVaultConfig(fvcommon.VaultConfig{VaultId: testVaultID, BaseVaultUrl: server.URL})).To(BeNil())
+		service, err := client.Detect(testVaultID)
+		Expect(err).To(BeNil())
+		input := filepath.Join(GinkgoT().TempDir(), "notes.txt")
+		Expect(os.WriteFile(input, []byte("my name is x"), 0o600)).To(Succeed())
+		outDir := GinkgoT().TempDir()
+
+		resp, err := service.DeidentifyFile(context.Background(), fvcommon.DeidentifyFileRequest{FilePath: input},
+			fvcommon.DeidentifyFileOptions{Poll: &fvcommon.PollOptions{}, OutputDirectory: outDir})
+		Expect(err).To(BeNil())
+		Expect(resp.Status).To(Equal(fvcommon.DetectRunStatusSuccess))
+		Expect(resp.OutputType).To(Equal(fvcommon.DeidentifyFileSource(fvcommon.DeidentifySourceTypeBase64)))
+		Expect(sent["dataSource"]).To(Equal("BASE64"))
+		Expect(sent["dataFormat"]).To(Equal("txt"))
+		written, readErr := os.ReadFile(filepath.Join(outDir, "processed-notes.txt"))
+		Expect(readErr).To(BeNil())
+		Expect(string(written)).To(Equal("redacted"))
 	})
 
 	It("reports validation errors with the FlowVault SDK prefix", func() {
@@ -104,7 +157,7 @@ var _ = Describe("Detect service", func() {
 		Expect(err).To(BeNil())
 		_, err = service.DeidentifyString(context.Background(), fvcommon.DeidentifyStringRequest{Text: " "}, fvcommon.DeidentifyStringOptions{})
 		Expect(err.GetMessage()).To(ContainSubstring("Skyflow FlowVault Go SDK"))
-		Expect(err.GetMessage()).To(ContainSubstring("Text must not be empty"))
+		Expect(err.GetMessage()).To(ContainSubstring("Invalid text in deidentify string request."))
 	})
 
 	It("is removed with its vault", func() {

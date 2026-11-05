@@ -1,4 +1,4 @@
-// Package detect implements the Detect V2 APIs (/v2/detect/...) once for the Skyflow Go
+// Package detect implements the Detect APIs (/v2/detect/...) once for the Skyflow Go
 // SDKs: the request and response types, validation, the API calls, polling a file run and
 // writing its outputs. An SDK creates a Controller per vault on top of its vaultclient.Base
 // and re-exports the types from its own detect package, e.g. flowvault/detect.
@@ -20,14 +20,15 @@ import (
 	"github.com/skyflowapi/skyflow-go/common/vaultclient"
 )
 
-// Controller runs the Detect V2 operations for one vault. The vault ID comes from the
+// Controller runs the Detect operations for one vault. The vault ID comes from the
 // vault config: it is never part of a request.
 //
 // It is safe for concurrent use; settings changes on the Base apply to the next call.
 type Controller struct {
 	base *vaultclient.Base
-	// deidentifySources are the DeidentifyFileRequest DataSource values the SDK's vaults accept.
-	deidentifySources []DeidentifySourceType
+	// sources are the vault type's source sets; base64Source is its de-identify BASE64.
+	sources      VaultSources
+	base64Source DeidentifyFileSource
 	// sleep waits between run lookups; it returns false when ctx ends first. Replaced in tests.
 	sleep func(ctx context.Context, d time.Duration) bool
 }
@@ -35,39 +36,11 @@ type Controller struct {
 // NewController returns the detect controller for the vault that base serves. Share the
 // Base with the SDK's vault controller so both reuse one bearer token.
 //
-// deidentifySources are the DeidentifyFileRequest DataSource values the SDK's vaults accept;
-// any other is rejected before a call is made. None given accepts BASE64, SKYFLOW_ID and
-// PRESIGNED_URL.
-func NewController(base *vaultclient.Base, deidentifySources ...DeidentifySourceType) *Controller {
-	if len(deidentifySources) == 0 {
-		deidentifySources = []DeidentifySourceType{DeidentifySourceTypeBase64, DeidentifySourceTypeSkyflowID, DeidentifySourceTypePresignedURL}
-	}
-	return &Controller{base: base, deidentifySources: slices.Clone(deidentifySources), sleep: sleepContext}
-}
-
-// acceptsDeidentifySource reports whether the SDK's vaults accept source.
-func (c *Controller) acceptsDeidentifySource(source DeidentifySourceType) bool {
-	return slices.Contains(c.deidentifySources, source)
-}
-
-// deidentifySourceList names the accepted de-identify sources for error messages.
-func (c *Controller) deidentifySourceList() string {
-	return sourceList(c.deidentifySources)
-}
-
-// reidentifySources are the ReidentifyFileRequest DataSource values every vault accepts.
-var reidentifySources = []ReidentifySourceType{ReidentifySourceTypeBase64, ReidentifySourceTypePresignedURL}
-
-// sourceList names sources for error messages, e.g. "BASE64, SKYFLOW_ID or PRESIGNED_URL".
-func sourceList[T ~string](sources []T) string {
-	names := make([]string, len(sources))
-	for i, source := range sources {
-		names[i] = string(source)
-	}
-	if len(names) == 1 {
-		return names[0]
-	}
-	return strings.Join(names[:len(names)-1], ", ") + " or " + names[len(names)-1]
+// sources are the vault type's source sets (FlowSources or SkySources). Response OutputType
+// values are resolved against them; a value not among them is nil.
+func NewController(base *vaultclient.Base, sources VaultSources) *Controller {
+	sources = VaultSources{Deidentify: slices.Clone(sources.Deidentify), Reidentify: slices.Clone(sources.Reidentify)}
+	return &Controller{base: base, sources: sources, base64Source: resolveDeidentifySource(base64Value, sources.Deidentify), sleep: sleepContext}
 }
 
 func sleepContext(ctx context.Context, d time.Duration) bool {
@@ -84,11 +57,9 @@ func sleepContext(ctx context.Context, d time.Duration) bool {
 func (c *Controller) errMsg(base string) string { return c.base.Profile().SDKPrefix + base }
 func (c *Controller) logMsg(base string) string { return c.base.Profile().LogPrefix + base }
 
-func (c *Controller) invalid(format string, args ...interface{}) *skyflowError.SkyflowError {
-	message := c.errMsg(format)
-	if len(args) > 0 {
-		message = fmt.Sprintf(message, args...)
-	}
+// invalid is the INVALID_INPUT error for a validation message, which takes no arguments.
+func (c *Controller) invalid(text string) *skyflowError.SkyflowError {
+	message := c.errMsg(text)
 	logger.Error(message)
 	return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, message)
 }
@@ -142,14 +113,14 @@ func (c *Controller) DeidentifyFile(ctx context.Context, request DeidentifyFileR
 			return err
 		}
 		var readErr *skyflowError.SkyflowError
-		input, readErr = c.readLocalFile(methodDeidentifyFile, request.FilePath, request.FileObject)
+		input, readErr = c.readLocalFile(request.FilePath, request.FileObject)
 		return readErr
 	})
 	if err != nil {
 		return nil, err
 	}
 	if input != nil {
-		request.DataSource, request.Value = DeidentifySourceTypeBase64, input.base64
+		request.DataSource, request.Value = c.base64Source, input.base64
 		if request.DataFormat == "" {
 			request.DataFormat = input.format
 		}
@@ -195,7 +166,7 @@ func (c *Controller) GetRun(ctx context.Context, request GetRunRequest, options 
 	if err != nil {
 		return nil, err
 	}
-	run, err := c.callGetRun(ctx, call, request.RunId)
+	run, err := c.callGetRun(ctx, call, strings.TrimSpace(request.RunId))
 	if err := c.finish(methodGetRun, err); err != nil {
 		return nil, err
 	}
@@ -207,9 +178,9 @@ func (c *Controller) GetRun(ctx context.Context, request GetRunRequest, options 
 func (c *Controller) ReidentifyString(ctx context.Context, request ReidentifyStringRequest, options ReidentifyStringOptions) (*ReidentifyStringResponse, *skyflowError.SkyflowError) {
 	call, err := c.prepare(ctx, methodReidentifyString, OperationReidentifyString, options.Interceptor, func() *skyflowError.SkyflowError {
 		if blank(request.Text) {
-			return c.invalid(errEmptyText, methodReidentifyString)
+			return c.invalid(errInvalidTextReidentifyString)
 		}
-		return c.validateRedactionLevels(methodReidentifyString, request.RedactionLevel)
+		return nil
 	})
 	if err != nil {
 		return nil, err
@@ -241,13 +212,9 @@ func (c *Controller) ReidentifyFile(ctx context.Context, request ReidentifyFileR
 func (c *Controller) CheckGuardrails(ctx context.Context, request CheckGuardrailsRequest, options CheckGuardrailsOptions) (*CheckGuardrailsResponse, *skyflowError.SkyflowError) {
 	call, err := c.prepare(ctx, methodCheckGuardrails, OperationCheckGuardrails, options.Interceptor, func() *skyflowError.SkyflowError {
 		if blank(request.Text) {
-			return c.invalid(errEmptyText, methodCheckGuardrails)
+			return c.invalid(errInvalidTextCheckGuardrails)
 		}
-		for _, topic := range request.DenyTopics {
-			if blank(topic) {
-				return c.invalid(errEmptyDenyTopic)
-			}
-		}
+		// CheckToxicity and DenyTopics are optional on the API and are sent as given.
 		return nil
 	})
 	if err != nil {

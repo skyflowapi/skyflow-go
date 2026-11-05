@@ -45,14 +45,14 @@ var _ = Describe("Detect", func() {
 		return client
 	}
 
-	It("calls the V2 endpoint with client credentials, custom headers and the vault ID", func() {
+	It("calls the Detect endpoint with client credentials, custom headers and the vault ID", func() {
 		client := newClient(WithCustomHeaders(map[common.CustomHeaderKey]string{common.SkyflowAccountId: "acc"}))
 		service, err := client.Detect() // first configured vault
 		Expect(err).To(BeNil())
 
 		resp, err := service.ReidentifyString(context.Background(), common.ReidentifyStringRequest{
 			Text:           "My name is [NAME_1].",
-			RedactionLevel: []common.RedactionLevel{{EntityName: common.EntityTypeName, RedactionType: common.PLAIN_TEXT}},
+			RedactionLevel: []common.RedactionRule{common.RedactionLevel{EntityName: common.EntityTypeName, RedactionType: common.PLAIN_TEXT}},
 		}, common.ReidentifyStringOptions{})
 		Expect(err).To(BeNil())
 		Expect(resp.ProcessedText).To(Equal("My name is John Doe."))
@@ -129,6 +129,9 @@ var _ = Describe("Detect", func() {
 			MaxRetries:        &retries,
 			InitialRetryDelay: 2 * time.Millisecond,
 			MaxRetryDelay:     9 * time.Millisecond,
+			ConnectTimeout:    3 * time.Second,
+			ReadTimeout:       4 * time.Second,
+			WriteTimeout:      5 * time.Second,
 		})
 		retries = 8 // the stored config keeps its own copy
 		got := service.base.Config()
@@ -140,14 +143,30 @@ var _ = Describe("Detect", func() {
 		Expect(*got.MaxRetries).To(Equal(3))
 		Expect(got.InitialRetryDelay).To(Equal(2 * time.Millisecond))
 		Expect(got.MaxRetryDelay).To(Equal(9 * time.Millisecond))
+		Expect(got.ConnectTimeout).To(Equal(3 * time.Second))
+		Expect(got.ReadTimeout).To(Equal(4 * time.Second))
+		Expect(got.WriteTimeout).To(Equal(5 * time.Second))
 
 		// Unset fields keep their values; Env is always applied.
 		client.updateDetect(service, common.VaultConfig{VaultId: vaultId})
 		kept := service.base.Config()
 		Expect(kept.Timeout).To(Equal(7 * time.Second))
 		Expect(kept.MaxRetryDelay).To(Equal(9 * time.Millisecond))
+		Expect(kept.ReadTimeout).To(Equal(4 * time.Second))
 		Expect(kept.BaseVaultURL).To(Equal("https://legacy.example.com"))
 		Expect(kept.Env).To(Equal(common.PROD))
+	})
+
+	It("sends a SkyVault source type, SKYFLOW_ID included", func() {
+		service, err := newClient().Detect(vaultId)
+		Expect(err).To(BeNil())
+		_, _ = service.DeidentifyFile(context.Background(), common.DeidentifyFileRequest{
+			DataSource: common.DeidentifySourceTypeSkyflowID, Value: "sid",
+		}, common.DeidentifyFileOptions{})
+		Expect(path).To(Equal("/v2/detect/deidentify/file"))
+		Expect(body["dataSource"]).To(Equal("SKYFLOW_ID"))
+		// With neither configuration source, a configuration holding only the vault ID is sent.
+		Expect(body["configuration"]).To(Equal(map[string]interface{}{"vaultId": vaultId}))
 	})
 
 	It("reports validation errors with the v2 SDK prefix", func() {
@@ -155,7 +174,7 @@ var _ = Describe("Detect", func() {
 		Expect(err).To(BeNil())
 		_, err = service.DeidentifyString(context.Background(), common.DeidentifyStringRequest{Text: " ", ConfigurationId: "c"}, common.DeidentifyStringOptions{})
 		Expect(err.GetMessage()).To(ContainSubstring("Skyflow Go SDK v2"))
-		Expect(err.GetMessage()).To(ContainSubstring("Text must not be empty"))
+		Expect(err.GetMessage()).To(ContainSubstring("Invalid text in deidentify string request."))
 	})
 
 	It("rejects invalid client headers and expired tokens with v2's messages", func() {
@@ -183,13 +202,13 @@ var _ = Describe("Detect", func() {
 		ctx := context.Background()
 
 		_, err = service.DeidentifyFile(ctx, common.DeidentifyFileRequest{}, common.DeidentifyFileOptions{})
-		Expect(err.GetMessage()).To(ContainSubstring("DeidentifyFile failed. Set exactly one of Value, FilePath or FileObject."))
+		Expect(err.GetMessage()).To(ContainSubstring("Specify one of FilePath, FileObject or Value in deidentify file request."))
 		_, err = service.GetRun(ctx, common.GetRunRequest{}, common.GetRunOptions{})
-		Expect(err.GetMessage()).To(ContainSubstring("RunId must not be empty"))
+		Expect(err.GetMessage()).To(ContainSubstring("Invalid RunId in get run request."))
 		_, err = service.ReidentifyFile(ctx, common.ReidentifyFileRequest{}, common.ReidentifyFileOptions{})
-		Expect(err.GetMessage()).To(ContainSubstring("ReidentifyFile failed. DataSource is required."))
+		Expect(err.GetMessage()).To(ContainSubstring("Invalid DataSource in reidentify file request."))
 		_, err = service.CheckGuardrails(ctx, common.CheckGuardrailsRequest{}, common.CheckGuardrailsOptions{})
-		Expect(err.GetMessage()).To(ContainSubstring("CheckGuardrails failed. Text must not be empty."))
+		Expect(err.GetMessage()).To(ContainSubstring("Invalid text in check guardrails request."))
 		Expect(path).To(BeEmpty())
 	})
 

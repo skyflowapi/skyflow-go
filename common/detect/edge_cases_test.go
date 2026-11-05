@@ -29,7 +29,7 @@ func allOperations(dir string) map[string]detectCall {
 			return err
 		},
 		"DeidentifyFile": func(c *Controller) *skyflowError.SkyflowError {
-			_, err := c.DeidentifyFile(ctx, DeidentifyFileRequest{Value: "v", DataSource: DeidentifySourceTypeBase64, ConfigurationId: "cfg"}, DeidentifyFileOptions{})
+			_, err := c.DeidentifyFile(ctx, DeidentifyFileRequest{Value: "v", DataSource: SkyDeidentifySourceTypeBase64, ConfigurationId: "cfg"}, DeidentifyFileOptions{})
 			return err
 		},
 		"GetRun": func(c *Controller) *skyflowError.SkyflowError {
@@ -41,7 +41,7 @@ func allOperations(dir string) map[string]detectCall {
 			return err
 		},
 		"ReidentifyFile": func(c *Controller) *skyflowError.SkyflowError {
-			_, err := c.ReidentifyFile(ctx, ReidentifyFileRequest{Value: "v", DataSource: ReidentifySourceTypeBase64}, ReidentifyFileOptions{})
+			_, err := c.ReidentifyFile(ctx, ReidentifyFileRequest{Value: "v", DataSource: SkyReidentifySourceTypeBase64}, ReidentifyFileOptions{})
 			return err
 		},
 		"CheckGuardrails": func(c *Controller) *skyflowError.SkyflowError {
@@ -100,31 +100,23 @@ func TestValidationFailuresPerOperation(t *testing.T) {
 		want string
 		call func() *skyflowError.SkyflowError
 	}{
-		{"reidentify string, blank text", fmt.Sprintf(errEmptyText, methodReidentifyString), func() *skyflowError.SkyflowError {
+		{"reidentify string, blank text", errInvalidTextReidentifyString, func() *skyflowError.SkyflowError {
 			_, err := c.ReidentifyString(ctx, ReidentifyStringRequest{Text: " "}, ReidentifyStringOptions{})
 			return err
 		}},
-		{"guardrails, empty text", fmt.Sprintf(errEmptyText, methodCheckGuardrails), func() *skyflowError.SkyflowError {
+		{"guardrails, empty text", errInvalidTextCheckGuardrails, func() *skyflowError.SkyflowError {
 			_, err := c.CheckGuardrails(ctx, CheckGuardrailsRequest{Text: ""}, CheckGuardrailsOptions{})
 			return err
 		}},
-		{"reidentify file, no data source", fmt.Sprintf(errMissingReidentifySource, methodReidentifyFile, "BASE64 or PRESIGNED_URL"), func() *skyflowError.SkyflowError {
+		{"reidentify file, no data source", errInvalidReidentifyDataSource, func() *skyflowError.SkyflowError {
 			_, err := c.ReidentifyFile(ctx, ReidentifyFileRequest{Value: "v"}, ReidentifyFileOptions{})
 			return err
 		}},
-		{"reidentify file, unsupported data source", fmt.Sprintf(errUnsupportedReidentifySource, methodReidentifyFile, "SKYFLOW_ID", "BASE64 or PRESIGNED_URL"), func() *skyflowError.SkyflowError {
-			_, err := c.ReidentifyFile(ctx, ReidentifyFileRequest{DataSource: "SKYFLOW_ID", Value: "v"}, ReidentifyFileOptions{})
+		{"reidentify file, blank value", errInvalidReidentifyValue, func() *skyflowError.SkyflowError {
+			_, err := c.ReidentifyFile(ctx, ReidentifyFileRequest{DataSource: SkyReidentifySourceTypeBase64, Value: " "}, ReidentifyFileOptions{})
 			return err
 		}},
-		{"reidentify file, blank value", fmt.Sprintf(errEmptyValue, methodReidentifyFile), func() *skyflowError.SkyflowError {
-			_, err := c.ReidentifyFile(ctx, ReidentifyFileRequest{DataSource: ReidentifySourceTypeBase64, Value: " "}, ReidentifyFileOptions{})
-			return err
-		}},
-		{"reidentify file, redaction level without a source", fmt.Sprintf(errRedactionSource, methodReidentifyFile, 0), func() *skyflowError.SkyflowError {
-			_, err := c.ReidentifyFile(ctx, ReidentifyFileRequest{Value: "v", DataSource: ReidentifySourceTypeBase64, RedactionLevel: []RedactionLevel{{RedactionType: RedactionTypeMasked}}}, ReidentifyFileOptions{})
-			return err
-		}},
-		{"deidentify file, value without data source", fmt.Sprintf(errMissingDeidentifySource, methodDeidentifyFile, "BASE64, SKYFLOW_ID or PRESIGNED_URL"), func() *skyflowError.SkyflowError {
+		{"deidentify file, value without data source", errInvalidDeidentifyDataSource, func() *skyflowError.SkyflowError {
 			_, err := c.DeidentifyFile(ctx, DeidentifyFileRequest{Value: "v", ConfigurationId: "cfg"}, DeidentifyFileOptions{})
 			return err
 		}},
@@ -143,7 +135,7 @@ func TestDeidentifyFileReturnsPollErrors(t *testing.T) {
 	// No response registered for the run lookup: the fake answers 500.
 	c, _ := newTestController(f)
 
-	resp, err := c.DeidentifyFile(context.Background(), DeidentifyFileRequest{Value: "v", DataSource: DeidentifySourceTypeBase64, ConfigurationId: "cfg"},
+	resp, err := c.DeidentifyFile(context.Background(), DeidentifyFileRequest{Value: "v", DataSource: SkyDeidentifySourceTypeBase64, ConfigurationId: "cfg"},
 		DeidentifyFileOptions{Poll: &PollOptions{}})
 	// The run exists on the server, so its ID comes back with the error.
 	if err == nil || resp == nil || resp.RunId != "run-1" || resp.Status != "" || err.GetHttpCode() != "500" || err.GetRequestId() != "req-123" {
@@ -160,7 +152,7 @@ func TestDeidentifyFileKeepsRunIdWhenCancelledDuringALookup(t *testing.T) {
 	// The pause completes but cancels ctx, so the next lookup's request fails.
 	c.sleep = func(context.Context, time.Duration) bool { cancel(); return true }
 
-	resp, err := c.DeidentifyFile(ctx, DeidentifyFileRequest{Value: "v", DataSource: DeidentifySourceTypeBase64},
+	resp, err := c.DeidentifyFile(ctx, DeidentifyFileRequest{Value: "v", DataSource: SkyDeidentifySourceTypeBase64, ConfigurationId: "cfg"},
 		DeidentifyFileOptions{Poll: &PollOptions{}})
 	if err == nil || resp == nil || resp.RunId != "run-1" {
 		t.Fatalf("resp = %+v, err = %v", resp, err)
@@ -199,10 +191,10 @@ func TestWriteOutputs(t *testing.T) {
 
 	t.Run("nothing to write", func(t *testing.T) {
 		dir := filepath.Join(t.TempDir(), "never-created")
-		if err := c.writeOutputs(nil, DeidentifySourceTypeBase64, "a.pdf", dir); err != nil {
+		if err := c.writeOutputs(nil, SkyDeidentifySourceTypeBase64, "a.pdf", dir); err != nil {
 			t.Fatal(err)
 		}
-		if err := c.writeOutputs([]FileOutput{pdf}, DeidentifySourceTypePresignedURL, "a.pdf", dir); err != nil {
+		if err := c.writeOutputs([]FileOutput{pdf}, SkyDeidentifySourceTypePresignedURL, "a.pdf", dir); err != nil {
 			t.Fatal(err)
 		}
 		if _, err := os.Stat(dir); !os.IsNotExist(err) {
@@ -210,9 +202,19 @@ func TestWriteOutputs(t *testing.T) {
 		}
 	})
 
+	t.Run("a blank directory is the current one", func(t *testing.T) {
+		chdir(t, t.TempDir())
+		if err := c.writeOutputs([]FileOutput{pdf}, SkyDeidentifySourceTypeBase64, "b.pdf", "  "); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := os.Stat("processed-b.pdf"); err != nil {
+			t.Fatal(err)
+		}
+	})
+
 	t.Run("current directory, default name, empty outputs skipped", func(t *testing.T) {
 		chdir(t, t.TempDir())
-		if err := c.writeOutputs([]FileOutput{{}, pdf}, DeidentifySourceTypeBase64, ".pdf", ""); err != nil {
+		if err := c.writeOutputs([]FileOutput{{}, pdf}, SkyDeidentifySourceTypeBase64, ".pdf", ""); err != nil {
 			t.Fatal(err)
 		}
 		got, err := os.ReadFile("processed-output.pdf")
@@ -229,7 +231,7 @@ func TestWriteOutputs(t *testing.T) {
 		bad := FileOutput{ProcessedFile: "%%%", ProcessedFileExtension: FileDataFormatTXT}
 		dir := t.TempDir()
 		target := filepath.Join(dir, "processed-a.txt")
-		if err := c.writeOutputs([]FileOutput{bad}, DeidentifySourceTypeBase64, "a.txt", dir); err == nil || !strings.Contains(err.GetMessage(), outputNotWritten(target)) {
+		if err := c.writeOutputs([]FileOutput{bad}, SkyDeidentifySourceTypeBase64, "a.txt", dir); err == nil || !strings.Contains(err.GetMessage(), outputNotWritten(target)) {
 			t.Fatalf("err = %v", err)
 		}
 	})
@@ -239,7 +241,7 @@ func TestWriteOutputs(t *testing.T) {
 		if err := os.Mkdir(filepath.Join(dir, "processed-a.pdf"), outputDirMode); err != nil {
 			t.Fatal(err)
 		}
-		if err := c.writeOutputs([]FileOutput{pdf}, DeidentifySourceTypeBase64, "a.pdf", dir); err == nil || !strings.Contains(err.GetMessage(), notRegularFile) {
+		if err := c.writeOutputs([]FileOutput{pdf}, SkyDeidentifySourceTypeBase64, "a.pdf", dir); err == nil || !strings.Contains(err.GetMessage(), notRegularFile) {
 			t.Fatalf("err = %v", err)
 		}
 	})
@@ -250,7 +252,7 @@ func TestWriteOutputs(t *testing.T) {
 		if err := os.WriteFile(target, []byte("old"), 0o644); err != nil {
 			t.Fatal(err)
 		}
-		if err := c.writeOutputs([]FileOutput{pdf}, DeidentifySourceTypeBase64, "a.pdf", dir); err != nil {
+		if err := c.writeOutputs([]FileOutput{pdf}, SkyDeidentifySourceTypeBase64, "a.pdf", dir); err != nil {
 			t.Fatal(err)
 		}
 		got, err := os.ReadFile(target)
@@ -272,7 +274,7 @@ func TestWriteOutputs(t *testing.T) {
 		if err := os.Symlink(elsewhere, filepath.Join(dir, "processed-a.pdf")); err != nil {
 			t.Skipf("symlinks not supported: %v", err)
 		}
-		if err := c.writeOutputs([]FileOutput{pdf}, DeidentifySourceTypeBase64, "a.pdf", dir); err == nil || !strings.Contains(err.GetMessage(), notRegularFile) {
+		if err := c.writeOutputs([]FileOutput{pdf}, SkyDeidentifySourceTypeBase64, "a.pdf", dir); err == nil || !strings.Contains(err.GetMessage(), notRegularFile) {
 			t.Fatalf("err = %v", err)
 		}
 		if got, err := os.ReadFile(elsewhere); err != nil || string(got) != "keep" {
@@ -297,7 +299,7 @@ func TestWriteOutputs(t *testing.T) {
 					t.Fatal(err)
 				}
 				t.Cleanup(func() { _ = os.Chmod(dir, outputDirMode) })
-				if err := c.writeOutputs([]FileOutput{pdf}, DeidentifySourceTypeBase64, "a.pdf", dir); err == nil || !strings.Contains(err.GetMessage(), outputNotWritten(target)) {
+				if err := c.writeOutputs([]FileOutput{pdf}, SkyDeidentifySourceTypeBase64, "a.pdf", dir); err == nil || !strings.Contains(err.GetMessage(), outputNotWritten(target)) {
 					t.Fatalf("err = %v", err)
 				}
 			})
@@ -309,7 +311,7 @@ func TestReadLocalFileRefusesNonRegularFiles(t *testing.T) {
 	c, _ := newTestController(newFakeDetect(t))
 	dir := t.TempDir()
 
-	if _, err := c.readLocalFile(methodDeidentifyFile, dir, nil); err == nil || !strings.Contains(err.GetMessage(), notRegularFile) {
+	if _, err := c.readLocalFile(dir, nil); err == nil || !strings.Contains(err.GetMessage(), errFileNotFound) {
 		t.Fatalf("file path: err = %v", err)
 	}
 
@@ -318,7 +320,7 @@ func TestReadLocalFileRefusesNonRegularFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer opened.Close()
-	if _, err := c.readLocalFile(methodDeidentifyFile, "", opened); err == nil || !strings.Contains(err.GetMessage(), notRegularFile) {
+	if _, err := c.readLocalFile("", opened); err == nil || !strings.Contains(err.GetMessage(), errFileNotFound) {
 		t.Fatalf("file object: err = %v", err)
 	}
 
@@ -327,7 +329,7 @@ func TestReadLocalFileRefusesNonRegularFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 	_ = closed.Close()
-	if _, err := c.readLocalFile(methodDeidentifyFile, "", closed); err == nil || !strings.Contains(err.GetMessage(), os.ErrClosed.Error()) {
+	if _, err := c.readLocalFile("", closed); err == nil || !strings.Contains(err.GetMessage(), errFileNotReadable) {
 		t.Fatalf("closed file object: err = %v", err)
 	}
 }
@@ -354,7 +356,7 @@ func chdir(t *testing.T, dir string) {
 func TestOutputFileNameWithoutTypeOrExtension(t *testing.T) {
 	used := map[string]bool{}
 	first := outputFileName("doc", FileOutput{}, used)
-	second := outputFileName("doc", FileOutput{ProcessedFileExtension: FileDataFormatUnknown}, used)
+	second := outputFileName("doc", FileOutput{ProcessedFileExtension: "unknown"}, used)
 	if first != "processed-doc.bin" || second != "processed-doc.1.bin" {
 		t.Fatalf("names = %q, %q", first, second)
 	}
@@ -410,7 +412,7 @@ func TestResponsesToleratePartialData(t *testing.T) {
 	c, _ := newTestController(f)
 
 	resp, err := c.DeidentifyString(context.Background(), DeidentifyStringRequest{Text: "x", Configuration: &DetectConfiguration{}}, DeidentifyStringOptions{})
-	if err != nil || len(resp.Entities) != 1 || resp.Entities[0].Token != "T" {
+	if err != nil || len(resp.Entities) != 1 || resp.Entities[0].Token != "T" || resp.Entities[0].EntityScores == nil {
 		t.Fatalf("resp = %+v, err = %v", resp, err)
 	}
 	if detect := f.last().body["configuration"].(map[string]interface{})["detect"]; detect != nil {
@@ -452,7 +454,7 @@ func TestDeidentifyFileRefreshesAuthForEachLookup(t *testing.T) {
 		return true
 	}
 
-	resp, err := c.DeidentifyFile(context.Background(), DeidentifyFileRequest{Value: "v", DataSource: DeidentifySourceTypeBase64},
+	resp, err := c.DeidentifyFile(context.Background(), DeidentifyFileRequest{Value: "v", DataSource: SkyDeidentifySourceTypeBase64, ConfigurationId: "cfg"},
 		DeidentifyFileOptions{Poll: &PollOptions{}})
 	if err != nil || resp.Status != DetectRunStatusSuccess {
 		t.Fatalf("resp = %+v, err = %v", resp, err)
@@ -473,7 +475,7 @@ func TestDeidentifyFileKeepsRunIdWhenAuthFailsDuringAWait(t *testing.T) {
 		return true
 	}
 
-	resp, err := c.DeidentifyFile(context.Background(), DeidentifyFileRequest{Value: "v", DataSource: DeidentifySourceTypeBase64},
+	resp, err := c.DeidentifyFile(context.Background(), DeidentifyFileRequest{Value: "v", DataSource: SkyDeidentifySourceTypeBase64, ConfigurationId: "cfg"},
 		DeidentifyFileOptions{Poll: &PollOptions{}})
 	if err == nil || resp == nil || resp.RunId != "run-1" {
 		t.Fatalf("resp = %+v, err = %v", resp, err)
@@ -499,27 +501,105 @@ func TestTransportErrorsKeepTheirCause(t *testing.T) {
 	}
 }
 
-func TestDeidentifyFileAcceptsOnlyTheSDKsSources(t *testing.T) {
+// The source rules are the Java SDK's: exactly one of FilePath, FileObject and Value, each
+// counted when set; Value then needs a DataSource and must not be blank. The DataSource is
+// sent as given, so the server decides whether its vault accepts it.
+func TestDeidentifyFileSourceRules(t *testing.T) {
 	f := newFakeDetect(t)
+	f.responses[pathDeidentifyFile] = []string{`{"runId":"run-1"}`}
 	c, _ := newTestController(f)
-	c = NewController(c.base, DeidentifySourceTypeBase64, DeidentifySourceTypePresignedURL)
+	c = NewController(c.base, FlowSources)
 	ctx := context.Background()
-
-	_, err := c.DeidentifyFile(ctx, DeidentifyFileRequest{Value: "v", ConfigurationId: "cfg"}, DeidentifyFileOptions{})
-	if want := fmt.Sprintf(errMissingDeidentifySource, methodDeidentifyFile, "BASE64 or PRESIGNED_URL"); err == nil || !strings.Contains(err.GetMessage(), want) {
-		t.Fatalf("missing source: err = %v", err)
+	file := filepath.Join(t.TempDir(), "in.txt")
+	if err := os.WriteFile(file, []byte("hi"), 0o600); err != nil {
+		t.Fatal(err)
 	}
-	_, err = c.DeidentifyFile(ctx, DeidentifyFileRequest{Value: "v", DataSource: DeidentifySourceTypeSkyflowID, ConfigurationId: "cfg"}, DeidentifyFileOptions{})
-	if want := fmt.Sprintf(errUnsupportedDeidentifySource, methodDeidentifyFile, DeidentifySourceTypeSkyflowID, "BASE64 or PRESIGNED_URL"); err == nil || !strings.Contains(err.GetMessage(), want) {
-		t.Fatalf("unsupported source: err = %v", err)
+	opened, err := os.Open(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = opened.Close() }()
+	var nilFlow *FlowDeidentifySourceType
+	var nilSky *SkyDeidentifySourceType
+	cases := []struct {
+		name    string
+		request DeidentifyFileRequest
+		want    string
+	}{
+		{"none", DeidentifyFileRequest{DataSource: FlowDeidentifySourceTypeBase64}, errMissingFileSource},
+		{"path and value", DeidentifyFileRequest{FilePath: file, Value: "v", DataSource: FlowDeidentifySourceTypeBase64}, errMultipleFileSources},
+		{"path and object", DeidentifyFileRequest{FilePath: file, FileObject: opened}, errMultipleFileSources},
+		{"object and blank value", DeidentifyFileRequest{FileObject: opened, Value: " "}, errMultipleFileSources},
+		{"value without data source", DeidentifyFileRequest{Value: "v"}, errInvalidDeidentifyDataSource},
+		{"value with an empty data source", DeidentifyFileRequest{Value: "v", DataSource: FlowDeidentifySourceType("")}, errInvalidDeidentifyDataSource},
+		{"value with a nil data source pointer", DeidentifyFileRequest{Value: "v", DataSource: nilFlow}, errInvalidDeidentifyDataSource},
+		{"value with a nil SkyVault data source pointer", DeidentifyFileRequest{Value: "v", DataSource: nilSky}, errInvalidDeidentifyDataSource},
+		{"blank value", DeidentifyFileRequest{Value: "  ", DataSource: FlowDeidentifySourceTypeBase64}, errInvalidDeidentifyValue},
+		{"missing file", DeidentifyFileRequest{FilePath: filepath.Join(t.TempDir(), "missing.txt")}, errFileNotFound},
+	}
+	for _, tc := range cases {
+		_, err := c.DeidentifyFile(ctx, tc.request, DeidentifyFileOptions{})
+		if err == nil || err.GetHttpCode() != string(skyflowError.INVALID_INPUT_CODE) || !strings.Contains(err.GetMessage(), tc.want) {
+			t.Errorf("%s: err = %v, want %q", tc.name, err, tc.want)
+		}
 	}
 	if len(f.requests) != 0 {
 		t.Fatalf("requests sent: %v", f.requests)
 	}
 
-	single := NewController(c.base, DeidentifySourceTypeBase64)
-	_, err = single.DeidentifyFile(ctx, DeidentifyFileRequest{Value: "v", ConfigurationId: "cfg"}, DeidentifyFileOptions{})
-	if want := fmt.Sprintf(errMissingDeidentifySource, methodDeidentifyFile, "BASE64"); err == nil || !strings.Contains(err.GetMessage(), want) {
-		t.Fatalf("single source: err = %v", err)
+	// A DataSource the vault type doesn't list is sent as given.
+	if _, err := c.DeidentifyFile(ctx, DeidentifyFileRequest{Value: "sid", DataSource: FlowDeidentifySourceType("SKYFLOW_ID")}, DeidentifyFileOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	if got := f.last().body["dataSource"]; got != "SKYFLOW_ID" {
+		t.Fatalf("dataSource = %v", got)
+	}
+	// A pointer to a source works too.
+	presigned := FlowDeidentifySourceTypePresignedURL
+	if _, err := c.DeidentifyFile(ctx, DeidentifyFileRequest{Value: "https://x", DataSource: &presigned}, DeidentifyFileOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	if got := f.last().body["dataSource"]; got != "PRESIGNED_URL" {
+		t.Fatalf("dataSource = %v", got)
+	}
+	// A blank OutputDirectory counts as unset, so it needs no Poll, as in the Java SDK.
+	if _, err := c.DeidentifyFile(ctx, DeidentifyFileRequest{Value: "v", DataSource: FlowDeidentifySourceTypeBase64}, DeidentifyFileOptions{OutputDirectory: " "}); err != nil {
+		t.Fatal(err)
+	}
+	// A local file is sent as the vault type's BASE64, ignoring DataSource.
+	if _, err := c.DeidentifyFile(ctx, DeidentifyFileRequest{FilePath: file, DataSource: FlowDeidentifySourceTypePresignedURL}, DeidentifyFileOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	if got := f.last().body["dataSource"]; got != "BASE64" {
+		t.Fatalf("local file dataSource = %v", got)
+	}
+}
+
+// A ReidentifyFile DataSource is sent as given, as in the Java SDK, whatever its value or
+// form; a missing one, including a nil pointer or an empty value, is rejected.
+func TestReidentifyFileDataSource(t *testing.T) {
+	f := newFakeDetect(t)
+	f.responses[pathReidentifyFile] = []string{`{"status":"SUCCESS","outputType":"BASE64"}`}
+	c, _ := newTestController(f)
+	ctx := context.Background()
+	presigned := SkyReidentifySourceTypePresignedURL
+	for source, want := range map[ReidentifyFileSource]string{
+		SkyReidentifySourceType("SKYFLOW_ID"): "SKYFLOW_ID",
+		FlowReidentifySourceTypeBase64:        "BASE64",
+		&presigned:                            "PRESIGNED_URL",
+	} {
+		if _, err := c.ReidentifyFile(ctx, ReidentifyFileRequest{DataSource: source, Value: "v"}, ReidentifyFileOptions{}); err != nil {
+			t.Fatal(err)
+		}
+		if got := f.last().body["dataSource"]; got != want {
+			t.Fatalf("dataSource = %v, want %s", got, want)
+		}
+	}
+	var nilFlow *FlowReidentifySourceType
+	var nilSky *SkyReidentifySourceType
+	for _, source := range []ReidentifyFileSource{nil, nilFlow, nilSky, FlowReidentifySourceType("")} {
+		if _, err := c.ReidentifyFile(ctx, ReidentifyFileRequest{DataSource: source, Value: "v"}, ReidentifyFileOptions{}); err == nil || !strings.Contains(err.GetMessage(), errInvalidReidentifyDataSource) {
+			t.Fatalf("%#v: err = %v", source, err)
+		}
 	}
 }

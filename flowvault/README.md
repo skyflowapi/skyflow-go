@@ -155,15 +155,15 @@ A `common.Credentials` value holds one of four credential types:
 | --- | --- | --- |
 | `ApiKey` | An API key | The API key |
 | `Token` | A bearer token you generated | The token as is. If the token has expired, the call returns a `SkyflowError` without contacting the vault |
-| `Path` | The path to a service account credentials JSON file | A bearer token it generates from the file. It reuses the token until 2 minutes before it expires, then generates a new one |
+| `Path` | The path to a service account credentials JSON file | A bearer token it generates from the file. It reuses the token until 2 minutes before it expires, then generates a new one. If the vault rejects the token with `401` when it's close to expiring, the SDK generates a new token and sends the request once more |
 | `CredentialsString` | The contents of a service account credentials JSON file, as a string | A bearer token it generates from the string, reused the same way as for `Path` |
 
-Set exactly one of these fields. `WithCredentials`, `AddSkyflowCredentials`, and `UpdateSkyflowCredentials` return a `SkyflowError` when the `Credentials` value sets more than one of them, or none. `WithVaults`, `AddVaultConfig`, and `UpdateVaultConfig` apply the same check to a vault's `Credentials` when you set any. A vault config with no `Credentials` is valid. An `ApiKey` must be 42 characters long and contain `sky-`.
+Set exactly one of these fields. `WithCredentials`, `AddSkyflowCredentials`, and `UpdateSkyflowCredentials` return a `SkyflowError` when the `Credentials` value sets more than one of them, or none. `WithVaults`, `AddVaultConfig`, and `UpdateVaultConfig` apply the same check to a vault's `Credentials` when you set any. A vault config with no `Credentials` is valid. An `ApiKey` must have the form `sky-<5 letters or digits>-<32 hexadecimal characters>`.
 
 With `Path` or `CredentialsString`, you can also shape the tokens the SDK generates:
 
 - `Roles` limits each token to the listed role IDs. If you set `Roles`, it needs at least one role ID, and none can be empty.
-- `Context` embeds a context value in each token.
+- `Context` embeds a context value in each token, as a `string` or a `map[string]interface{}`.
 
 ```go
 credentials := common.Credentials{
@@ -178,7 +178,7 @@ For each vault, the SDK uses the first of these that's set:
 
 1. `Credentials` in the vault's `VaultConfig`.
 2. Client-level credentials, set with `client.WithCredentials` or `AddSkyflowCredentials`.
-3. The `SKYFLOW_CREDENTIALS` environment variable, read as a service account credentials JSON string.
+3. The `SKYFLOW_CREDENTIALS` environment variable, read as a service account credentials JSON string. If the environment doesn't set it, the SDK reads `SKYFLOW_CREDENTIALS` from a `.env` file in the working directory. The SDK only reads the file and doesn't load it into the environment.
 
 If none is set, the call returns a `SkyflowError`.
 
@@ -213,9 +213,9 @@ Describe each vault with a `common.VaultConfig`:
 | `VaultId` | Yes | The vault's ID. |
 | `ClusterId` | Yes, unless `BaseVaultUrl` is set | The cluster ID from the vault URL `https://<CLUSTER_ID>.skyvault.skyflowapis.com`. |
 | `Env` | No | The Skyflow environment: `common.PROD`, `common.SANDBOX`, `common.STAGE`, or `common.DEV`. When you leave it unset, the SDK uses `common.PROD`. |
-| `BaseVaultUrl` | No | A full base URL for the vault. When it's set, the SDK uses it instead of building the URL from `ClusterId` and `Env`. It must use `https`. The SDK accepts `http` only for `localhost` and loopback addresses, such as `127.0.0.1`. |
+| `BaseVaultUrl` | No | A full base URL for the vault. When it's set, the SDK uses it instead of building the URL from `ClusterId` and `Env`. It must use `https`. The SDK accepts `http` only for `localhost` and loopback addresses, such as `127.0.0.1`. `BaseVaultURL` is a deprecated alias. |
 | `Credentials` | No | Credentials for this vault only. See [Where to set credentials](#where-to-set-credentials). |
-| `Timeout`, `MaxRetries`, `InitialRetryDelay`, `MaxRetryDelay` | No | Timeout and retry settings for this vault. See [Timeouts and retries](#timeouts-and-retries). |
+| `Timeout`, `ConnectTimeout`, `ReadTimeout`, `WriteTimeout`, `MaxRetries`, `InitialRetryDelay`, `MaxRetryDelay` | No | Timeout and retry settings for this vault. See [Timeouts and retries](#timeouts-and-retries). |
 
 `Env` selects the domain in the vault URL:
 
@@ -237,7 +237,7 @@ Pass options to `client.NewSkyflow`:
 | `client.WithHttpConfig(httpConfig common.HttpConfig)` | Sets timeout and retry defaults for every vault. See [Timeouts and retries](#timeouts-and-retries). |
 | `client.WithLogLevel(logLevel logger.LogLevel)` | Sets the log level. See [Logging](#logging). |
 
-Then call `Vault` with a registered vault ID to get its `VaultService`. This fragment registers two vaults that share client-level credentials:
+Then call `Vault` with a registered vault ID to get its `VaultService`. `Vault()` with no ID returns the first vault registered. This fragment registers two vaults that share client-level credentials:
 
 ```go
 skyflowClient, err := client.NewSkyflow(
@@ -252,7 +252,7 @@ if err != nil {
 vault, err := skyflowClient.Vault("<YOUR_VAULT_ID>")
 ```
 
-`Vault` returns a `SkyflowError` if no vault with that ID is registered.
+`Vault` returns a `SkyflowError` if no vault with that ID is registered, or if you pass no ID and no vault is registered.
 
 ## Vault operations
 
@@ -269,7 +269,7 @@ Set the table name, and upsert if you use it, at exactly one level:
 - **On the request**, to apply them to every record. Records then can't set `TableName` or `Upsert`.
 - **On every record**, for example to insert into several tables in one call. The request then can't set `TableName` or `Upsert`.
 
-Each record needs `Data` with at least one column. In `UpsertOptions`, `UniqueColumns` is required, and `UpdateType` is optional. For what `UpdateType` does, see [Update](#update).
+Each record needs `Data` with at least one column. No column name or value in `Data` can be empty or nil. `Tokens` is optional, for bring-your-own-token. When you set it, it needs at least one column, and no column name or token can be empty. In `UpsertOptions`, `UniqueColumns` is required, and `UpdateType` is optional. For what `UpdateType` does, see [Update](#update).
 
 ```go
 request := common.InsertRequest{
@@ -309,7 +309,7 @@ request := common.InsertRequest{
 
 `Update` changes existing records, which you identify by Skyflow ID.
 
-- Each record needs `SkyflowId` and `Data` with at least one column.
+- Each record needs `SkyflowId` and `Data` with at least one column. No column name or value in `Data` can be empty or nil. `Tokens` is optional and follows the same rules as in [Insert and upsert](#insert-and-upsert).
 - Set `TableName` on the request or on every record, not both.
 - `UpdateType` applies to the whole request:
   - `common.UpdateTypeUpdate` changes only the columns in `Data`. The vault uses this type when you leave `UpdateType` empty.
@@ -339,7 +339,8 @@ To read from one table, set these fields on `GetRequest`:
 
 - `TableName`, which is required.
 - Exactly one of `SkyflowIds` or `UniqueValues`. Each `UniqueValues` entry maps a unique column to the value to look up.
-- Optionally, `Columns` to return only those columns, and `ColumnRedactions` to apply a redaction type to a column. Each redaction needs both `ColumnName` and `Redaction`.
+- Optionally, `Columns` to return only those columns. When you set `Columns`, it needs at least one column name, and none can be empty.
+- Optionally, `ColumnRedactions` to apply a redaction type to a column. Each redaction needs both `ColumnName` and `Redaction`.
 - Optionally, `Limit` and `Offset`. Neither can be negative, and the SDK doesn't send a value of `0`.
 
 ```go
@@ -478,7 +479,7 @@ The SDK uploads files in these steps:
 
 1. It checks every file source. Each `FilePath` must open as a regular file, and each `FileObject` must be open. It also decodes any `Base64` content. If a check fails or the base64 is invalid, the call returns a `SkyflowError` before anything is sent.
 2. It requests a signed upload URL for each column from the vault. This request follows your timeout, retry, and header settings.
-3. It uploads each file to its signed URL, at most 5 at a time. It streams `FilePath` and `FileObject` files as it sends them, so it doesn't hold them in memory. If a `FilePath` can't be opened by then, that column fails. These uploads aren't retried, have no overall timeout, and carry none of the SDK's headers or your interceptor's headers. The SDK waits up to 10 seconds to connect to the storage service, and up to 10 seconds for its response after sending a file. To stop an upload, cancel `ctx`.
+3. It uploads each file to its signed URL, at most 5 at a time. It streams `FilePath` and `FileObject` files as it sends them, so it doesn't hold them in memory. If a `FilePath` can't be opened by then, that column fails. These uploads aren't retried, have no overall timeout, and carry none of the SDK's headers or your interceptor's headers. They do follow the per-attempt `ConnectTimeout`, `ReadTimeout`, and `WriteTimeout` settings, which are 10 seconds each by default. To stop an upload, cancel `ctx`.
 
 Each record in `response.Records` has `SkyflowId`, `TableName`, `HttpCode`, `Error`, and `RequestId`, plus a `Columns` entry for each request column. Each column result has `Column`, `FileName`, `UploadStatus`, and `Error`. `UploadStatus` is one of these values:
 
@@ -513,7 +514,7 @@ Each record in `response.Records` has `SkyflowId`, `TableName`, `HttpCode`, `Err
 
 ## Detect
 
-Use Detect to de-identify and re-identify sensitive data in text and files, and to screen text with guardrails. Get a vault's Detect service from the client with `Detect`. It uses the same vault configuration, credentials, and bearer token as `Vault`, and returns a `SkyflowError` if no vault with that ID is registered.
+Use Detect to de-identify and re-identify sensitive data in text and files, and to screen text with guardrails. Get a vault's Detect service from the client with `Detect`. It uses the same vault configuration, credentials, and bearer token as `Vault`, and returns a `SkyflowError` if no vault with that ID is registered. Like `Vault`, `Detect()` with no ID uses the first vault registered.
 
 ```go
 detect, err := skyflowClient.Detect("<YOUR_VAULT_ID>")
@@ -537,16 +538,17 @@ Like the vault operations, each Detect method takes a `context.Context`, a reque
 The methods, request fields, and file-polling rules are the same as in the v2 SDK. For the full field reference, see [Detect](https://github.com/skyflowapi/skyflow-go/blob/main/README.md#detect) in the root README. Some fields work differently in a Flow Vault:
 
 - In an `Entity` with `DeidentificationTypeVaultToken`, `Destination` is the name of a token group, not a table and column.
-- A `RedactionLevel` selects tokens by `TokenGroupName` and shows them through a `RedactionPattern`. Each level needs exactly one source and one replacement. `EntityName` and `RedactionType` are for other vaults, and a Flow Vault ignores a level that uses them.
+- `RedactionLevel` is a `[]common.RedactionRule` of `common.RedactionLevel` values. Each `common.RedactionLevel` has a `TokenGroupName`, which selects the tokens, and a `RedactionPattern`, which shows them in another form. Both are configured in the vault. Both fields are optional, and the SDK sends them as given.
 - `DeidentifyFile` accepts `Value` with a `DataSource` of `common.DeidentifySourceTypeBase64` or `common.DeidentifySourceTypePresignedURL`. It doesn't accept a Skyflow ID.
+- Only values de-identified with `DeidentificationTypeVaultToken` can be re-identified. The placeholders that the other de-identification types produce, such as `[NAME_1]`, aren't stored, so re-identification leaves them unchanged.
 
-Optional numbers and flags in a Detect request or configuration are pointers, such as `CheckToxicity` and the `MinDays` and `MaxDays` of `ShiftDates`. A nil pointer leaves the value to the server. Set a value with `common.Ptr`, for example `common.Ptr(true)`.
+Optional numbers and flags in a Detect request or configuration are pointers, such as `CheckToxicity` and the `MinDays` and `MaxDays` of `ShiftDates`. A nil pointer leaves the value to the server. Set a value with `common.Ptr`, for example `common.Ptr(true)`. In responses, `Metrics` and each of its counts are pointers too, and they're nil when the server leaves them out.
 
 To add headers to a Detect call, set `Interceptor` in its options, as described in [Custom request headers](#custom-request-headers).
 
 ### De-identify a string
 
-`ConfigurationId`, for a stored Detect configuration, and `Configuration`, for an inline one, are both optional. With neither, the vault's default Detect settings apply. The API rejects a request that sets both.
+`ConfigurationId`, for a stored Detect configuration, and `Configuration`, for an inline one, are both optional, and the SDK sends them as given. With neither, the SDK sends a configuration that holds only the vault ID, and the server decides whether that's enough. With both, the SDK sends both.
 
 ```go
 response, err := detect.DeidentifyString(ctx, common.DeidentifyStringRequest{
@@ -572,9 +574,9 @@ fmt.Println(response.ProcessedText) // My name is [NAME_1], and my email is [EMA
 
 ### De-identify a file
 
-Supply the file as exactly one of `FilePath`, `FileObject`, or `Value` with `DataSource`. The SDK sends a local file (`FilePath` or `FileObject`) as base64 and ignores `DataSource` for it. By default, `DeidentifyFile` returns as soon as the file is submitted, with only `RunId` set. Get the result later with `GetRun`. To wait for the run instead, set `Poll` in the options.
+Supply the file as exactly one of `FilePath`, `FileObject`, or `Value` with `DataSource`. A `Value` needs a `DataSource` and can't be blank. The SDK sends `DataSource` as given, and the server rejects one the vault doesn't accept. The SDK sends a local file (`FilePath` or `FileObject`) as base64 and ignores `DataSource` for it. `ConfigurationId` and `Configuration` work as they do for [De-identify a string](#de-identify-a-string). By default, `DeidentifyFile` returns as soon as the file is submitted, with only `RunId` set. Get the result later with `GetRun`. To wait for the run instead, set `Poll` in the options.
 
-For a local file, a successful polled run writes its base64 outputs to `OutputDirectory`. `OutputDirectory` requires `Poll`, and the SDK creates it if it doesn't exist. It defaults to the current directory. The files are named `processed-<name>.<ext>`, `processed-entities-<name>.json`, and `processed-object-entities-<name>.json`, and only their owner can read them. The SDK doesn't download presigned URL outputs, so read those from `response.Output`.
+For a local file, a successful polled run writes its base64 outputs to `OutputDirectory`. `OutputDirectory` requires `Poll`, and the SDK creates it if it doesn't exist. It defaults to the current directory, and an empty or blank value also means the current directory. The files are named `processed-<name>.<ext>`, `processed-entities-<name>.json`, and `processed-object-entities-<name>.json`, and only their owner can read them. The SDK doesn't download presigned URL outputs, so read those from `response.Output`.
 
 ```go
 response, err := detect.DeidentifyFile(ctx, common.DeidentifyFileRequest{
@@ -603,16 +605,16 @@ default: // FAILED or UNKNOWN
 If a lookup or writing the outputs fails, `DeidentifyFile` returns the response, with `RunId`, together with the `SkyflowError`. To stop waiting early, cancel `ctx`. If it ends between lookups, `DeidentifyFile` returns the run's last status and no error, so you can call `GetRun` later.
 
 > [!TIP]
-> See the full samples in [deidentify_file.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/flowvault/detectapi/deidentify_file.go) and [get_run.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/flowvault/detectapi/get_run.go).
+> See the full samples in [deidentify_file.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/flowvault/detectapi/deidentify_file.go), [deidentify_file_advanced.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/flowvault/detectapi/deidentify_file_advanced.go) for `FileObject`, media options, and a per-call `Interceptor`, and [get_run.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/flowvault/detectapi/get_run.go).
 
 ### Re-identify a string or file
 
-Without `RedactionLevel`, every token gets its original value. To show a token group in another form, add a `RedactionLevel` with its `TokenGroupName` and a `RedactionPattern`.
+Only values de-identified with `DeidentificationTypeVaultToken` can be re-identified. Without `RedactionLevel`, every token gets its original value. To show a token group in another form, add a `common.RedactionLevel` with its `TokenGroupName` and a `RedactionPattern`.
 
 ```go
 response, err := detect.ReidentifyString(ctx, common.ReidentifyStringRequest{
 	Text: "My name is [NAME_1].",
-	RedactionLevel: []common.RedactionLevel{{
+	RedactionLevel: []common.RedactionRule{common.RedactionLevel{
 		TokenGroupName:   "<TOKEN_GROUP_NAME>",
 		RedactionPattern: "<REDACTION_PATTERN_NAME>",
 	}},
@@ -641,7 +643,7 @@ response, err := detect.ReidentifyFile(ctx, common.ReidentifyFileRequest{
 	DataSource: common.ReidentifySourceTypeBase64,
 	Value:      base64.StdEncoding.EncodeToString(content),
 	DataFormat: common.FileDataFormatTXT,
-	RedactionLevel: []common.RedactionLevel{{
+	RedactionLevel: []common.RedactionRule{common.RedactionLevel{
 		TokenGroupName:   "<TOKEN_GROUP_NAME>",
 		RedactionPattern: "<REDACTION_PATTERN_NAME>",
 	}},
@@ -663,11 +665,13 @@ if response.OutputType == common.ReidentifySourceTypeBase64 {
 ```
 
 > [!TIP]
-> See the full samples in [reidentify_string.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/flowvault/detectapi/reidentify_string.go) and [reidentify_file.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/flowvault/detectapi/reidentify_file.go).
+> See the full samples in [reidentify_string.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/flowvault/detectapi/reidentify_string.go), [reidentify_file.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/flowvault/detectapi/reidentify_file.go), and [round_trip.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/flowvault/detectapi/round_trip.go), which de-identifies a file into vault tokens and then re-identifies it.
 
 ### Check guardrails
 
 `CheckGuardrails` screens text for toxicity and denied topics. `CheckToxicity` is a `*bool`. When it's nil, the server checks toxicity by default. `common.Ptr(false)` turns the check off.
+
+In the response, `Validation` is `common.GuardrailsValidationPassed`, `common.GuardrailsValidationFailed`, or `common.GuardrailsValidationUnknown`, which the SDK sets when the API returns no validation or one the SDK doesn't know. `Toxic` and `DeniedTopic` are `*bool` values, and they're nil when the API leaves them out.
 
 ```go
 response, err := detect.CheckGuardrails(ctx, common.CheckGuardrailsRequest{
@@ -680,7 +684,7 @@ if err != nil {
 	return
 }
 if response.Validation == common.GuardrailsValidationFailed {
-	fmt.Println("Blocked. Toxic:", response.Toxic, "Denied topic:", response.DeniedTopic)
+	fmt.Println("Blocked. Toxic:", response.Toxic != nil && *response.Toxic, "Denied topic:", response.DeniedTopic != nil && *response.DeniedTopic)
 }
 ```
 
@@ -689,11 +693,14 @@ if response.Validation == common.GuardrailsValidationFailed {
 
 ## Timeouts and retries
 
-Four settings control how long a call can take and whether the SDK retries it:
+These settings control how long a call can take and whether the SDK retries it:
 
 | Setting | Default | Description |
 | --- | --- | --- |
 | `Timeout` | 60 seconds | The limit for the whole call, including retries and the waits between them. |
+| `ConnectTimeout` | 10 seconds | The limit for opening a connection, for each attempt. |
+| `ReadTimeout` | 10 seconds | The limit for the wait for the server to start responding after the request is sent, for each attempt. |
+| `WriteTimeout` | 10 seconds | The limit for each write of the request to the connection, for each attempt. |
 | `MaxRetries` | `0`, so no retries | How many times to retry after the first attempt. The SDK retries only responses with HTTP status 408, 429, or 5xx. |
 | `InitialRetryDelay` | 500 milliseconds | The wait before the first retry. The wait doubles for each later retry, with up to 20% random variation. |
 | `MaxRetryDelay` | 2 seconds | The longest wait between retries. |
@@ -732,7 +739,7 @@ Keep these points in mind:
 - Generating a bearer token from `Path` or `CredentialsString` has its own limit of 60 seconds, which `Timeout` doesn't change. This limit also applies to the `serviceaccount` functions that generate bearer tokens.
 - Retries send the same request again, for every operation, including writes.
 - A failure that returns no HTTP response, such as a refused connection, isn't retried.
-- File uploads in `UploadFiles` aren't retried and have no overall timeout. See [Upload files](#upload-files).
+- File uploads in `UploadFiles` aren't retried and have no overall timeout, but they follow `ConnectTimeout`, `ReadTimeout`, and `WriteTimeout`. See [Upload files](#upload-files).
 
 > [!TIP]
 > See the full sample in [timeout_and_retry_config_example.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/flowvault/vaultapi/timeout_and_retry_config_example.go).
@@ -815,7 +822,7 @@ A call can fail in two ways:
 An operation returns a `*SkyflowError` in these cases:
 
 - The request breaks a validation rule, or a vault operation gets a nil `ctx`. The SDK sends nothing, and `GetHttpCode` returns `"400"`.
-- The credentials are missing or invalid, or the bearer token in `Token` has expired.
+- The credentials are missing or invalid, or the bearer token in `Token` has expired. A `401` for a token the SDK generated from `Path` or `CredentialsString` is retried once with a new token when the rejected token was close to expiring. Otherwise, the call returns the error.
 - The vault returns an error without per-record results. The error keeps the response's HTTP code and request ID even when the response body isn't a Skyflow error.
 - The request doesn't reach the vault or gets no response. A network failure does this, and so does a `ctx` that ends during the HTTP request of a vault operation. `GetHttpCode` returns `"500"`.
 - `ctx` ends while a call waits for a bearer token, or during a Detect call. `GetHttpCode` returns `"499"`, which is the `REQUEST_CANCELLED` error code. `errors.Is(err, context.Canceled)` or `errors.Is(err, context.DeadlineExceeded)` matches the error, depending on how `ctx` ended.
@@ -830,6 +837,8 @@ An operation returns a `*SkyflowError` in these cases:
 | `GetGrpcCode()` | The gRPC code from the vault's error, if any |
 | `GetHttpStatusCode()` | The HTTP status from the vault's error, if any |
 | `GetDetails()` | Details from the vault's error, if any |
+| `GetResponseBody()` | The parsed error response body, if any |
+| `Unwrap()` | The underlying error, when the SDK kept one, such as the context's error for a `"499"`. Use it with `errors.Is` and `errors.As` |
 
 Operations return the concrete `*SkyflowError` type. Compare the returned value with `nil` directly. If you store a nil `*SkyflowError` in a variable of type `error`, that variable isn't equal to `nil`.
 

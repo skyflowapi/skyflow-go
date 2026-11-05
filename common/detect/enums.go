@@ -95,9 +95,8 @@ const (
 type IncludePrefix string
 
 const (
-	IncludePrefixUnspecified IncludePrefix = "INCLUDE_PREFIX_UNSPECIFIED"
-	IncludePrefixYes         IncludePrefix = "YES"
-	IncludePrefixNo          IncludePrefix = "NO"
+	IncludePrefixYes IncludePrefix = "YES"
+	IncludePrefixNo  IncludePrefix = "NO"
 )
 
 // ReturnEntitiesType is which detected values the response carries. The server default is EXCLUDE_SENSITIVE_DATA.
@@ -120,55 +119,111 @@ const (
 	RedactionTypePlainText RedactionType = "PLAIN_TEXT"
 )
 
-// DeidentifySourceType is what a DeidentifyFileRequest's Value holds, and the OutputType of
-// DeidentifyFileResponse and GetRunResponse (where the API returns BASE64 or PRESIGNED_URL).
-// Each SDK offers the sources its vaults accept: v2 (SkyVault) all three, flowvault
-// BASE64 and PRESIGNED_URL only, as FlowVault vaults do not accept a Skyflow ID.
-type DeidentifySourceType string
+// DeidentifyFileSource is what a DeidentifyFileRequest's Value holds, and the OutputType of
+// DeidentifyFileResponse and GetRunResponse. Each SDK exports its own DeidentifySourceType
+// that implements it, with the sources its vault type accepts: FlowVault takes BASE64 and
+// PRESIGNED_URL (FlowDeidentifySourceType); SkyVault also takes SKYFLOW_ID
+// (SkyDeidentifySourceType). Only those types implement it.
+type DeidentifyFileSource interface {
+	// deidentifySource returns the wire value.
+	deidentifySource() string
+}
 
+// base64Value and presignedURLValue are wire values every vault type's source sets have.
 const (
-	DeidentifySourceTypeBase64       DeidentifySourceType = "BASE64"
-	DeidentifySourceTypeSkyflowID    DeidentifySourceType = "SKYFLOW_ID" // SkyVault vaults only
-	DeidentifySourceTypePresignedURL DeidentifySourceType = "PRESIGNED_URL"
+	base64Value       = "BASE64"
+	presignedURLValue = "PRESIGNED_URL"
 )
 
-// ReidentifySourceType is what a ReidentifyFileRequest's Value holds, and the OutputType of
-// ReidentifyFileResponse. Re-identification does not accept a Skyflow ID.
-type ReidentifySourceType string
+// FlowDeidentifySourceType is a DeidentifyFileSource for a FlowVault vault.
+type FlowDeidentifySourceType string
 
 const (
-	ReidentifySourceTypeBase64       ReidentifySourceType = "BASE64"
-	ReidentifySourceTypePresignedURL ReidentifySourceType = "PRESIGNED_URL"
+	FlowDeidentifySourceTypeBase64       FlowDeidentifySourceType = base64Value
+	FlowDeidentifySourceTypePresignedURL FlowDeidentifySourceType = presignedURLValue
+)
+
+// SkyDeidentifySourceType is a DeidentifyFileSource for a SkyVault vault.
+type SkyDeidentifySourceType string
+
+const (
+	SkyDeidentifySourceTypeBase64       SkyDeidentifySourceType = base64Value
+	SkyDeidentifySourceTypeSkyflowID    SkyDeidentifySourceType = "SKYFLOW_ID"
+	SkyDeidentifySourceTypePresignedURL SkyDeidentifySourceType = presignedURLValue
+)
+
+// ReidentifyFileSource is what a ReidentifyFileRequest's Value holds, and the OutputType of
+// ReidentifyFileResponse. Each SDK exports its own ReidentifySourceType that implements it:
+// FlowReidentifySourceType for FlowVault and SkyReidentifySourceType for SkyVault, both with
+// BASE64 and PRESIGNED_URL (re-identification takes no Skyflow ID). Only those types
+// implement it.
+type ReidentifyFileSource interface {
+	// reidentifySource returns the wire value.
+	reidentifySource() string
+}
+
+// FlowReidentifySourceType is a ReidentifyFileSource for a FlowVault vault.
+type FlowReidentifySourceType string
+
+const (
+	FlowReidentifySourceTypeBase64       FlowReidentifySourceType = base64Value
+	FlowReidentifySourceTypePresignedURL FlowReidentifySourceType = presignedURLValue
+)
+
+// SkyReidentifySourceType is a ReidentifyFileSource for a SkyVault vault.
+type SkyReidentifySourceType string
+
+const (
+	SkyReidentifySourceTypeBase64       SkyReidentifySourceType = base64Value
+	SkyReidentifySourceTypePresignedURL SkyReidentifySourceType = presignedURLValue
+)
+
+// VaultSources are a vault type's de-identify and re-identify sources. Responses resolve
+// their OutputType against them. Pass FlowSources or SkySources to NewController.
+type VaultSources struct {
+	Deidentify []DeidentifyFileSource // must include BASE64, which local files are sent as
+	Reidentify []ReidentifyFileSource
+}
+
+// FlowSources and SkySources are the FlowVault and SkyVault source sets.
+var (
+	FlowSources = VaultSources{
+		Deidentify: []DeidentifyFileSource{FlowDeidentifySourceTypeBase64, FlowDeidentifySourceTypePresignedURL},
+		Reidentify: []ReidentifyFileSource{FlowReidentifySourceTypeBase64, FlowReidentifySourceTypePresignedURL},
+	}
+	SkySources = VaultSources{
+		Deidentify: []DeidentifyFileSource{SkyDeidentifySourceTypeBase64, SkyDeidentifySourceTypeSkyflowID, SkyDeidentifySourceTypePresignedURL},
+		Reidentify: []ReidentifyFileSource{SkyReidentifySourceTypeBase64, SkyReidentifySourceTypePresignedURL},
+	}
 )
 
 // FileDataFormat is a file format. The wire values are lowercase.
 type FileDataFormat string
 
 const (
-	FileDataFormatUnknown FileDataFormat = "unknown"
-	FileDataFormatMP3     FileDataFormat = "mp3"
-	FileDataFormatWAV     FileDataFormat = "wav"
-	FileDataFormatPDF     FileDataFormat = "pdf"
-	FileDataFormatTXT     FileDataFormat = "txt"
-	FileDataFormatCSV     FileDataFormat = "csv"
-	FileDataFormatJSON    FileDataFormat = "json"
-	FileDataFormatJPG     FileDataFormat = "jpg"
-	FileDataFormatJPEG    FileDataFormat = "jpeg"
-	FileDataFormatTIF     FileDataFormat = "tif"
-	FileDataFormatTIFF    FileDataFormat = "tiff"
-	FileDataFormatPNG     FileDataFormat = "png"
-	FileDataFormatBMP     FileDataFormat = "bmp"
-	FileDataFormatXLS     FileDataFormat = "xls"
-	FileDataFormatXLSX    FileDataFormat = "xlsx"
-	FileDataFormatDOC     FileDataFormat = "doc"
-	FileDataFormatDOCX    FileDataFormat = "docx"
-	FileDataFormatPPT     FileDataFormat = "ppt"
-	FileDataFormatPPTX    FileDataFormat = "pptx"
-	FileDataFormatXML     FileDataFormat = "xml"
-	FileDataFormatDCM     FileDataFormat = "dcm"
-	FileDataFormatJSONL   FileDataFormat = "jsonl"
-	FileDataFormatZIP     FileDataFormat = "zip"
-	FileDataFormatGIF     FileDataFormat = "gif"
+	FileDataFormatMP3   FileDataFormat = "mp3"
+	FileDataFormatWAV   FileDataFormat = "wav"
+	FileDataFormatPDF   FileDataFormat = "pdf"
+	FileDataFormatTXT   FileDataFormat = "txt"
+	FileDataFormatCSV   FileDataFormat = "csv"
+	FileDataFormatJSON  FileDataFormat = "json"
+	FileDataFormatJPG   FileDataFormat = "jpg"
+	FileDataFormatJPEG  FileDataFormat = "jpeg"
+	FileDataFormatTIF   FileDataFormat = "tif"
+	FileDataFormatTIFF  FileDataFormat = "tiff"
+	FileDataFormatPNG   FileDataFormat = "png"
+	FileDataFormatBMP   FileDataFormat = "bmp"
+	FileDataFormatXLS   FileDataFormat = "xls"
+	FileDataFormatXLSX  FileDataFormat = "xlsx"
+	FileDataFormatDOC   FileDataFormat = "doc"
+	FileDataFormatDOCX  FileDataFormat = "docx"
+	FileDataFormatPPT   FileDataFormat = "ppt"
+	FileDataFormatPPTX  FileDataFormat = "pptx"
+	FileDataFormatXML   FileDataFormat = "xml"
+	FileDataFormatDCM   FileDataFormat = "dcm"
+	FileDataFormatJSONL FileDataFormat = "jsonl"
+	FileDataFormatZIP   FileDataFormat = "zip"
+	FileDataFormatGIF   FileDataFormat = "gif"
 )
 
 // DetectRunStatus is the state of a de-identify file run. SUCCESS, FAILED and UNKNOWN are terminal.
@@ -266,4 +321,7 @@ type GuardrailsValidation string
 const (
 	GuardrailsValidationFailed GuardrailsValidation = "FAILED"
 	GuardrailsValidationPassed GuardrailsValidation = "PASSED"
+	// GuardrailsValidationUnknown is set when the API returns no validation, or one this SDK
+	// does not know.
+	GuardrailsValidationUnknown GuardrailsValidation = "UNKNOWN"
 )

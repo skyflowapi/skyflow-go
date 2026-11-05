@@ -186,7 +186,7 @@ func (s *Skyflow) Connection(connectionId ...string) (*connectionService, *error
 }
 
 // Detect returns the Detect service of a vault: the vault with vaultID, or the first
-// configured vault when none is given. Its methods call the Detect V2 APIs.
+// configured vault when none is given. Its methods call the Detect APIs.
 func (s *Skyflow) Detect(vaultID ...string) (*detectService, *error.SkyflowError) {
 	config, err := getDetectConfig(s.detectServices, vaultID...)
 	if err != nil {

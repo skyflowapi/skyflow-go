@@ -1,6 +1,11 @@
 package detect
 
-import gen "github.com/skyflowapi/skyflow-go/common/internal/generated"
+import (
+	"slices"
+	"strings"
+
+	gen "github.com/skyflowapi/skyflow-go/common/internal/generated"
+)
 
 // Mapping between the public types and the generated wire types. The generated types use
 // pointers for every optional field; an unset public value maps to nil so it is omitted.
@@ -48,15 +53,22 @@ func derefEnum[G ~string](p *G) string {
 // Requests
 // ---------------------------------------------------------------------------
 
-// toGenConfiguration adds the vault ID the API requires on an inline configuration. The vault ID
-// travels inside the configuration, so with neither a configuration nor a configuration ID it
-// sends one holding only the vault ID, and the server applies the vault's defaults.
-func toGenConfiguration(c *DetectConfiguration, configurationId, vaultId string) *gen.DetectConfigV2 {
-	if c == nil {
-		if configurationId != "" {
-			return nil
-		}
+// toGenConfiguration adds the vault ID the API requires on an inline configuration. It returns
+// nil without one: the request then names a stored configuration by ConfigurationId instead.
+// requestConfiguration is the configuration a request sends, as in the Java SDK. An inline
+// configuration is always sent; with neither it nor a ConfigurationId, a configuration
+// holding only the vault ID is sent and the server decides whether that is enough. With only
+// a ConfigurationId, none is sent.
+func requestConfiguration(configurationId string, c *DetectConfiguration, vaultId string) *gen.DetectConfigV2 {
+	if c == nil && configurationId == "" {
 		return &gen.DetectConfigV2{VaultID: vaultId}
+	}
+	return toGenConfiguration(c, vaultId)
+}
+
+func toGenConfiguration(c *DetectConfiguration, vaultId string) *gen.DetectConfigV2 {
+	if c == nil {
+		return nil
 	}
 	out := &gen.DetectConfigV2{
 		Name:        optString(c.Name),
@@ -160,14 +172,102 @@ func toGenMedia(m *Media) *gen.Media {
 	return out
 }
 
-func toGenRedactionLevels(levels []RedactionLevel) []*gen.RedactionLevel {
+// isNilRule reports whether rule is nil or a nil pointer to one of the rule types.
+func isNilRule(rule RedactionRule) bool {
+	switch r := rule.(type) {
+	case nil:
+		return true
+	case *FlowRedactionLevel:
+		return r == nil
+	case *SkyRedactionLevel:
+		return r == nil
+	}
+	return false
+}
+
+func (s FlowDeidentifySourceType) deidentifySource() string { return string(s) }
+func (s SkyDeidentifySourceType) deidentifySource() string  { return string(s) }
+func (s FlowReidentifySourceType) reidentifySource() string { return string(s) }
+func (s SkyReidentifySourceType) reidentifySource() string  { return string(s) }
+
+// deidentifySourceName returns source's wire value, or "" for nil, including a nil
+// *FlowDeidentifySourceType or *SkyDeidentifySourceType.
+func deidentifySourceName(source DeidentifyFileSource) string {
+	switch s := source.(type) {
+	case nil:
+		return ""
+	case *FlowDeidentifySourceType:
+		if s == nil {
+			return ""
+		}
+	case *SkyDeidentifySourceType:
+		if s == nil {
+			return ""
+		}
+	}
+	return source.deidentifySource()
+}
+
+// reidentifySourceName returns source's wire value, or "" for nil, including a nil
+// *FlowReidentifySourceType or *SkyReidentifySourceType.
+func reidentifySourceName(source ReidentifyFileSource) string {
+	switch s := source.(type) {
+	case nil:
+		return ""
+	case *FlowReidentifySourceType:
+		if s == nil {
+			return ""
+		}
+	case *SkyReidentifySourceType:
+		if s == nil {
+			return ""
+		}
+	}
+	return source.reidentifySource()
+}
+
+// resolveSource maps a wire value to the vault's source, whose wire value wire returns; one
+// the vault does not know is nil, as in the Java SDK.
+func resolveSource[S comparable](value string, known []S, wire func(S) string) S {
+	for _, source := range known {
+		if wire(source) == value {
+			return source
+		}
+	}
+	var unknown S
+	return unknown
+}
+
+func resolveDeidentifySource(value string, known []DeidentifyFileSource) DeidentifyFileSource {
+	return resolveSource(value, known, DeidentifyFileSource.deidentifySource)
+}
+
+func resolveReidentifySource(value string, known []ReidentifyFileSource) ReidentifyFileSource {
+	return resolveSource(value, known, ReidentifyFileSource.reidentifySource)
+}
+
+func (l FlowRedactionLevel) apiFields() (string, string, EntityType, RedactionType) {
+	return l.TokenGroupName, l.RedactionPattern, "", ""
+}
+
+func (l SkyRedactionLevel) apiFields() (string, string, EntityType, RedactionType) {
+	return "", "", l.EntityName, l.RedactionType
+}
+
+// toGenRedactionLevels sends each rule's fields as given. Nil rules, including nil
+// *FlowRedactionLevel and *SkyRedactionLevel pointers, are skipped, as in the other SDKs.
+func toGenRedactionLevels(levels []RedactionRule) []*gen.RedactionLevel {
 	var out []*gen.RedactionLevel
 	for _, l := range levels {
+		if isNilRule(l) {
+			continue
+		}
+		tokenGroupName, redactionPattern, entityName, redactionType := l.apiFields()
 		out = append(out, &gen.RedactionLevel{
-			TokenGroupName:   optString(l.TokenGroupName),
-			EntityName:       optEnum[gen.RedactionLevelEntityName](l.EntityName),
-			RedactionPattern: optString(l.RedactionPattern),
-			RedactionType:    optEnum[gen.RedactionLevelRedactionType](l.RedactionType),
+			TokenGroupName:   optString(tokenGroupName),
+			EntityName:       optEnum[gen.RedactionLevelEntityName](entityName),
+			RedactionPattern: optString(redactionPattern),
+			RedactionType:    optEnum[gen.RedactionLevelRedactionType](redactionType),
 		})
 	}
 	return out
@@ -184,6 +284,9 @@ func fromGenDeidentifyString(r *gen.DeidentifyStringResponseV2) *DeidentifyStrin
 			continue
 		}
 		entity := DetectedEntity{Token: deref(e.Token), Value: deref(e.Value), EntityType: deref(e.EntityType), EntityScores: e.EntityScores}
+		if entity.EntityScores == nil {
+			entity.EntityScores = map[string]float64{} // as in the other SDKs
+		}
 		if l := e.Location; l != nil {
 			entity.Location = EntityLocation{
 				StartIndex: deref(l.StartIndex), EndIndex: deref(l.EndIndex),
@@ -195,16 +298,33 @@ func fromGenDeidentifyString(r *gen.DeidentifyStringResponseV2) *DeidentifyStrin
 	return out
 }
 
-// fromGenRun fills in the run ID, which the API does not echo. A missing status is UNKNOWN.
-func fromGenRun(runId string, r *gen.DetectRunsResponseV2) *GetRunResponse {
-	status := DetectRunStatus(derefEnum(r.Status))
-	if status == "" {
-		status = DetectRunStatusUnknown
+// runStatuses are the run statuses this SDK knows.
+var runStatuses = []DetectRunStatus{DetectRunStatusUnknown, DetectRunStatusFailed, DetectRunStatusSuccess, DetectRunStatusInProgress, DetectRunStatusQueued}
+
+// guardrailsValidations are the guardrails results this SDK knows.
+var guardrailsValidations = []GuardrailsValidation{GuardrailsValidationFailed, GuardrailsValidationPassed, GuardrailsValidationUnknown}
+
+// knownOr returns value when it is one of known, and fallback otherwise (missing included).
+func knownOr[T ~string](value string, known []T, fallback T) T {
+	if slices.Contains(known, T(value)) {
+		return T(value)
 	}
+	return fallback
+}
+
+// runStatus maps the API's run status; a missing or unknown one is UNKNOWN, which ends polling.
+func runStatus(value string) DetectRunStatus {
+	return knownOr(value, runStatuses, DetectRunStatusUnknown)
+}
+
+// fromGenRun fills in the run ID, which the API does not echo. A missing or unknown status
+// is UNKNOWN; an output type that isn't one of sources (the SDK's accepted types) is empty,
+// as in the other SDKs.
+func fromGenRun(runId string, r *gen.DetectRunsResponseV2, sources []DeidentifyFileSource) *GetRunResponse {
 	return &GetRunResponse{
 		RunId:      runId,
-		Status:     status,
-		OutputType: DeidentifySourceType(derefEnum(r.OutputType)),
+		Status:     runStatus(derefEnum(r.Status)),
+		OutputType: resolveDeidentifySource(derefEnum(r.OutputType), sources),
 		Output:     fromGenOutputs(r.Output),
 		Metrics:    fromGenMetrics(r.Metrics),
 		Message:    deref(r.Message),
@@ -221,7 +341,7 @@ func fromGenOutputs(outputs []*gen.FileOutput) []FileOutput {
 		out = append(out, FileOutput{
 			ProcessedFile:          deref(o.ProcessedFile),
 			ProcessedFileType:      ProcessedFileType(derefEnum(o.ProcessedFileType)),
-			ProcessedFileExtension: FileDataFormat(derefEnum(o.ProcessedFileExtension)),
+			ProcessedFileExtension: knownFormats[strings.ToLower(derefEnum(o.ProcessedFileExtension))], // unknown: empty
 		})
 	}
 	return out
@@ -232,9 +352,9 @@ func fromGenMetrics(m *gen.Metrics) *Metrics {
 		return nil
 	}
 	return &Metrics{
-		Size:           deref(m.Size),
-		WordCount:      deref(m.WordCount),
-		CharacterCount: deref(m.CharacterCount),
+		Size:           m.Size,
+		WordCount:      m.WordCount,
+		CharacterCount: m.CharacterCount,
 		Slides:         m.Slides,
 		Pages:          m.Pages,
 		Duration:       m.Duration,

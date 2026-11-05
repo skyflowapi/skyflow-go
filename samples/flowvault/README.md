@@ -1,6 +1,6 @@
 # FlowVault Go samples
 
-Runnable examples for the Skyflow FlowVault Go SDK (`github.com/skyflowapi/skyflow-go/flowvault`), one file per operation. For the full guide, including request rules and error handling, see the [SDK README](../../flowvault/README.md).
+Runnable examples for the Skyflow FlowVault Go SDK (`github.com/skyflowapi/skyflow-go/flowvault`), one file per operation.
 
 ## Prerequisites
 
@@ -48,11 +48,13 @@ go run vaultapi/insert_records.go
 
 | Sample | Demonstrates |
 |---|---|
-| [deidentify_string.go](detectapi/deidentify_string.go) | De-identify a string with a stored or an inline configuration |
-| [deidentify_file.go](detectapi/deidentify_file.go) | Submit a file by presigned URL, or submit a local file and wait for the run with `Poll` |
-| [get_run.go](detectapi/get_run.go) | Get the state and outputs of a `DeidentifyFile` run |
-| [reidentify_string.go](detectapi/reidentify_string.go) | Re-identify a string with a token group's redaction pattern |
-| [reidentify_file.go](detectapi/reidentify_file.go) | Re-identify a base64 file and save the output yourself |
+| [deidentify_string.go](detectapi/deidentify_string.go) | De-identify text with a stored configuration, or an inline one |
+| [deidentify_file.go](detectapi/deidentify_file.go) | Submit a file by presigned URL and keep the run ID, or send a local file and wait for the run |
+| [deidentify_file_advanced.go](detectapi/deidentify_file_advanced.go) | `FileObject`, media and object-entity options, and a per-call `Interceptor` |
+| [get_run.go](detectapi/get_run.go) | Look up a run by ID, save its base64 outputs, read `Message` when it failed |
+| [reidentify_string.go](detectapi/reidentify_string.go) | Tokenize text into a token group, then re-identify it in full or through a redaction pattern |
+| [reidentify_file.go](detectapi/reidentify_file.go) | Re-identify a base64 file and save the output |
+| [round_trip.go](detectapi/round_trip.go) | De-identify a local file into vault tokens, then re-identify its redacted output |
 | [check_guardrails.go](detectapi/check_guardrails.go) | Screen text for toxicity and denied topics |
 
 ## Custom headers and HTTP config

@@ -328,7 +328,7 @@ These are the Detect V2 types. To move from the V1 methods and types they replac
 
 #### `DeidentifyStringRequest`
 
-Passed to `DeidentifyString()`. `ConfigurationId` and `Configuration` are optional: with neither, the vault's default Detect settings apply. Setting both is rejected by the API.
+Passed to `DeidentifyString()`. `ConfigurationId` and `Configuration` are optional, and the SDK sends them as given: with neither, it sends a configuration that holds only the vault ID, and with both, it sends both.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
@@ -338,11 +338,11 @@ Passed to `DeidentifyString()`. `ConfigurationId` and `Configuration` are option
 
 #### `DeidentifyFileRequest`
 
-Passed to `DeidentifyFile()`. Supply the file as exactly one of `Value` (with `DataSource`), `FilePath`, or `FileObject`. `ConfigurationId` and `Configuration` are optional: with neither, the vault's default Detect settings apply. Setting both is rejected by the API.
+Passed to `DeidentifyFile()`. Supply the file as exactly one of `Value` (with `DataSource`), `FilePath`, or `FileObject`. `ConfigurationId` and `Configuration` are optional, and the SDK sends them as given: with neither, it sends a configuration that holds only the vault ID, and with both, it sends both.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `DataSource` | `DeidentifySourceType` | `""` | What `Value` holds: `DeidentifySourceTypeBase64`, `DeidentifySourceTypeSkyflowID`, or `DeidentifySourceTypePresignedURL`. Required with `Value`. The SDK ignores it for `FilePath` or `FileObject`, which it always sends as base64. |
+| `DataSource` | `DeidentifyFileSource` | `nil` | What `Value` holds: `DeidentifySourceTypeBase64`, `DeidentifySourceTypeSkyflowID`, or `DeidentifySourceTypePresignedURL`. Required with `Value`, which can't be blank. The SDK sends it as given, and the server rejects one the vault doesn't accept. The SDK ignores it for `FilePath` or `FileObject`, which it always sends as base64. |
 | `Value` | `string` | `""` | Base64 file content, a Skyflow ID, or a presigned URL. |
 | `FilePath` | `string` | `""` | Path to a local file. The SDK reads it and sends it as base64. It must be a regular file. |
 | `FileObject` | `*os.File` | `nil` | An open regular file. The SDK reads all of it, from the start, and sends it as base64. The caller closes it. |
@@ -365,7 +365,7 @@ Passed to `ReidentifyString()`.
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `Text` | `string` | _(required)_ | Text that contains tokens to re-identify. |
-| `RedactionLevel` | `[]RedactionLevel` | `nil` | How to show each group of tokens. Without it, every token gets its original value. See [`RedactionLevel`](#redactionlevel). |
+| `RedactionLevel` | `[]RedactionRule` | `nil` | How to show each group of tokens, as `RedactionLevel` values. Without it, every token gets its original value. See [`RedactionLevel`](#redactionlevel). |
 
 #### `ReidentifyFileRequest`
 
@@ -373,10 +373,10 @@ Passed to `ReidentifyFile()`. The call is synchronous, so there is no run to pol
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `DataSource` | `ReidentifySourceType` | _(required)_ | What `Value` holds: `ReidentifySourceTypeBase64` or `ReidentifySourceTypePresignedURL`. Re-identification doesn't accept a Skyflow ID. |
+| `DataSource` | `ReidentifyFileSource` | _(required)_ | What `Value` holds: `ReidentifySourceTypeBase64` or `ReidentifySourceTypePresignedURL`. Re-identification doesn't accept a Skyflow ID. |
 | `Value` | `string` | _(required)_ | Base64 file content or a presigned URL. |
 | `DataFormat` | `FileDataFormat` | `""` | File format. Optional. |
-| `RedactionLevel` | `[]RedactionLevel` | `nil` | How to show each group of tokens. See [`RedactionLevel`](#redactionlevel). |
+| `RedactionLevel` | `[]RedactionRule` | `nil` | How to show each group of tokens, as `RedactionLevel` values. See [`RedactionLevel`](#redactionlevel). |
 
 #### `CheckGuardrailsRequest`
 
@@ -522,7 +522,7 @@ Returned by `DeidentifyFile()`. `RunId` is always set. The other fields are set 
 |-------|------|-------------|
 | `RunId` | `string` | The run ID. Pass it to `GetRun()`. |
 | `Status` | `DetectRunStatus` | The run status. Empty when the call didn't poll. See [Detect enums](#detect-enums). |
-| `OutputType` | `DeidentifySourceType` | Whether each output is base64 (`BASE64`) or a presigned URL (`PRESIGNED_URL`). |
+| `OutputType` | `DeidentifyFileSource` | Whether each output is base64 (`DeidentifySourceTypeBase64`) or a presigned URL (`DeidentifySourceTypePresignedURL`). `nil` for a value the SDK doesn't know. |
 | `Output` | `[]FileOutput` | The run outputs. See [`FileOutput`](#fileoutput). |
 | `Metrics` | `*Metrics` | Size and counts of the input. |
 | `Message` | `string` | Failure detail when `Status` is `FAILED`. |
@@ -535,7 +535,7 @@ Returned by `GetRun()`. `Output`, `Metrics`, and `OutputType` are set once the r
 |-------|------|-------------|
 | `RunId` | `string` | The run ID from the request. |
 | `Status` | `DetectRunStatus` | The run status. |
-| `OutputType` | `DeidentifySourceType` | Whether each output is base64 or a presigned URL. |
+| `OutputType` | `DeidentifyFileSource` | Whether each output is base64 or a presigned URL. `nil` for a value the SDK doesn't know. |
 | `Output` | `[]FileOutput` | The run outputs. |
 | `Metrics` | `*Metrics` | Size and counts of the input. |
 | `Message` | `string` | Failure detail when `Status` is `FAILED`. |
@@ -556,7 +556,7 @@ Returned by `ReidentifyFile()`. The SDK writes nothing to disk: `Output` holds b
 | Field | Type | Description |
 |-------|------|-------------|
 | `Status` | `DetectRunStatus` | The status of the re-identification. |
-| `OutputType` | `ReidentifySourceType` | Whether each output is base64 (`BASE64`) or a presigned URL (`PRESIGNED_URL`). |
+| `OutputType` | `ReidentifyFileSource` | Whether each output is base64 (`ReidentifySourceTypeBase64`) or a presigned URL (`ReidentifySourceTypePresignedURL`). `nil` for a value the SDK doesn't know. |
 | `Output` | `[]FileOutput` | The outputs. |
 | `Metrics` | `*Metrics` | Size and counts of the input. |
 
@@ -567,9 +567,9 @@ Returned by `CheckGuardrails()`.
 | Field | Type | Description |
 |-------|------|-------------|
 | `Text` | `string` | The screened text. |
-| `Validation` | `GuardrailsValidation` | `GuardrailsValidationPassed` or `GuardrailsValidationFailed`. |
-| `Toxic` | `bool` | Whether the text is toxic. |
-| `DeniedTopic` | `bool` | Whether the text covers a denied topic. |
+| `Validation` | `GuardrailsValidation` | `GuardrailsValidationPassed`, `GuardrailsValidationFailed`, or `GuardrailsValidationUnknown` when the API returns no validation or one the SDK doesn't know. |
+| `Toxic` | `*bool` | Whether the text is toxic. `nil` when the API leaves it out. |
+| `DeniedTopic` | `*bool` | Whether the text covers a denied topic. `nil` when the API leaves it out. |
 
 ---
 
@@ -726,16 +726,18 @@ Options per media type for file calls. In `Audio`, `Bleep`, `Pdf`, and `Image`, 
 
 ### `RedactionLevel`
 
-Used in `ReidentifyStringRequest` and `ReidentifyFileRequest` to choose how a group of tokens is shown. In a v2 vault, set `EntityName` and `RedactionType`.
+Used in the `RedactionLevel` field of `ReidentifyStringRequest` and `ReidentifyFileRequest`, a `[]RedactionRule`, to choose how a group of tokens is shown. `RedactionLevel` implements `RedactionRule`:
+
+```go
+RedactionLevel: []common.RedactionRule{common.RedactionLevel{EntityName: common.EntityTypeName, RedactionType: common.RedactionTypeMasked}}
+```
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `EntityName` | `EntityType` | The entity type of the tokens. |
 | `RedactionType` | `RedactionType` | How to show them: `PLAIN_TEXT`, `MASKED`, or `REDACTED`. The server rejects `DEFAULT` in a redaction level. See [`RedactionType`](#redactiontype). |
-| `TokenGroupName` | `string` | For Flow Vault vaults only. |
-| `RedactionPattern` | `string` | For Flow Vault vaults only. |
 
-Each level needs exactly one of `EntityName` and `TokenGroupName`, and exactly one of `RedactionType` and `RedactionPattern`. Neither the SDK nor the server checks that these fit the vault type. A level that uses the other vault type's fields is ignored.
+Both fields are optional, and the SDK sends them as given.
 
 ### `Ptr`
 
@@ -778,13 +780,13 @@ Each element in the `Output` of a file response.
 
 ### `Metrics`
 
-Describes the processed input. At most one of `Slides`, `Pages`, and `Duration` is set.
+Describes the processed input. Every field is a pointer and is `nil` when the server leaves it out. At most one of `Slides`, `Pages`, and `Duration` is set.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `Size` | `float64` | Size in kilobytes. |
-| `WordCount` | `int` | Word count. |
-| `CharacterCount` | `int` | Character count. |
+| `Size` | `*float64` | Size in kilobytes. |
+| `WordCount` | `*int` | Word count. |
+| `CharacterCount` | `*int` | Character count. |
 | `Slides` | `*int` | Slide count. |
 | `Pages` | `*int` | Page count. |
 | `Duration` | `*float64` | Duration in seconds. |
@@ -878,11 +880,11 @@ Describes the processed input. At most one of `Slides`, `Pages`, and `Duration` 
 | Type | Constants (value) |
 |------|-------------------|
 | `DeidentificationType` | `DeidentificationTypeEntityUniqueCounter` (`ENTITY_UNIQUE_COUNTER`, the server default), `DeidentificationTypeEntityOnly` (`ENTITY_ONLY`), `DeidentificationTypeVaultToken` (`VAULT_TOKEN`), `DeidentificationTypeMask` (`MASK`), `DeidentificationTypeUnknown` (`UNKNOWN`) |
-| `IncludePrefix` | `IncludePrefixYes` (`YES`, the server default), `IncludePrefixNo` (`NO`), `IncludePrefixUnspecified` (`INCLUDE_PREFIX_UNSPECIFIED`) |
+| `IncludePrefix` | `IncludePrefixYes` (`YES`, the server default), `IncludePrefixNo` (`NO`) |
 | `ReturnEntitiesType` | `ReturnEntitiesTypeExcludeSensitiveData` (`EXCLUDE_SENSITIVE_DATA`, the server default), `ReturnEntitiesTypeAll` (`ALL`), `ReturnEntitiesTypeNone` (`NONE`) |
-| `DeidentifySourceType` | `DeidentifySourceTypeBase64` (`BASE64`), `DeidentifySourceTypeSkyflowID` (`SKYFLOW_ID`), `DeidentifySourceTypePresignedURL` (`PRESIGNED_URL`). Used for the `DataSource` of a `DeidentifyFileRequest` and the `OutputType` of `DeidentifyFileResponse` and `GetRunResponse`. |
-| `ReidentifySourceType` | `ReidentifySourceTypeBase64` (`BASE64`), `ReidentifySourceTypePresignedURL` (`PRESIGNED_URL`). Used for the `DataSource` of a `ReidentifyFileRequest` and the `OutputType` of `ReidentifyFileResponse`. |
-| `FileDataFormat` | `FileDataFormatMP3`, `FileDataFormatWAV`, `FileDataFormatPDF`, `FileDataFormatTXT`, `FileDataFormatCSV`, `FileDataFormatJSON`, `FileDataFormatJSONL`, `FileDataFormatXML`, `FileDataFormatJPG`, `FileDataFormatJPEG`, `FileDataFormatTIF`, `FileDataFormatTIFF`, `FileDataFormatPNG`, `FileDataFormatBMP`, `FileDataFormatGIF`, `FileDataFormatXLS`, `FileDataFormatXLSX`, `FileDataFormatDOC`, `FileDataFormatDOCX`, `FileDataFormatPPT`, `FileDataFormatPPTX`, `FileDataFormatDCM`, `FileDataFormatZIP`, `FileDataFormatUnknown`. Each value is the lowercase extension, such as `pdf`. |
+| `DeidentifySourceType` | `DeidentifySourceTypeBase64` (`BASE64`), `DeidentifySourceTypeSkyflowID` (`SKYFLOW_ID`), `DeidentifySourceTypePresignedURL` (`PRESIGNED_URL`). Implements `DeidentifyFileSource`, the type of the `DataSource` of a `DeidentifyFileRequest` and the `OutputType` of `DeidentifyFileResponse` and `GetRunResponse`. |
+| `ReidentifySourceType` | `ReidentifySourceTypeBase64` (`BASE64`), `ReidentifySourceTypePresignedURL` (`PRESIGNED_URL`). Implements `ReidentifyFileSource`, the type of the `DataSource` of a `ReidentifyFileRequest` and the `OutputType` of `ReidentifyFileResponse`. |
+| `FileDataFormat` | `FileDataFormatMP3`, `FileDataFormatWAV`, `FileDataFormatPDF`, `FileDataFormatTXT`, `FileDataFormatCSV`, `FileDataFormatJSON`, `FileDataFormatJSONL`, `FileDataFormatXML`, `FileDataFormatJPG`, `FileDataFormatJPEG`, `FileDataFormatTIF`, `FileDataFormatTIFF`, `FileDataFormatPNG`, `FileDataFormatBMP`, `FileDataFormatGIF`, `FileDataFormatXLS`, `FileDataFormatXLSX`, `FileDataFormatDOC`, `FileDataFormatDOCX`, `FileDataFormatPPT`, `FileDataFormatPPTX`, `FileDataFormatDCM`, `FileDataFormatZIP`. Each value is the lowercase extension, such as `pdf`. |
 | `DetectRunStatus` | `DetectRunStatusQueued` (`QUEUED`), `DetectRunStatusInProgress` (`IN_PROGRESS`), `DetectRunStatusSuccess` (`SUCCESS`), `DetectRunStatusFailed` (`FAILED`), `DetectRunStatusUnknown` (`UNKNOWN`). `SUCCESS`, `FAILED`, and `UNKNOWN` are final. |
 | `ProcessedFileType` | `ProcessedFileTypeRedactedFile` (`REDACTED_FILE`), `ProcessedFileTypeRedactedText` (`REDACTED_TEXT`), `ProcessedFileTypeEntities` (`ENTITIES`), `ProcessedFileTypeReidentifiedFile` (`REIDENTIFIED_FILE`), `ProcessedFileTypeRedactedTranscription` (`REDACTED_TRANSCRIPTION`), `ProcessedFileTypeRedactedDeepgramTranscriptionDiarizeJSON` (`REDACTED_DEEPGRAM_TRANSCRIPTION_DIARIZE_JSON`), `ProcessedFileTypeObjectEntities` (`OBJECT_ENTITIES`), `ProcessedFileTypeNone` (`NONE`) |
 | `ObjectEntityType` | `ObjectEntityTypeFace` (`FACE`), `ObjectEntityTypeLicensePlate` (`LICENSE_PLATE`), `ObjectEntityTypeLogo` (`LOGO`), `ObjectEntityTypeSignature` (`SIGNATURE`), `ObjectEntityTypeAll` (`ALL`), `ObjectEntityTypeNone` (`NONE`) |
@@ -890,7 +892,7 @@ Describes the processed input. At most one of `Slides`, `Pages`, and `Duration` 
 | `OutputTranscriptionType` | `OutputTranscriptionTypeTranscription` (`TRANSCRIPTION`), `OutputTranscriptionTypeMedicalTranscription` (`MEDICAL_TRANSCRIPTION`), `OutputTranscriptionTypeDiarizedTranscription` (`DIARIZED_TRANSCRIPTION`), `OutputTranscriptionTypeMedicalDiarizedTranscription` (`MEDICAL_DIARIZED_TRANSCRIPTION`), `OutputTranscriptionTypeNone` (`NONE`) |
 | `PdfProcessingMode` | `PdfProcessingModeOCR` (`OCR`), `PdfProcessingModeTextLayer` (`TEXT_LAYER`), `PdfProcessingModeNone` (`NONE`) |
 | `MaskingMethod` | `MaskingMethodBlur` (`BLUR`), `MaskingMethodBlackbox` (`BLACKBOX`), `MaskingMethodNone` (`NONE`) |
-| `GuardrailsValidation` | `GuardrailsValidationPassed` (`PASSED`), `GuardrailsValidationFailed` (`FAILED`) |
+| `GuardrailsValidation` | `GuardrailsValidationPassed` (`PASSED`), `GuardrailsValidationFailed` (`FAILED`), `GuardrailsValidationUnknown` (`UNKNOWN`) |
 
 ### `EntityType`
 

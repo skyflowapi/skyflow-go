@@ -14,7 +14,7 @@ import (
 )
 
 /**
- * This example de-identifies a file with the Detect V2 API.
+ * This example de-identifies a file with the Detect API.
  *
  * By default DeidentifyFile only submits the file and returns a run ID: fetch the result
  * later with GetRun (see get_run.go). Set Poll in the options to wait for the run instead;

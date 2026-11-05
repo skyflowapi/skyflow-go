@@ -14,7 +14,7 @@ import (
 	logs "github.com/skyflowapi/skyflow-go/v2/utils/messages"
 )
 
-// detectService runs the Detect V2 operations (/v2/detect/...) for a single vault. The vault
+// detectService runs the Detect operations (/v2/detect/...) for a single vault. The vault
 // ID comes from the vault config.
 //
 // The client updates the service's settings in place, so a service obtained earlier sees
@@ -48,7 +48,7 @@ func detectProfile() vaultclient.Profile {
 
 func newDetectService(config common.VaultConfig, settings vaultclient.ClientSettings, logLevel *logger.LogLevel) *detectService {
 	base := vaultclient.New(detectProfile(), config, settings)
-	return &detectService{config: &config, logLevel: logLevel, base: base, controller: cdetect.NewController(base)}
+	return &detectService{config: &config, logLevel: logLevel, base: base, controller: cdetect.NewController(base, cdetect.SkySources)}
 }
 
 // DeidentifyString detects and de-identifies sensitive data in a string. Synchronous.
@@ -117,6 +117,15 @@ func (s *Skyflow) updateDetect(service *detectService, updated common.VaultConfi
 	config.Env = updated.Env
 	if updated.Timeout != 0 {
 		config.Timeout = updated.Timeout
+	}
+	if updated.ConnectTimeout != 0 {
+		config.ConnectTimeout = updated.ConnectTimeout
+	}
+	if updated.ReadTimeout != 0 {
+		config.ReadTimeout = updated.ReadTimeout
+	}
+	if updated.WriteTimeout != 0 {
+		config.WriteTimeout = updated.WriteTimeout
 	}
 	if updated.MaxRetries != nil {
 		config.MaxRetries = updated.MaxRetries // SetConfig stores a copy
