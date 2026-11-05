@@ -1,0 +1,29 @@
+name: PR CI Checks (flowvault)
+
+# flowvault is a module under main, next to v2 - not a branch. This workflow runs
+# for PRs into main or a flowvault-release/* branch that touch flowvault, its common
+# dependency or its samples, and checks only those modules. v2 and v1 are covered by
+# ci.yml.
+
+on:
+  pull_request:
+    branches: [ "main", "flowvault-release/**" ]
+    paths:
+      - "flowvault/**"
+      - "common/**"
+      - "samples/flowvault/**"
+      - "v2/.golangci.yml" # the lint config the checks use
+      - ".github/workflows/pr-flowvault.yml"
+      - ".github/workflows/shared-flowvault-checks.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    uses: ./.github/workflows/shared-flowvault-checks.yml
+    with:
+      # PRs from forks get no secrets, so they skip the Codecov upload instead of failing it.
+      upload-coverage: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    secrets:
+      codecov-token: ${{ secrets.CODECOV_REPO_UPLOAD_TOKEN }}
