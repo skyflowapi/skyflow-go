@@ -401,7 +401,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 					VaultId:      "id",
 					Env:          common.PROD,
 					Credentials:  validCredentials,
-					BaseVaultUrl: "http://demo.com",
+					BaseVaultUrl: "https://demo.com",
 				}
 				err := ValidateVaultConfig(config)
 				Expect(err).To(BeNil())
@@ -421,7 +421,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 					ClusterId:    "cid",
 					Env:          common.PROD,
 					Credentials:  validCredentials,
-					BaseVaultUrl: "http://demo.com",
+					BaseVaultUrl: "https://demo.com",
 				}
 				err := ValidateVaultConfig(config)
 				Expect(err).To(BeNil())
@@ -452,7 +452,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 			})
 
 		})
-		Describe("isValidHTTPURL", func() {
+		Describe("vault URL format", func() {
 			It("should return false for invalid URL (err != nil)", func() {
 				// This string is not a valid URL and will cause url.Parse to return an error
 				invalidURL := "://bad url"
@@ -507,14 +507,28 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 				Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_VAULT_URL))
 
 			})
-			It("should return true for valid http URL", func() {
-				validURL := "http://example.com"
+			It("should reject plain http for a non-loopback host", func() {
 				config := common.VaultConfig{
 					VaultId:      "id",
 					ClusterId:    "cid",
 					Env:          common.PROD,
 					Credentials:  validCredentials,
-					BaseVaultUrl: validURL,
+					BaseVaultUrl: "http://example.com",
+				}
+				err := ValidateVaultConfig(config)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetMessage()).To(ContainSubstring("Insecure vault URL"))
+				err = ValidateUpdateVaultConfig(common.VaultConfig{VaultId: "id", BaseVaultUrl: "http://example.com"})
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetMessage()).To(ContainSubstring("Insecure vault URL"))
+			})
+			It("should accept plain http for localhost", func() {
+				config := common.VaultConfig{
+					VaultId:      "id",
+					ClusterId:    "cid",
+					Env:          common.PROD,
+					Credentials:  validCredentials,
+					BaseVaultUrl: "http://localhost:8080",
 				}
 				err := ValidateVaultConfig(config)
 				Expect(err).To(BeNil())

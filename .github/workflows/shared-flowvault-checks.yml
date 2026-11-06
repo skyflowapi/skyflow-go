@@ -1,0 +1,132 @@
+name: Shared FlowVault Checks
+
+# Build, vet, lint and test the flowvault module and the common module it depends
+# on, and type-check every flowvault sample. Called by the PR, internal-release and
+# public-release workflows so all three gate on the same checks.
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: "Git ref to check out (branch, tag or SHA). Empty uses the triggering ref."
+        required: false
+        type: string
+        default: ""
+
+      upload-coverage:
+        description: "Upload coverage to Codecov (PRs only; releases just gate on the tests)."
+        required: false
+        type: boolean
+        default: false
+
+    secrets:
+      # Reusable workflows do NOT inherit caller secrets: pass it explicitly.
+      codecov-token:
+        required: false
+
+# These jobs run PR code, so the token they get can only read.
+permissions:
+  contents: read
+
+jobs:
+  # Each module as consumers get it: against the dependency versions pinned in its go.mod.
+  module:
+    name: ${{ matrix.module }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module: [common, flowvault]
+    defaults:
+      run:
+        working-directory: ${{ matrix.module }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: ${{ matrix.module }}/go.mod
+          cache-dependency-path: ${{ matrix.module }}/go.sum
+
+      - name: Verify module dependencies
+        run: go mod verify
+
+      - name: Build
+        run: go build ./...
+
+      - name: Vet
+        run: go vet ./...
+
+      # There is one lint config in the repo, at v2/.golangci.yml; common and flowvault
+      # share it.
+      - name: Lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.8.0
+          working-directory: ${{ matrix.module }}
+          args: --config=../v2/.golangci.yml --timeout=5m
+
+      # internal/generated is Fern output and is not unit-tested, so it is left out
+      # of the run and the coverage.
+      - name: Test
+        run: go test $(go list ./... | grep -v -e "internal/generated") -coverprofile=coverage.out
+
+      - name: Codecov
+        if: ${{ inputs.upload-coverage }}
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.codecov-token }}
+          files: ${{ matrix.module }}/coverage.out
+          flags: ${{ matrix.module }}
+          name: codecov-skyflow-go-${{ matrix.module }}
+          fail_ci_if_error: true
+          verbose: true
+
+  # flowvault/go.mod pins common to a published version, so the module job above tests
+  # flowvault against that, not against this commit's common. A workspace swaps in the
+  # local common (like Maven's -am), so a change to common that breaks flowvault or the
+  # samples fails here instead of after the pin is bumped.
+  workspace:
+    name: flowvault + samples with local common
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: flowvault/go.mod
+          cache-dependency-path: |
+            common/go.sum
+            flowvault/go.sum
+            samples/flowvault/go.sum
+
+      - name: Create workspace
+        run: go work init ./common ./flowvault ./samples/flowvault
+
+      - name: Build, vet and test flowvault
+        working-directory: flowvault
+        run: |
+          go build ./...
+          go vet ./...
+          go test $(go list ./... | grep -v -e "internal/generated")
+
+      # The samples replace flowvault with ../../flowvault, so they are the compile-time
+      # check of the public API. Each file is its own package main, so `go build ./...`
+      # fails on duplicate mains: vet (type-check) them one at a time.
+      - name: Vet each sample
+        working-directory: samples/flowvault
+        run: |
+          status=0
+          while IFS= read -r f; do
+            if ! go vet "$f"; then
+              echo "::error file=samples/flowvault/${f#./}::sample does not compile"
+              status=1
+            fi
+          done < <(find . -name '*.go' | sort)
+          exit $status
