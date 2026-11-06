@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -332,7 +333,7 @@ var _ = Describe("Skyflow Client", func() {
 			vault, _ := client.Vault("env-vault")
 			Expect(vault.controller.Config.Env).To(Equal(common.PROD))
 			detect, _ := client.Detect("env-vault")
-			Expect(detect.controller.Config.Env).To(Equal(common.PROD))
+			Expect(detect.base.Config().Env).To(Equal(common.PROD))
 		})
 
 		It("keeps the stored base vault URL when an update omits it", func() {
@@ -726,15 +727,15 @@ var _ = Describe("Skyflow client — uncovered branches", func() {
 		})
 	})
 
-	Context("detect_service.DeidentifyText — error path", func() {
+	Context("detect_service.DeidentifyString — error path", func() {
 		It("should return error when controller returns validation error", func() {
 			svc, svcErr := client.Detect("v1")
 			Expect(svcErr).To(BeNil())
 			// Empty text triggers validation error inside the controller
-			_, err := svc.DeidentifyText(
-				nil,
-				common.DeidentifyTextRequest{Text: ""},
-				common.DeidentifyTextOptions{},
+			_, err := svc.DeidentifyString(
+				context.TODO(),
+				common.DeidentifyStringRequest{Text: "", ConfigurationId: "c"},
+				common.DeidentifyStringOptions{},
 			)
 			Expect(err).ToNot(BeNil())
 		})
@@ -1459,22 +1460,21 @@ var _ = Describe("Skyflow Management Methods", func() {
 			}
 			err := client.UpdateVaultConfig(updated)
 			Expect(err).To(BeNil())
-			Expect(client.detectServices["dv1"].controller.Config.Credentials.Token).To(Equal("detect-new-token"))
-			Expect(client.detectServices["dv1"].controller.Token).To(Equal(""))
+			Expect(client.detectServices["dv1"].base.Config().Credentials.Token).To(Equal("detect-new-token"))
 		})
 
 		It("should update detect controller clusterId when non-empty clusterId is provided", func() {
 			updated := common.VaultConfig{VaultId: "dv1", ClusterId: "new-cluster"}
 			err := client.UpdateVaultConfig(updated)
 			Expect(err).To(BeNil())
-			Expect(client.detectServices["dv1"].controller.Config.ClusterId).To(Equal("new-cluster"))
+			Expect(client.detectServices["dv1"].base.Config().ClusterId).To(Equal("new-cluster"))
 		})
 
 		It("should update detect controller env and skip credentials when empty creds", func() {
 			updated := common.VaultConfig{VaultId: "dv1", ClusterId: "c1", Env: common.SANDBOX}
 			err := client.UpdateVaultConfig(updated)
 			Expect(err).To(BeNil())
-			Expect(client.detectServices["dv1"].controller.Config.Env).To(Equal(common.SANDBOX))
+			Expect(client.detectServices["dv1"].base.Config().Env).To(Equal(common.SANDBOX))
 		})
 
 		It("should update both vault and detect controllers when both have been initialised", func() {
@@ -1487,7 +1487,7 @@ var _ = Describe("Skyflow Management Methods", func() {
 			err := client.UpdateVaultConfig(updated)
 			Expect(err).To(BeNil())
 			Expect(client.vaultServices["dv1"].controller.Config.Credentials.Token).To(Equal("shared-token"))
-			Expect(client.detectServices["dv1"].controller.Config.Credentials.Token).To(Equal("shared-token"))
+			Expect(client.detectServices["dv1"].base.Config().Credentials.Token).To(Equal("shared-token"))
 		})
 	})
 
@@ -1886,7 +1886,7 @@ var _ = Describe("Skyflow lifecycle: after Vault/Detect/Connection activated", f
 		It("should reflect updated ClusterId in the detect controller config", func() {
 			err := client.UpdateVaultConfig(common.VaultConfig{VaultId: "v1", ClusterId: "detect-new-cluster"})
 			Expect(err).To(BeNil())
-			Expect(client.detectServices["v1"].controller.Config.ClusterId).To(Equal("detect-new-cluster"))
+			Expect(client.detectServices["v1"].base.Config().ClusterId).To(Equal("detect-new-cluster"))
 			Expect(client.detectServices["v1"].config.ClusterId).To(Equal("detect-new-cluster"))
 		})
 
@@ -1896,8 +1896,7 @@ var _ = Describe("Skyflow lifecycle: after Vault/Detect/Connection activated", f
 				Credentials: common.Credentials{Token: "detect-token"},
 			})
 			Expect(err).To(BeNil())
-			Expect(client.detectServices["v1"].controller.Config.Credentials.Token).To(Equal("detect-token"))
-			Expect(client.detectServices["v1"].controller.Token).To(Equal(""))
+			Expect(client.detectServices["v1"].base.Config().Credentials.Token).To(Equal("detect-token"))
 		})
 
 		It("subsequent Detect() call uses the updated config", func() {
@@ -1959,9 +1958,9 @@ var _ = Describe("Skyflow lifecycle: after Vault/Detect/Connection activated", f
 			})
 			Expect(err).To(BeNil())
 			Expect(client.vaultServices["v1"].controller.Config.ClusterId).To(Equal("both-updated"))
-			Expect(client.detectServices["v1"].controller.Config.ClusterId).To(Equal("both-updated"))
+			Expect(client.detectServices["v1"].base.Config().ClusterId).To(Equal("both-updated"))
 			Expect(client.vaultServices["v1"].controller.Config.Credentials.Token).To(Equal("both-token"))
-			Expect(client.detectServices["v1"].controller.Config.Credentials.Token).To(Equal("both-token"))
+			Expect(client.detectServices["v1"].base.Config().Credentials.Token).To(Equal("both-token"))
 		})
 
 		It("RemoveVaultConfig should remove both services", func() {
@@ -1975,14 +1974,14 @@ var _ = Describe("Skyflow lifecycle: after Vault/Detect/Connection activated", f
 			err := client.UpdateSkyflowCredentials(common.Credentials{Token: "global-token"})
 			Expect(err).To(BeNil())
 			Expect(client.vaultServices["v1"].controller.CommonCreds.Token).To(Equal("global-token"))
-			Expect(client.detectServices["v1"].controller.CommonCreds.Token).To(Equal("global-token"))
+			Expect(client.detectServices["v1"].base.ClientSettings().Credentials.Token).To(Equal("global-token"))
 		})
 
 		It("AddSkyflowCredentials should propagate to both controllers", func() {
 			err := client.AddSkyflowCredentials(common.Credentials{Token: "add-global-token"})
 			Expect(err).To(BeNil())
 			Expect(client.vaultServices["v1"].controller.CommonCreds.Token).To(Equal("add-global-token"))
-			Expect(client.detectServices["v1"].controller.CommonCreds.Token).To(Equal("add-global-token"))
+			Expect(client.detectServices["v1"].base.ClientSettings().Credentials.Token).To(Equal("add-global-token"))
 		})
 	})
 
@@ -2183,7 +2182,7 @@ var _ = Describe("Skyflow lifecycle: after Vault/Detect/Connection activated", f
 				Credentials: common.Credentials{Token: "detect-mid-token"},
 			})
 			Expect(err).To(BeNil())
-			Expect(client.detectServices["v1"].controller.Config.ClusterId).To(Equal("detect-mid"))
+			Expect(client.detectServices["v1"].base.Config().ClusterId).To(Equal("detect-mid"))
 
 			// 3. Re-activate — picks up new config
 			svc2, err := client.Detect("v1")

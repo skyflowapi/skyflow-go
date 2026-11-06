@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/skyflowapi/skyflow-go/common/vaultclient"
 	constants "github.com/skyflowapi/skyflow-go/v2/internal/constants"
 	"github.com/skyflowapi/skyflow-go/v2/internal/validation"
 	"github.com/skyflowapi/skyflow-go/v2/serviceaccount"
@@ -20,7 +21,6 @@ import (
 	errors "github.com/skyflowapi/skyflow-go/v2/utils/error"
 	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
 	logs "github.com/skyflowapi/skyflow-go/v2/utils/messages"
-
 )
 
 const (
@@ -66,8 +66,9 @@ func setConnectionCredentials(config *common.ConnectionConfig, builderCreds *com
 		// here if builder credentials are available
 		if builderCreds != nil && !isCredentialsEmpty(*builderCreds) {
 			creds = *builderCreds
-		} else if envCreds := os.Getenv(constants.SKYFLOW_CREDENTIALS_ENV); envCreds != "" {
-			creds.CredentialsString = os.Getenv(constants.SKYFLOW_CREDENTIALS_ENV)
+		} else if envCreds := vaultclient.EnvCredentials(); envCreds != "" {
+			// SKYFLOW_CREDENTIALS from the environment, else from ./.env (as in Java and Python).
+			creds.CredentialsString = envCreds
 		} else {
 			return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.INVALID_INPUT_CODE), errors.EMPTY_CREDENTIALS)
 		}
@@ -128,7 +129,7 @@ func (v *ConnectionController) Invoke(ctx context.Context, request common.Invoke
 	if res.Body != nil {
 		defer res.Body.Close()
 	}
-	
+
 	metaData := map[string]interface{}{
 		constants.REQUEST_ID_KEY:          requestId,
 		constants.RESPONSE_KEY_REQUEST_ID: requestId,
@@ -142,7 +143,7 @@ func (v *ConnectionController) Invoke(ctx context.Context, request common.Invoke
 			contentType := res.Header.Get("Content-Type")
 			data, err := io.ReadAll(res.Body)
 			if err != nil {
-					return nil, errors.NewSkyflowError(errors.INVALID_INPUT_CODE, errors.INVALID_RESPONSE)
+				return nil, errors.NewSkyflowError(errors.INVALID_INPUT_CODE, errors.INVALID_RESPONSE)
 			}
 			if strings.Contains(contentType, string(common.APPLICATIONXML)) || strings.Contains(contentType, string(common.TEXTORXML)) {
 				response.Data = string(data)
@@ -206,7 +207,7 @@ func prepareRequest(request common.InvokeConnectionRequest, url string) (*http.R
 	var writer *multipart.Writer
 	var contentType string
 	shouldSetContentType := true
-	
+
 	contentType = detectContentType(request.Headers)
 
 	// If no content-type and body is an object, default to JSON
@@ -216,7 +217,7 @@ func prepareRequest(request common.InvokeConnectionRequest, url string) (*http.R
 		}
 	}
 
-	switch contentType {	
+	switch contentType {
 	case string(common.APPLICATIONORJSON):
 		if strBody, ok := request.Body.(string); ok {
 			body = strings.NewReader(strBody)
@@ -232,7 +233,7 @@ func prepareRequest(request common.InvokeConnectionRequest, url string) (*http.R
 			} else {
 				body = strings.NewReader(fmt.Sprintf(formatValue, request.Body))
 			}
-		}	
+		}
 
 	case string(common.FORMURLENCODED):
 		if bodyMap, ok := request.Body.(map[string]interface{}); ok {
@@ -247,13 +248,13 @@ func prepareRequest(request common.InvokeConnectionRequest, url string) (*http.R
 	case string(common.FORMDATA):
 		buffer := new(bytes.Buffer)
 		writer = multipart.NewWriter(buffer)
-		
+
 		if bodyMap, ok := request.Body.(map[string]interface{}); ok {
 			for key, value := range bodyMap {
 				if value == nil {
 					continue
 				}
-				
+
 				// Check if value is *os.File or io.Reader for file uploads
 				if file, ok := value.(*os.File); ok {
 					// Handle *os.File - create form file
@@ -301,7 +302,7 @@ func prepareRequest(request common.InvokeConnectionRequest, url string) (*http.R
 		} else if strBody, ok := request.Body.(string); ok {
 			// If body is already a string, use it as-is (though this is unusual for multipart)
 			body = strings.NewReader(strBody)
-			writer = nil // Don't use multipart writer for string body
+			writer = nil                 // Don't use multipart writer for string body
 			shouldSetContentType = false // Keep user's content-type
 		} else if request.Body != nil {
 			// For other types, convert to string
@@ -309,12 +310,12 @@ func prepareRequest(request common.InvokeConnectionRequest, url string) (*http.R
 			writer = nil
 			shouldSetContentType = false
 		}
-		
+
 		if writer != nil {
 			writer.Close()
 			body = buffer
 			contentType = writer.FormDataContentType() // set with boundary
-			shouldSetContentType = true // Force set with boundary
+			shouldSetContentType = true                // Force set with boundary
 		}
 
 	case string(common.APPLICATIONXML), string(common.TEXTORXML):
@@ -330,7 +331,7 @@ func prepareRequest(request common.InvokeConnectionRequest, url string) (*http.R
 			body = bytes.NewReader(data)
 		} else {
 			// throw error for unsupported body type
-		    return nil, errors.NewSkyflowError(errors.INVALID_INPUT_CODE, errors.INVALID_XML_FORMAT)
+			return nil, errors.NewSkyflowError(errors.INVALID_INPUT_CODE, errors.INVALID_XML_FORMAT)
 		}
 
 	case string(common.TEXTORPLAIN):
@@ -338,7 +339,7 @@ func prepareRequest(request common.InvokeConnectionRequest, url string) (*http.R
 			body = strings.NewReader(strBody)
 		} else if request.Body != nil {
 			body = strings.NewReader(fmt.Sprintf(formatValue, request.Body))
-		} 
+		}
 	case string(common.TEXTHTML):
 		if strBody, ok := request.Body.(string); ok {
 			body = strings.NewReader(strBody)
@@ -351,8 +352,8 @@ func prepareRequest(request common.InvokeConnectionRequest, url string) (*http.R
 			body = strings.NewReader(string(data))
 		} else if request.Body != nil {
 			body = strings.NewReader(fmt.Sprintf(formatValue, request.Body))
-		} 
-	
+		}
+
 	default:
 		if strBody, ok := request.Body.(string); ok {
 			body = strings.NewReader(strBody)
@@ -376,22 +377,23 @@ func prepareRequest(request common.InvokeConnectionRequest, url string) (*http.R
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Set content-type header
 	if shouldSetContentType && contentType != "" {
 		request1.Header.Set("content-type", contentType)
 	}
 	return request1, nil
 }
+
 // buildURLEncodedParams converts a map to URL encoded params matching Node.js URLSearchParams behavior
 func buildURLEncodedParams(data map[string]interface{}) *url.Values {
 	params := url.Values{}
-	
+
 	for key, value := range data {
 		if value == nil {
 			continue
 		}
-		
+
 		// Check if value is a map (nested object)
 		if nestedMap, ok := value.(map[string]interface{}); ok {
 			for nestedKey, nestedValue := range nestedMap {
@@ -408,7 +410,7 @@ func buildURLEncodedParams(data map[string]interface{}) *url.Values {
 			params.Add(key, fmt.Sprintf(formatValue, value))
 		}
 	}
-	
+
 	return &params
 }
 
@@ -465,7 +467,7 @@ func setHeaders(request *http.Request, api ConnectionController, invokeRequest c
 	} else {
 		request.Header.Set(constants.HEADER_AUTHORIZATION, api.Token)
 	}
-	
+
 	// Only set default content-type if not already set (preserve multipart boundary)
 	if request.Header.Get(constants.HEADER_CONTENT_TYPE) == "" {
 		request.Header.Set(constants.HEADER_CONTENT_TYPE, constants.CONTENT_TYPE_JSON)
@@ -496,11 +498,11 @@ func mapToXML(data map[string]interface{}) ([]byte, error) {
 	var buf bytes.Buffer
 	buf.WriteString("<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
 	buf.WriteString("<request>")
-	
+
 	for key, value := range data {
 		writeXMLElement(&buf, key, value)
 	}
-	
+
 	buf.WriteString("</request>")
 	return buf.Bytes(), nil
 }

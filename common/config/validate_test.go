@@ -50,7 +50,7 @@ var _ = Describe("Validator", func() {
 	})
 
 	It("should sanity check the test api key length", func() {
-		Expect(validApiKey).To(HaveLen(apiKeyLength))
+		Expect(apiKeyPattern.MatchString(validApiKey)).To(BeTrue())
 	})
 
 	Context("ValidateVaultConfig", func() {
@@ -154,6 +154,9 @@ var _ = Describe("Validator", func() {
 				Expect(logBuf.String()).To(ContainSubstring(logNegativeHttpConfig))
 			},
 			Entry("timeout", HttpConfig{Timeout: -time.Second}),
+			Entry("connect timeout", HttpConfig{ConnectTimeout: -time.Second}),
+			Entry("read timeout", HttpConfig{ReadTimeout: -time.Second}),
+			Entry("write timeout", HttpConfig{WriteTimeout: -time.Second}),
 			Entry("initial retry delay", HttpConfig{InitialRetryDelay: -time.Millisecond}),
 			Entry("max retry delay", HttpConfig{MaxRetryDelay: -time.Second}),
 			Entry("max retries", HttpConfig{MaxRetries: &neg}),
@@ -223,7 +226,11 @@ var _ = Describe("Validator", func() {
 			},
 			Entry("too short", "sky-short"),
 			Entry("too long", validApiKey+"x"),
-			Entry("right length, no prefix", strings.Repeat("a", apiKeyLength)),
+			Entry("right length, no prefix", strings.Repeat("a", len(validApiKey))),
+			// Checked against the Java and Python format, not just length and prefix.
+			Entry("prefix not at the start", "x"+validApiKey[:len(validApiKey)-1]),
+			Entry("non-hex secret", validApiKey[:len(validApiKey)-1]+"z"),
+			Entry("short account part", "sky-abcd-"+validApiKey[10:]+"0"),
 		)
 
 		It("should reject an empty roles slice", func() {

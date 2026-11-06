@@ -35,6 +35,7 @@ const (
 	ERROR_KEY_HTTP_STATUS = "http_status"
 	ERROR_KEY_DETAILS     = "details"
 	ERROR_KEY_FROM_CLIENT = "from_client"
+	ERROR_KEY_RECORDS     = "records" // records-shaped error body: {"records":[{"error":"..."}]}
 )
 
 // Method names used in logs and error messages, and operation names passed to interceptors.
@@ -68,14 +69,11 @@ const (
 // HTTP defaults, used when neither the vault nor the client sets a value.
 const (
 	DEFAULT_TIMEOUT_SECONDS            = 60
+	DEFAULT_CONNECT_TIMEOUT_SECONDS    = 10 // per attempt, as in Java and Python
+	DEFAULT_READ_TIMEOUT_SECONDS       = 10 // per attempt, as in Java and Python
+	DEFAULT_WRITE_TIMEOUT_SECONDS      = 10 // per attempt, as in Java and Python
 	DEFAULT_MAX_RETRIES                = 0
 	DEFAULT_INITIAL_RETRY_DELAY_MILLIS = 500
 	DEFAULT_MAX_RETRY_DELAY_MILLIS     = 2000
 	RETRY_JITTER_FACTOR                = 0.2
-
-	// Signed-URL uploads: bounds for connecting and for the storage service's response,
-	// matching the Java and Python defaults. There is no overall upload timeout.
-	UPLOAD_CONNECT_TIMEOUT_SECONDS         = 10
-	UPLOAD_RESPONSE_HEADER_TIMEOUT_SECONDS = 10
-	UPLOAD_KEEP_ALIVE_SECONDS              = 30
 )

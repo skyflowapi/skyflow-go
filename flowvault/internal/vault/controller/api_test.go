@@ -138,6 +138,53 @@ var _ = Describe("VaultController API calls", func() {
 		Expect(resp.Records[0].RequestId).To(Equal("req-123"))
 	})
 
+	// Java's response filling, for a non-2xx response that still lists records: the status
+	// comes from the record (any of its spellings) or the call, the error from "error",
+	// "message" or "Unknown error", every record gets the request ID, and data is dropped.
+	It("fills in failed records from a non-2xx response as Java does", func() {
+		fake.respond("/v2/records/insert", http.StatusBadRequest, `{"records":[
+			{"skyflowID":"id1","tableName":"users","http_code":409,"error":"duplicate","data":{"a":1}},
+			{"statusCode":"422","message":"bad column"},
+			{"httpCode":"abc","error":{"code":7}},
+			{"error":""}]}`)
+		resp, err := v.Insert(ctx, fvcommon.InsertRequest{TableName: "users", Records: []fvcommon.InsertRequestRecord{{Data: map[string]interface{}{"a": 1}}}}, fvcommon.InsertOptions{})
+		Expect(err).To(BeNil())
+		Expect(resp.Records).To(HaveLen(4))
+		Expect(resp.Records[0]).To(Equal(fvcommon.InsertResponseRecord{
+			SkyflowId: "id1", TableName: "users", HttpCode: 409, Error: "duplicate", RequestId: "req-123",
+		}))
+		Expect(resp.Records[1].HttpCode).To(Equal(422))
+		Expect(resp.Records[1].Error).To(Equal("bad column"))
+		Expect(resp.Records[2].HttpCode).To(Equal(400)) // the call's status
+		Expect(resp.Records[2].Error).To(Equal(`{"code":7}`))
+		Expect(resp.Records[3].Error).To(Equal("Unknown error"))
+		for _, record := range resp.Records {
+			Expect(record.RequestId).To(Equal("req-123"))
+		}
+
+		fake.respond("/v2/tokens/detokenize", http.StatusNotFound, `{"response":[{"token":"t1","tokenGroupName":"g","value":"secret"}]}`)
+		detok, err := v.Detokenize(ctx, fvcommon.DetokenizeRequest{Tokens: []string{"t1"}}, fvcommon.DetokenizeOptions{})
+		Expect(err).To(BeNil())
+		Expect(detok.Records[0].Token).To(Equal("t1"))
+		Expect(detok.Records[0].TokenGroupName).To(Equal("g"))
+		Expect(detok.Records[0].Value).To(BeNil()) // values are not carried over
+		Expect(detok.Records[0].HttpCode).To(Equal(404))
+		Expect(detok.Records[0].Error).To(Equal("Unknown error"))
+	})
+
+	// Java's response filling on a 2xx response: a record's missing httpCode (0) is 500 when
+	// the record has an error and 200 when it doesn't.
+	It("fills in a missing record httpCode on a 2xx response as Java does", func() {
+		fake.respond("/v2/records/delete", http.StatusOK, `{"records":[{"skyflowID":"id1"},{"skyflowID":"id2","error":"not found"},{"skyflowID":"id3","httpCode":207}]}`)
+		resp, err := v.Delete(ctx, fvcommon.DeleteRequest{TableName: "t", SkyflowIds: []string{"id1", "id2", "id3"}}, fvcommon.DeleteOptions{})
+		Expect(err).To(BeNil())
+		Expect(resp.Records[0].HttpCode).To(Equal(200))
+		Expect(resp.Records[0].RequestId).To(BeEmpty())
+		Expect(resp.Records[1].HttpCode).To(Equal(500))
+		Expect(resp.Records[1].RequestId).To(Equal("req-123"))
+		Expect(resp.Records[2].HttpCode).To(Equal(207))
+	})
+
 	It("maps a whole-call API error to a SkyflowError", func() {
 		fake.respond("/v2/query", http.StatusBadRequest, `{"error":{"grpc_code":3,"http_code":400,"http_status":"Bad Request","message":"Invalid query"}}`)
 		_, err := v.Query(ctx, fvcommon.QueryRequest{Query: "SELECT 1"}, fvcommon.QueryOptions{})
@@ -281,6 +328,28 @@ var _ = Describe("VaultController API calls", func() {
 		Expect(resp.Records[1].RequestId).To(Equal("req-123"))
 		Expect(resp.Records[1].Columns[0].UploadStatus).To(Equal(fvcommon.UploadStatusSkipped))
 		Expect(resp.Records[1].Columns[0].Error).To(Equal("record not found"))
+	})
+
+	It("returns an error when the upload call fails, even when the body carries records", func() {
+		fake.respond("/v2/files/upload", http.StatusBadRequest, `{"records":[
+			{"skyflowID":"id1","httpCode":400,"error":"column not found"},
+			{"skyflowID":"id2","httpCode":400,"error":"column not found"},
+			{"skyflowID":"id3","httpCode":400,"error":"table not found"}]}`)
+		resp, err := v.UploadFiles(ctx, fvcommon.UploadFilesRequest{Records: []fvcommon.UploadFilesRequestRecord{
+			{TableName: "docs", Columns: []fvcommon.UploadFilesRequestColumn{{Column: "resume", Base64: "cGRm", FileName: "resume.pdf"}}},
+		}}, fvcommon.UploadFilesOptions{})
+		Expect(resp).To(BeNil())
+		Expect(err).ToNot(BeNil())
+		Expect(err.GetHttpCode()).To(Equal("400"))
+		Expect(err.GetMessage()).To(ContainSubstring("column not found; table not found"))
+		Expect(err.GetRequestId()).To(Equal("req-123"))
+
+		fake.respond("/v2/files/upload", http.StatusBadRequest, `{"records":[{"skyflowID":"id1","httpCode":400}]}`)
+		_, err = v.UploadFiles(ctx, fvcommon.UploadFilesRequest{Records: []fvcommon.UploadFilesRequestRecord{
+			{TableName: "docs", Columns: []fvcommon.UploadFilesRequestColumn{{Column: "resume", Base64: "cGRm", FileName: "resume.pdf"}}},
+		}}, fvcommon.UploadFilesOptions{})
+		Expect(err).ToNot(BeNil())
+		Expect(err.GetMessage()).To(ContainSubstring(`"records"`))
 	})
 
 	It("doesn't retry a failed file upload, even with retries on", func() {

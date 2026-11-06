@@ -70,6 +70,27 @@ var _ = Describe("Skyflow client", func() {
 		Expect(*other.controller.ClientSettings().HttpConfig.MaxRetries).To(Equal(2))
 	})
 
+	It("returns the first registered vault when no vault ID is given, as Java and Python do", func() {
+		client := newTestClient()
+		Expect(client.AddVaultConfig(fvcommon.VaultConfig{VaultId: "second", ClusterId: "cluster"})).To(BeNil())
+		first, err := client.Vault()
+		Expect(err).To(BeNil())
+		Expect(first.controller.Config().VaultId).To(Equal(testVaultID))
+		detect, err := client.Detect()
+		Expect(err).To(BeNil())
+		Expect(detect).ToNot(BeNil())
+
+		Expect(client.RemoveVaultConfig(testVaultID)).To(BeNil())
+		next, _ := client.Vault()
+		Expect(next.controller.Config().VaultId).To(Equal("second"))
+
+		Expect(client.RemoveVaultConfig("second")).To(BeNil())
+		_, err = client.Vault()
+		Expect(err.GetMessage()).To(ContainSubstring("VaultId is missing"))
+		_, err = client.Detect()
+		Expect(err).ToNot(BeNil())
+	})
+
 	It("applies the default Env when an update doesn't set one, as Java does", func() {
 		client := newTestClient()
 		Expect(client.UpdateVaultConfig(fvcommon.VaultConfig{VaultId: testVaultID, ClusterId: "other"})).To(BeNil())

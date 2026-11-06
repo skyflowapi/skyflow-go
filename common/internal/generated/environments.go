@@ -10,6 +10,6 @@ var Environments = struct {
 	Production string
 	Sandbox    string
 }{
-	Production: "https://manage.skyflowapis.com",
-	Sandbox:    "https://manage.skyflowapis-preview.com",
+	Production: "https://%7B%7Bvault_url%7D%7D",
+	Sandbox:    "https://%7B%7Bvault_url%7D%7D",
 }

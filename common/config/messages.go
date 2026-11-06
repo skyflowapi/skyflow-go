@@ -13,7 +13,7 @@ const (
 	errInvalidApiKey                      = " Initialization failed. Invalid credentials. Specify valid api key."
 	errEmptyRoles                         = " Initialization failed. Invalid roles. Specify at least one role."
 	errEmptyRoleInRoles                   = " Initialization failed. Invalid role. Specify a valid role."
-	errNegativeHttpConfig                 = " Initialization failed. Invalid HTTP config. Timeout, retry count and retry delays must not be negative."
+	errNegativeHttpConfig                 = " Initialization failed. Invalid HTTP config. Timeouts, retry count and retry delays must not be negative."
 )
 
 const (
@@ -27,5 +27,5 @@ const (
 	logInvalidApiKey                      = "Invalid credentials. Api key is invalid."
 	logEmptyRoles                         = "Invalid credentials. Roles can not be empty."
 	logEmptyOrNullRoleInRoles             = "Invalid credentials. Role can not be null or empty in roles at index %v."
-	logNegativeHttpConfig                 = "Invalid HTTP config. Timeout, retry count and retry delays must not be negative."
+	logNegativeHttpConfig                 = "Invalid HTTP config. Timeouts, retry count and retry delays must not be negative."
 )

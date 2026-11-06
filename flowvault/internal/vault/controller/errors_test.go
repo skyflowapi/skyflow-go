@@ -144,14 +144,16 @@ var _ = Describe("Response conversion", func() {
 	})
 
 	It("uses an empty header when an API error has none", func() {
-		hasRecords := func(b *api.InsertResponse) bool { return len(b.Records) > 0 }
-
-		body, header, err := result[api.InsertResponse](nil, core.NewAPIError(http.StatusBadRequest, nil, errors.New(`{"records":[{"httpCode":400}]}`)), hasRecords)
+		body, header, err := result[api.InsertResponse](nil, core.NewAPIError(http.StatusBadRequest, nil, errors.New(`{"records":[{"httpCode":400}]}`)), recordFallback)
 		Expect(err).To(BeNil())
 		Expect(body.Records).To(HaveLen(1))
 		Expect(header).To(Equal(http.Header{}))
 
-		_, _, err = result[api.InsertResponse](nil, core.NewAPIError(http.StatusBadRequest, nil, errors.New(`{"records":[]}`)), hasRecords)
+		for _, unusable := range []string{`{"records":[]}`, `{"records":[null, 1]}`, `not json`} {
+			_, _, err = result[api.InsertResponse](nil, core.NewAPIError(http.StatusBadRequest, nil, errors.New(unusable)), recordFallback)
+			Expect(err).ToNot(BeNil(), unusable)
+		}
+		_, _, err = result[api.InsertResponse](nil, core.NewAPIError(http.StatusBadRequest, nil, errors.New(`{"records":[]}`)), recordFallback)
 		Expect(err).ToNot(BeNil())
 		Expect(err.GetHttpCode()).To(Equal("400"))
 		Expect(err.GetRequestId()).To(BeEmpty())

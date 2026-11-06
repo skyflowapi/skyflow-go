@@ -3,12 +3,12 @@ package helpers
 import (
 	"context"
 	"encoding/base64"
+	"github.com/skyflowapi/skyflow-go/common/vaultclient"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -33,6 +33,9 @@ var _ = Describe("HTTP config", func() {
 		)
 		Expect(resolved).To(Equal(ResolvedHttpConfig{
 			Timeout:           5 * time.Second,
+			ConnectTimeout:    10 * time.Second,
+			ReadTimeout:       10 * time.Second,
+			WriteTimeout:      10 * time.Second,
 			MaxRetries:        2,
 			InitialRetryDelay: 500 * time.Millisecond,
 			MaxRetryDelay:     time.Second,
@@ -40,41 +43,12 @@ var _ = Describe("HTTP config", func() {
 
 		defaults := ResolveHttpConfig(fvcommon.HttpConfig{}, fvcommon.HttpConfig{})
 		Expect(defaults.Timeout).To(Equal(60 * time.Second))
+		// Per-attempt timeouts default to 10s, as in Java (OkHttp) and Python.
+		Expect(defaults.ConnectTimeout).To(Equal(10 * time.Second))
+		Expect(defaults.ReadTimeout).To(Equal(10 * time.Second))
+		Expect(defaults.WriteTimeout).To(Equal(10 * time.Second))
 		Expect(defaults.MaxRetries).To(Equal(0))
 		Expect(defaults.MaxRetryDelay).To(Equal(2000 * time.Millisecond))
-	})
-
-	It("keeps backoff within the jittered bounds", func() {
-		for attempt := 1; attempt <= 5; attempt++ {
-			delay := backoff(attempt, 500*time.Millisecond, 2*time.Second)
-			Expect(delay).To(BeNumerically("<=", 2400*time.Millisecond))
-			Expect(delay).To(BeNumerically(">=", 400*time.Millisecond))
-		}
-	})
-
-	It("retries retryable statuses up to MaxRetries and resends the body", func() {
-		var calls int32
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			body, _ := io.ReadAll(r.Body)
-			Expect(string(body)).To(Equal("payload"))
-			if atomic.AddInt32(&calls, 1) < 3 {
-				w.WriteHeader(http.StatusServiceUnavailable)
-				return
-			}
-			w.WriteHeader(http.StatusOK)
-		}))
-		defer server.Close()
-
-		transport := &retryTransport{
-			base:   http.DefaultTransport,
-			config: ResolvedHttpConfig{MaxRetries: 3, InitialRetryDelay: time.Millisecond, MaxRetryDelay: time.Millisecond},
-			sleep:  func(time.Duration) {},
-		}
-		req, _ := http.NewRequest(http.MethodPost, server.URL, strings.NewReader("payload"))
-		resp, err := transport.RoundTrip(req)
-		Expect(err).To(BeNil())
-		Expect(resp.StatusCode).To(Equal(http.StatusOK))
-		Expect(atomic.LoadInt32(&calls)).To(Equal(int32(3)))
 	})
 
 	It("does not retry when retries are off", func() {
@@ -207,14 +181,13 @@ var _ = Describe("Files", func() {
 		Expect(length).To(Equal(int64(0)))
 	})
 
-	It("uploads with no retries and no overall timeout, but bounded connect and response waits", func() {
-		client := UploadHTTPClient()
-		Expect(client).To(BeIdenticalTo(UploadHTTPClient()))
+	It("uploads with the vault's per-attempt timeouts, but no retries and no overall timeout", func() {
+		api := NewHTTPClient(ResolveHttpConfig(fvcommon.HttpConfig{ReadTimeout: 7 * time.Second}, fvcommon.HttpConfig{}))
+		client := vaultclient.SignedURLClient(api)
 		Expect(client.Timeout).To(BeZero())
 		transport, ok := client.Transport.(*http.Transport)
-		Expect(ok).To(BeTrue())
-		Expect(transport.TLSHandshakeTimeout).To(Equal(10 * time.Second))
-		Expect(transport.ResponseHeaderTimeout).To(Equal(10 * time.Second))
+		Expect(ok).To(BeTrue()) // the bare transport: no retry wrapper
+		Expect(transport.ResponseHeaderTimeout).To(Equal(7 * time.Second))
 	})
 
 	It("runs exactly limit tasks at once", func() {

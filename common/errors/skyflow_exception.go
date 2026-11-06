@@ -93,8 +93,7 @@ func NewSkyflowError(code ErrorCodesEnum, message string) *SkyflowError {
 
 // NewSkyflowErrorWithCause is NewSkyflowError keeping the error that caused it, so callers
 // can match it with errors.Is or errors.As, e.g. context.DeadlineExceeded. Unlike
-// NewSkyflowError, whose status is always "Bad Request", SERVER gets "Internal Server Error"
-// and REQUEST_CANCELLED gets "Client Closed Request"; other codes keep "Bad Request".
+// NewSkyflowError, whose status is always "Bad Request", its HTTP status matches code.
 func NewSkyflowErrorWithCause(code ErrorCodesEnum, message string, cause error) *SkyflowError {
 	skyflowError := NewSkyflowError(code, message)
 	skyflowError.httpStatusCode = statusFor(code)
@@ -235,20 +234,26 @@ func SkyflowApiError(responseHeaders http.Response) *SkyflowError {
 	}
 	return &skyflowError
 }
+
+// SkyflowErrorApi converts an error from a generated API client into a SkyflowError. When the
+// error carries an HTTP status, the error keeps that status and the request ID even if the
+// body is empty or not JSON, so a 5xx from a gateway is not reported as invalid input.
 func SkyflowErrorApi(error error, header http.Header) *SkyflowError {
-	skyflowError := SkyflowError{}
 	var apiError map[string]interface{}
 	// Set the request ID from the header
-	skyflowError = SkyflowError{
+	skyflowError := SkyflowError{
 		requestId: header.Get(constants.REQUEST_KEY),
 	}
-	parts := strings.SplitN(error.Error(), ": ", 2)
-	if len(parts) < 2 {
-		return NewSkyflowError(INVALID_INPUT_CODE, rawBodyMessage(error.Error()))
-	}
-	err := json.Unmarshal([]byte(parts[1]), &apiError)
-	if err != nil {
-		return NewSkyflowError(INVALID_INPUT_CODE, rawBodyMessage(error.Error()))
+	raw := error.Error()
+	prefix, body, found := strings.Cut(raw, constants.API_ERROR_SEPARATOR)
+	status, hasStatus := parseStatusPrefix(prefix)
+	if !found || json.Unmarshal([]byte(body), &apiError) != nil {
+		if !hasStatus {
+			return NewSkyflowError(INVALID_INPUT_CODE, rawBodyMessage(raw))
+		}
+		skyflowError.message = rawBodyMessage(raw)
+		skyflowError.fillMissingStatus(status)
+		return &skyflowError
 	}
 	if errorBody, ok := apiError[constants.ERROR_KEY_ERROR].(map[string]interface{}); ok {
 		if httpCode, exists := errorBody[constants.ERROR_KEY_HTTP_CODE].(float64); exists {
@@ -274,7 +279,11 @@ func SkyflowErrorApi(error error, header http.Header) *SkyflowError {
 	} else if errBody, ok := apiError[constants.ERROR_KEY_ERROR].(string); ok {
 		skyflowError.message = errBody
 	} else {
-		skyflowError.message = rawBodyMessage(error.Error())
+		skyflowError.message = rawBodyMessage(raw)
+	}
+	if hasStatus {
+		// The body's own http_code and http_status win; the response status fills the gaps.
+		skyflowError.fillMissingStatus(status)
 	}
 	return &skyflowError
 }
@@ -291,4 +300,26 @@ func rawBodyMessage(body string) string {
 		cut-- // don't split a multi-byte character
 	}
 	return body[:cut] + constants.TRUNCATED_SUFFIX
+}
+
+// parseStatusPrefix reads the HTTP status that generated clients put before the body.
+func parseStatusPrefix(prefix string) (int, bool) {
+	status, err := strconv.Atoi(prefix)
+	if err != nil || status < constants.MIN_HTTP_STATUS || status > constants.MAX_HTTP_STATUS {
+		return 0, false
+	}
+	return status, true
+}
+
+// fillMissingStatus sets the HTTP code from status where it is still unset, and the status
+// text from the final code, so the two always agree.
+func (se *SkyflowError) fillMissingStatus(status int) {
+	if se.httpCode == "" {
+		se.httpCode = strconv.Itoa(status)
+	}
+	if se.httpStatusCode == "" {
+		// httpCode is numeric here: set above or formatted from the body's http_code.
+		code, _ := strconv.Atoi(se.httpCode)
+		se.httpStatusCode = http.StatusText(code)
+	}
 }
