@@ -6,6 +6,9 @@
 
 The Skyflow Go SDK is designed to help with integrating Skyflow into a go backend.
 
+> [!NOTE]
+> This README covers the v2 SDK (`github.com/skyflowapi/skyflow-go/v2`). For a Flow Vault, use the Flow Vault Go SDK (`github.com/skyflowapi/skyflow-go/flowvault`) and its [README](./flowvault/README.md).
+
 [![CI](https://img.shields.io/static/v1?label=CI&message=passing&color=green?style=plastic&logo=github)](https://github.com/skyflowapi/skyflow-go/actions)
 [![GitHub release](https://img.shields.io/github/v/release/skyflowapi/skyflow-go.svg)](https://github.com/skyflowapi/skyflow-go/releases)
 [![License](https://img.shields.io/github/license/skyflowapi/skyflow-go)](https://github.com/skyflowapi/skyflow-go/blob/main/LICENSE)
@@ -2658,7 +2661,7 @@ After the Skyflow client is initialized, you can add, update, retrieve, and remo
 |--------|-------------|
 | `AddVaultConfig(config VaultConfig)` | Add a new vault after initialization |
 | `RemoveVaultConfig(vaultId string)` | Remove a vault by ID |
-| `UpdateVaultConfig(config VaultConfig)` | Update an existing vault configuration |
+| `UpdateVaultConfig(config VaultConfig)` | Update an existing vault configuration. Unset `ClusterId`, `BaseVaultUrl`, and `Credentials` keep their current values, but `Env` is always applied, so an unset `Env` sets the vault to `PROD` |
 | `GetVaultConfig(vaultId string)` | Retrieve a vault configuration by ID |
 
 ```go
@@ -3156,7 +3159,7 @@ func main(){
 ```
 
 ## Logging
-The Skyflow Go SDK provides useful logging using go's built-in logging library. By default, the SDK's logging level is set to `LogLevel.ERROR`. This can be changed using the `UpdateLogLevel(logLevel)` method as shown below.
+The Skyflow Go SDK provides useful logging using go's built-in logging library. By default, the SDK's logging level is set to `LogLevel.ERROR`. This can be changed using the `UpdateLogLevel(logLevel)` method as shown below. The log level is process-wide: setting it on one client changes it for every v2 and Flow Vault client in the process.
 
 Currently, the following five log levels are supported:
 - `DEBUG`:
@@ -3208,7 +3211,7 @@ func main() {
   config := common.VaultConfig{
     VaultId:   "<VAULT_ID>",            // Replace with the actual Vault ID (first vault)
     ClusterId: "<CLUSTER_ID>",          // Replace with the actual Cluster ID (from vault URL)
-    Env:       common.DEV,               // Set the environment (default is DEV, can also use PROD)
+    Env:       common.DEV,               // Set the environment (default is PROD)
     Credentials: credentials,
   }
   credentialString := "<CREDENTIAL_AS_JSON_STRING>"
