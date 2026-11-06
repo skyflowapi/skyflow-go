@@ -34,7 +34,7 @@ Pass `Option` values to `NewSkyflow` to configure the client.
 | `WithVaults(config ...VaultConfig) Option` | Add one or more vault configurations. |
 | `WithConnections(config ...ConnectionConfig) Option` | Add one or more connection configurations. |
 | `WithCredentials(credentials Credentials) Option` | Set client-level credentials applied when a vault or connection config does not specify its own. |
-| `WithLogLevel(logLevel LogLevel) Option` | Set the initial log level. See [`LogLevel`](#loglevel). |
+| `WithLogLevel(logLevel LogLevel) Option` | Set the initial log level. The level is process-wide: every client of the v2 and Flow Vault SDKs shares it. See [`LogLevel`](#loglevel). |
 | `WithCustomHeaders(headers map[CustomHeaderKey]string) Option` | Set client-level custom headers sent with every request. See [`CustomHeaderKey`](#customheaderkey). |
 
 ```go
@@ -63,7 +63,7 @@ skyflowClient, err := client.NewSkyflow(
 |--------|---------|-------------|
 | `Vault(vaultID ...string)` | `(*VaultService, *SkyflowError)` | Get the vault service. Uses the first configured vault if no ID is given. |
 | `Connection(connectionId ...string)` | `(*ConnectionService, *SkyflowError)` | Get the connection service. Uses the first configured connection if no ID is given. |
-| `Detect(vaultID ...string)` | `(*DetectService, *SkyflowError)` | Get the Detect service. Uses the first configured vault if no ID is given. |
+| `Detect(vaultID ...string)` | `(Detect service, *SkyflowError)` | Get the Detect service for a vault. Uses the first configured vault if no ID is given. See [Detect API](#detect-api). |
 
 ### Instance management methods
 
@@ -73,7 +73,7 @@ All mutating methods return `*SkyflowError` (nil on success) unless the table no
 |--------|---------|-------------|
 | `AddVaultConfig(VaultConfig)` | `*SkyflowError` | Add a vault after initialization. |
 | `GetVaultConfig(vaultId string)` | `(*VaultConfig, *SkyflowError)` | Retrieve a vault configuration by ID. |
-| `UpdateVaultConfig(VaultConfig)` | `*SkyflowError` | Replace an existing vault configuration (matched by `VaultId`). |
+| `UpdateVaultConfig(VaultConfig)` | `*SkyflowError` | Update an existing vault configuration (matched by `VaultId`). `ClusterId`, `BaseVaultUrl`, and `Credentials` change only when you set them; an empty value keeps the current one. `Env` always changes, so leaving it unset resets it to `PROD`. A new `BaseVaultUrl` follows the same `https` rule as in [`VaultConfig`](#vaultconfig). The Detect service also takes `Timeout`, `MaxRetries`, `InitialRetryDelay`, and `MaxRetryDelay` when you set them. |
 | `RemoveVaultConfig(vaultId string)` | `*SkyflowError` | Remove a vault configuration. |
 | `AddConnectionConfig(ConnectionConfig)` | `*SkyflowError` | Add a connection after initialization. |
 | `GetConnectionConfig(connId string)` | `(*ConnectionConfig, *SkyflowError)` | Retrieve a connection configuration by ID. |
@@ -82,8 +82,8 @@ All mutating methods return `*SkyflowError` (nil on success) unless the table no
 | `AddSkyflowCredentials(Credentials)` | `*SkyflowError` | Set client-level credentials. |
 | `UpdateSkyflowCredentials(Credentials)` | `*SkyflowError` | Replace client-level credentials. |
 | `GetSkyflowCredentials()` | `*Credentials` | Get the current client-level credentials. |
-| `GetLoglevel()` | `*LogLevel` | Get the current log level. |
-| `UpdateLogLevel(LogLevel)` | — | Change the log level at runtime. |
+| `GetLoglevel()` | `*LogLevel` | Get the level last set on this client. Another client, in either SDK, may have changed the process-wide level since. |
+| `UpdateLogLevel(LogLevel)` | — | Change the log level at runtime. The level is process-wide: every client of the v2 and Flow Vault SDKs shares it. |
 
 ```go
 // Manage configuration after the client is built
@@ -111,6 +111,10 @@ level := skyflowClient.GetLoglevel()
 | `Env` | `Env` | Deployment environment. Default: `PROD`. See [`Env`](#env). |
 | `Credentials` | `Credentials` | Vault-specific credentials. Overrides client-level credentials for this vault. |
 | `BaseVaultUrl` | `string` | _(optional)_ Override the base vault URL. Must use `https`; `http` is accepted only for `localhost` and loopback addresses. |
+| `Timeout` | `time.Duration` | _(optional)_ Timeout for Detect calls to this vault. Zero means not set. |
+| `MaxRetries` | `*int` | _(optional)_ Retry count for Detect calls to this vault. `nil` means not set. |
+| `InitialRetryDelay` | `time.Duration` | _(optional)_ Delay before the first Detect retry. Zero means not set. |
+| `MaxRetryDelay` | `time.Duration` | _(optional)_ Longest delay between Detect retries. Zero means not set. |
 
 ### `ConnectionConfig`
 
@@ -318,90 +322,99 @@ Passed to `connection.Invoke()`.
 
 ### Detect API
 
-#### `DeidentifyTextRequest`
+The Detect methods are on the service that `client.Detect()` returns. Each method takes a `context.Context`, a request struct, and an options struct, and returns a response and a `*SkyflowError`. All Detect types are in `github.com/skyflowapi/skyflow-go/v2/utils/common`.
 
-Passed to `detect.DeidentifyText()`.
+These are the Detect V2 types. To move from the V1 methods and types they replace, see [Migrate from Detect V1](../README.md#migrate-from-detect-v1).
+
+#### `DeidentifyStringRequest`
+
+Passed to `DeidentifyString()`. `ConfigurationId` and `Configuration` are optional, and the SDK sends them as given: with neither, it sends a configuration that holds only the vault ID, and with both, it sends both.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `Text` | `string` | _(required)_ | Text to de-identify. |
-| `Entities` | `[]DetectEntities` | `nil` | Entity types to detect. Detects all types if empty. See [`DetectEntities`](#detectentities). |
-| `AllowRegexList` | `[]string` | `nil` | Regex patterns to always treat as detectable. |
-| `RestrictRegexList` | `[]string` | `nil` | Regex patterns to exclude from detection. |
-| `TokenFormat` | `TokenFormat` | — | Token format per entity type. See [`TokenFormat`](#tokenformat). |
-| `Transformations` | `Transformations` | — | Data transformations (e.g. date shifting). See [`Transformations`](#transformations). |
-
-#### `DeidentifyTextOptions`
-
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `CustomHeaders` | `map[CustomHeaderKey]string` | `nil` | Per-request custom headers. |
-
----
-
-#### `ReidentifyTextRequest`
-
-Passed to `detect.ReidentifyText()`.
-
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `Text` | `string` | _(required)_ | The de-identified text to re-identify. |
-| `RedactedEntities` | `[]DetectEntities` | `nil` | Entity types to keep redacted in the output. |
-| `MaskedEntities` | `[]DetectEntities` | `nil` | Entity types to mask in the output. |
-| `PlainTextEntities` | `[]DetectEntities` | `nil` | Entity types to reveal as plain text. |
-
-#### `ReidentifyTextOptions`
-
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `CustomHeaders` | `map[CustomHeaderKey]string` | `nil` | Per-request custom headers. |
-
----
+| `ConfigurationId` | `string` | `""` | ID of a stored Detect configuration. |
+| `Configuration` | `*DetectConfiguration` | `nil` | Inline configuration to use instead of a stored one. See [`DetectConfiguration`](#detectconfiguration). |
 
 #### `DeidentifyFileRequest`
 
-Passed to `detect.DeidentifyFile()`.
+Passed to `DeidentifyFile()`. Supply the file as exactly one of `Value` (with `DataSource`), `FilePath`, or `FileObject`. `ConfigurationId` and `Configuration` are optional, and the SDK sends them as given: with neither, it sends a configuration that holds only the vault ID, and with both, it sends both.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `File` | `FileInput` | _(required)_ | File source. See [`FileInput`](#fileinput). |
-| `Entities` | `[]DetectEntities` | `nil` | Entity types to detect. |
-| `AllowRegexList` | `[]string` | `nil` | Regex patterns to always detect. |
-| `RestrictRegexList` | `[]string` | `nil` | Regex patterns to exclude. |
-| `TokenFormat` | `TokenFormat` | — | Token format per entity type. |
-| `Transformations` | `Transformations` | — | Transformations (not supported for images/PDFs). |
-| `OutputProcessedImage` | `bool` | `false` | Include the processed image in the response. |
-| `OutputOcrText` | `bool` | `false` | Include OCR-extracted text in the response. |
-| `MaskingMethod` | `MaskingMethod` | — | Visual masking method for images. See [`MaskingMethod`](#maskingmethod). |
-| `PixelDensity` | `int` | `0` | Pixel density for PDF processing. |
-| `MaxResolution` | `int` | `0` | Maximum resolution for PDF processing. |
-| `OutputProcessedAudio` | `bool` | `false` | Include processed audio in the response. |
-| `OutputTranscription` | `DetectOutputTranscriptions` | — | Transcription mode for audio. See [`DetectOutputTranscriptions`](#detectoutputtranscriptions). |
-| `Bleep` | `AudioBleep` | — | Audio bleep configuration. See [`AudioBleep`](#audiobleep). |
-| `OutputDirectory` | `string` | `""` | Directory to write the processed file. |
-| `WaitTime` | `int` | `0` | Maximum seconds to wait for async file processing (≤ 64). |
+| `DataSource` | `DeidentifyFileSource` | `nil` | What `Value` holds: `DeidentifySourceTypeBase64`, `DeidentifySourceTypeSkyflowID`, or `DeidentifySourceTypePresignedURL`. Required with `Value`, which can't be blank. The SDK sends it as given, and the server rejects one the vault doesn't accept. The SDK ignores it for `FilePath` or `FileObject`, which it always sends as base64. |
+| `Value` | `string` | `""` | Base64 file content, a Skyflow ID, or a presigned URL. |
+| `FilePath` | `string` | `""` | Path to a local file. The SDK reads it and sends it as base64. It must be a regular file. |
+| `FileObject` | `*os.File` | `nil` | An open regular file. The SDK reads all of it, from the start, and sends it as base64. The caller closes it. |
+| `DataFormat` | `FileDataFormat` | `""` | File format. Optional: the server infers it, and for a local file the SDK infers it from the extension. Set it to override either. See [Detect enums](#detect-enums). |
+| `ConfigurationId` | `string` | `""` | ID of a stored Detect configuration. |
+| `Configuration` | `*DetectConfiguration` | `nil` | Inline configuration. See [`DetectConfiguration`](#detectconfiguration). |
 
-#### `DeidentifyFileOptions`
+#### `GetRunRequest`
+
+Passed to `GetRun()` to look up a `DeidentifyFile` run.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `CustomHeaders` | `map[CustomHeaderKey]string` | `nil` | Per-request custom headers. |
+| `RunId` | `string` | _(required)_ | The run ID returned by `DeidentifyFile()`. |
 
----
+#### `ReidentifyStringRequest`
 
-#### `GetDetectRunRequest`
-
-Passed to `detect.GetDetectRun()` to poll the status of an async `DeidentifyFile` call.
+Passed to `ReidentifyString()`.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `RunId` | `string` | _(required)_ | The `RunId` returned by a prior `DeidentifyFile` response. |
+| `Text` | `string` | _(required)_ | Text that contains tokens to re-identify. |
+| `RedactionLevel` | `[]RedactionRule` | `nil` | How to show each group of tokens, as `RedactionLevel` values. Without it, every token gets its original value. See [`RedactionLevel`](#redactionlevel). |
 
-#### `GetDetectRunOptions`
+#### `ReidentifyFileRequest`
+
+Passed to `ReidentifyFile()`. The call is synchronous, so there is no run to poll. `DataSource` and `Value` are required. To send a local file, base64-encode it into `Value`; the request has no `FilePath` or `FileObject`.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `CustomHeaders` | `map[CustomHeaderKey]string` | `nil` | Per-request custom headers. |
+| `DataSource` | `ReidentifyFileSource` | _(required)_ | What `Value` holds: `ReidentifySourceTypeBase64` or `ReidentifySourceTypePresignedURL`. Re-identification doesn't accept a Skyflow ID. |
+| `Value` | `string` | _(required)_ | Base64 file content or a presigned URL. |
+| `DataFormat` | `FileDataFormat` | `""` | File format. Optional. |
+| `RedactionLevel` | `[]RedactionRule` | `nil` | How to show each group of tokens, as `RedactionLevel` values. See [`RedactionLevel`](#redactionlevel). |
+
+#### `CheckGuardrailsRequest`
+
+Passed to `CheckGuardrails()`.
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `Text` | `string` | _(required)_ | Text to screen. |
+| `CheckToxicity` | `*bool` | `nil` | Whether to check the text for toxicity. `nil` leaves it to the server, which checks toxicity by default. Set it with [`Ptr`](#ptr), such as `common.Ptr(false)`. |
+| `DenyTopics` | `[]string` | `nil` | Topics the text must not cover. Values can't be empty. |
+
+#### Detect options
+
+Each Detect method has its own options struct: `DeidentifyStringOptions`, `DeidentifyFileOptions`, `GetRunOptions`, `ReidentifyStringOptions`, `ReidentifyFileOptions`, and `CheckGuardrailsOptions`. Every one has this field:
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `Interceptor` | `Interceptor` | `nil` | A `func(*RequestContext)` that runs before the call is sent. Add a header to this call with `rc.AddHeader(key, value)`. See [`CustomHeaderKey`](#customheaderkey). Client-level headers set with `WithCustomHeaders` are also sent. |
+
+`DeidentifyFileOptions` also has:
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `Poll` | `*PollOptions` | `nil` | Wait for the run to finish. When `nil`, the call returns after the file is submitted, with only `RunId` set. See [`PollOptions`](#polloptions). |
+| `OutputDirectory` | `string` | `""` | Where to write a successful run's outputs for a `FilePath` or `FileObject` input. Empty means the current directory. Requires `Poll`. |
+
+`ReidentifyFileOptions` has no other fields. `DeidentifyFile()` writes outputs only when they're base64. When the outputs are presigned URLs, it writes nothing. It writes each output to a hidden temporary file first and renames it into place. If the process stops during a write, a `.processed-*.tmp` file can stay in the output directory, and nothing removes it. `ReidentifyFile()` writes nothing to disk; its outputs are in the response.
+
+#### `PollOptions`
+
+Used in `DeidentifyFileOptions.Poll`. A zero value uses the default.
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `WaitTime` | `time.Duration` | 60 seconds | The longest `DeidentifyFile()` waits. Between 1 and 300 seconds. |
+| `MaxAttempts` | `int` | `23` | The most run lookups. Between 1 and 23. |
+
+The first lookup is immediate. After that, the wait between lookups starts at 1 second and doubles up to 32 seconds. Polling stops at a final status (`SUCCESS`, `FAILED`, or `UNKNOWN`), or when `WaitTime` or `MaxAttempts` runs out. In that case, the response has the run's current status and its `RunId`, so you can call `GetRun()` later.
 
 ---
 
@@ -491,47 +504,72 @@ Returned by `connection.Invoke()`.
 | `Metadata` | `map[string]interface{}` | Response metadata (e.g. forwarded HTTP headers). |
 | `Errors` | `map[string]interface{}` | Errors, if any. |
 
-### `DeidentifyTextResponse`
+### `DeidentifyStringResponse`
 
-Returned by `detect.DeidentifyText()`.
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `ProcessedText` | `string` | The de-identified text with entity values replaced by tokens. |
-| `Entities` | `[]EntityInfo` | Detected entities. See [`EntityInfo`](#entityinfo). |
-| `WordCount` | `int` | Word count of the input text. |
-| `CharCount` | `int` | Character count of the input text. |
-| `Errors` | `[]map[string]interface{}` | Errors, if any. |
-
-### `ReidentifyTextResponse`
-
-Returned by `detect.ReidentifyText()`.
+Returned by `DeidentifyString()`.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `ProcessedText` | `string` | The re-identified text with tokens replaced by their original values. |
-| `Errors` | `[]map[string]interface{}` | Errors, if any. |
+| `ProcessedText` | `string` | The text with sensitive values replaced. |
+| `Entities` | `[]DetectedEntity` | The entities found. See [`DetectedEntity`](#detectedentity). |
+| `Metrics` | `*Metrics` | Size and counts of the input. See [`Metrics`](#metrics). |
 
 ### `DeidentifyFileResponse`
 
-Returned by both `detect.DeidentifyFile()` and `detect.GetDetectRun()`.
+Returned by `DeidentifyFile()`. `RunId` is always set. The other fields are set only when the call polls (`Poll` is set). `Output`, `Metrics`, and `OutputType` are set once the run succeeds. If a run lookup or writing the outputs fails, the call returns this response together with the error, so you keep the run ID.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `File` | `FileInfo` | Metadata about the processed file. See [`FileInfo`](#fileinfo). |
-| `FileBase64` | `string` | Base64-encoded processed file content (when `OutputProcessedImage: true`). |
-| `Type` | `string` | MIME type of the output file. |
-| `Extension` | `string` | File extension of the output file. |
-| `WordCount` | `int` | Word count (text and document files). |
-| `CharCount` | `int` | Character count (text and document files). |
-| `SizeInKb` | `float64` | Output file size in kilobytes. |
-| `DurationInSeconds` | `float64` | Duration in seconds (audio and video files). |
-| `PageCount` | `int` | Page count (PDF files). |
-| `SlideCount` | `int` | Slide count (presentation files). |
-| `Entities` | `[]FileEntityInfo` | Detected entities. See [`FileEntityInfo`](#fileentityinfo). |
-| `RunId` | `string` | Run ID for polling async processing with `GetDetectRun()`. |
-| `Status` | `string` | Processing status. See [`DeidentifyFileStatus`](#deidentifyfilestatus). |
-| `Errors` | `[]map[string]interface{}` | Errors, if any. |
+| `RunId` | `string` | The run ID. Pass it to `GetRun()`. |
+| `Status` | `DetectRunStatus` | The run status. Empty when the call didn't poll. See [Detect enums](#detect-enums). |
+| `OutputType` | `DeidentifyFileSource` | Whether each output is base64 (`DeidentifySourceTypeBase64`) or a presigned URL (`DeidentifySourceTypePresignedURL`). `nil` for a value the SDK doesn't know. |
+| `Output` | `[]FileOutput` | The run outputs. See [`FileOutput`](#fileoutput). |
+| `Metrics` | `*Metrics` | Size and counts of the input. |
+| `Message` | `string` | Failure detail when `Status` is `FAILED`. |
+
+### `GetRunResponse`
+
+Returned by `GetRun()`. `Output`, `Metrics`, and `OutputType` are set once the run succeeds.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `RunId` | `string` | The run ID from the request. |
+| `Status` | `DetectRunStatus` | The run status. |
+| `OutputType` | `DeidentifyFileSource` | Whether each output is base64 or a presigned URL. `nil` for a value the SDK doesn't know. |
+| `Output` | `[]FileOutput` | The run outputs. |
+| `Metrics` | `*Metrics` | Size and counts of the input. |
+| `Message` | `string` | Failure detail when `Status` is `FAILED`. |
+
+### `ReidentifyStringResponse`
+
+Returned by `ReidentifyString()`.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `ProcessedText` | `string` | The text with tokens replaced. |
+| `Metrics` | `*Metrics` | Size and counts of the input. |
+
+### `ReidentifyFileResponse`
+
+Returned by `ReidentifyFile()`. The SDK writes nothing to disk: `Output` holds base64 content or presigned URLs, as `OutputType` says, for you to handle.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `Status` | `DetectRunStatus` | The status of the re-identification. |
+| `OutputType` | `ReidentifyFileSource` | Whether each output is base64 (`ReidentifySourceTypeBase64`) or a presigned URL (`ReidentifySourceTypePresignedURL`). `nil` for a value the SDK doesn't know. |
+| `Output` | `[]FileOutput` | The outputs. |
+| `Metrics` | `*Metrics` | Size and counts of the input. |
+
+### `CheckGuardrailsResponse`
+
+Returned by `CheckGuardrails()`.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `Text` | `string` | The screened text. |
+| `Validation` | `GuardrailsValidation` | `GuardrailsValidationPassed`, `GuardrailsValidationFailed`, or `GuardrailsValidationUnknown` when the API returns no validation or one the SDK doesn't know. |
+| `Toxic` | `*bool` | Whether the text is toxic. `nil` when the API leaves it out. |
+| `DeniedTopic` | `*bool` | Whether the text covers a denied topic. `nil` when the API leaves it out. |
 
 ---
 
@@ -558,97 +596,200 @@ Each element returned in `DetokenizeResponse.DetokenizedFields` and `DetokenizeR
 | `Error` | `string` | Error message. Empty on success. |
 | `RequestId` | `string` | Server request ID for this token — useful for support escalations. |
 
-### `EntityInfo`
+### `DetectConfiguration`
 
-Each element in `DeidentifyTextResponse.Entities`.
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `Token` | `string` | The token that replaced the original entity value. |
-| `Value` | `string` | The original entity value. |
-| `Entity` | `string` | Entity type label (e.g. `"email_address"`). |
-| `Scores` | `map[string]float64` | Confidence scores per entity type. |
-| `ProcessedIndex` | `TextIndex` | Character offsets of the token in the processed text. |
-| `TextIndex` | `TextIndex` | Character offsets of the entity in the original text. |
-
-### `TextIndex`
-
-Used in [`EntityInfo`](#entityinfo).
+An inline Detect configuration for `DeidentifyString()` and `DeidentifyFile()`, used instead of a stored `ConfigurationId`. Create stored configurations in Studio or through the REST API; the SDK doesn't manage them. The SDK fills in the vault ID.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `Start` | `int` | Start character offset (inclusive). |
-| `End` | `int` | End character offset (exclusive). |
+| `Name` | `string` | Configuration name. |
+| `Description` | `string` | Configuration description. |
+| `Detect` | `*Detect` | What to detect and how to de-identify it. See [`Detect`](#detect). |
+| `FileMapping` | `[]FileMapping` | Where a file's outputs go. See [`FileMapping`](#filemapping). |
+| `Media` | `*Media` | Options per media type. File calls only. See [`Media`](#media). |
 
-### `FileEntityInfo`
+### `Detect`
 
-Each element in `DeidentifyFileResponse.Entities`.
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `File` | `string` | File name or identifier. |
-| `Type` | `string` | Output file type. |
-| `Extension` | `string` | Output file extension. |
-
-### `FileInfo`
-
-Returned in `DeidentifyFileResponse.File`.
+Used in [`DetectConfiguration`](#detectconfiguration).
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `Name` | `string` | Original file name. |
-| `Size` | `int64` | File size in bytes. |
-| `Type` | `string` | MIME type. |
-| `LastModified` | `int64` | Last-modified timestamp (milliseconds since Unix epoch). |
+| `Entities` | `[]Entity` | How to de-identify each entity type. See [`Entity`](#entity). |
+| `ObjectEntities` | `[]ObjectEntity` | How to treat objects in images and video. File calls only. See [`ObjectEntity`](#objectentity). |
+| `Restrict` | `[]string` | Regex patterns whose matches are always treated as sensitive. |
+| `Skip` | `[]string` | Regex patterns whose matches are never treated as sensitive. |
+| `CustomTypes` | `[]CustomType` | Custom entity types matched by regex. See [`CustomType`](#customtype). |
+| `ReturnEntities` | `ReturnEntitiesType` | Which detected values the response carries. The server default is `EXCLUDE_SENSITIVE_DATA`. |
 
-### `FileInput`
+### `Entity`
 
-Used inside [`DeidentifyFileRequest`](#deidentifyfilerequest). Provide exactly one source field.
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `FilePath` | `string` | Path to a local file. |
-| `File` | `*os.File` | An open file handle. |
-
-### `AudioBleep`
-
-Used inside [`DeidentifyFileRequest`](#deidentifyfilerequest) to configure audio bleeping.
+Used in [`Detect`](#detect).
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `Gain` | `int` | Gain level of the bleep tone. |
-| `Frequency` | `int` | Frequency (Hz) of the bleep tone. |
-| `StartPadding` | `float64` | Seconds of silence before the bleep. |
-| `StopPadding` | `float64` | Seconds of silence after the bleep. |
+| `EntityType` | `EntityType` | The entity type. `EntityTypeAll` selects every type. See [`EntityType`](#entitytype). |
+| `DeidentificationType` | `DeidentificationType` | How the value is replaced. The server default is `ENTITY_UNIQUE_COUNTER`. |
+| `Destination` | `string` | For `DeidentificationTypeVaultToken`, the `<TABLE_NAME>.<COLUMN_NAME>` that stores the value. |
+| `Transformation` | `*Transformation` | Change the value instead of replacing it. See [`Transformation`](#transformation). |
+| `IncludePrefix` | `IncludePrefix` | Whether the replacement carries the entity-type prefix. The server default is `YES`. |
+| `PrefixOverride` | `string` | Prefix to use instead of the entity type. Not valid with `IncludePrefixNo`. |
 
-### `TokenFormat`
-
-Used inside [`DeidentifyTextRequest`](#deidentifytextrequest) and [`DeidentifyFileRequest`](#deidentifyfilerequest) to control the token type per entity.
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `DefaultType` | `TokenTypeDefault` | Default token type for entities not explicitly listed. See [`TokenTypeDefault`](#tokentypedefault). |
-| `VaultToken` | `[]DetectEntities` | Entities to tokenize as vault tokens. |
-| `EntityUniqueCounter` | `[]DetectEntities` | Entities to tokenize as entity-unique-counter tokens. |
-| `EntityOnly` | `[]DetectEntities` | Entities to tokenize as entity-only tokens. |
-
-### `Transformations`
-
-Used inside [`DeidentifyTextRequest`](#deidentifytextrequest) and [`DeidentifyFileRequest`](#deidentifyfilerequest).
+### `Transformation`
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `ShiftDates` | `DateTransformation` | Date-shifting transformation to apply. |
+| `ShiftDates` | `*ShiftDates` | Shift dates by a random number of days. |
 
-### `DateTransformation`
+### `ShiftDates`
 
-Used inside [`Transformations`](#transformations).
+Shifts each date by a random number of days between `MinDays` and `MaxDays`. A `nil` bound is left to the server.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `MaxDays` | `int` | Maximum number of days to shift. |
-| `MinDays` | `int` | Minimum number of days to shift. |
-| `Entities` | `[]TransformationsShiftDatesEntityTypesItem` | Entity types to shift. Valid values: `Date`, `DateInterval`, `Dob`. |
+| `MinDays` | `*int` | Fewest days to shift. |
+| `MaxDays` | `*int` | Most days to shift. |
+
+### `CustomType`
+
+Detects values that match regex patterns as a custom entity type. `Label` becomes the `EntityType` of the detected entities.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `Label` | `string` | Name of the custom entity type. |
+| `Match` | `[]string` | Regex patterns to match. |
+| `DeidentificationType` | `DeidentificationType` | How the value is replaced. |
+| `Destination` | `string` | As in [`Entity`](#entity). |
+| `IncludePrefix` | `IncludePrefix` | As in [`Entity`](#entity). |
+| `PrefixOverride` | `string` | As in [`Entity`](#entity). |
+
+### `ObjectEntity`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `EntityType` | `ObjectEntityType` | The object type, such as a face or a license plate. |
+| `DeidentificationType` | `ObjectDeidentificationType` | Whether to redact or unredact the object. |
+
+### `FileMapping`
+
+Maps a source file location to where its outputs go.
+
+| Field | Type |
+|-------|------|
+| `Source` | `string` |
+| `Destination` | `string` |
+| `OutputFileNameSuffix` | `string` |
+| `EntitiesDestination` | `string` |
+| `ObjectEntitiesDestination` | `string` |
+
+### `Media`
+
+Options per media type for file calls. In `Audio`, `Bleep`, `Pdf`, and `Image`, the pointer fields leave an option to the server default when `nil`. A pointer to a zero value sends zero. Build a pointer with [`Ptr`](#ptr).
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `Audio` | `*Audio` | Audio options. |
+| `Document` | `*Document` | Document options. `Document.Pdf` is a `*Pdf`. |
+| `Image` | `*Image` | Image options. |
+
+### `Audio`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `OutputProcessedAudio` | `*bool` | Return the processed audio. |
+| `OutputTranscription` | `OutputTranscriptionType` | The transcription to return. |
+| `Bleep` | `*Bleep` | The tone that replaces sensitive audio. |
+
+### `Bleep`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `StartPadding` | `*float32` | Padding before the bleep, in seconds, from 0 to 20. The server default is 0.5. |
+| `StopPadding` | `*float32` | Padding after the bleep, in seconds, from 0 to 20. The server default is 0.2. |
+| `Frequency` | `*int` | Frequency of the tone, in hertz. |
+| `Gain` | `*int` | Gain of the tone. |
+
+### `Pdf`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `ProcessingMode` | `PdfProcessingMode` | How PDF text is read: `PdfProcessingModeOCR` or `PdfProcessingModeTextLayer`. |
+| `Density` | `*int` | Pixel density for processing. |
+| `MaxResolution` | `*int` | Maximum resolution for processing. |
+
+### `Image`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `OutputProcessedImage` | `*bool` | Return the processed image. |
+| `OutputOcrText` | `*bool` | Return the text read from the image. |
+| `MaskingMethod` | `MaskingMethod` | How detected regions are hidden: `MaskingMethodBlur` or `MaskingMethodBlackbox`. |
+
+### `RedactionLevel`
+
+Used in the `RedactionLevel` field of `ReidentifyStringRequest` and `ReidentifyFileRequest`, a `[]RedactionRule`, to choose how a group of tokens is shown. `RedactionLevel` implements `RedactionRule`:
+
+```go
+RedactionLevel: []common.RedactionRule{common.RedactionLevel{EntityName: common.EntityTypeName, RedactionType: common.RedactionTypeMasked}}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `EntityName` | `EntityType` | The entity type of the tokens. |
+| `RedactionType` | `RedactionType` | How to show them: `PLAIN_TEXT`, `MASKED`, or `REDACTED`. The server rejects `DEFAULT` in a redaction level. See [`RedactionType`](#redactiontype). |
+
+Both fields are optional, and the SDK sends them as given.
+
+### `Ptr`
+
+`github.com/skyflowapi/skyflow-go/v2/utils/common` — `Ptr[T any](v T) *T` returns a pointer to `v`. Use it for the optional `*bool`, `*int`, and `*float32` Detect fields, where `nil` leaves the value to the server.
+
+```go
+common.CheckGuardrailsRequest{Text: text, CheckToxicity: common.Ptr(true)}
+```
+
+### `DetectedEntity`
+
+Each element in `DeidentifyStringResponse.Entities`.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `Token` | `string` | The token that replaced the value, such as `NAME_1`. |
+| `Value` | `string` | The original value. Empty unless the configuration's `ReturnEntities` is `ReturnEntitiesTypeAll`. |
+| `Location` | `EntityLocation` | Where the entity is. See [`EntityLocation`](#entitylocation). |
+| `EntityType` | `string` | The entity type, or a custom type's `Label`. |
+| `EntityScores` | `map[string]float64` | Confidence score per entity type, from 0.0 to 1.0. |
+
+### `EntityLocation`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `StartIndex` | `int` | Start of the entity in the original text. |
+| `EndIndex` | `int` | End of the entity in the original text. |
+| `StartIndexProcessed` | `int` | Start of the token in the processed text. |
+| `EndIndexProcessed` | `int` | End of the token in the processed text. |
+
+### `FileOutput`
+
+Each element in the `Output` of a file response.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `ProcessedFile` | `string` | The output, as base64 or a presigned URL, per the response's `OutputType`. |
+| `ProcessedFileType` | `ProcessedFileType` | The kind of output, such as `REDACTED_FILE` or `ENTITIES`. |
+| `ProcessedFileExtension` | `FileDataFormat` | The output's file extension. |
+
+### `Metrics`
+
+Describes the processed input. Every field is a pointer and is `nil` when the server leaves it out. At most one of `Slides`, `Pages`, and `Duration` is set.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `Size` | `*float64` | Size in kilobytes. |
+| `WordCount` | `*int` | Word count. |
+| `CharacterCount` | `*int` | Character count. |
+| `Slides` | `*int` | Slide count. |
+| `Pages` | `*int` | Page count. |
+| `Duration` | `*float64` | Duration in seconds. |
 
 ---
 
@@ -677,9 +818,11 @@ Used inside [`Transformations`](#transformations).
 | `SANDBOX` | Sandbox environment. |
 | `DEV` | Development environment. |
 
+`PROD` is the zero value, so an unset `Env` is `PROD`. Use the named constants rather than numeric values.
+
 ### `RedactionType`
 
-`github.com/skyflowapi/skyflow-go/v2/utils/common`
+`github.com/skyflowapi/skyflow-go/v2/utils/common` — used in [`DetokenizeData`](#detokenizedata), [`GetOptions`](#getoptions), and the Detect [`RedactionLevel`](#redactionlevel). The Detect constants `RedactionTypePlainText`, `RedactionTypeMasked`, `RedactionTypeRedacted`, and `RedactionTypeDefault` hold the same values. In a Detect redaction level, `DEFAULT` is deprecated because the server rejects it; `RedactionTypeDefault` is marked deprecated.
 
 | Value | Description |
 |-------|-------------|
@@ -720,50 +863,9 @@ Used inside [`Transformations`](#transformations).
 | `DESCENDING` | Return records in descending order. |
 | `NONE` | No specific ordering. _(default)_ |
 
-### `MaskingMethod`
-
-`github.com/skyflowapi/skyflow-go/v2/utils/common` — used in [`DeidentifyFileRequest`](#deidentifyfilerequest).
-
-| Value | Description |
-|-------|-------------|
-| `BLACKBOX` | Cover detected entities with a solid black rectangle. |
-| `BLUR` | Blur detected entities with a Gaussian blur. |
-
-### `DetectOutputTranscriptions`
-
-`github.com/skyflowapi/skyflow-go/v2/utils/common` — used in [`DeidentifyFileRequest`](#deidentifyfilerequest).
-
-| Value | Description |
-|-------|-------------|
-| `PLAINTEXT_TRANSCRIPTION` | Standard plain-text transcription. |
-| `DIARIZED_TRANSCRIPTION` | Transcription with speaker diarization. |
-| `TRANSCRIPTION` | Basic transcription. |
-| `MEDICAL_TRANSCRIPTION` | Medical-domain transcription. |
-| `MEDICAL_DIARIZED_TRANSCRIPTION` | Medical transcription with speaker diarization. |
-
-### `DeidentifyFileStatus`
-
-`github.com/skyflowapi/skyflow-go/v2/utils/common` — returned in `DeidentifyFileResponse.Status`.
-
-| Value | Description |
-|-------|-------------|
-| `IN_PROGRESS` | File processing is ongoing. Poll with `GetDetectRun()`. |
-| `SUCCESS` | Processing completed successfully. |
-| `FAILED` | Processing failed. |
-
-### `TokenTypeDefault`
-
-`github.com/skyflowapi/skyflow-go/v2/utils/common` — used in [`TokenFormat`](#tokenformat).
-
-| Value | Description |
-|-------|-------------|
-| `TokenTypeDefaultEntityOnly` | Token represents the entity type only; no value is stored in the vault. |
-| `TokenTypeDefaultEntityUnqCounter` | Deterministic token unique to the entity value (consistent across occurrences). |
-| `TokenTypeDefaultVaultToken` | Token stored in the vault and associated with a `skyflow_id`. |
-
 ### `CustomHeaderKey`
 
-`github.com/skyflowapi/skyflow-go/v2/utils/common` — keys for custom header maps.
+`github.com/skyflowapi/skyflow-go/v2/utils/common` — keys for custom header maps and for `RequestContext.AddHeader` in a Detect `Interceptor`.
 
 | Value | Wire header | Description |
 |-------|-------------|-------------|
@@ -771,21 +873,42 @@ Used inside [`Transformations`](#transformations).
 | `SkyflowAccountName` | `x-skyflow-account-name` | Skyflow account name header. |
 | `RequestIdHeader` | `x-request-id` | Custom request ID for tracing. |
 
-### `DetectEntities`
+### Detect enums
 
-`github.com/skyflowapi/skyflow-go/v2/utils/common` — entity types for Detect operations. Use `All` to detect all supported types.
+`github.com/skyflowapi/skyflow-go/v2/utils/common` — used in the [Detect API](#detect-api) types. Each type is a `string`, and each constant holds the API value shown.
 
-| Category | Values |
-|----------|--------|
-| Personal identity | `Name`, `NameGiven`, `NameFamily`, `NameMedicalProfessional`, `Dob`, `Age`, `Gender`, `MaritalStatus`, `Sexuality`, `Religion`, `PoliticalAffiliation`, `PhysicalAttribute`, `Origin` |
-| Contact | `EmailAddress`, `PhoneNumber`, `Location`, `LocationAddress`, `LocationAddressStreet`, `LocationCity`, `LocationState`, `LocationCountry`, `LocationZip`, `LocationCoordinate` |
-| Financial | `CreditCard`, `CreditCardExpiration`, `Cvv`, `BankAccount`, `AccountNumber`, `RoutingNumber`, `Money`, `FinancialMetric`, `CorporateAction` |
-| Government ID | `Ssn`, `DriverLicense`, `PassportNumber`, `HealthcareNumber`, `OrganizationId`, `NumericalPii` |
-| Medical | `BloodType`, `Condition`, `Drug`, `Dose`, `Effect`, `Injury`, `MedicalCode`, `MedicalProcess`, `OrganizationMedicalFacility` |
-| Date & time | `Date`, `Day`, `Month`, `Year`, `Time`, `Duration`, `DateInterval`, `Event` |
-| Technology | `IpAddress`, `Url`, `Username`, `Password`, `Filename`, `VehicleId` |
-| Organization | `Organization`, `Occupation`, `Project`, `Product` |
-| Other | `Language`, `Statistics`, `Trend`, `ZodiacSign`, `All` |
+| Type | Constants (value) |
+|------|-------------------|
+| `DeidentificationType` | `DeidentificationTypeEntityUniqueCounter` (`ENTITY_UNIQUE_COUNTER`, the server default), `DeidentificationTypeEntityOnly` (`ENTITY_ONLY`), `DeidentificationTypeVaultToken` (`VAULT_TOKEN`), `DeidentificationTypeMask` (`MASK`), `DeidentificationTypeUnknown` (`UNKNOWN`) |
+| `IncludePrefix` | `IncludePrefixYes` (`YES`, the server default), `IncludePrefixNo` (`NO`) |
+| `ReturnEntitiesType` | `ReturnEntitiesTypeExcludeSensitiveData` (`EXCLUDE_SENSITIVE_DATA`, the server default), `ReturnEntitiesTypeAll` (`ALL`), `ReturnEntitiesTypeNone` (`NONE`) |
+| `DeidentifySourceType` | `DeidentifySourceTypeBase64` (`BASE64`), `DeidentifySourceTypeSkyflowID` (`SKYFLOW_ID`), `DeidentifySourceTypePresignedURL` (`PRESIGNED_URL`). Implements `DeidentifyFileSource`, the type of the `DataSource` of a `DeidentifyFileRequest` and the `OutputType` of `DeidentifyFileResponse` and `GetRunResponse`. |
+| `ReidentifySourceType` | `ReidentifySourceTypeBase64` (`BASE64`), `ReidentifySourceTypePresignedURL` (`PRESIGNED_URL`). Implements `ReidentifyFileSource`, the type of the `DataSource` of a `ReidentifyFileRequest` and the `OutputType` of `ReidentifyFileResponse`. |
+| `FileDataFormat` | `FileDataFormatMP3`, `FileDataFormatWAV`, `FileDataFormatPDF`, `FileDataFormatTXT`, `FileDataFormatCSV`, `FileDataFormatJSON`, `FileDataFormatJSONL`, `FileDataFormatXML`, `FileDataFormatJPG`, `FileDataFormatJPEG`, `FileDataFormatTIF`, `FileDataFormatTIFF`, `FileDataFormatPNG`, `FileDataFormatBMP`, `FileDataFormatGIF`, `FileDataFormatXLS`, `FileDataFormatXLSX`, `FileDataFormatDOC`, `FileDataFormatDOCX`, `FileDataFormatPPT`, `FileDataFormatPPTX`, `FileDataFormatDCM`, `FileDataFormatZIP`. Each value is the lowercase extension, such as `pdf`. |
+| `DetectRunStatus` | `DetectRunStatusQueued` (`QUEUED`), `DetectRunStatusInProgress` (`IN_PROGRESS`), `DetectRunStatusSuccess` (`SUCCESS`), `DetectRunStatusFailed` (`FAILED`), `DetectRunStatusUnknown` (`UNKNOWN`). `SUCCESS`, `FAILED`, and `UNKNOWN` are final. |
+| `ProcessedFileType` | `ProcessedFileTypeRedactedFile` (`REDACTED_FILE`), `ProcessedFileTypeRedactedText` (`REDACTED_TEXT`), `ProcessedFileTypeEntities` (`ENTITIES`), `ProcessedFileTypeReidentifiedFile` (`REIDENTIFIED_FILE`), `ProcessedFileTypeRedactedTranscription` (`REDACTED_TRANSCRIPTION`), `ProcessedFileTypeRedactedDeepgramTranscriptionDiarizeJSON` (`REDACTED_DEEPGRAM_TRANSCRIPTION_DIARIZE_JSON`), `ProcessedFileTypeObjectEntities` (`OBJECT_ENTITIES`), `ProcessedFileTypeNone` (`NONE`) |
+| `ObjectEntityType` | `ObjectEntityTypeFace` (`FACE`), `ObjectEntityTypeLicensePlate` (`LICENSE_PLATE`), `ObjectEntityTypeLogo` (`LOGO`), `ObjectEntityTypeSignature` (`SIGNATURE`), `ObjectEntityTypeAll` (`ALL`), `ObjectEntityTypeNone` (`NONE`) |
+| `ObjectDeidentificationType` | `ObjectDeidentificationTypeRedact` (`REDACT`), `ObjectDeidentificationTypeUnredact` (`UNREDACT`), `ObjectDeidentificationTypeUnknown` (`UNKNOWN`) |
+| `OutputTranscriptionType` | `OutputTranscriptionTypeTranscription` (`TRANSCRIPTION`), `OutputTranscriptionTypeMedicalTranscription` (`MEDICAL_TRANSCRIPTION`), `OutputTranscriptionTypeDiarizedTranscription` (`DIARIZED_TRANSCRIPTION`), `OutputTranscriptionTypeMedicalDiarizedTranscription` (`MEDICAL_DIARIZED_TRANSCRIPTION`), `OutputTranscriptionTypeNone` (`NONE`) |
+| `PdfProcessingMode` | `PdfProcessingModeOCR` (`OCR`), `PdfProcessingModeTextLayer` (`TEXT_LAYER`), `PdfProcessingModeNone` (`NONE`) |
+| `MaskingMethod` | `MaskingMethodBlur` (`BLUR`), `MaskingMethodBlackbox` (`BLACKBOX`), `MaskingMethodNone` (`NONE`) |
+| `GuardrailsValidation` | `GuardrailsValidationPassed` (`PASSED`), `GuardrailsValidationFailed` (`FAILED`), `GuardrailsValidationUnknown` (`UNKNOWN`) |
+
+### `EntityType`
+
+`github.com/skyflowapi/skyflow-go/v2/utils/common` — the entity types Detect can find, used in [`Entity`](#entity) and [`RedactionLevel`](#redactionlevel). Each value is the uppercase name, such as `EMAIL_ADDRESS` for `EntityTypeEmailAddress`. Use `EntityTypeAll` to select every type.
+
+| Category | Constants |
+|----------|-----------|
+| Personal identity | `EntityTypeName`, `EntityTypeNameGiven`, `EntityTypeNameFamily`, `EntityTypeNameMedicalProfessional`, `EntityTypeDOB`, `EntityTypeAge`, `EntityTypeGender`, `EntityTypeMaritalStatus`, `EntityTypeSexuality`, `EntityTypeReligion`, `EntityTypePoliticalAffiliation`, `EntityTypePhysicalAttribute`, `EntityTypeOrigin` |
+| Contact | `EntityTypeEmailAddress`, `EntityTypePhoneNumber`, `EntityTypeLocation`, `EntityTypeLocationAddress`, `EntityTypeLocationAddressStreet`, `EntityTypeLocationCity`, `EntityTypeLocationState`, `EntityTypeLocationCountry`, `EntityTypeLocationZIP`, `EntityTypeLocationCoordinate` |
+| Financial | `EntityTypeCreditCard`, `EntityTypeCreditCardExpiration`, `EntityTypeCVV`, `EntityTypeBankAccount`, `EntityTypeAccountNumber`, `EntityTypeRoutingNumber`, `EntityTypeMoney`, `EntityTypeFinancialMetric`, `EntityTypeCorporateAction` |
+| Government ID | `EntityTypeSSN`, `EntityTypeDriverLicense`, `EntityTypePassportNumber`, `EntityTypeHealthcareNumber`, `EntityTypeOrganizationID`, `EntityTypeNumericalPII` |
+| Medical | `EntityTypeBloodType`, `EntityTypeCondition`, `EntityTypeDrug`, `EntityTypeDose`, `EntityTypeEffect`, `EntityTypeInjury`, `EntityTypeMedicalCode`, `EntityTypeMedicalProcess`, `EntityTypeOrganizationMedicalFacility` |
+| Date and time | `EntityTypeDate`, `EntityTypeDay`, `EntityTypeMonth`, `EntityTypeYear`, `EntityTypeTime`, `EntityTypeDuration`, `EntityTypeDateInterval`, `EntityTypeEvent` |
+| Technology | `EntityTypeIPAddress`, `EntityTypeURL`, `EntityTypeUsername`, `EntityTypePassword`, `EntityTypeFilename`, `EntityTypeVehicleID` |
+| Organization | `EntityTypeOrganization`, `EntityTypeOccupation`, `EntityTypeProject`, `EntityTypeProduct` |
+| Other | `EntityTypeLanguage`, `EntityTypeStatistics`, `EntityTypeTrend`, `EntityTypeZodiacSign`, `EntityTypeAll`, `EntityTypeNone` |
 
 ---
 
@@ -875,13 +998,14 @@ All SDK operations return `*SkyflowError` instead of Go's built-in `error`. It i
 |--------|-------------|-------------|
 | `Error() string` | `string` | Implements the `error` interface; returns the error message. |
 | `GetMessage() string` | `string` | Human-readable error message. |
-| `GetHttpStatusCode() string` | `string` | HTTP status code. Preferred over `GetCode()`. |
+| `GetHttpStatusCode() string` | `string` | HTTP status text, such as `Bad Request`. |
 | `GetHttpCode() string` | `string` | HTTP status code string. |
-| `GetCode() string` | `string` | _(deprecated)_ Use `GetHttpStatusCode()`. |
+| `GetCode() string` | `string` | _(deprecated)_ Use `GetHttpCode()`. |
 | `GetRequestId() string` | `string` | Server request ID — include in support escalations. |
 | `GetGrpcCode() string` | `string` | gRPC status code (where applicable). |
 | `GetDetails() []interface{}` | `[]interface{}` | Structured error detail objects. |
 | `GetResponseBody() map[string]interface{}` | `map[string]interface{}` | Raw response body as a map. |
+| `Unwrap() error` | `error` | The error that caused this one, if any, so `errors.Is` and `errors.As` can match it. |
 
 ```go
 resp, skyflowErr := vault.Insert(ctx, insertRequest, insertOptions)
@@ -894,3 +1018,7 @@ if skyflowErr != nil {
 }
 fmt.Println("Inserted fields:", resp.InsertedFields)
 ```
+
+### Canceled Detect calls
+
+When the `context.Context` passed to a Detect call is canceled, or its deadline passes, before the call finishes, the call returns a `*SkyflowError` with the code `REQUEST_CANCELLED`. `GetHttpCode()` returns `"499"` and `GetHttpStatusCode()` returns `Client Closed Request`. The SDK keeps the context error as the cause, so `errors.Is(err, context.DeadlineExceeded)` and `errors.Is(err, context.Canceled)` match. `REQUEST_CANCELLED` is in `github.com/skyflowapi/skyflow-go/v2/utils/error`.

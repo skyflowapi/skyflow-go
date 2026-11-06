@@ -2387,7 +2387,7 @@ After the Skyflow client is initialized, you can add, update, retrieve, and remo
 |--------|-------------|
 | `AddVaultConfig(config VaultConfig)` | Add a new vault after initialization |
 | `RemoveVaultConfig(vaultId string)` | Remove a vault by ID |
-| `UpdateVaultConfig(config VaultConfig)` | Update an existing vault configuration |
+| `UpdateVaultConfig(config VaultConfig)` | Update an existing vault configuration. Only the `ClusterId` and `Credentials` you set change. The SDK always applies `Env`: an update that leaves it unset sets the vault to `PROD`. |
 | `GetVaultConfig(vaultId string)` | Retrieve a vault configuration by ID |
 
 ```go
@@ -2937,7 +2937,7 @@ func main() {
   config := common.VaultConfig{
     VaultId:   "<VAULT_ID>",            // Replace with the actual Vault ID (first vault)
     ClusterId: "<CLUSTER_ID>",          // Replace with the actual Cluster ID (from vault URL)
-    Env:       common.DEV,               // Set the environment (default is DEV, can also use PROD)
+    Env:       common.DEV,               // Set the environment (PROD, SANDBOX, STAGE, or DEV; default is PROD)
     Credentials: credentials,
   }
   credentialString := "<CREDENTIAL_AS_JSON_STRING>"
