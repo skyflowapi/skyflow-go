@@ -5,7 +5,18 @@ Runnable examples for the Skyflow FlowVault Go SDK (`github.com/skyflowapi/skyfl
 ## Prerequisites
 
 - Go 1.25+
+- A Skyflow account. If you don't have one, register on the [Try Skyflow](https://skyflow.com/try-skyflow) page.
 - A FlowVault vault and Skyflow credentials: a service-account `credentials.json`, an API key, or a bearer token.
+
+### Find the vault details
+
+In Skyflow Studio, open the vault, click the gear icon and select **Edit Vault Details**. Note the **Vault ID** and **Vault URL**. The cluster ID is the subdomain of the vault URL: for `https://a1b2c3d4.vault.skyflowapis.com`, it is `a1b2c3d4`.
+
+### Create a service account
+
+1. In Skyflow Studio, in the side navigation: **IAM** > **Service Accounts** > **New Service Account**.
+2. Name it, and for **Roles** choose **Vault Editor**.
+3. Click **Create**. Your browser downloads a `credentials.json`. Keep it secure: most samples need its path or contents.
 
 ## Configure
 
@@ -15,7 +26,7 @@ Each sample has placeholders near the top. Replace them with your own values:
 credentials := common.Credentials{Path: "<PATH_TO_YOUR_CREDENTIALS_JSON>"} // or ApiKey / Token / CredentialsString
 vaultConfig := common.VaultConfig{
 	VaultId:     "<YOUR_VAULT_ID>",
-	ClusterId:   "<YOUR_CLUSTER_ID>", // from the vault URL: https://{clusterId}.skyvault.skyflowapis.com
+	ClusterId:   "<YOUR_CLUSTER_ID>", // from the vault URL: https://{clusterId}.vault.skyflowapis.com
 	Env:         common.PROD,         // DEV, STAGE, SANDBOX or PROD
 	Credentials: credentials,
 }
