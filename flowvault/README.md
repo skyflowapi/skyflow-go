@@ -868,7 +868,7 @@ Sample response:
 {
   "records": [
     { "value": "john@example.com",    "tokenGroupName": "email_tg", "token": "1R9kNnLOPM", "httpCode": 200, "error": "", "requestId": "" },
-    { "value": "unknown@example.com", "tokenGroupName": "email_tg", "token": "",           "httpCode": 404, "error": "Token not found.", "requestId": "a1b2c3d4-..." }
+    { "value": "jane@example.com",    "tokenGroupName": "email_tg", "token": "",           "httpCode": 404, "error": "Token not found.", "requestId": "a1b2c3d4-..." }
   ]
 }
 ```
@@ -891,6 +891,8 @@ for _, record := range response.Records {
 
 Upload one or more files to file columns. The SDK **orchestrates** this in two steps: it requests a signed upload URL per column, then uploads each file's bytes to its URL. You just supply the files.
 
+The signed URL is a credential that expires after about 15 minutes. The SDK uses it straight away and never returns it to you.
+
 > **Vault type supported:** structured (schema) vaults. See [Vault type support](#vault-type-support).
 
 **Note:**
@@ -900,6 +902,12 @@ Upload one or more files to file columns. The SDK **orchestrates** this in two s
 - Leave `SkyflowId` empty to create a new record (CREATE permission); set it to upload into an existing record (UPDATE permission).
 - `FileName` is derived from `FilePath`/`FileObject` when empty; if it is still unset, the server generates one.
 - Every file is checked before anything is uploaded, so a missing or unreadable file fails the whole call. Files are then uploaded **concurrently** (at most 5 at once) and streamed from disk. The uploads to the signed URLs are not retried and have no overall timeout. The final virus-scan status is asynchronous; read it later with `Get`.
+- Errors:
+  - An error status from the first step (requesting the signed URLs) fails the whole call with a `*SkyflowError`, and nothing is uploaded.
+  - A record that fails in the first step comes back with its `Error` set, and every one of its columns is `SKIPPED` with that error.
+  - A column the vault returned no signed URL for is `SKIPPED`, with no error.
+  - A column whose upload fails is `FAILED`, with an error such as `"PUT failed: 403"`. Other columns and records are unaffected.
+  - A record's `Error` stays empty when only some of its columns failed, so check each column's `UploadStatus`.
 
 ```go
 file, openErr := os.Open("<PATH_TO_FILE>")
@@ -942,12 +950,23 @@ Sample response (partial success):
 }
 ```
 
-Fields on each `common.UploadFilesResponseRecord`: `SkyflowId`, `TableName`, `Columns`, `HttpCode`, `Error`, `RequestId`. Each entry in `Columns` is a `common.UploadFilesColumnResult` with `Column`, `FileName`, `UploadStatus` (`common.UploadStatusUploaded`, `common.UploadStatusFailed` or `common.UploadStatusSkipped`) and `Error`. A column is `SKIPPED` when its record failed or no signed URL came back for it.
+Fields on each `common.UploadFilesResponseRecord`: `SkyflowId`, `TableName`, `Columns`, `HttpCode`, `Error`, `RequestId`. Each entry in `Columns` is a `common.UploadFilesColumnResult` with `Column`, `FileName`, `UploadStatus` (`common.UploadStatusUploaded`, `common.UploadStatusFailed` or `common.UploadStatusSkipped`) and `Error`. A column is `SKIPPED` when its record failed or no signed URL came back for it. Compare `UploadStatus` with these constants rather than with strings.
 
 ```go
 for _, record := range response.Records {
+	if record.Error != "" {
+		fmt.Println("record failed:", record.HttpCode, record.Error, record.RequestId) // every column is SKIPPED
+		continue
+	}
 	for _, column := range record.Columns {
-		fmt.Println(column.Column, column.UploadStatus, column.Error)
+		switch column.UploadStatus {
+		case common.UploadStatusUploaded:
+			fmt.Println(column.Column, "uploaded")
+		case common.UploadStatusFailed:
+			fmt.Println(column.Column, "failed:", column.Error)
+		case common.UploadStatusSkipped:
+			fmt.Println(column.Column, "skipped: no signed URL came back")
+		}
 	}
 }
 ```
@@ -965,6 +984,8 @@ Delete files from file columns of existing records, and remove the stored object
 - `Records` is required and must be a non-empty slice of `common.DeleteFilesRequestRecord` (at most 20,000); each needs a `TableName` and a non-empty `Columns` slice of file-column names, with no column repeated.
 - Each record sets **exactly one** of `SkyflowId` or `UniqueValues`; both, or neither, fails validation.
 - `UniqueValues` has the same shape as in [Get](#get); each map may resolve to more than one record.
+- It is a **hard delete** and can't be undone: afterwards `Get` no longer returns a file for that column. It works whatever the file's `fileStatus`: a `PENDING` upload is cancelled and its signed URL invalidated, a `READY` file's stored object is removed, and a `FAILED` or `SCAN_ERROR` file just has its metadata cleared.
+- Record-level failures come back on the response. Whole-call failures come back as the `*SkyflowError`.
 
 ```go
 request := common.DeleteFilesRequest{Records: []common.DeleteFilesRequestRecord{
