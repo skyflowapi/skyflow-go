@@ -1,13 +1,13 @@
 # Description
 > **This is the current, recommended version of the Skyflow SDK.** V2.1.0 brings flexible auth, multi-vault support, native data types, and rich error diagnostics.
 >
-> :warning: **skyflow-go v1 reached End of Life on October 31, 2026 and is no longer supported.** It will not receive any further security patches, bug fixes, or updates. Please upgrade to the latest skyflow-go v2 ([v2.1.0](https://github.com/skyflowapi/skyflow-go/releases/tag/v2.1.0)) using the **[Migration Guide](./docs/migrate_to_v2.md)**.
+> :warning: **skyflow-go v1 reached End of Life on October 31, 2026 and is no longer supported.** It will not receive any further security patches, bug fixes, or updates. Please upgrade to the latest skyflow-go v2 [![Latest skyflow-go v2 release](https://img.shields.io/github/v/release/skyflowapi/skyflow-go?filter=v2.*&sort=semver&label=latest)](https://github.com/skyflowapi/skyflow-go/releases?q=tag%3Av2&expanded=false) using the **[Migration Guide](./docs/migrate_to_v2.md)**.
 
 
 The Skyflow Go SDK is designed to help with integrating Skyflow into a go backend.
 
 [![CI](https://img.shields.io/static/v1?label=CI&message=passing&color=green?style=plastic&logo=github)](https://github.com/skyflowapi/skyflow-go/actions)
-[![GitHub release](https://img.shields.io/github/v/release/skyflowapi/skyflow-go.svg)](https://github.com/skyflowapi/skyflow-go/releases)
+[![GitHub release](https://img.shields.io/github/v/release/skyflowapi/skyflow-go?filter=v2.*&sort=semver)](https://github.com/skyflowapi/skyflow-go/releases?q=tag%3Av2&expanded=false)
 [![License](https://img.shields.io/github/license/skyflowapi/skyflow-go)](https://github.com/skyflowapi/skyflow-go/blob/main/LICENSE)
 
 
