@@ -93,7 +93,7 @@ func (c *Controller) callDeidentifyFile(ctx context.Context, call *vaultclient.C
 	resp, err := newAPI(call).FilesV2.DeidentifyFileV2(ctx, &gen.DeidentifyFileRequestV2{
 		DataSource:      gen.DeidentifyFileRequestV2DataSource(deidentifySourceName(request.DataSource)),
 		Value:           request.Value,
-		DataFormat:      optEnum[gen.DeidentifyFileRequestV2DataFormat](request.DataFormat),
+		DataFormat:      optEnum[gen.DeidentifyFileRequestV2DataFormat](wireFormat(request.DataFormat)),
 		ConfigurationID: optString(request.ConfigurationId),
 		Configuration:   requestConfiguration(request.ConfigurationId, request.Configuration, call.VaultID),
 	})
@@ -137,7 +137,7 @@ func (c *Controller) callReidentifyFile(ctx context.Context, call *vaultclient.C
 		VaultID:        call.VaultID,
 		DataSource:     gen.ReidentifyFileRequestV2DataSource(reidentifySourceName(request.DataSource)),
 		Value:          request.Value,
-		DataFormat:     optEnum[gen.ReidentifyFileRequestV2DataFormat](request.DataFormat),
+		DataFormat:     optEnum[gen.ReidentifyFileRequestV2DataFormat](wireFormat(request.DataFormat)),
 		RedactionLevel: toGenRedactionLevels(request.RedactionLevel),
 	})
 	if err != nil {

@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -322,7 +323,7 @@ func TestPollStopsWhenBudgetRunsOut(t *testing.T) {
 		return &GetRunResponse{RunId: "r", Status: DetectRunStatusInProgress}, nil
 	}
 
-	run, err := c.poll(context.Background(), "r", PollOptions{WaitTime: 10 * time.Second}, fetch)
+	run, err := c.poll(context.Background(), "r", PollOptions{WaitTime: ptr(10 * time.Second)}, fetch)
 	if err != nil || run.Status != DetectRunStatusInProgress {
 		t.Fatalf("run = %+v, err = %v", run, err)
 	}
@@ -338,13 +339,22 @@ func TestPollStopsWhenBudgetRunsOut(t *testing.T) {
 	}
 
 	calls, *pauses = 0, nil
-	if _, err := c.poll(context.Background(), "r", PollOptions{MaxAttempts: 2}, fetch); err != nil || calls != 2 {
+	if _, err := c.poll(context.Background(), "r", PollOptions{MaxAttempts: ptr(2)}, fetch); err != nil || calls != 2 {
 		t.Fatalf("MaxAttempts not honoured: calls = %d", calls)
 	}
 }
 
 func TestDeidentifyFileValidation(t *testing.T) {
 	c, _ := newTestController(newFakeDetect(t))
+	base64Request := DeidentifyFileRequest{Value: "v", DataSource: SkyDeidentifySourceTypeBase64, ConfigurationId: "c"}
+	waitTime := func(d time.Duration) DeidentifyFileOptions {
+		return DeidentifyFileOptions{Poll: &PollOptions{WaitTime: ptr(d)}}
+	}
+	maxAttempts := func(n int) DeidentifyFileOptions {
+		return DeidentifyFileOptions{Poll: &PollOptions{MaxAttempts: ptr(n)}}
+	}
+	invalidWait := fmt.Sprintf(errInvalidWaitTime, minWaitTimeSeconds, maxWaitTimeSeconds)
+	invalidAttempts := fmt.Sprintf(errInvalidMaxAttempts, minMaxAttempts, maxMaxAttempts)
 	cases := []struct {
 		want    string
 		request DeidentifyFileRequest
@@ -352,9 +362,15 @@ func TestDeidentifyFileValidation(t *testing.T) {
 	}{
 		{errMissingFileSource, DeidentifyFileRequest{ConfigurationId: "c"}, DeidentifyFileOptions{}},
 		{errInvalidDeidentifyDataSource, DeidentifyFileRequest{Value: "v", ConfigurationId: "c"}, DeidentifyFileOptions{}},
-		{errOutputDirectoryNeedPoll, DeidentifyFileRequest{Value: "v", DataSource: SkyDeidentifySourceTypeBase64, ConfigurationId: "c"}, DeidentifyFileOptions{OutputDirectory: "out"}},
-		{errInvalidWaitTime, DeidentifyFileRequest{Value: "v", DataSource: SkyDeidentifySourceTypeBase64, ConfigurationId: "c"}, DeidentifyFileOptions{Poll: &PollOptions{WaitTime: 301 * time.Second}}},
-		{errInvalidMaxAttempts, DeidentifyFileRequest{Value: "v", DataSource: SkyDeidentifySourceTypeBase64, ConfigurationId: "c"}, DeidentifyFileOptions{Poll: &PollOptions{MaxAttempts: 24}}},
+		{errOutputDirectoryNeedPoll, base64Request, DeidentifyFileOptions{OutputDirectory: "out"}},
+		{invalidWait, base64Request, waitTime(301 * time.Second)},
+		// A set zero is out of range, as in the Java SDK; only a nil field takes the default.
+		{invalidWait, base64Request, waitTime(0)},
+		{invalidWait, base64Request, waitTime(500 * time.Millisecond)},
+		{invalidWait, base64Request, waitTime(-time.Second)},
+		{invalidAttempts, base64Request, maxAttempts(24)},
+		{invalidAttempts, base64Request, maxAttempts(0)},
+		{invalidAttempts, base64Request, maxAttempts(-1)},
 		{errFileNotFound, DeidentifyFileRequest{FilePath: "/does/not/exist.pdf", ConfigurationId: "c"}, DeidentifyFileOptions{}},
 	}
 	for _, tc := range cases {
@@ -362,6 +378,9 @@ func TestDeidentifyFileValidation(t *testing.T) {
 		if err == nil || !strings.Contains(err.GetMessage(), tc.want) {
 			t.Errorf("%q: err = %v", tc.want, err)
 		}
+	}
+	if !strings.Contains(invalidWait, "between 1 and 300 seconds") || !strings.Contains(invalidAttempts, "between 1 and 23.") {
+		t.Errorf("messages = %q, %q", invalidWait, invalidAttempts)
 	}
 }
 
@@ -698,4 +717,70 @@ func TestMissingMetricsAreNil(t *testing.T) {
 	if m == nil || m.WordCount == nil || *m.WordCount != 0 || m.CharacterCount != nil || m.Size != nil {
 		t.Fatalf("metrics = %+v", m)
 	}
+}
+
+func TestPollOptionsDefaultsApplyOnlyToNilFields(t *testing.T) {
+	if wait, attempts := (PollOptions{}).effective(); wait != defaultWaitTimeSeconds*time.Second || attempts != defaultMaxAttempts {
+		t.Errorf("PollOptions{}: wait = %v, attempts = %d", wait, attempts)
+	}
+	if wait, attempts := (PollOptions{WaitTime: ptr(5 * time.Second), MaxAttempts: ptr(3)}).effective(); wait != 5*time.Second || attempts != 3 {
+		t.Errorf("set fields: wait = %v, attempts = %d", wait, attempts)
+	}
+}
+
+// FileDataFormat values are upper case, as in the Java SDK, while the API's wire
+// values are lower case: a request's DataFormat is sent lower case whatever its case, and a
+// response's ProcessedFileExtension comes back as the upper-case constant.
+func TestFileDataFormatIsUpperCaseAndWireIsLowerCase(t *testing.T) {
+	t.Run("constants are upper case", func(t *testing.T) {
+		if FileDataFormatTXT != "TXT" || FileDataFormatJSONL != "JSONL" {
+			t.Fatalf("constants = %q, %q", FileDataFormatTXT, FileDataFormatJSONL)
+		}
+	})
+
+	t.Run("deidentify sends lower case whatever the case", func(t *testing.T) {
+		f := newFakeDetect(t)
+		f.responses[pathDeidentifyFile] = []string{`{"runId":"run-1"}`}
+		c, _ := newTestController(f)
+		for _, format := range []FileDataFormat{FileDataFormatCSV, "csv", "Csv"} {
+			if _, err := c.DeidentifyFile(context.Background(), DeidentifyFileRequest{
+				DataSource: SkyDeidentifySourceTypeBase64, Value: "aGk=", DataFormat: format, ConfigurationId: "cfg",
+			}, DeidentifyFileOptions{}); err != nil {
+				t.Fatal(err)
+			}
+			if got := f.last().body["dataFormat"]; got != "csv" {
+				t.Errorf("DataFormat %q sent as %v", format, got)
+			}
+		}
+	})
+
+	t.Run("reidentify sends lower case and returns upper case", func(t *testing.T) {
+		f := newFakeDetect(t)
+		f.responses[pathReidentifyFile] = []string{`{"status":"SUCCESS","outputType":"BASE64","output":[{"processedFile":"aGk=","processedFileType":"REIDENTIFIED_FILE","processedFileExtension":"docx"}]}`}
+		c, _ := newTestController(f)
+		resp, err := c.ReidentifyFile(context.Background(), ReidentifyFileRequest{
+			DataSource: SkyReidentifySourceTypeBase64, Value: "aGk=", DataFormat: FileDataFormatDOCX,
+		}, ReidentifyFileOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := f.last().body["dataFormat"]; got != "docx" {
+			t.Errorf("reidentify DataFormat sent as %v", got)
+		}
+		if got := resp.Output[0].ProcessedFileExtension; got != FileDataFormatDOCX {
+			t.Errorf("ProcessedFileExtension = %q, want %q", got, FileDataFormatDOCX)
+		}
+	})
+
+	t.Run("output file names keep the lower-case extension", func(t *testing.T) {
+		if got := outputFileName("notes", FileOutput{ProcessedFileType: ProcessedFileTypeRedactedFile, ProcessedFileExtension: FileDataFormatPDF}, map[string]bool{}); got != "processed-notes.pdf" {
+			t.Errorf("output file name = %q", got)
+		}
+	})
+
+	t.Run("format from name ignores case", func(t *testing.T) {
+		if got := formatFromName("Scan.PNG"); got != FileDataFormatPNG {
+			t.Errorf("formatFromName = %q", got)
+		}
+	})
 }

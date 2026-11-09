@@ -30,8 +30,10 @@ const (
 // Poll limits.
 const (
 	defaultWaitTimeSeconds = 60
+	minWaitTimeSeconds     = 1
 	maxWaitTimeSeconds     = 300
 	defaultMaxAttempts     = 23
+	minMaxAttempts         = 1
 	maxMaxAttempts         = 23
 	maxPollDelaySeconds    = 32
 )
@@ -67,8 +69,8 @@ const (
 	errInvalidDeidentifyValue      = " Validation error. Invalid Value in deidentify file request. Specify the non-empty content or reference that DataSource describes."
 	errFileNotFound                = " Validation error. The file to deidentify was not found at the specified path. Verify the file path and try again."
 	errFileNotReadable             = " Validation error. The file to deidentify is not readable. Check the file permissions and try again."
-	errInvalidWaitTime             = " Validation error. WaitTime in Poll must be between 1 and 300 seconds."
-	errInvalidMaxAttempts          = " Validation error. MaxAttempts in Poll must be between 1 and 23."
+	errInvalidWaitTime             = " Validation error. WaitTime in Poll must be between %d and %d seconds."
+	errInvalidMaxAttempts          = " Validation error. MaxAttempts in Poll must be between %d and %d."
 	errOutputDirectoryNeedPoll     = " Validation error. OutputDirectory in deidentify file options requires Poll."
 	errEmptyRunId                  = " Validation error. Invalid RunId in get run request. Specify a non-empty run id."
 	errInvalidReidentifyDataSource = " Validation error. Invalid DataSource in reidentify file request. Specify a ReidentifySourceType."

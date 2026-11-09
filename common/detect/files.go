@@ -76,6 +76,8 @@ func readRegularFile(file *os.File) ([]byte, error) {
 	return io.ReadAll(io.NewSectionReader(file, 0, info.Size()))
 }
 
+// knownFormats maps each format's lower-case wire value (also the file extension) to the
+// FileDataFormat constant.
 var knownFormats = func() map[string]FileDataFormat {
 	formats := map[string]FileDataFormat{}
 	for _, f := range []FileDataFormat{
@@ -85,15 +87,26 @@ var knownFormats = func() map[string]FileDataFormat {
 		FileDataFormatDOCX, FileDataFormatPPT, FileDataFormatPPTX, FileDataFormatXML, FileDataFormatDCM,
 		FileDataFormatJSONL, FileDataFormatZIP, FileDataFormatGIF,
 	} {
-		formats[string(f)] = f
+		formats[wireFormat(f)] = f
 	}
 	return formats
 }()
 
+// wireFormat is the API's lower-case value for f, or "" for an empty f.
+func wireFormat(f FileDataFormat) string {
+	return strings.ToLower(string(f))
+}
+
+// formatFromWire returns the known format for an extension or wire value in any case,
+// or "" when it is not a known format.
+func formatFromWire(value string) FileDataFormat {
+	return knownFormats[strings.ToLower(value)]
+}
+
 // formatFromName infers the format from the file extension, or returns "" so the server
 // infers it.
 func formatFromName(name string) FileDataFormat {
-	return knownFormats[strings.ToLower(strings.TrimPrefix(filepath.Ext(name), extensionSeparator))]
+	return formatFromWire(strings.TrimPrefix(filepath.Ext(name), extensionSeparator))
 }
 
 // writeOutputs decodes each base64 output into dir (the current directory when empty).
@@ -149,11 +162,11 @@ func outputFileName(stem string, output FileOutput, used map[string]bool) string
 		fileType = strings.ToLower(string(outputType))
 	}
 	entities := outputType == ProcessedFileTypeEntities || outputType == ProcessedFileTypeObjectEntities
-	extension := string(knownFormats[strings.ToLower(string(output.ProcessedFileExtension))])
+	extension := wireFormat(formatFromWire(string(output.ProcessedFileExtension))) // "" when unknown
 	if extension == "" {
 		extension = binaryExtension
 		if entities {
-			extension = string(FileDataFormatJSON)
+			extension = wireFormat(FileDataFormatJSON)
 		}
 	}
 	prefix := processedFilePrefix

@@ -147,12 +147,14 @@ type DeidentifyFileOptions struct {
 	OutputDirectory string
 }
 
-// PollOptions bound how long DeidentifyFile waits for a run. Zero values use the defaults.
+// PollOptions bound how long DeidentifyFile waits for a run. A nil field uses its default;
+// a set field must be in range, as in the Java SDK, so a zero is rejected rather than taken
+// as the default. &PollOptions{} polls with both defaults.
 type PollOptions struct {
-	// WaitTime is the longest DeidentifyFile waits. Default 60s, at most 300s.
-	WaitTime time.Duration
-	// MaxAttempts is the most run lookups made. Default 23, at most 23.
-	MaxAttempts int
+	// WaitTime is the longest DeidentifyFile waits: 1s to 300s, default 60s.
+	WaitTime *time.Duration
+	// MaxAttempts is the most run lookups made: 1 to 23, default 23.
+	MaxAttempts *int
 }
 
 // DeidentifyFileResponse always has RunId. The other fields are set only when the run

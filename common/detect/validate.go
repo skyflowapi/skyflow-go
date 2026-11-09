@@ -1,6 +1,7 @@
 package detect
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -40,11 +41,11 @@ func (c *Controller) validateDeidentifyFile(request DeidentifyFileRequest, optio
 		}
 		return nil
 	}
-	if wait := options.Poll.WaitTime; wait < 0 || wait > maxWaitTimeSeconds*time.Second || (wait > 0 && wait < time.Second) {
-		return c.invalid(errInvalidWaitTime)
+	if wait := options.Poll.WaitTime; wait != nil && (*wait < minWaitTimeSeconds*time.Second || *wait > maxWaitTimeSeconds*time.Second) {
+		return c.invalid(fmt.Sprintf(errInvalidWaitTime, minWaitTimeSeconds, maxWaitTimeSeconds))
 	}
-	if attempts := options.Poll.MaxAttempts; attempts < 0 || attempts > maxMaxAttempts {
-		return c.invalid(errInvalidMaxAttempts)
+	if attempts := options.Poll.MaxAttempts; attempts != nil && (*attempts < minMaxAttempts || *attempts > maxMaxAttempts) {
+		return c.invalid(fmt.Sprintf(errInvalidMaxAttempts, minMaxAttempts, maxMaxAttempts))
 	}
 	return nil
 }

@@ -197,33 +197,35 @@ var (
 	}
 )
 
-// FileDataFormat is a file format. The wire values are lowercase.
+// FileDataFormat is a file format. The values are upper case, as in the Java SDK;
+// the API's wire values are lower case, and the SDK converts in both directions (see
+// wireFormat). A request's DataFormat is matched without regard to case.
 type FileDataFormat string
 
 const (
-	FileDataFormatMP3   FileDataFormat = "mp3"
-	FileDataFormatWAV   FileDataFormat = "wav"
-	FileDataFormatPDF   FileDataFormat = "pdf"
-	FileDataFormatTXT   FileDataFormat = "txt"
-	FileDataFormatCSV   FileDataFormat = "csv"
-	FileDataFormatJSON  FileDataFormat = "json"
-	FileDataFormatJPG   FileDataFormat = "jpg"
-	FileDataFormatJPEG  FileDataFormat = "jpeg"
-	FileDataFormatTIF   FileDataFormat = "tif"
-	FileDataFormatTIFF  FileDataFormat = "tiff"
-	FileDataFormatPNG   FileDataFormat = "png"
-	FileDataFormatBMP   FileDataFormat = "bmp"
-	FileDataFormatXLS   FileDataFormat = "xls"
-	FileDataFormatXLSX  FileDataFormat = "xlsx"
-	FileDataFormatDOC   FileDataFormat = "doc"
-	FileDataFormatDOCX  FileDataFormat = "docx"
-	FileDataFormatPPT   FileDataFormat = "ppt"
-	FileDataFormatPPTX  FileDataFormat = "pptx"
-	FileDataFormatXML   FileDataFormat = "xml"
-	FileDataFormatDCM   FileDataFormat = "dcm"
-	FileDataFormatJSONL FileDataFormat = "jsonl"
-	FileDataFormatZIP   FileDataFormat = "zip"
-	FileDataFormatGIF   FileDataFormat = "gif"
+	FileDataFormatMP3   FileDataFormat = "MP3"
+	FileDataFormatWAV   FileDataFormat = "WAV"
+	FileDataFormatPDF   FileDataFormat = "PDF"
+	FileDataFormatTXT   FileDataFormat = "TXT"
+	FileDataFormatCSV   FileDataFormat = "CSV"
+	FileDataFormatJSON  FileDataFormat = "JSON"
+	FileDataFormatJPG   FileDataFormat = "JPG"
+	FileDataFormatJPEG  FileDataFormat = "JPEG"
+	FileDataFormatTIF   FileDataFormat = "TIF"
+	FileDataFormatTIFF  FileDataFormat = "TIFF"
+	FileDataFormatPNG   FileDataFormat = "PNG"
+	FileDataFormatBMP   FileDataFormat = "BMP"
+	FileDataFormatXLS   FileDataFormat = "XLS"
+	FileDataFormatXLSX  FileDataFormat = "XLSX"
+	FileDataFormatDOC   FileDataFormat = "DOC"
+	FileDataFormatDOCX  FileDataFormat = "DOCX"
+	FileDataFormatPPT   FileDataFormat = "PPT"
+	FileDataFormatPPTX  FileDataFormat = "PPTX"
+	FileDataFormatXML   FileDataFormat = "XML"
+	FileDataFormatDCM   FileDataFormat = "DCM"
+	FileDataFormatJSONL FileDataFormat = "JSONL"
+	FileDataFormatZIP   FileDataFormat = "ZIP"
+	FileDataFormatGIF   FileDataFormat = "GIF"
 )
 
 // DetectRunStatus is the state of a de-identify file run. SUCCESS, FAILED and UNKNOWN are terminal.

@@ -11,12 +11,12 @@ import (
 
 // effective returns the options with defaults applied.
 func (o PollOptions) effective() (time.Duration, int) {
-	wait, attempts := o.WaitTime, o.MaxAttempts
-	if wait == 0 {
-		wait = defaultWaitTimeSeconds * time.Second
+	wait, attempts := defaultWaitTimeSeconds*time.Second, defaultMaxAttempts
+	if o.WaitTime != nil {
+		wait = *o.WaitTime
 	}
-	if attempts == 0 {
-		attempts = defaultMaxAttempts
+	if o.MaxAttempts != nil {
+		attempts = *o.MaxAttempts
 	}
 	return wait, attempts
 }

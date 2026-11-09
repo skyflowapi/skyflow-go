@@ -138,6 +138,19 @@ func TestContextEndsWhileWaitingForTheTokenLock(t *testing.T) {
 	}
 }
 
+// The context is live when the call starts and ends while it waits for the lock.
+func TestContextTimesOutWhileWaitingForTheTokenLock(t *testing.T) {
+	b := New(testProfile(), config.VaultConfig{VaultId: "v", ClusterId: "c", Credentials: config.Credentials{CredentialsString: "{}"}}, ClientSettings{})
+	b.tokenLock <- struct{}{} // another call is generating a token
+	defer func() { <-b.tokenLock }()
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+	defer cancel()
+	_, err := b.PrepareContext(ctx, "GET", nil)
+	if err == nil || !errors.Is(err, context.DeadlineExceeded) || err.GetHttpCode() != string(skyflowError.REQUEST_CANCELLED) {
+		t.Fatalf("err = %v", err)
+	}
+}
+
 func TestEndedContextNeverStartsATokenRequest(t *testing.T) {
 	f := newFakeAuth(t, nil)
 	b := New(f.profile(), config.VaultConfig{VaultId: "v", ClusterId: "c", Credentials: config.Credentials{CredentialsString: f.creds}}, ClientSettings{})

@@ -2,7 +2,6 @@ package detect
 
 import (
 	"slices"
-	"strings"
 
 	gen "github.com/skyflowapi/skyflow-go/common/internal/generated"
 )
@@ -341,7 +340,7 @@ func fromGenOutputs(outputs []*gen.FileOutput) []FileOutput {
 		out = append(out, FileOutput{
 			ProcessedFile:          deref(o.ProcessedFile),
 			ProcessedFileType:      ProcessedFileType(derefEnum(o.ProcessedFileType)),
-			ProcessedFileExtension: knownFormats[strings.ToLower(derefEnum(o.ProcessedFileExtension))], // unknown: empty
+			ProcessedFileExtension: formatFromWire(derefEnum(o.ProcessedFileExtension)), // unknown: empty
 		})
 	}
 	return out
