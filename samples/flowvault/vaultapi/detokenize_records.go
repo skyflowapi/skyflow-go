@@ -26,7 +26,7 @@ func main() {
 	credentials := common.Credentials{Path: "<PATH_TO_YOUR_CREDENTIALS_JSON>"} // or ApiKey / Token / CredentialsString
 	vaultConfig := common.VaultConfig{
 		VaultId:     "<YOUR_VAULT_ID>",
-		ClusterId:   "<YOUR_CLUSTER_ID>", // from the vault URL: https://{clusterId}.skyvault.skyflowapis.com
+		ClusterId:   "<YOUR_CLUSTER_ID>", // from the vault URL: https://{clusterId}.vault.skyflowapis.com
 		Env:         common.PROD,         // DEV, STAGE, SANDBOX or PROD
 		Credentials: credentials,
 	}
@@ -34,12 +34,12 @@ func main() {
 	// Step 2: Configure the Skyflow client
 	skyflowClient, err := client.NewSkyflow(client.WithVaults(vaultConfig), client.WithLogLevel(logger.ERROR))
 	if err != nil {
-		fmt.Println("Skyflow Specific Error:", err.GetHttpCode(), err.GetMessage(), err.GetDetails())
+		fmt.Println("Skyflow Specific Error:", err.GetHttpCode(), err.GetMessage(), "requestId:", err.GetRequestId(), err.GetDetails())
 		return
 	}
 	vault, err := skyflowClient.Vault(vaultConfig.VaultId)
 	if err != nil {
-		fmt.Println("Skyflow Specific Error:", err.GetHttpCode(), err.GetMessage(), err.GetDetails())
+		fmt.Println("Skyflow Specific Error:", err.GetHttpCode(), err.GetMessage(), "requestId:", err.GetRequestId(), err.GetDetails())
 		return
 	}
 
@@ -54,7 +54,7 @@ func main() {
 	// One record per input token, in order. Each has Token, Value, TokenGroupName, Metadata
 	// (SkyflowId and TableName), HttpCode, Error and RequestId.
 	if err != nil {
-		fmt.Println("Skyflow Specific Error:", err.GetHttpCode(), err.GetMessage(), err.GetDetails())
+		fmt.Println("Skyflow Specific Error:", err.GetHttpCode(), err.GetMessage(), "requestId:", err.GetRequestId(), err.GetDetails())
 		return
 	}
 	for _, record := range response.Records {
