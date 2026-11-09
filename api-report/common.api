@@ -57,10 +57,13 @@ pkg github.com/skyflowapi/skyflow-go/common/config, type Credentials struct, fie
 pkg github.com/skyflowapi/skyflow-go/common/config, type CustomHeaderKey string
 pkg github.com/skyflowapi/skyflow-go/common/config, type Env int
 pkg github.com/skyflowapi/skyflow-go/common/config, type HttpConfig struct
+pkg github.com/skyflowapi/skyflow-go/common/config, type HttpConfig struct, field ConnectTimeout time.Duration
 pkg github.com/skyflowapi/skyflow-go/common/config, type HttpConfig struct, field InitialRetryDelay time.Duration
 pkg github.com/skyflowapi/skyflow-go/common/config, type HttpConfig struct, field MaxRetries *int
 pkg github.com/skyflowapi/skyflow-go/common/config, type HttpConfig struct, field MaxRetryDelay time.Duration
+pkg github.com/skyflowapi/skyflow-go/common/config, type HttpConfig struct, field ReadTimeout time.Duration
 pkg github.com/skyflowapi/skyflow-go/common/config, type HttpConfig struct, field Timeout time.Duration
+pkg github.com/skyflowapi/skyflow-go/common/config, type HttpConfig struct, field WriteTimeout time.Duration
 pkg github.com/skyflowapi/skyflow-go/common/config, type Validator struct
 pkg github.com/skyflowapi/skyflow-go/common/config, type Validator struct, field LogPrefix string
 pkg github.com/skyflowapi/skyflow-go/common/config, type Validator struct, field SDKPrefix string
@@ -68,13 +71,376 @@ pkg github.com/skyflowapi/skyflow-go/common/config, type VaultConfig struct
 pkg github.com/skyflowapi/skyflow-go/common/config, type VaultConfig struct, field BaseVaultURL string
 pkg github.com/skyflowapi/skyflow-go/common/config, type VaultConfig struct, field BaseVaultUrl string
 pkg github.com/skyflowapi/skyflow-go/common/config, type VaultConfig struct, field ClusterId string
+pkg github.com/skyflowapi/skyflow-go/common/config, type VaultConfig struct, field ConnectTimeout time.Duration
 pkg github.com/skyflowapi/skyflow-go/common/config, type VaultConfig struct, field Credentials github.com/skyflowapi/skyflow-go/common/config.Credentials
 pkg github.com/skyflowapi/skyflow-go/common/config, type VaultConfig struct, field Env github.com/skyflowapi/skyflow-go/common/config.Env
 pkg github.com/skyflowapi/skyflow-go/common/config, type VaultConfig struct, field InitialRetryDelay time.Duration
 pkg github.com/skyflowapi/skyflow-go/common/config, type VaultConfig struct, field MaxRetries *int
 pkg github.com/skyflowapi/skyflow-go/common/config, type VaultConfig struct, field MaxRetryDelay time.Duration
+pkg github.com/skyflowapi/skyflow-go/common/config, type VaultConfig struct, field ReadTimeout time.Duration
 pkg github.com/skyflowapi/skyflow-go/common/config, type VaultConfig struct, field Timeout time.Duration
 pkg github.com/skyflowapi/skyflow-go/common/config, type VaultConfig struct, field VaultId string
+pkg github.com/skyflowapi/skyflow-go/common/config, type VaultConfig struct, field WriteTimeout time.Duration
+pkg github.com/skyflowapi/skyflow-go/common/detect, const DeidentificationTypeEntityOnly github.com/skyflowapi/skyflow-go/common/detect.DeidentificationType = "ENTITY_ONLY"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const DeidentificationTypeEntityUniqueCounter github.com/skyflowapi/skyflow-go/common/detect.DeidentificationType = "ENTITY_UNIQUE_COUNTER"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const DeidentificationTypeMask github.com/skyflowapi/skyflow-go/common/detect.DeidentificationType = "MASK"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const DeidentificationTypeUnknown github.com/skyflowapi/skyflow-go/common/detect.DeidentificationType = "UNKNOWN"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const DeidentificationTypeVaultToken github.com/skyflowapi/skyflow-go/common/detect.DeidentificationType = "VAULT_TOKEN"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const DetectRunStatusFailed github.com/skyflowapi/skyflow-go/common/detect.DetectRunStatus = "FAILED"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const DetectRunStatusInProgress github.com/skyflowapi/skyflow-go/common/detect.DetectRunStatus = "IN_PROGRESS"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const DetectRunStatusQueued github.com/skyflowapi/skyflow-go/common/detect.DetectRunStatus = "QUEUED"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const DetectRunStatusSuccess github.com/skyflowapi/skyflow-go/common/detect.DetectRunStatus = "SUCCESS"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const DetectRunStatusUnknown github.com/skyflowapi/skyflow-go/common/detect.DetectRunStatus = "UNKNOWN"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeAccountNumber github.com/skyflowapi/skyflow-go/common/detect.EntityType = "ACCOUNT_NUMBER"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeAge github.com/skyflowapi/skyflow-go/common/detect.EntityType = "AGE"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeAll github.com/skyflowapi/skyflow-go/common/detect.EntityType = "ALL"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeBankAccount github.com/skyflowapi/skyflow-go/common/detect.EntityType = "BANK_ACCOUNT"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeBloodType github.com/skyflowapi/skyflow-go/common/detect.EntityType = "BLOOD_TYPE"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeCVV github.com/skyflowapi/skyflow-go/common/detect.EntityType = "CVV"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeCondition github.com/skyflowapi/skyflow-go/common/detect.EntityType = "CONDITION"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeCorporateAction github.com/skyflowapi/skyflow-go/common/detect.EntityType = "CORPORATE_ACTION"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeCreditCard github.com/skyflowapi/skyflow-go/common/detect.EntityType = "CREDIT_CARD"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeCreditCardExpiration github.com/skyflowapi/skyflow-go/common/detect.EntityType = "CREDIT_CARD_EXPIRATION"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeDOB github.com/skyflowapi/skyflow-go/common/detect.EntityType = "DOB"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeDate github.com/skyflowapi/skyflow-go/common/detect.EntityType = "DATE"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeDateInterval github.com/skyflowapi/skyflow-go/common/detect.EntityType = "DATE_INTERVAL"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeDay github.com/skyflowapi/skyflow-go/common/detect.EntityType = "DAY"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeDose github.com/skyflowapi/skyflow-go/common/detect.EntityType = "DOSE"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeDriverLicense github.com/skyflowapi/skyflow-go/common/detect.EntityType = "DRIVER_LICENSE"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeDrug github.com/skyflowapi/skyflow-go/common/detect.EntityType = "DRUG"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeDuration github.com/skyflowapi/skyflow-go/common/detect.EntityType = "DURATION"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeEffect github.com/skyflowapi/skyflow-go/common/detect.EntityType = "EFFECT"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeEmailAddress github.com/skyflowapi/skyflow-go/common/detect.EntityType = "EMAIL_ADDRESS"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeEvent github.com/skyflowapi/skyflow-go/common/detect.EntityType = "EVENT"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeFilename github.com/skyflowapi/skyflow-go/common/detect.EntityType = "FILENAME"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeFinancialMetric github.com/skyflowapi/skyflow-go/common/detect.EntityType = "FINANCIAL_METRIC"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeGender github.com/skyflowapi/skyflow-go/common/detect.EntityType = "GENDER"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeHealthcareNumber github.com/skyflowapi/skyflow-go/common/detect.EntityType = "HEALTHCARE_NUMBER"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeIPAddress github.com/skyflowapi/skyflow-go/common/detect.EntityType = "IP_ADDRESS"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeInjury github.com/skyflowapi/skyflow-go/common/detect.EntityType = "INJURY"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeLanguage github.com/skyflowapi/skyflow-go/common/detect.EntityType = "LANGUAGE"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeLocation github.com/skyflowapi/skyflow-go/common/detect.EntityType = "LOCATION"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeLocationAddress github.com/skyflowapi/skyflow-go/common/detect.EntityType = "LOCATION_ADDRESS"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeLocationAddressStreet github.com/skyflowapi/skyflow-go/common/detect.EntityType = "LOCATION_ADDRESS_STREET"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeLocationCity github.com/skyflowapi/skyflow-go/common/detect.EntityType = "LOCATION_CITY"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeLocationCoordinate github.com/skyflowapi/skyflow-go/common/detect.EntityType = "LOCATION_COORDINATE"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeLocationCountry github.com/skyflowapi/skyflow-go/common/detect.EntityType = "LOCATION_COUNTRY"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeLocationState github.com/skyflowapi/skyflow-go/common/detect.EntityType = "LOCATION_STATE"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeLocationZIP github.com/skyflowapi/skyflow-go/common/detect.EntityType = "LOCATION_ZIP"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeMaritalStatus github.com/skyflowapi/skyflow-go/common/detect.EntityType = "MARITAL_STATUS"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeMedicalCode github.com/skyflowapi/skyflow-go/common/detect.EntityType = "MEDICAL_CODE"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeMedicalProcess github.com/skyflowapi/skyflow-go/common/detect.EntityType = "MEDICAL_PROCESS"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeMoney github.com/skyflowapi/skyflow-go/common/detect.EntityType = "MONEY"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeMonth github.com/skyflowapi/skyflow-go/common/detect.EntityType = "MONTH"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeName github.com/skyflowapi/skyflow-go/common/detect.EntityType = "NAME"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeNameFamily github.com/skyflowapi/skyflow-go/common/detect.EntityType = "NAME_FAMILY"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeNameGiven github.com/skyflowapi/skyflow-go/common/detect.EntityType = "NAME_GIVEN"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeNameMedicalProfessional github.com/skyflowapi/skyflow-go/common/detect.EntityType = "NAME_MEDICAL_PROFESSIONAL"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeNone github.com/skyflowapi/skyflow-go/common/detect.EntityType = "NONE"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeNumericalPII github.com/skyflowapi/skyflow-go/common/detect.EntityType = "NUMERICAL_PII"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeOccupation github.com/skyflowapi/skyflow-go/common/detect.EntityType = "OCCUPATION"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeOrganization github.com/skyflowapi/skyflow-go/common/detect.EntityType = "ORGANIZATION"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeOrganizationID github.com/skyflowapi/skyflow-go/common/detect.EntityType = "ORGANIZATION_ID"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeOrganizationMedicalFacility github.com/skyflowapi/skyflow-go/common/detect.EntityType = "ORGANIZATION_MEDICAL_FACILITY"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeOrigin github.com/skyflowapi/skyflow-go/common/detect.EntityType = "ORIGIN"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypePassportNumber github.com/skyflowapi/skyflow-go/common/detect.EntityType = "PASSPORT_NUMBER"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypePassword github.com/skyflowapi/skyflow-go/common/detect.EntityType = "PASSWORD"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypePhoneNumber github.com/skyflowapi/skyflow-go/common/detect.EntityType = "PHONE_NUMBER"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypePhysicalAttribute github.com/skyflowapi/skyflow-go/common/detect.EntityType = "PHYSICAL_ATTRIBUTE"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypePoliticalAffiliation github.com/skyflowapi/skyflow-go/common/detect.EntityType = "POLITICAL_AFFILIATION"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeProduct github.com/skyflowapi/skyflow-go/common/detect.EntityType = "PRODUCT"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeProject github.com/skyflowapi/skyflow-go/common/detect.EntityType = "PROJECT"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeReligion github.com/skyflowapi/skyflow-go/common/detect.EntityType = "RELIGION"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeRoutingNumber github.com/skyflowapi/skyflow-go/common/detect.EntityType = "ROUTING_NUMBER"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeSSN github.com/skyflowapi/skyflow-go/common/detect.EntityType = "SSN"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeSexuality github.com/skyflowapi/skyflow-go/common/detect.EntityType = "SEXUALITY"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeStatistics github.com/skyflowapi/skyflow-go/common/detect.EntityType = "STATISTICS"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeTime github.com/skyflowapi/skyflow-go/common/detect.EntityType = "TIME"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeTrend github.com/skyflowapi/skyflow-go/common/detect.EntityType = "TREND"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeURL github.com/skyflowapi/skyflow-go/common/detect.EntityType = "URL"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeUsername github.com/skyflowapi/skyflow-go/common/detect.EntityType = "USERNAME"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeVehicleID github.com/skyflowapi/skyflow-go/common/detect.EntityType = "VEHICLE_ID"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeYear github.com/skyflowapi/skyflow-go/common/detect.EntityType = "YEAR"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const EntityTypeZodiacSign github.com/skyflowapi/skyflow-go/common/detect.EntityType = "ZODIAC_SIGN"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const FileDataFormatBMP github.com/skyflowapi/skyflow-go/common/detect.FileDataFormat = "BMP"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const FileDataFormatCSV github.com/skyflowapi/skyflow-go/common/detect.FileDataFormat = "CSV"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const FileDataFormatDCM github.com/skyflowapi/skyflow-go/common/detect.FileDataFormat = "DCM"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const FileDataFormatDOC github.com/skyflowapi/skyflow-go/common/detect.FileDataFormat = "DOC"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const FileDataFormatDOCX github.com/skyflowapi/skyflow-go/common/detect.FileDataFormat = "DOCX"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const FileDataFormatGIF github.com/skyflowapi/skyflow-go/common/detect.FileDataFormat = "GIF"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const FileDataFormatJPEG github.com/skyflowapi/skyflow-go/common/detect.FileDataFormat = "JPEG"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const FileDataFormatJPG github.com/skyflowapi/skyflow-go/common/detect.FileDataFormat = "JPG"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const FileDataFormatJSON github.com/skyflowapi/skyflow-go/common/detect.FileDataFormat = "JSON"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const FileDataFormatJSONL github.com/skyflowapi/skyflow-go/common/detect.FileDataFormat = "JSONL"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const FileDataFormatMP3 github.com/skyflowapi/skyflow-go/common/detect.FileDataFormat = "MP3"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const FileDataFormatPDF github.com/skyflowapi/skyflow-go/common/detect.FileDataFormat = "PDF"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const FileDataFormatPNG github.com/skyflowapi/skyflow-go/common/detect.FileDataFormat = "PNG"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const FileDataFormatPPT github.com/skyflowapi/skyflow-go/common/detect.FileDataFormat = "PPT"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const FileDataFormatPPTX github.com/skyflowapi/skyflow-go/common/detect.FileDataFormat = "PPTX"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const FileDataFormatTIF github.com/skyflowapi/skyflow-go/common/detect.FileDataFormat = "TIF"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const FileDataFormatTIFF github.com/skyflowapi/skyflow-go/common/detect.FileDataFormat = "TIFF"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const FileDataFormatTXT github.com/skyflowapi/skyflow-go/common/detect.FileDataFormat = "TXT"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const FileDataFormatWAV github.com/skyflowapi/skyflow-go/common/detect.FileDataFormat = "WAV"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const FileDataFormatXLS github.com/skyflowapi/skyflow-go/common/detect.FileDataFormat = "XLS"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const FileDataFormatXLSX github.com/skyflowapi/skyflow-go/common/detect.FileDataFormat = "XLSX"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const FileDataFormatXML github.com/skyflowapi/skyflow-go/common/detect.FileDataFormat = "XML"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const FileDataFormatZIP github.com/skyflowapi/skyflow-go/common/detect.FileDataFormat = "ZIP"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const FlowDeidentifySourceTypeBase64 github.com/skyflowapi/skyflow-go/common/detect.FlowDeidentifySourceType = "BASE64"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const FlowDeidentifySourceTypePresignedURL github.com/skyflowapi/skyflow-go/common/detect.FlowDeidentifySourceType = "PRESIGNED_URL"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const FlowReidentifySourceTypeBase64 github.com/skyflowapi/skyflow-go/common/detect.FlowReidentifySourceType = "BASE64"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const FlowReidentifySourceTypePresignedURL github.com/skyflowapi/skyflow-go/common/detect.FlowReidentifySourceType = "PRESIGNED_URL"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const GuardrailsValidationFailed github.com/skyflowapi/skyflow-go/common/detect.GuardrailsValidation = "FAILED"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const GuardrailsValidationPassed github.com/skyflowapi/skyflow-go/common/detect.GuardrailsValidation = "PASSED"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const GuardrailsValidationUnknown github.com/skyflowapi/skyflow-go/common/detect.GuardrailsValidation = "UNKNOWN"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const IncludePrefixNo github.com/skyflowapi/skyflow-go/common/detect.IncludePrefix = "NO"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const IncludePrefixYes github.com/skyflowapi/skyflow-go/common/detect.IncludePrefix = "YES"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const MaskingMethodBlackbox github.com/skyflowapi/skyflow-go/common/detect.MaskingMethod = "BLACKBOX"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const MaskingMethodBlur github.com/skyflowapi/skyflow-go/common/detect.MaskingMethod = "BLUR"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const MaskingMethodNone github.com/skyflowapi/skyflow-go/common/detect.MaskingMethod = "NONE"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const ObjectDeidentificationTypeRedact github.com/skyflowapi/skyflow-go/common/detect.ObjectDeidentificationType = "REDACT"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const ObjectDeidentificationTypeUnknown github.com/skyflowapi/skyflow-go/common/detect.ObjectDeidentificationType = "UNKNOWN"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const ObjectDeidentificationTypeUnredact github.com/skyflowapi/skyflow-go/common/detect.ObjectDeidentificationType = "UNREDACT"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const ObjectEntityTypeAll github.com/skyflowapi/skyflow-go/common/detect.ObjectEntityType = "ALL"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const ObjectEntityTypeFace github.com/skyflowapi/skyflow-go/common/detect.ObjectEntityType = "FACE"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const ObjectEntityTypeLicensePlate github.com/skyflowapi/skyflow-go/common/detect.ObjectEntityType = "LICENSE_PLATE"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const ObjectEntityTypeLogo github.com/skyflowapi/skyflow-go/common/detect.ObjectEntityType = "LOGO"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const ObjectEntityTypeNone github.com/skyflowapi/skyflow-go/common/detect.ObjectEntityType = "NONE"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const ObjectEntityTypeSignature github.com/skyflowapi/skyflow-go/common/detect.ObjectEntityType = "SIGNATURE"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const OperationCheckGuardrails untyped string = "CHECK_GUARDRAILS"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const OperationDeidentifyFile untyped string = "DEIDENTIFY_FILE"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const OperationDeidentifyString untyped string = "DEIDENTIFY_STRING"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const OperationGetRun untyped string = "GET_RUN"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const OperationReidentifyFile untyped string = "REIDENTIFY_FILE"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const OperationReidentifyString untyped string = "REIDENTIFY_STRING"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const OutputTranscriptionTypeDiarizedTranscription github.com/skyflowapi/skyflow-go/common/detect.OutputTranscriptionType = "DIARIZED_TRANSCRIPTION"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const OutputTranscriptionTypeMedicalDiarizedTranscription github.com/skyflowapi/skyflow-go/common/detect.OutputTranscriptionType = "MEDICAL_DIARIZED_TRANSCRIPTION"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const OutputTranscriptionTypeMedicalTranscription github.com/skyflowapi/skyflow-go/common/detect.OutputTranscriptionType = "MEDICAL_TRANSCRIPTION"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const OutputTranscriptionTypeNone github.com/skyflowapi/skyflow-go/common/detect.OutputTranscriptionType = "NONE"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const OutputTranscriptionTypeTranscription github.com/skyflowapi/skyflow-go/common/detect.OutputTranscriptionType = "TRANSCRIPTION"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const PdfProcessingModeNone github.com/skyflowapi/skyflow-go/common/detect.PdfProcessingMode = "NONE"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const PdfProcessingModeOCR github.com/skyflowapi/skyflow-go/common/detect.PdfProcessingMode = "OCR"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const PdfProcessingModeTextLayer github.com/skyflowapi/skyflow-go/common/detect.PdfProcessingMode = "TEXT_LAYER"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const ProcessedFileTypeEntities github.com/skyflowapi/skyflow-go/common/detect.ProcessedFileType = "ENTITIES"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const ProcessedFileTypeNone github.com/skyflowapi/skyflow-go/common/detect.ProcessedFileType = "NONE"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const ProcessedFileTypeObjectEntities github.com/skyflowapi/skyflow-go/common/detect.ProcessedFileType = "OBJECT_ENTITIES"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const ProcessedFileTypeRedactedDeepgramTranscriptionDiarizeJSON github.com/skyflowapi/skyflow-go/common/detect.ProcessedFileType = "REDACTED_DEEPGRAM_TRANSCRIPTION_DIARIZE_JSON"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const ProcessedFileTypeRedactedFile github.com/skyflowapi/skyflow-go/common/detect.ProcessedFileType = "REDACTED_FILE"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const ProcessedFileTypeRedactedText github.com/skyflowapi/skyflow-go/common/detect.ProcessedFileType = "REDACTED_TEXT"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const ProcessedFileTypeRedactedTranscription github.com/skyflowapi/skyflow-go/common/detect.ProcessedFileType = "REDACTED_TRANSCRIPTION"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const ProcessedFileTypeReidentifiedFile github.com/skyflowapi/skyflow-go/common/detect.ProcessedFileType = "REIDENTIFIED_FILE"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const RedactionTypeDefault github.com/skyflowapi/skyflow-go/common/detect.RedactionType = "DEFAULT"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const RedactionTypeMasked github.com/skyflowapi/skyflow-go/common/detect.RedactionType = "MASKED"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const RedactionTypePlainText github.com/skyflowapi/skyflow-go/common/detect.RedactionType = "PLAIN_TEXT"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const RedactionTypeRedacted github.com/skyflowapi/skyflow-go/common/detect.RedactionType = "REDACTED"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const ReturnEntitiesTypeAll github.com/skyflowapi/skyflow-go/common/detect.ReturnEntitiesType = "ALL"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const ReturnEntitiesTypeExcludeSensitiveData github.com/skyflowapi/skyflow-go/common/detect.ReturnEntitiesType = "EXCLUDE_SENSITIVE_DATA"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const ReturnEntitiesTypeNone github.com/skyflowapi/skyflow-go/common/detect.ReturnEntitiesType = "NONE"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const SkyDeidentifySourceTypeBase64 github.com/skyflowapi/skyflow-go/common/detect.SkyDeidentifySourceType = "BASE64"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const SkyDeidentifySourceTypePresignedURL github.com/skyflowapi/skyflow-go/common/detect.SkyDeidentifySourceType = "PRESIGNED_URL"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const SkyDeidentifySourceTypeSkyflowID github.com/skyflowapi/skyflow-go/common/detect.SkyDeidentifySourceType = "SKYFLOW_ID"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const SkyReidentifySourceTypeBase64 github.com/skyflowapi/skyflow-go/common/detect.SkyReidentifySourceType = "BASE64"
+pkg github.com/skyflowapi/skyflow-go/common/detect, const SkyReidentifySourceTypePresignedURL github.com/skyflowapi/skyflow-go/common/detect.SkyReidentifySourceType = "PRESIGNED_URL"
+pkg github.com/skyflowapi/skyflow-go/common/detect, func NewController(*github.com/skyflowapi/skyflow-go/common/vaultclient.Base, github.com/skyflowapi/skyflow-go/common/detect.VaultSources) *github.com/skyflowapi/skyflow-go/common/detect.Controller
+pkg github.com/skyflowapi/skyflow-go/common/detect, method (*Controller) CheckGuardrails(context.Context, github.com/skyflowapi/skyflow-go/common/detect.CheckGuardrailsRequest, github.com/skyflowapi/skyflow-go/common/detect.CheckGuardrailsOptions) (*github.com/skyflowapi/skyflow-go/common/detect.CheckGuardrailsResponse, *github.com/skyflowapi/skyflow-go/common/errors.SkyflowError)
+pkg github.com/skyflowapi/skyflow-go/common/detect, method (*Controller) DeidentifyFile(context.Context, github.com/skyflowapi/skyflow-go/common/detect.DeidentifyFileRequest, github.com/skyflowapi/skyflow-go/common/detect.DeidentifyFileOptions) (*github.com/skyflowapi/skyflow-go/common/detect.DeidentifyFileResponse, *github.com/skyflowapi/skyflow-go/common/errors.SkyflowError)
+pkg github.com/skyflowapi/skyflow-go/common/detect, method (*Controller) DeidentifyString(context.Context, github.com/skyflowapi/skyflow-go/common/detect.DeidentifyStringRequest, github.com/skyflowapi/skyflow-go/common/detect.DeidentifyStringOptions) (*github.com/skyflowapi/skyflow-go/common/detect.DeidentifyStringResponse, *github.com/skyflowapi/skyflow-go/common/errors.SkyflowError)
+pkg github.com/skyflowapi/skyflow-go/common/detect, method (*Controller) GetRun(context.Context, github.com/skyflowapi/skyflow-go/common/detect.GetRunRequest, github.com/skyflowapi/skyflow-go/common/detect.GetRunOptions) (*github.com/skyflowapi/skyflow-go/common/detect.GetRunResponse, *github.com/skyflowapi/skyflow-go/common/errors.SkyflowError)
+pkg github.com/skyflowapi/skyflow-go/common/detect, method (*Controller) ReidentifyFile(context.Context, github.com/skyflowapi/skyflow-go/common/detect.ReidentifyFileRequest, github.com/skyflowapi/skyflow-go/common/detect.ReidentifyFileOptions) (*github.com/skyflowapi/skyflow-go/common/detect.ReidentifyFileResponse, *github.com/skyflowapi/skyflow-go/common/errors.SkyflowError)
+pkg github.com/skyflowapi/skyflow-go/common/detect, method (*Controller) ReidentifyString(context.Context, github.com/skyflowapi/skyflow-go/common/detect.ReidentifyStringRequest, github.com/skyflowapi/skyflow-go/common/detect.ReidentifyStringOptions) (*github.com/skyflowapi/skyflow-go/common/detect.ReidentifyStringResponse, *github.com/skyflowapi/skyflow-go/common/errors.SkyflowError)
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Audio struct
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Audio struct, field Bleep *github.com/skyflowapi/skyflow-go/common/detect.Bleep
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Audio struct, field OutputProcessedAudio *bool
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Audio struct, field OutputTranscription github.com/skyflowapi/skyflow-go/common/detect.OutputTranscriptionType
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Bleep struct
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Bleep struct, field Frequency *int
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Bleep struct, field Gain *int
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Bleep struct, field StartPadding *float32
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Bleep struct, field StopPadding *float32
+pkg github.com/skyflowapi/skyflow-go/common/detect, type CheckGuardrailsOptions struct
+pkg github.com/skyflowapi/skyflow-go/common/detect, type CheckGuardrailsOptions struct, field Interceptor github.com/skyflowapi/skyflow-go/common/detect.Interceptor
+pkg github.com/skyflowapi/skyflow-go/common/detect, type CheckGuardrailsRequest struct
+pkg github.com/skyflowapi/skyflow-go/common/detect, type CheckGuardrailsRequest struct, field CheckToxicity *bool
+pkg github.com/skyflowapi/skyflow-go/common/detect, type CheckGuardrailsRequest struct, field DenyTopics []string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type CheckGuardrailsRequest struct, field Text string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type CheckGuardrailsResponse struct
+pkg github.com/skyflowapi/skyflow-go/common/detect, type CheckGuardrailsResponse struct, field DeniedTopic *bool
+pkg github.com/skyflowapi/skyflow-go/common/detect, type CheckGuardrailsResponse struct, field Text string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type CheckGuardrailsResponse struct, field Toxic *bool
+pkg github.com/skyflowapi/skyflow-go/common/detect, type CheckGuardrailsResponse struct, field Validation github.com/skyflowapi/skyflow-go/common/detect.GuardrailsValidation
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Controller struct
+pkg github.com/skyflowapi/skyflow-go/common/detect, type CustomType struct
+pkg github.com/skyflowapi/skyflow-go/common/detect, type CustomType struct, field DeidentificationType github.com/skyflowapi/skyflow-go/common/detect.DeidentificationType
+pkg github.com/skyflowapi/skyflow-go/common/detect, type CustomType struct, field Destination string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type CustomType struct, field IncludePrefix github.com/skyflowapi/skyflow-go/common/detect.IncludePrefix
+pkg github.com/skyflowapi/skyflow-go/common/detect, type CustomType struct, field Label string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type CustomType struct, field Match []string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type CustomType struct, field PrefixOverride string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DeidentificationType string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DeidentifyFileOptions struct
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DeidentifyFileOptions struct, field Interceptor github.com/skyflowapi/skyflow-go/common/detect.Interceptor
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DeidentifyFileOptions struct, field OutputDirectory string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DeidentifyFileOptions struct, field Poll *github.com/skyflowapi/skyflow-go/common/detect.PollOptions
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DeidentifyFileRequest struct
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DeidentifyFileRequest struct, field Configuration *github.com/skyflowapi/skyflow-go/common/detect.DetectConfiguration
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DeidentifyFileRequest struct, field ConfigurationId string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DeidentifyFileRequest struct, field DataFormat github.com/skyflowapi/skyflow-go/common/detect.FileDataFormat
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DeidentifyFileRequest struct, field DataSource github.com/skyflowapi/skyflow-go/common/detect.DeidentifyFileSource
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DeidentifyFileRequest struct, field FileObject *os.File
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DeidentifyFileRequest struct, field FilePath string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DeidentifyFileRequest struct, field Value string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DeidentifyFileResponse struct
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DeidentifyFileResponse struct, field Message string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DeidentifyFileResponse struct, field Metrics *github.com/skyflowapi/skyflow-go/common/detect.Metrics
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DeidentifyFileResponse struct, field Output []github.com/skyflowapi/skyflow-go/common/detect.FileOutput
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DeidentifyFileResponse struct, field OutputType github.com/skyflowapi/skyflow-go/common/detect.DeidentifyFileSource
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DeidentifyFileResponse struct, field RunId string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DeidentifyFileResponse struct, field Status github.com/skyflowapi/skyflow-go/common/detect.DetectRunStatus
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DeidentifyFileSource interface { // has unexported methods }
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DeidentifyStringOptions struct
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DeidentifyStringOptions struct, field Interceptor github.com/skyflowapi/skyflow-go/common/detect.Interceptor
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DeidentifyStringRequest struct
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DeidentifyStringRequest struct, field Configuration *github.com/skyflowapi/skyflow-go/common/detect.DetectConfiguration
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DeidentifyStringRequest struct, field ConfigurationId string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DeidentifyStringRequest struct, field Text string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DeidentifyStringResponse struct
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DeidentifyStringResponse struct, field Entities []github.com/skyflowapi/skyflow-go/common/detect.DetectedEntity
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DeidentifyStringResponse struct, field Metrics *github.com/skyflowapi/skyflow-go/common/detect.Metrics
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DeidentifyStringResponse struct, field ProcessedText string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Detect struct
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Detect struct, field CustomTypes []github.com/skyflowapi/skyflow-go/common/detect.CustomType
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Detect struct, field Entities []github.com/skyflowapi/skyflow-go/common/detect.Entity
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Detect struct, field ObjectEntities []github.com/skyflowapi/skyflow-go/common/detect.ObjectEntity
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Detect struct, field Restrict []string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Detect struct, field ReturnEntities github.com/skyflowapi/skyflow-go/common/detect.ReturnEntitiesType
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Detect struct, field Skip []string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DetectConfiguration struct
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DetectConfiguration struct, field Description string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DetectConfiguration struct, field Detect *github.com/skyflowapi/skyflow-go/common/detect.Detect
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DetectConfiguration struct, field FileMapping []github.com/skyflowapi/skyflow-go/common/detect.FileMapping
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DetectConfiguration struct, field Media *github.com/skyflowapi/skyflow-go/common/detect.Media
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DetectConfiguration struct, field Name string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DetectRunStatus string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DetectedEntity struct
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DetectedEntity struct, field EntityScores map[string]float64
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DetectedEntity struct, field EntityType string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DetectedEntity struct, field Location github.com/skyflowapi/skyflow-go/common/detect.EntityLocation
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DetectedEntity struct, field Token string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type DetectedEntity struct, field Value string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Document struct
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Document struct, field Pdf *github.com/skyflowapi/skyflow-go/common/detect.Pdf
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Entity struct
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Entity struct, field DeidentificationType github.com/skyflowapi/skyflow-go/common/detect.DeidentificationType
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Entity struct, field Destination string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Entity struct, field EntityType github.com/skyflowapi/skyflow-go/common/detect.EntityType
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Entity struct, field IncludePrefix github.com/skyflowapi/skyflow-go/common/detect.IncludePrefix
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Entity struct, field PrefixOverride string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Entity struct, field Transformation *github.com/skyflowapi/skyflow-go/common/detect.Transformation
+pkg github.com/skyflowapi/skyflow-go/common/detect, type EntityLocation struct
+pkg github.com/skyflowapi/skyflow-go/common/detect, type EntityLocation struct, field EndIndex int
+pkg github.com/skyflowapi/skyflow-go/common/detect, type EntityLocation struct, field EndIndexProcessed int
+pkg github.com/skyflowapi/skyflow-go/common/detect, type EntityLocation struct, field StartIndex int
+pkg github.com/skyflowapi/skyflow-go/common/detect, type EntityLocation struct, field StartIndexProcessed int
+pkg github.com/skyflowapi/skyflow-go/common/detect, type EntityType string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type FileDataFormat string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type FileMapping struct
+pkg github.com/skyflowapi/skyflow-go/common/detect, type FileMapping struct, field Destination string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type FileMapping struct, field EntitiesDestination string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type FileMapping struct, field ObjectEntitiesDestination string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type FileMapping struct, field OutputFileNameSuffix string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type FileMapping struct, field Source string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type FileOutput struct
+pkg github.com/skyflowapi/skyflow-go/common/detect, type FileOutput struct, field ProcessedFile string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type FileOutput struct, field ProcessedFileExtension github.com/skyflowapi/skyflow-go/common/detect.FileDataFormat
+pkg github.com/skyflowapi/skyflow-go/common/detect, type FileOutput struct, field ProcessedFileType github.com/skyflowapi/skyflow-go/common/detect.ProcessedFileType
+pkg github.com/skyflowapi/skyflow-go/common/detect, type FlowDeidentifySourceType string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type FlowRedactionLevel struct
+pkg github.com/skyflowapi/skyflow-go/common/detect, type FlowRedactionLevel struct, field RedactionPattern string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type FlowRedactionLevel struct, field TokenGroupName string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type FlowReidentifySourceType string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type GetRunOptions struct
+pkg github.com/skyflowapi/skyflow-go/common/detect, type GetRunOptions struct, field Interceptor github.com/skyflowapi/skyflow-go/common/detect.Interceptor
+pkg github.com/skyflowapi/skyflow-go/common/detect, type GetRunRequest struct
+pkg github.com/skyflowapi/skyflow-go/common/detect, type GetRunRequest struct, field RunId string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type GetRunResponse struct
+pkg github.com/skyflowapi/skyflow-go/common/detect, type GetRunResponse struct, field Message string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type GetRunResponse struct, field Metrics *github.com/skyflowapi/skyflow-go/common/detect.Metrics
+pkg github.com/skyflowapi/skyflow-go/common/detect, type GetRunResponse struct, field Output []github.com/skyflowapi/skyflow-go/common/detect.FileOutput
+pkg github.com/skyflowapi/skyflow-go/common/detect, type GetRunResponse struct, field OutputType github.com/skyflowapi/skyflow-go/common/detect.DeidentifyFileSource
+pkg github.com/skyflowapi/skyflow-go/common/detect, type GetRunResponse struct, field RunId string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type GetRunResponse struct, field Status github.com/skyflowapi/skyflow-go/common/detect.DetectRunStatus
+pkg github.com/skyflowapi/skyflow-go/common/detect, type GuardrailsValidation string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Image struct
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Image struct, field MaskingMethod github.com/skyflowapi/skyflow-go/common/detect.MaskingMethod
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Image struct, field OutputOcrText *bool
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Image struct, field OutputProcessedImage *bool
+pkg github.com/skyflowapi/skyflow-go/common/detect, type IncludePrefix string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Interceptor func(rc *github.com/skyflowapi/skyflow-go/common/vaultclient.RequestContext)
+pkg github.com/skyflowapi/skyflow-go/common/detect, type MaskingMethod string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Media struct
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Media struct, field Audio *github.com/skyflowapi/skyflow-go/common/detect.Audio
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Media struct, field Document *github.com/skyflowapi/skyflow-go/common/detect.Document
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Media struct, field Image *github.com/skyflowapi/skyflow-go/common/detect.Image
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Metrics struct
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Metrics struct, field CharacterCount *int
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Metrics struct, field Duration *float64
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Metrics struct, field Pages *int
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Metrics struct, field Size *float64
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Metrics struct, field Slides *int
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Metrics struct, field WordCount *int
+pkg github.com/skyflowapi/skyflow-go/common/detect, type ObjectDeidentificationType string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type ObjectEntity struct
+pkg github.com/skyflowapi/skyflow-go/common/detect, type ObjectEntity struct, field DeidentificationType github.com/skyflowapi/skyflow-go/common/detect.ObjectDeidentificationType
+pkg github.com/skyflowapi/skyflow-go/common/detect, type ObjectEntity struct, field EntityType github.com/skyflowapi/skyflow-go/common/detect.ObjectEntityType
+pkg github.com/skyflowapi/skyflow-go/common/detect, type ObjectEntityType string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type OutputTranscriptionType string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Pdf struct
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Pdf struct, field Density *int
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Pdf struct, field MaxResolution *int
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Pdf struct, field ProcessingMode github.com/skyflowapi/skyflow-go/common/detect.PdfProcessingMode
+pkg github.com/skyflowapi/skyflow-go/common/detect, type PdfProcessingMode string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type PollOptions struct
+pkg github.com/skyflowapi/skyflow-go/common/detect, type PollOptions struct, field MaxAttempts *int
+pkg github.com/skyflowapi/skyflow-go/common/detect, type PollOptions struct, field WaitTime *time.Duration
+pkg github.com/skyflowapi/skyflow-go/common/detect, type ProcessedFileType string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type RedactionRule interface { // has unexported methods }
+pkg github.com/skyflowapi/skyflow-go/common/detect, type RedactionType string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type ReidentifyFileOptions struct
+pkg github.com/skyflowapi/skyflow-go/common/detect, type ReidentifyFileOptions struct, field Interceptor github.com/skyflowapi/skyflow-go/common/detect.Interceptor
+pkg github.com/skyflowapi/skyflow-go/common/detect, type ReidentifyFileRequest struct
+pkg github.com/skyflowapi/skyflow-go/common/detect, type ReidentifyFileRequest struct, field DataFormat github.com/skyflowapi/skyflow-go/common/detect.FileDataFormat
+pkg github.com/skyflowapi/skyflow-go/common/detect, type ReidentifyFileRequest struct, field DataSource github.com/skyflowapi/skyflow-go/common/detect.ReidentifyFileSource
+pkg github.com/skyflowapi/skyflow-go/common/detect, type ReidentifyFileRequest struct, field RedactionLevel []github.com/skyflowapi/skyflow-go/common/detect.RedactionRule
+pkg github.com/skyflowapi/skyflow-go/common/detect, type ReidentifyFileRequest struct, field Value string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type ReidentifyFileResponse struct
+pkg github.com/skyflowapi/skyflow-go/common/detect, type ReidentifyFileResponse struct, field Metrics *github.com/skyflowapi/skyflow-go/common/detect.Metrics
+pkg github.com/skyflowapi/skyflow-go/common/detect, type ReidentifyFileResponse struct, field Output []github.com/skyflowapi/skyflow-go/common/detect.FileOutput
+pkg github.com/skyflowapi/skyflow-go/common/detect, type ReidentifyFileResponse struct, field OutputType github.com/skyflowapi/skyflow-go/common/detect.ReidentifyFileSource
+pkg github.com/skyflowapi/skyflow-go/common/detect, type ReidentifyFileResponse struct, field Status github.com/skyflowapi/skyflow-go/common/detect.DetectRunStatus
+pkg github.com/skyflowapi/skyflow-go/common/detect, type ReidentifyFileSource interface { // has unexported methods }
+pkg github.com/skyflowapi/skyflow-go/common/detect, type ReidentifyStringOptions struct
+pkg github.com/skyflowapi/skyflow-go/common/detect, type ReidentifyStringOptions struct, field Interceptor github.com/skyflowapi/skyflow-go/common/detect.Interceptor
+pkg github.com/skyflowapi/skyflow-go/common/detect, type ReidentifyStringRequest struct
+pkg github.com/skyflowapi/skyflow-go/common/detect, type ReidentifyStringRequest struct, field RedactionLevel []github.com/skyflowapi/skyflow-go/common/detect.RedactionRule
+pkg github.com/skyflowapi/skyflow-go/common/detect, type ReidentifyStringRequest struct, field Text string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type ReidentifyStringResponse struct
+pkg github.com/skyflowapi/skyflow-go/common/detect, type ReidentifyStringResponse struct, field Metrics *github.com/skyflowapi/skyflow-go/common/detect.Metrics
+pkg github.com/skyflowapi/skyflow-go/common/detect, type ReidentifyStringResponse struct, field ProcessedText string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type ReturnEntitiesType string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type ShiftDates struct
+pkg github.com/skyflowapi/skyflow-go/common/detect, type ShiftDates struct, field MaxDays *int
+pkg github.com/skyflowapi/skyflow-go/common/detect, type ShiftDates struct, field MinDays *int
+pkg github.com/skyflowapi/skyflow-go/common/detect, type SkyDeidentifySourceType string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type SkyRedactionLevel struct
+pkg github.com/skyflowapi/skyflow-go/common/detect, type SkyRedactionLevel struct, field EntityName github.com/skyflowapi/skyflow-go/common/detect.EntityType
+pkg github.com/skyflowapi/skyflow-go/common/detect, type SkyRedactionLevel struct, field RedactionType github.com/skyflowapi/skyflow-go/common/detect.RedactionType
+pkg github.com/skyflowapi/skyflow-go/common/detect, type SkyReidentifySourceType string
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Transformation struct
+pkg github.com/skyflowapi/skyflow-go/common/detect, type Transformation struct, field ShiftDates *github.com/skyflowapi/skyflow-go/common/detect.ShiftDates
+pkg github.com/skyflowapi/skyflow-go/common/detect, type VaultSources struct
+pkg github.com/skyflowapi/skyflow-go/common/detect, type VaultSources struct, field Deidentify []github.com/skyflowapi/skyflow-go/common/detect.DeidentifyFileSource
+pkg github.com/skyflowapi/skyflow-go/common/detect, type VaultSources struct, field Reidentify []github.com/skyflowapi/skyflow-go/common/detect.ReidentifyFileSource
+pkg github.com/skyflowapi/skyflow-go/common/detect, var FlowSources github.com/skyflowapi/skyflow-go/common/detect.VaultSources
+pkg github.com/skyflowapi/skyflow-go/common/detect, var SkySources github.com/skyflowapi/skyflow-go/common/detect.VaultSources
 pkg github.com/skyflowapi/skyflow-go/common/errors, const INVALID_INDEX github.com/skyflowapi/skyflow-go/common/errors.ErrorCodesEnum = "404"
 pkg github.com/skyflowapi/skyflow-go/common/errors, const INVALID_INPUT_CODE github.com/skyflowapi/skyflow-go/common/errors.ErrorCodesEnum = "400"
 pkg github.com/skyflowapi/skyflow-go/common/errors, const PARTIAL github.com/skyflowapi/skyflow-go/common/errors.ErrorCodesEnum = "404"
@@ -133,3 +499,72 @@ pkg github.com/skyflowapi/skyflow-go/common/vault, type Inserter[Req any, Opts a
 pkg github.com/skyflowapi/skyflow-go/common/vault, type Querier[Req any, Opts any, Resp any] interface { Query(context.Context, Req, Opts) (*Resp, *github.com/skyflowapi/skyflow-go/common/errors.SkyflowError) }
 pkg github.com/skyflowapi/skyflow-go/common/vault, type TokenGetter[Req any, Opts any, Resp any] interface { GetTokens(context.Context, Req, Opts) (*Resp, *github.com/skyflowapi/skyflow-go/common/errors.SkyflowError) }
 pkg github.com/skyflowapi/skyflow-go/common/vault, type Updater[Req any, Opts any, Resp any] interface { Update(context.Context, Req, Opts) (*Resp, *github.com/skyflowapi/skyflow-go/common/errors.SkyflowError) }
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, const CredentialsEnv untyped string = "SKYFLOW_CREDENTIALS"
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, const MetricsHeader untyped string = "sky-metadata"
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, func EnvCredentials() string
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, func New(github.com/skyflowapi/skyflow-go/common/vaultclient.Profile, github.com/skyflowapi/skyflow-go/common/config.VaultConfig, github.com/skyflowapi/skyflow-go/common/vaultclient.ClientSettings) *github.com/skyflowapi/skyflow-go/common/vaultclient.Base
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, func NewHTTPClient(github.com/skyflowapi/skyflow-go/common/vaultclient.ResolvedHttpConfig) *net/http.Client
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, func ResolveHttpConfig(github.com/skyflowapi/skyflow-go/common/config.HttpConfig, github.com/skyflowapi/skyflow-go/common/config.HttpConfig, github.com/skyflowapi/skyflow-go/common/vaultclient.HttpDefaults) github.com/skyflowapi/skyflow-go/common/vaultclient.ResolvedHttpConfig
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, func ShouldRetry(int) bool
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, func SignedURLClient(*net/http.Client) *net/http.Client
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, method (*Base) ClientSettings() github.com/skyflowapi/skyflow-go/common/vaultclient.ClientSettings
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, method (*Base) Config() github.com/skyflowapi/skyflow-go/common/config.VaultConfig
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, method (*Base) Prepare(string, github.com/skyflowapi/skyflow-go/common/vaultclient.Interceptor) (*github.com/skyflowapi/skyflow-go/common/vaultclient.Call, *github.com/skyflowapi/skyflow-go/common/errors.SkyflowError)
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, method (*Base) PrepareContext(context.Context, string, github.com/skyflowapi/skyflow-go/common/vaultclient.Interceptor) (*github.com/skyflowapi/skyflow-go/common/vaultclient.Call, *github.com/skyflowapi/skyflow-go/common/errors.SkyflowError)
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, method (*Base) Profile() github.com/skyflowapi/skyflow-go/common/vaultclient.Profile
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, method (*Base) RefreshAuth(context.Context, *github.com/skyflowapi/skyflow-go/common/vaultclient.Call) (*github.com/skyflowapi/skyflow-go/common/vaultclient.Call, *github.com/skyflowapi/skyflow-go/common/errors.SkyflowError)
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, method (*Base) ResetAuth()
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, method (*Base) SetClientSettings(github.com/skyflowapi/skyflow-go/common/vaultclient.ClientSettings)
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, method (*Base) SetConfig(github.com/skyflowapi/skyflow-go/common/config.VaultConfig, bool)
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, method (*RequestContext) AddHeader(github.com/skyflowapi/skyflow-go/common/config.CustomHeaderKey, string)
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, method (*RequestContext) Headers() map[github.com/skyflowapi/skyflow-go/common/config.CustomHeaderKey]string
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, method (Profile) GenerateToken(github.com/skyflowapi/skyflow-go/common/config.Credentials) (string, *github.com/skyflowapi/skyflow-go/common/errors.SkyflowError)
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, method (Profile) ValidateCustomHeaders(map[github.com/skyflowapi/skyflow-go/common/config.CustomHeaderKey]string, string) *github.com/skyflowapi/skyflow-go/common/errors.SkyflowError
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type Base struct
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type Call struct
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type Call struct, field AuthToken string
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type Call struct, field BaseURL string
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type Call struct, field HTTPClient *net/http.Client
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type Call struct, field Headers net/http.Header
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type Call struct, field VaultID string
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type ClientSettings struct
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type ClientSettings struct, field Credentials *github.com/skyflowapi/skyflow-go/common/config.Credentials
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type ClientSettings struct, field Headers map[github.com/skyflowapi/skyflow-go/common/config.CustomHeaderKey]string
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type ClientSettings struct, field HttpConfig github.com/skyflowapi/skyflow-go/common/config.HttpConfig
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type HttpDefaults struct
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type HttpDefaults struct, field ConnectTimeout time.Duration
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type HttpDefaults struct, field InitialRetryDelay time.Duration
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type HttpDefaults struct, field MaxRetries int
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type HttpDefaults struct, field MaxRetryDelay time.Duration
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type HttpDefaults struct, field ReadTimeout time.Duration
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type HttpDefaults struct, field Timeout time.Duration
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type HttpDefaults struct, field WriteTimeout time.Duration
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type Interceptor func(rc *github.com/skyflowapi/skyflow-go/common/vaultclient.RequestContext)
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type Logs struct
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type Logs struct, field DeprecatedBaseVaultURL string
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type Logs struct, field GenerateBearerToken string
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type Logs struct, field ReuseBearerToken string
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type Logs struct, field TokenExpired string
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type Logs struct, field UsingApiKey string
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type Logs struct, field UsingBearerToken string
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type Profile struct
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type Profile struct, field Auth *github.com/skyflowapi/skyflow-go/common/auth.Service
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type Profile struct, field ClientHeadersTag string
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type Profile struct, field ClusterURL func(env github.com/skyflowapi/skyflow-go/common/config.Env, clusterId string) string
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type Profile struct, field Defaults github.com/skyflowapi/skyflow-go/common/vaultclient.HttpDefaults
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type Profile struct, field ErrTokenExpired string
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type Profile struct, field LogPrefix string
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type Profile struct, field Logs github.com/skyflowapi/skyflow-go/common/vaultclient.Logs
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type Profile struct, field SDKMetadata func() string
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type Profile struct, field SDKPrefix string
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type Profile struct, field ValidateHeaders func(headers map[github.com/skyflowapi/skyflow-go/common/config.CustomHeaderKey]string, tag string) *github.com/skyflowapi/skyflow-go/common/errors.SkyflowError
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type RequestContext struct
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type RequestContext struct, field Operation string
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type ResolvedHttpConfig struct
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type ResolvedHttpConfig struct, field ConnectTimeout time.Duration
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type ResolvedHttpConfig struct, field InitialRetryDelay time.Duration
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type ResolvedHttpConfig struct, field MaxRetries int
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type ResolvedHttpConfig struct, field MaxRetryDelay time.Duration
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type ResolvedHttpConfig struct, field ReadTimeout time.Duration
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type ResolvedHttpConfig struct, field Timeout time.Duration
+pkg github.com/skyflowapi/skyflow-go/common/vaultclient, type ResolvedHttpConfig struct, field WriteTimeout time.Duration
