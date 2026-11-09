@@ -1,7 +1,7 @@
 # Description
 > **This is the current, recommended version of the Skyflow SDK.** V2.1.0 brings flexible auth, multi-vault support, native data types, and rich error diagnostics.
 >
-> Migrating from v1? See the **[Migration Guide](./docs/migrate_to_v2.md)** for step-by-step instructions. V1 is in maintenance mode and will reach End of Life on October 31, 2026.
+> Migrating from v1? See the **[Migration Guide](./docs/migrate_to_v2.md)** for step-by-step instructions. V1 reached End of Life on October 31, 2026.
 
 
 The Skyflow Go SDK is designed to help with integrating Skyflow into a go backend.
@@ -56,7 +56,7 @@ The Skyflow Go SDK is designed to help with integrating Skyflow into a go backen
   - [Check Guardrails](#check-guardrails)
   - [Detect configuration reference](#detect-configuration-reference)
   - [Detect request headers](#detect-request-headers)
-  - [Migrate from Detect V1](#migrate-from-detect-v1)
+  - [Migrate from the earlier Detect methods](#migrate-from-the-earlier-detect-methods)
 - [Connections](#connections)
   - [Invoke a Connection](#invoke-connection)
 - [Client management](#client-management)
@@ -77,6 +77,7 @@ The Skyflow Go SDK is designed to help with integrating Skyflow into a go backen
 - [Error handling](#error-handling)
   - [Catching SkyflowError instances](#catching-skyflowerror-instances)
   - [Detect run status](#detect-run-status)
+  - [Common Detect errors](#common-detect-errors)
   - [Bearer token expiration edge cases](#bearer-token-expiration-edge-cases)
 - [Security](#security)
   - [Reporting a Vulnerability](#reporting-a-vulnerability)
@@ -1832,7 +1833,13 @@ if err != nil {
 ```
 
 ## Detect
-Skyflow Detect de-identifies and re-identifies sensitive data in text and files. Get a vault's detect service from the client; every method takes a context, a request and an options struct, and returns a response and a `*SkyflowError`.
+Skyflow Detect finds sensitive data in text and in files, including documents, spreadsheets, images and audio, and replaces it with tokens or placeholders. Vault tokens can be re-identified later. It also screens text with guardrails for toxicity and denied topics. Get a vault's detect service from the client; every method takes a context, a request and an options struct, and returns a response and a `*SkyflowError`.
+
+**Before you start**, have these ready:
+- **A vault ID and cluster ID.** The vault ID is on the vault's details page in Skyflow Studio. The cluster ID is the first part of the vault URL: `https://{clusterId}.vault.skyflowapis.com`.
+- **A role.** The service account needs the Detect Invoker, Detect Manager or Vault Owner role on the vault. Detect Invoker can de-identify data and write vault tokens; Detect Manager can also create, update and delete Detect configurations. Re-identifying vault tokens works like detokenization: the caller also needs a policy that grants the Detokenization action on the destination, unless it is a Vault Owner.
+- **A configuration**, unless you pass one inline. A stored configuration is created in Studio or with the [Management API](https://docs.skyflow.com/management/), and its ID goes in `ConfigurationId`; the SDK doesn't create configurations. See [De-identification](https://docs.skyflow.com/docs/de-identification).
+- **A destination column**, if you use `DeidentificationTypeVaultToken`. Vault tokens are stored in the `"<TABLE_NAME>.<COLUMN_NAME>"` named in the entity's `Destination`, for example `persons.ssn`. The table and column must already exist in the vault schema: Detect writes into them but doesn't create them.
 
 ```go
 service, err := skyflowClient.Detect("<VAULT_ID>") // a vault from the client config
@@ -1853,11 +1860,11 @@ if err != nil {
 
 All types are in `github.com/skyflowapi/skyflow-go/v2/utils/common`. This section covers SkyVault vaults. For FlowVault vaults (token groups and redaction patterns), see [Detect in the FlowVault README](./flowvault/README.md#detect).
 
-> [!NOTE]
-> These methods (`/v2/detect/...`) replace the earlier Detect methods: see [Migrate from Detect V1](#migrate-from-detect-v1).
+> [!IMPORTANT]
+> These are the new Detect methods. They replace the earlier ones (`DeidentifyText`, `ReidentifyText`, `GetDetectRun`), which are removed. **`DeidentifyFile` keeps its name but no longer waits for the result by default**: without `Poll` it returns only `RunId`, with an empty `Status` and no `Output`. See [Migrate from the earlier Detect methods](#migrate-from-the-earlier-detect-methods).
 
 ### Deidentify String
-`DeidentifyString` replaces sensitive data in `Text` with tokens. Choose the configuration with `ConfigurationId` (a stored configuration, created in Studio or through the REST API) or `Configuration` (an inline one; see the [Detect configuration reference](#detect-configuration-reference)). Both are optional and sent as given, as in the other Skyflow SDKs. With neither, the SDK sends a configuration holding only the vault ID and the server decides whether that is enough; with both, both are sent.
+`DeidentifyString` replaces sensitive data in `Text` with tokens. Choose the configuration with `ConfigurationId` (a stored configuration, created in Studio or with the [Management API](https://docs.skyflow.com/management/)) or `Configuration` (an inline one; see the [Detect configuration reference](#detect-configuration-reference)). Both are optional and sent as given, as in the other Skyflow SDKs. With neither, the SDK sends only the vault ID and the run uses the vault's default Detect settings. Set only one: the API rejects a request with both (HTTP 400).
 
 ```go
 // With a stored configuration
@@ -1929,7 +1936,8 @@ Before calling the API, the SDK checks that exactly one is set, that a `Value` h
 
 `ConfigurationId` and `Configuration` work as for [Deidentify String](#deidentify-string).
 
-By default the call returns as soon as the file is submitted; get the result later with [GetRun](#get-run). Set `Poll` to wait for the run instead.
+> [!WARNING]
+> **`DeidentifyFile` doesn't wait for the result by default.** It returns as soon as the file is submitted, with only `RunId` set: `Status` is empty and there is no `Output`. Get the result later with [GetRun](#get-run), or set `Poll` to wait for the run. The earlier `DeidentifyFile` always waited, so ported code can run without an error and still get no `Output`. Check `Status` before reading it.
 
 Outputs are written to disk only when the input is a local file (`FilePath` or `FileObject`), the polled run reached `SUCCESS` and its outputs are base64. They are named `processed-<name>.<ext>`, `processed-entities-<name>.json` and `processed-object-entities-<name>.json`. `OutputDirectory` requires `Poll`, is created if missing and defaults to the current directory (an empty or blank value means the current directory). Presigned-URL outputs are not fetched: read them from `Output`.
 
@@ -1950,7 +1958,7 @@ response, err := service.DeidentifyFile(ctx, common.DeidentifyFileRequest{
 	FilePath:        "<PATH_TO_FILE>/patient-notes.pdf",
 	ConfigurationId: "<CONFIGURATION_ID>",
 }, common.DeidentifyFileOptions{
-	Poll:            &common.PollOptions{WaitTime: 2 * time.Minute},
+	Poll:            &common.PollOptions{WaitTime: common.Ptr(2 * time.Minute)},
 	OutputDirectory: "<OUTPUT_DIRECTORY>",
 })
 if err != nil {
@@ -1969,8 +1977,10 @@ default: // FAILED or UNKNOWN
 
 | `PollOptions` | Default | Limit |
 |---|---|---|
-| `WaitTime` | 60s | 300s |
-| `MaxAttempts` | 23 | 23 |
+| `WaitTime` | 60s | 1s to 300s |
+| `MaxAttempts` | 23 | 1 to 23 |
+
+A field left nil uses its default; a value that is set must be within the limit, so `0` is rejected (`common.Ptr(2 * time.Minute)` sets one).
 
 Polling backs off 1s, 2s, 4s … up to 32s between lookups, and stops at the first of `WaitTime`, `MaxAttempts` or a final status (`SUCCESS`, `FAILED`, `UNKNOWN`).
 
@@ -1981,8 +1991,8 @@ Sample response (polled, successful):
   "status": "SUCCESS",
   "outputType": "BASE64",
   "output": [
-    { "processedFile": "TXkgU1NOIGlzIFtTU0==", "processedFileType": "REDACTED_FILE", "processedFileExtension": "pdf" },
-    { "processedFile": "0X2xhYmVsIjoiQ1JFRElUX0NB==", "processedFileType": "ENTITIES", "processedFileExtension": "json" }
+    { "processedFile": "TXkgU1NOIGlzIFtTU0==", "processedFileType": "REDACTED_FILE", "processedFileExtension": "PDF" },
+    { "processedFile": "0X2xhYmVsIjoiQ1JFRElUX0NB==", "processedFileType": "ENTITIES", "processedFileExtension": "JSON" }
   ],
   "metrics": { "size": 12.4, "wordCount": 210, "characterCount": 1180, "pages": 2 },
   "message": ""
@@ -2008,11 +2018,29 @@ if run.Status == common.DetectRunStatusSuccess {
 }
 ```
 
+Sample response (successful run):
+```json
+{
+  "runId": "89699e2c-4301-4f9f-bcff-0a8fd3057489",
+  "status": "SUCCESS",
+  "outputType": "BASE64",
+  "output": [
+    { "processedFile": "TXkgU1NOIGlzIFtTU0==", "processedFileType": "REDACTED_FILE", "processedFileExtension": "PDF" }
+  ],
+  "metrics": { "size": 12.4, "wordCount": 210, "characterCount": 1180, "pages": 2 },
+  "message": ""
+}
+```
+
+A run still in progress has `"status": "IN_PROGRESS"` and no `output`. A failed run has `"status": "FAILED"` and the reason in `message`.
+
 > [!TIP]
 > See the full example in the samples directory: [get_run.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v2/detectapi/get_run.go)
 
 ### Reidentify String
 `ReidentifyString` replaces the tokens in `Text`. Re-identification looks the tokens up in the vault, so it applies only to values de-identified with `DeidentificationTypeVaultToken`; `ENTITY_UNIQUE_COUNTER`, `ENTITY_ONLY` and `MASK` placeholders are not stored and cannot be re-identified.
+
+A vault token in the text looks like `[NAME_<token>]`: the entity-type prefix, then the token for the value stored in the entity's `Destination` column (`"<TABLE_NAME>.<COLUMN_NAME>"`). Placeholders such as `[NAME_1]` from `ENTITY_UNIQUE_COUNTER` look similar but come back unchanged. A token de-identified with `IncludePrefixNo` has no prefix and can't be re-identified either.
 
 Without `RedactionLevel`, every token gets its original value. `RedactionLevel` is a `[]common.RedactionRule` of `common.RedactionLevel` values; each selects tokens by `EntityName` and shows them through a `RedactionType`: `common.PLAIN_TEXT` (original value), `common.MASKED` or `common.REDACTED` (keeps the token).
 
@@ -2033,6 +2061,7 @@ if err != nil {
 	fmt.Println(err.GetHttpCode(), err.GetMessage(), err.GetRequestId())
 	return
 }
+fmt.Println(deidentified.ProcessedText) // My name is [NAME_<token>], and my email is [EMAIL_ADDRESS_<token>].
 
 response, err := service.ReidentifyString(ctx, common.ReidentifyStringRequest{
 	Text: deidentified.ProcessedText,
@@ -2046,6 +2075,14 @@ if err != nil {
 	return
 }
 fmt.Println(response.ProcessedText) // My name is John Doe, and my email is j******e@acme.com.
+```
+
+Sample response:
+```json
+{
+  "processedText": "My name is John Doe, and my email is j******e@acme.com.",
+  "metrics": { "size": 0.05, "wordCount": 11, "characterCount": 54 }
+}
 ```
 
 > [!TIP]
@@ -2092,6 +2129,18 @@ for i, output := range response.Output {
 		fmt.Println(writeErr)
 		return
 	}
+}
+```
+
+Sample response:
+```json
+{
+  "status": "SUCCESS",
+  "outputType": "BASE64",
+  "output": [
+    { "processedFile": "TXkgbmFtZSBpcyBKb2huIERvZS4=", "processedFileType": "REIDENTIFIED_FILE", "processedFileExtension": "TXT" }
+  ],
+  "metrics": { "size": 0.03, "wordCount": 5, "characterCount": 20 }
 }
 ```
 
@@ -2148,10 +2197,10 @@ An inline `DetectConfiguration` (the `Configuration` field) has these parts. Opt
 |---|---|
 | `EntityType` | An `EntityType*` constant, for example `EntityTypeName`, `EntityTypeSSN` or `EntityTypeEmailAddress`. See `v2/utils/common/detect.go` for the full list. |
 | `DeidentificationType` | `DeidentificationTypeVaultToken` (stored in the vault and reversible), `DeidentificationTypeEntityUniqueCounter` (`[NAME_1]`), `DeidentificationTypeEntityOnly` (`[NAME]`) or `DeidentificationTypeMask`. |
-| `Destination` | `"<TABLE_NAME>.<COLUMN_NAME>"`, for `DeidentificationTypeVaultToken`. |
+| `Destination` | The vault column the value is stored in, as `"<TABLE_NAME>.<COLUMN_NAME>"` (for example `persons.name`). Required for `DeidentificationTypeVaultToken`. |
 | `Transformation` | `ShiftDates{MinDays, MaxDays}` shifts dates by a random number of days in that range, instead of replacing them. |
-| `IncludePrefix` | `IncludePrefixYes` / `IncludePrefixNo`: whether the replacement carries the entity-type prefix (server default: yes). |
-| `PrefixOverride` | A custom prefix. Not valid with `IncludePrefixNo`. |
+| `IncludePrefix` | `IncludePrefixYes` / `IncludePrefixNo`: whether a vault token carries the entity-type prefix, as in `[NAME_<token>]`. Applies only to `DeidentificationTypeVaultToken`; the server default is yes. **`IncludePrefixNo` returns the raw vault token, and the value can't be re-identified later.** |
+| `PrefixOverride` | A custom prefix instead of the entity type, for example `NAAM` gives `[NAAM_<token>]`. Not valid with `IncludePrefixNo`. |
 
 | `Media` field | Options |
 |---|---|
@@ -2172,21 +2221,8 @@ options := common.DeidentifyStringOptions{
 }
 ```
 
-### Migrate from Detect V1
-`client.Detect(vaultID)` now returns the methods above, and the V1 methods and types are removed. For step-by-step instructions with before-and-after code, see the **[Detect migration guide](./docs/migrate_detect.md)**.
-
-| V1 | Current |
-|---|---|
-| `DeidentifyText` | `DeidentifyString` |
-| `ReidentifyText` | `ReidentifyString` |
-| `DeidentifyFile`, always polled | `DeidentifyFile`; set `Options.Poll` to wait |
-| `GetDetectRun` | `GetRun` |
-| — | `ReidentifyFile`, `CheckGuardrails` |
-| `Entities`, `TokenFormat`, `Transformations` and the regex lists on the request | `Configuration` (`DetectConfiguration`) or `ConfigurationId` |
-| `AllowRegexList` / `RestrictRegexList` | `Detect.Skip` / `Detect.Restrict` |
-| `TokenFormat` | `Entity.DeidentificationType` per entity |
-| `CustomHeaders` in options | `Interceptor` in options |
-| `File`, `OutputDirectory`, `WaitTime` (seconds) on the request | `FilePath` / `FileObject` on the request; `OutputDirectory` and `Poll.WaitTime` (`time.Duration`) on `DeidentifyFileOptions` |
+### Migrate from the earlier Detect methods
+`client.Detect(vaultID)` now returns the new Detect methods. The earlier ones (`DeidentifyText`, `ReidentifyText`, `GetDetectRun`) and their types are removed, and `DeidentifyFile` no longer waits by default. See the [migration guide](./docs/migrate_detect.md) for the upgrade command, the method mapping and before-and-after code.
 
 ## Connections
 Skyflow Connections is a gateway service leveraging tokenization to securely send and receive data between your systems and first- or third-party services. The [connections](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v2/vaultapi/invoke_connection.go) module is used to invoke both INBOUND and/or OUTBOUND connections.
@@ -3016,6 +3052,19 @@ A `*SkyflowError` reports a Detect call that failed. A de-identify file run can 
 | empty | `DeidentifyFile` wasn't polled. | Only `RunId` is set: call `GetRun`. |
 
 When a lookup or an output write fails during a polled `DeidentifyFile`, the call returns both the error and the response, so check `response.RunId` before giving up on the run.
+
+### Common Detect errors
+These come back from the server as a `*SkyflowError`. `GetMessage()` has the server's reason; quote `GetRequestId()` if you contact support.
+
+| Cause | Status | Fix |
+|---|---|---|
+| Both `ConfigurationId` and `Configuration` are set. The SDK sends both, and the API rejects the pair. | `400` | Set one. |
+| An entity or custom type uses `DeidentificationTypeVaultToken` without a `Destination`, or with a table or column that doesn't exist. Detect doesn't create them. | `400` | Set `Destination` to an existing `"<TABLE_NAME>.<COLUMN_NAME>"` (names are case-sensitive). |
+| `DeidentificationTypeVaultToken` in a file whose format doesn't support it. Only `txt`, `csv`, `json`, `jsonl`, `xml`, `docx`, `xlsx` and `pptx` do. | `400` | Use another de-identification type for that file, or convert it. |
+| `PrefixOverride` set together with `IncludePrefixNo`. | `400` | Drop one of them. |
+| A missing role, or re-identifying vault tokens without permission to detokenize. Detect needs the Detect Invoker, Detect Manager or Vault Owner role; re-identification also needs a policy granting the Detokenization action on the destination table and columns, unless the caller is a Vault Owner. | `403` | Grant the role or policy. |
+
+The SDK rejects some mistakes itself, before any request, with a `400` `*SkyflowError` and no request ID. Examples: no file source in `DeidentifyFile`, `OutputDirectory` without `Poll`, and a `Poll` limit out of range.
 
 ### Bearer token expiration edge cases
 

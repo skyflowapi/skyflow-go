@@ -68,7 +68,7 @@ func main() {
 		FilePath:        "<PATH_TO_FILE>/patient-notes.pdf", // sent as BASE64, format inferred from the extension
 		ConfigurationId: "<CONFIGURATION_ID>",
 	}, common.DeidentifyFileOptions{
-		Poll:            &common.PollOptions{WaitTime: 2 * time.Minute}, // &common.PollOptions{} uses 60s and 23 attempts
+		Poll:            &common.PollOptions{WaitTime: common.Ptr(2 * time.Minute)}, // &common.PollOptions{} uses 60s and 23 attempts
 		OutputDirectory: "<OUTPUT_DIRECTORY>",
 	})
 

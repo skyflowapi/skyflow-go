@@ -1,12 +1,13 @@
-# Migrate to the newer Detect version (SkyVault)
+# Migrate to the new Detect methods (SkyVault)
 
-This guide is for SkyVault users of the Go SDK (`github.com/skyflowapi/skyflow-go/v2`) who call Detect V1 methods such as `DeidentifyText`, `ReidentifyText` and `GetDetectRun`. Those methods and their types are removed. `client.Detect(vaultID)` now returns the newer version of the Detect service.
+This guide is for SkyVault users of the Go SDK (`github.com/skyflowapi/skyflow-go/v2`) who call the earlier Detect methods, such as `DeidentifyText`, `ReidentifyText` and `GetDetectRun`. Those methods and their types are removed. `client.Detect(vaultID)` now returns the new Detect methods.
 
 > [!NOTE]
 > Using a FlowVault vault? FlowVault Detect is new and has nothing to migrate: see [Detect in the FlowVault README](../flowvault/README.md#detect).
 
 ## Table of Contents
 
+- [Upgrade](#upgrade)
 - [What changed](#what-changed)
 - [Method mapping](#method-mapping)
 - [Configuration: stored or inline](#configuration-stored-or-inline)
@@ -18,10 +19,21 @@ This guide is for SkyVault users of the Go SDK (`github.com/skyflowapi/skyflow-g
 - [New methods](#new-methods)
 - [Migration checklist](#migration-checklist)
 
+## Upgrade
+
+Update the SDK to the latest release in your module:
+
+```bash
+go get github.com/skyflowapi/skyflow-go/v2@latest
+go mod tidy
+```
+
+The earlier Detect methods and their types are removed, so code that still calls them stops compiling. Work through the compile errors with the mapping below.
+
 ## What changed
 
 - **Methods are renamed.** `DeidentifyText` is now `DeidentifyString`, `ReidentifyText` is `ReidentifyString`, and `GetDetectRun` is `GetRun`.
-- **Detection settings move into a configuration.** In Detect V1, entities, token formats, regex lists and transformations were fields on the request. Now they go in a stored configuration (`ConfigurationId`) or an inline one (`Configuration`).
+- **Detection settings move into a configuration.** In the earlier Detect methods, entities, token formats, regex lists and transformations were fields on the request. Now they go in a stored configuration (`ConfigurationId`) or an inline one (`Configuration`).
 - **Token type is set per entity.** `TokenFormat` and its entity lists are gone. Each `Entity` carries its own `DeidentificationType`.
 - **`DeidentifyFile` no longer waits by default.** It submits the file and returns the run ID. To wait, set `Poll` in the options. `WaitTime` is now a `time.Duration` with a 300s maximum, up from 64 seconds.
 - **Responses are restructured.** Word and character counts move to `Metrics`. File outputs are a list in `Output`, entity positions are in `Location`, and the run status is a typed `DetectRunStatus`.
@@ -30,7 +42,7 @@ This guide is for SkyVault users of the Go SDK (`github.com/skyflowapi/skyflow-g
 
 ## Method mapping
 
-| Detect V1 | Newer version | Notes |
+| Earlier Detect methods | New Detect methods | Notes |
 |---|---|---|
 | `DeidentifyText(ctx, DeidentifyTextRequest, DeidentifyTextOptions)` | `DeidentifyString(ctx, DeidentifyStringRequest, DeidentifyStringOptions)` | Settings move into a configuration. |
 | `ReidentifyText(ctx, ReidentifyTextRequest, ReidentifyTextOptions)` | `ReidentifyString(ctx, ReidentifyStringRequest, ReidentifyStringOptions)` | The three entity lists become `RedactionLevel` rules. |
@@ -42,14 +54,14 @@ The call shape is unchanged: every method still takes `(ctx, request, options)` 
 
 ## Configuration: stored or inline
 
-`DeidentifyString` and `DeidentifyFile` take their settings from a configuration. Both are optional and sent as given, as in the other Skyflow SDKs. With neither, the SDK sends a configuration holding only the vault ID and the server decides whether that is enough; with both, both are sent.
+`DeidentifyString` and `DeidentifyFile` take their settings from a configuration. Both are optional and sent as given, as in the other Skyflow SDKs. With neither, the SDK sends only the vault ID and the run uses the vault's default Detect settings. Set only one: the API rejects a request with both (HTTP 400).
 
-- `ConfigurationId`: a configuration stored in Studio or created through the REST API. Use it to manage detection settings outside your code.
-- `Configuration`: an inline `*common.DetectConfiguration`. This is the closest match to Detect V1, where the settings were on the request.
+- `ConfigurationId`: a configuration stored in Studio or created with the [Management API](https://docs.skyflow.com/management/). Use it to manage detection settings outside your code.
+- `Configuration`: an inline `*common.DetectConfiguration`. This is the closest match to the earlier Detect methods, where the settings were on the request.
 
-Detect V1 request fields map into an inline configuration like this:
+The earlier request fields map into an inline configuration like this:
 
-| Detect V1 field | Newer version |
+| Earlier Detect field | New Detect methods |
 |---|---|
 | `Entities []DetectEntities` | `Configuration.Detect.Entities []Entity`: one `Entity` per type |
 | `TokenFormat.VaultToken` / `EntityUniqueCounter` / `EntityOnly` | `Entity.DeidentificationType`: `DeidentificationTypeVaultToken`, `DeidentificationTypeEntityUniqueCounter` or `DeidentificationTypeEntityOnly` |
@@ -61,7 +73,7 @@ Detect V1 request fields map into an inline configuration like this:
 
 Entity constants gain an `EntityType` prefix, and acronyms are upper-cased:
 
-| Detect V1 | Newer version |
+| Earlier Detect methods | New Detect methods |
 |---|---|
 | `common.Name`, `common.EmailAddress`, `common.CreditCard`, ... | `common.EntityTypeName`, `common.EntityTypeEmailAddress`, `common.EntityTypeCreditCard`, ... |
 | `common.Ssn`, `common.Dob`, `common.Cvv` | `common.EntityTypeSSN`, `common.EntityTypeDOB`, `common.EntityTypeCVV` |
@@ -71,7 +83,7 @@ Entity constants gain an `EntityType` prefix, and acronyms are upper-cased:
 
 ## De-identify text
 
-**Detect V1**
+**Earlier Detect methods**
 
 ```go
 response, err := service.DeidentifyText(ctx, common.DeidentifyTextRequest{
@@ -90,7 +102,7 @@ response, err := service.DeidentifyText(ctx, common.DeidentifyTextRequest{
 fmt.Println(response.ProcessedText, response.WordCount, response.CharCount)
 ```
 
-**Newer version**
+**New Detect methods**
 
 ```go
 response, err := service.DeidentifyString(ctx, common.DeidentifyStringRequest{
@@ -126,7 +138,7 @@ A vault token needs a `Destination`: the `"<TABLE_NAME>.<COLUMN_NAME>"` it is st
 
 **Response fields**
 
-| Detect V1 (`DeidentifyTextResponse`) | Newer version (`DeidentifyStringResponse`) |
+| Earlier Detect methods (`DeidentifyTextResponse`) | New Detect methods (`DeidentifyStringResponse`) |
 |---|---|
 | `ProcessedText` | `ProcessedText` |
 | `WordCount`, `CharCount` | `Metrics.WordCount`, `Metrics.CharacterCount`. `Metrics` and both counts are pointers (`*int`), nil when the server leaves them out. |
@@ -142,9 +154,9 @@ A vault token needs a `Destination`: the `"<TABLE_NAME>.<COLUMN_NAME>"` it is st
 
 Only vault tokens can be re-identified. Placeholders from `ENTITY_UNIQUE_COUNTER`, `ENTITY_ONLY` or `MASK` aren't stored, so they come back unchanged.
 
-The three Detect V1 entity lists become `RedactionLevel` rules, one per entity type:
+The three entity lists of the earlier methods become `RedactionLevel` rules, one per entity type:
 
-| Detect V1 field | Newer version |
+| Earlier Detect field | New Detect methods |
 |---|---|
 | `PlainTextEntities` | `common.RedactionLevel{EntityName: <type>, RedactionType: common.PLAIN_TEXT}` |
 | `MaskedEntities` | `common.RedactionLevel{EntityName: <type>, RedactionType: common.MASKED}` |
@@ -152,7 +164,7 @@ The three Detect V1 entity lists become `RedactionLevel` rules, one per entity t
 
 Without `RedactionLevel`, every token gets its original value.
 
-**Detect V1**
+**Earlier Detect methods**
 
 ```go
 response, err := service.ReidentifyText(ctx, common.ReidentifyTextRequest{
@@ -162,7 +174,7 @@ response, err := service.ReidentifyText(ctx, common.ReidentifyTextRequest{
 }, common.ReidentifyTextOptions{})
 ```
 
-**Newer version**
+**New Detect methods**
 
 ```go
 response, err := service.ReidentifyString(ctx, common.ReidentifyStringRequest{
@@ -181,7 +193,7 @@ fmt.Println(response.ProcessedText)
 
 **Response fields**
 
-| Detect V1 (`ReidentifyTextResponse`) | Newer version (`ReidentifyStringResponse`) |
+| Earlier Detect methods (`ReidentifyTextResponse`) | New Detect methods (`ReidentifyStringResponse`) |
 |---|---|
 | `ProcessedText` | `ProcessedText` (unchanged) |
 | `Errors` | Removed: failures come back as the `*SkyflowError`. |
@@ -189,9 +201,9 @@ fmt.Println(response.ProcessedText)
 
 ## De-identify a file
 
-The biggest behaviour change: **`DeidentifyFile` no longer waits for the run.** By default it submits the file and returns only `RunId`. Fetch the result later with [`GetRun`](#get-a-run). To keep the Detect V1 behaviour, set `Poll`.
+The biggest behaviour change: **`DeidentifyFile` no longer waits for the run.** By default it submits the file and returns only `RunId`. Fetch the result later with [`GetRun`](#get-a-run). To keep the earlier behaviour, set `Poll`.
 
-| Detect V1 | Newer version |
+| Earlier Detect methods | New Detect methods |
 |---|---|
 | `File: common.FileInput{FilePath: ...}` | `FilePath` on the request |
 | `File: common.FileInput{File: f}` | `FileObject` on the request (you still close the file) |
@@ -205,9 +217,9 @@ The biggest behaviour change: **`DeidentifyFile` no longer waits for the run.** 
 | `OutputProcessedAudio`, `OutputTranscription` | `Configuration.Media.Audio{OutputProcessedAudio, OutputTranscription}` (`common.OutputTranscriptionType*`) |
 | `Bleep{Gain, Frequency, StartPadding, StopPadding}` | `Configuration.Media.Audio.Bleep{...}`. The fields are pointers, and the paddings are `*float32`. |
 
-`PLAINTEXT_TRANSCRIPTION` has no equivalent. The newer transcription types are `None`, `Transcription`, `MedicalTranscription`, `DiarizedTranscription` and `MedicalDiarizedTranscription`.
+`PLAINTEXT_TRANSCRIPTION` has no equivalent. The new transcription types are `None`, `Transcription`, `MedicalTranscription`, `DiarizedTranscription` and `MedicalDiarizedTranscription`.
 
-**Detect V1**
+**Earlier Detect methods**
 
 ```go
 response, err := service.DeidentifyFile(ctx, common.DeidentifyFileRequest{
@@ -220,7 +232,7 @@ response, err := service.DeidentifyFile(ctx, common.DeidentifyFileRequest{
 fmt.Println(response.Status, response.PageCount)
 ```
 
-**Newer version**
+**New Detect methods**
 
 ```go
 response, err := service.DeidentifyFile(ctx, common.DeidentifyFileRequest{
@@ -235,7 +247,7 @@ response, err := service.DeidentifyFile(ctx, common.DeidentifyFileRequest{
 		Media: &common.Media{Document: &common.Document{Pdf: &common.Pdf{Density: common.Ptr(300)}}},
 	},
 }, common.DeidentifyFileOptions{
-	Poll:            &common.PollOptions{WaitTime: 30 * time.Second}, // leave Poll out to return as soon as the file is submitted
+	Poll:            &common.PollOptions{WaitTime: common.Ptr(30 * time.Second)}, // leave Poll out to return as soon as the file is submitted
 	OutputDirectory: "<OUTPUT_DIRECTORY>",
 })
 if err != nil {
@@ -257,9 +269,9 @@ default: // FAILED or UNKNOWN
 }
 ```
 
-**Response fields** (`DeidentifyFileResponse`, and `GetRunResponse` in the newer version)
+**Response fields** (`DeidentifyFileResponse`, and `GetRunResponse` in the new Detect methods)
 
-| Detect V1 | Newer version |
+| Earlier Detect methods | New Detect methods |
 |---|---|
 | `RunId` | `RunId` |
 | `Status string` (`IN_PROGRESS`, `FAILED`, `SUCCESS`) | `Status common.DetectRunStatus`: `DetectRunStatusSuccess`, `DetectRunStatusFailed`, `DetectRunStatusInProgress`, `DetectRunStatusQueued` or `DetectRunStatusUnknown`. It's empty when the call didn't poll. |
@@ -274,19 +286,19 @@ Written outputs are still named `processed-<name>.<ext>`, and there's now also `
 
 ## Get a run
 
-| Detect V1 | Newer version |
+| Earlier Detect methods | New Detect methods |
 |---|---|
 | `GetDetectRunRequest{RunId}` | `GetRunRequest{RunId}`. Same field. A blank `RunId` is rejected before the call. |
 | `GetDetectRunOptions{CustomHeaders}` | `GetRunOptions{Interceptor}`: see [Request headers](#request-headers) |
-| Returned `*DeidentifyFileResponse` | Returns `*GetRunResponse`, with the same fields as the newer `DeidentifyFileResponse`: see the [file response fields](#de-identify-a-file). `RunId` is echoed from the request. |
+| Returned `*DeidentifyFileResponse` | Returns `*GetRunResponse`, with the same fields as the new `DeidentifyFileResponse`: see the [file response fields](#de-identify-a-file). `RunId` is echoed from the request. |
 
-**Detect V1**
+**Earlier Detect methods**
 
 ```go
 response, err := service.GetDetectRun(ctx, common.GetDetectRunRequest{RunId: "<RUN_ID>"}, common.GetDetectRunOptions{})
 ```
 
-**Newer version**
+**New Detect methods**
 
 ```go
 run, err := service.GetRun(ctx, common.GetRunRequest{RunId: "<RUN_ID>"}, common.GetRunOptions{})
@@ -307,9 +319,9 @@ if run.Status == common.DetectRunStatusSuccess {
 
 ## Request headers
 
-Client-level headers set with `WithCustomHeaders` are still sent with every Detect call. The per-call `CustomHeaders` map in the Detect V1 options is replaced by an `Interceptor`:
+Client-level headers set with `WithCustomHeaders` are still sent with every Detect call. The per-call `CustomHeaders` map in the earlier Detect options is replaced by an `Interceptor`:
 
-**Detect V1**
+**Earlier Detect methods**
 
 ```go
 options := common.DeidentifyTextOptions{
@@ -317,7 +329,7 @@ options := common.DeidentifyTextOptions{
 }
 ```
 
-**Newer version**
+**New Detect methods**
 
 ```go
 options := common.DeidentifyStringOptions{
@@ -327,7 +339,7 @@ options := common.DeidentifyStringOptions{
 }
 ```
 
-Every newer-version options struct (`DeidentifyStringOptions`, `DeidentifyFileOptions`, `GetRunOptions`, `ReidentifyStringOptions`, `ReidentifyFileOptions`, `CheckGuardrailsOptions`) has `Interceptor`.
+Every options struct of the new Detect methods (`DeidentifyStringOptions`, `DeidentifyFileOptions`, `GetRunOptions`, `ReidentifyStringOptions`, `ReidentifyFileOptions`, `CheckGuardrailsOptions`) has `Interceptor`.
 
 ## New methods
 

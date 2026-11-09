@@ -231,8 +231,10 @@ const (
 // Deprecated: the server rejects DEFAULT in a redaction level. Use REDACTED, MASKED or PLAIN_TEXT.
 const RedactionTypeDefault = cdetect.RedactionTypeDefault
 
-// Ptr returns a pointer to v, for the optional *bool, *int and *float32 Detect options,
-// where nil leaves the value to the server:
+// Ptr returns a pointer to v, for the optional pointer fields in Detect requests and
+// options. A nil *bool, *int or *float32 request option leaves the value to the server; a
+// nil PollOptions field (*time.Duration, *int) takes the SDK default:
 //
 //	common.CheckGuardrailsRequest{Text: text, CheckToxicity: common.Ptr(true)}
+//	common.PollOptions{WaitTime: common.Ptr(2 * time.Minute)}
 func Ptr[T any](v T) *T { return &v }

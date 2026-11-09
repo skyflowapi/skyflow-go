@@ -39,7 +39,7 @@ func main() {
 	credentials := common.Credentials{Path: "<PATH_TO_YOUR_CREDENTIALS_JSON>"} // or ApiKey / Token / CredentialsString
 	vaultConfig := common.VaultConfig{
 		VaultId:     "<YOUR_VAULT_ID>",
-		ClusterId:   "<YOUR_CLUSTER_ID>", // from the vault URL: https://{clusterId}.skyvault.skyflowapis.com
+		ClusterId:   "<YOUR_CLUSTER_ID>", // from the vault URL: https://{clusterId}.vault.skyflowapis.com
 		Env:         common.PROD,         // DEV, STAGE, SANDBOX or PROD
 		Credentials: credentials,
 	}
@@ -74,7 +74,7 @@ func main() {
 		},
 	}
 	options := common.DeidentifyFileOptions{
-		Poll:            &common.PollOptions{WaitTime: 3 * time.Minute, MaxAttempts: 10},
+		Poll:            &common.PollOptions{WaitTime: common.Ptr(3 * time.Minute), MaxAttempts: common.Ptr(10)},
 		OutputDirectory: "<OUTPUT_DIRECTORY>",
 		Interceptor: func(rc *common.RequestContext) {
 			requestID := makeRequestID()

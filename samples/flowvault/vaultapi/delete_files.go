@@ -27,7 +27,7 @@ func main() {
 	credentials := common.Credentials{Path: "<PATH_TO_YOUR_CREDENTIALS_JSON>"} // or ApiKey / Token / CredentialsString
 	vaultConfig := common.VaultConfig{
 		VaultId:     "<YOUR_VAULT_ID>",
-		ClusterId:   "<YOUR_CLUSTER_ID>", // from the vault URL: https://{clusterId}.skyvault.skyflowapis.com
+		ClusterId:   "<YOUR_CLUSTER_ID>", // from the vault URL: https://{clusterId}.vault.skyflowapis.com
 		Env:         common.PROD,         // DEV, STAGE, SANDBOX or PROD
 		Credentials: credentials,
 	}

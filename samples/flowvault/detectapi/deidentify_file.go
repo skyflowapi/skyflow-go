@@ -33,7 +33,7 @@ func main() {
 	credentials := common.Credentials{Path: "<PATH_TO_YOUR_CREDENTIALS_JSON>"} // or ApiKey / Token / CredentialsString
 	vaultConfig := common.VaultConfig{
 		VaultId:     "<YOUR_VAULT_ID>",
-		ClusterId:   "<YOUR_CLUSTER_ID>", // from the vault URL: https://{clusterId}.skyvault.skyflowapis.com
+		ClusterId:   "<YOUR_CLUSTER_ID>", // from the vault URL: https://{clusterId}.vault.skyflowapis.com
 		Env:         common.PROD,         // DEV, STAGE, SANDBOX or PROD
 		Credentials: credentials,
 	}
@@ -68,7 +68,7 @@ func main() {
 		FilePath:        "<PATH_TO_FILE>/patient-notes.pdf", // sent as BASE64, format inferred from the extension
 		ConfigurationId: "<CONFIGURATION_ID>",
 	}, common.DeidentifyFileOptions{
-		Poll:            &common.PollOptions{WaitTime: 2 * time.Minute}, // &common.PollOptions{} uses 60s and 23 attempts
+		Poll:            &common.PollOptions{WaitTime: common.Ptr(2 * time.Minute)}, // &common.PollOptions{} uses 60s and 23 attempts
 		OutputDirectory: "<OUTPUT_DIRECTORY>",
 	})
 
