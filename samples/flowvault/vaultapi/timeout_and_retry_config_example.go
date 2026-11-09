@@ -62,7 +62,7 @@ func main() {
 		client.WithLogLevel(logger.ERROR),
 	)
 	if err != nil {
-		fmt.Println("Skyflow Specific Error:", err.GetHttpCode(), err.GetMessage(), err.GetDetails())
+		fmt.Println("Skyflow Specific Error:", err.GetHttpCode(), err.GetMessage(), "requestId:", err.GetRequestId(), err.GetDetails())
 		return
 	}
 	fmt.Println("Skyflow client configured with custom timeout and retry settings:", skyflowClient != nil)

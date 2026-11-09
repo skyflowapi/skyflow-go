@@ -36,12 +36,12 @@ func main() {
 	// Step 2: Configure the Skyflow client
 	skyflowClient, err := client.NewSkyflow(client.WithVaults(vaultConfig), client.WithLogLevel(logger.ERROR))
 	if err != nil {
-		fmt.Println("Skyflow Specific Error:", err.GetHttpCode(), err.GetMessage(), err.GetDetails())
+		fmt.Println("Skyflow Specific Error:", err.GetHttpCode(), err.GetMessage(), "requestId:", err.GetRequestId(), err.GetDetails())
 		return
 	}
 	vault, err := skyflowClient.Vault(vaultConfig.VaultId)
 	if err != nil {
-		fmt.Println("Skyflow Specific Error:", err.GetHttpCode(), err.GetMessage(), err.GetDetails())
+		fmt.Println("Skyflow Specific Error:", err.GetHttpCode(), err.GetMessage(), "requestId:", err.GetRequestId(), err.GetDetails())
 		return
 	}
 
@@ -52,7 +52,7 @@ func main() {
 	// Step 4: Handle the response and errors.
 	// Query has no per-record status: any failure comes back as err.
 	if err != nil {
-		fmt.Println("Skyflow Specific Error:", err.GetHttpCode(), err.GetMessage(), err.GetDetails())
+		fmt.Println("Skyflow Specific Error:", err.GetHttpCode(), err.GetMessage(), "requestId:", err.GetRequestId(), err.GetDetails())
 		return
 	}
 	fmt.Println("Request ID:", response.RequestId)

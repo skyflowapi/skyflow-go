@@ -34,12 +34,12 @@ func main() {
 	// Step 2: Configure the Skyflow client
 	skyflowClient, err := client.NewSkyflow(client.WithVaults(vaultConfig), client.WithLogLevel(logger.ERROR))
 	if err != nil {
-		fmt.Println("Skyflow Specific Error:", err.GetHttpCode(), err.GetMessage(), err.GetDetails())
+		fmt.Println("Skyflow Specific Error:", err.GetHttpCode(), err.GetMessage(), "requestId:", err.GetRequestId(), err.GetDetails())
 		return
 	}
 	vault, err := skyflowClient.Vault(vaultConfig.VaultId)
 	if err != nil {
-		fmt.Println("Skyflow Specific Error:", err.GetHttpCode(), err.GetMessage(), err.GetDetails())
+		fmt.Println("Skyflow Specific Error:", err.GetHttpCode(), err.GetMessage(), "requestId:", err.GetRequestId(), err.GetDetails())
 		return
 	}
 
@@ -54,7 +54,7 @@ func main() {
 	// One record per input token, in order. Each has Token, Value, TokenGroupName, Metadata
 	// (SkyflowId and TableName), HttpCode, Error and RequestId.
 	if err != nil {
-		fmt.Println("Skyflow Specific Error:", err.GetHttpCode(), err.GetMessage(), err.GetDetails())
+		fmt.Println("Skyflow Specific Error:", err.GetHttpCode(), err.GetMessage(), "requestId:", err.GetRequestId(), err.GetDetails())
 		return
 	}
 	for _, record := range response.Records {

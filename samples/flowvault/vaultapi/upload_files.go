@@ -37,12 +37,12 @@ func main() {
 	// Step 2: Configure the Skyflow client
 	skyflowClient, err := client.NewSkyflow(client.WithVaults(vaultConfig), client.WithLogLevel(logger.ERROR))
 	if err != nil {
-		fmt.Println("Skyflow Specific Error:", err.GetHttpCode(), err.GetMessage(), err.GetDetails())
+		fmt.Println("Skyflow Specific Error:", err.GetHttpCode(), err.GetMessage(), "requestId:", err.GetRequestId(), err.GetDetails())
 		return
 	}
 	vault, err := skyflowClient.Vault(vaultConfig.VaultId)
 	if err != nil {
-		fmt.Println("Skyflow Specific Error:", err.GetHttpCode(), err.GetMessage(), err.GetDetails())
+		fmt.Println("Skyflow Specific Error:", err.GetHttpCode(), err.GetMessage(), "requestId:", err.GetRequestId(), err.GetDetails())
 		return
 	}
 
@@ -72,18 +72,30 @@ func main() {
 
 	// Step 4: Handle the response and errors.
 	// One record per input record, in order. Each has SkyflowId, TableName, Columns, HttpCode,
-	// Error and RequestId. Each column has Column, FileName, UploadStatus (UPLOADED, FAILED or
-	// SKIPPED) and Error.
+	// Error and RequestId. Each column has Column, FileName, UploadStatus and Error. Partial
+	// success is normal: a record's Error stays empty when only some of its columns failed, so
+	// check every column.
 	if err != nil {
-		fmt.Println("Skyflow Specific Error:", err.GetHttpCode(), err.GetMessage(), err.GetDetails())
+		fmt.Println("Skyflow Specific Error:", err.GetHttpCode(), err.GetMessage(), "requestId:", err.GetRequestId(), err.GetDetails())
 		return
 	}
 	for _, record := range response.Records {
 		if record.Error != "" {
+			// The record failed before any upload: every column is SKIPPED with this error.
 			fmt.Printf("record failed (%d): %s [requestId=%s]\n", record.HttpCode, record.Error, record.RequestId)
+			continue
 		}
 		for _, column := range record.Columns {
-			fmt.Printf("%s %s: %s %s\n", record.SkyflowId, column.Column, column.UploadStatus, column.Error)
+			switch column.UploadStatus {
+			case common.UploadStatusUploaded:
+				// The virus scan runs afterwards; read the final file status later with Get.
+				fmt.Printf("%s %s: uploaded %s\n", record.SkyflowId, column.Column, column.FileName)
+			case common.UploadStatusFailed:
+				fmt.Printf("%s %s: upload failed: %s\n", record.SkyflowId, column.Column, column.Error)
+			case common.UploadStatusSkipped:
+				// No signed upload URL came back for this column.
+				fmt.Printf("%s %s: skipped\n", record.SkyflowId, column.Column)
+			}
 		}
 	}
 }
