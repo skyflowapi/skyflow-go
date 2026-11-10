@@ -25,25 +25,25 @@ func TestSnapshotIsAliasAware(t *testing.T) {
 		t.Fatalf("alias move changed the snapshot\nold:\n%s\nnew:\n%s", old, moved)
 	}
 	for _, want := range []string{
-		"pkg example.com/m/a, type Config struct\n",
-		"pkg example.com/m/a, type Config struct, field Name string\n",
-		"pkg example.com/m/a, method (Config) Get() string\n",
-		"pkg example.com/m/a, method (*Config) Set(string)\n",
-		"pkg example.com/m/a, func New(string, ...int) (*example.com/m/a.Config, error)\n",
-		"pkg example.com/m/a, type Doer interface { Do(example.com/m/a.Config) error }\n",
-		`pkg example.com/m/a, const Msg untyped string = "hello"` + "\n",
-		"pkg example.com/m/a, type Level string\n",
-		"pkg example.com/m/a, type Alias = string\n",
-		"pkg example.com/m/a, var Default example.com/m/a.Config\n",
-		"pkg example.com/m/a, type Box[T any] struct\n",
-		"pkg example.com/m/a, type Sealed interface { Public() int; // has unexported methods }\n",
-		"pkg example.com/m/a, type Number interface { ~int | ~float64 }\n",
+		"pkg github.com/skyflowapi/skyflow-go/scripts/apicontract/testdata/vault, type VaultConfig struct\n",
+		"pkg github.com/skyflowapi/skyflow-go/scripts/apicontract/testdata/vault, type VaultConfig struct, field VaultId string\n",
+		"pkg github.com/skyflowapi/skyflow-go/scripts/apicontract/testdata/vault, method (VaultConfig) GetVaultId() string\n",
+		"pkg github.com/skyflowapi/skyflow-go/scripts/apicontract/testdata/vault, method (*VaultConfig) SetVaultId(string)\n",
+		"pkg github.com/skyflowapi/skyflow-go/scripts/apicontract/testdata/vault, func NewVaultConfig(string, ...string) (*github.com/skyflowapi/skyflow-go/scripts/apicontract/testdata/vault.VaultConfig, error)\n",
+		"pkg github.com/skyflowapi/skyflow-go/scripts/apicontract/testdata/vault, type Validator interface { Validate(github.com/skyflowapi/skyflow-go/scripts/apicontract/testdata/vault.VaultConfig) error }\n",
+		`pkg github.com/skyflowapi/skyflow-go/scripts/apicontract/testdata/vault, const SdkName untyped string = "skyflow-go"` + "\n",
+		"pkg github.com/skyflowapi/skyflow-go/scripts/apicontract/testdata/vault, type LogLevel string\n",
+		"pkg github.com/skyflowapi/skyflow-go/scripts/apicontract/testdata/vault, type TokenGroupName = string\n",
+		"pkg github.com/skyflowapi/skyflow-go/scripts/apicontract/testdata/vault, var DefaultVaultConfig github.com/skyflowapi/skyflow-go/scripts/apicontract/testdata/vault.VaultConfig\n",
+		"pkg github.com/skyflowapi/skyflow-go/scripts/apicontract/testdata/vault, type Response[T any] struct\n",
+		"pkg github.com/skyflowapi/skyflow-go/scripts/apicontract/testdata/vault, type Credentials interface { GetToken() string; // has unexported methods }\n",
+		"pkg github.com/skyflowapi/skyflow-go/scripts/apicontract/testdata/vault, type Numeric interface { ~int | ~float64 }\n",
 	} {
 		if !strings.Contains(old, want) {
 			t.Errorf("snapshot is missing %q\n%s", want, old)
 		}
 	}
-	if strings.Contains(old, "inner") || strings.Contains(old, "internal") {
+	if strings.Contains(old, "clusterId") || strings.Contains(old, "internal") {
 		t.Errorf("snapshot leaks unexported or internal names:\n%s", old)
 	}
 }
@@ -59,15 +59,20 @@ func write(t *testing.T, dir, name, body string) string {
 
 func TestCompare(t *testing.T) {
 	dir := t.TempDir()
-	base := write(t, dir, "base.api", "a\nb\n")
+	const (
+		getVaultId = "pkg github.com/skyflowapi/skyflow-go/v2/vault, method (VaultConfig) GetVaultId() string\n"
+		setVaultId = "pkg github.com/skyflowapi/skyflow-go/v2/vault, method (*VaultConfig) SetVaultId(string)\n"
+		getEnv     = "pkg github.com/skyflowapi/skyflow-go/v2/vault, method (VaultConfig) GetEnv() string\n"
+	)
+	base := write(t, dir, "base.api", getVaultId+setVaultId)
 	tests := []struct {
 		name, oldPath, newBody, want string
 		breaking                     bool
 	}{
-		{"same", base, "b\na\n", "No API changes.", false},
-		{"addition", base, "a\nb\nc\n", "Added: 1 line(s)\n+ c", false},
-		{"removal", base, "a\nc\n", "Breaking: 1 line(s) removed or changed\n- b", true},
-		{"new module", filepath.Join(dir, "missing.api"), "a\n", "New module: 1 API lines", false},
+		{"same", base, setVaultId + getVaultId, "No API changes.", false},
+		{"addition", base, getVaultId + setVaultId + getEnv, "Added: 1 line(s)\n+ " + getEnv, false},
+		{"removal", base, getVaultId + getEnv, "Breaking: 1 line(s) removed or changed\n- " + setVaultId, true},
+		{"new module", filepath.Join(dir, "missing.api"), getVaultId, "New module: 1 API lines", false},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -92,7 +97,7 @@ func TestErrors(t *testing.T) {
 	if err := run([]string{"snapshot", t.TempDir()}, &bytes.Buffer{}); err == nil {
 		t.Error("snapshot of a directory without a module: want an error")
 	}
-	if err := run([]string{"compare", t.TempDir(), "x"}, &bytes.Buffer{}); err == nil {
+	if err := run([]string{"compare", t.TempDir(), "vault.api"}, &bytes.Buffer{}); err == nil {
 		t.Error("compare with a directory as the old file: want an error")
 	}
 	if got := (errBreaking{2}).Error(); got != "2 breaking change(s)" {
