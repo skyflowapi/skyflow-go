@@ -1,0 +1,104 @@
+name: Contract Tests
+
+# Public API contract check (the Go counterpart of the japicmp check in skyflow-java).
+# A module is under contract when api-report/<module>.api is committed. Two gates:
+#   1. api-report/<module>.api must match the code. If not, run
+#      scripts/contract-snapshot-update.sh and commit the result.
+#   2. The API of the PR's base is compared with the API of the PR. A removed or
+#      changed line is a breaking change and fails the job unless an SDK code owner
+#      adds the api-break-approved label. Additions only need the updated snapshot.
+# The snapshots are alias-aware, so moving a type to another module behind
+# `type X = other/pkg.X` is not reported as a break when its API stays the same.
+
+on:
+  pull_request:
+    branches: [ "main", "flowvault-release/**" ]
+    # labeled/unlabeled re-run the check when api-break-approved is added or removed.
+    types: [ opened, synchronize, reopened, labeled, unlabeled ]
+    paths:
+      - "**.go"
+      - "**/go.mod"
+      - "**/go.sum"
+      - "api-report/**"
+      - "scripts/contract-snapshot-update.sh"
+      - ".github/workflows/contract-tests.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  api-contract:
+    name: Public API contract
+    runs-on: ubuntu-latest
+    env:
+      BREAK_APPROVED: ${{ contains(github.event.pull_request.labels.*.name, 'api-break-approved') }}
+    steps:
+      - name: Check out the PR
+        uses: actions/checkout@v4
+        with:
+          path: head
+          persist-credentials: false
+
+      - name: Check out the base branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+          persist-credentials: false
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: head/scripts/apicontract/go.mod
+          cache-dependency-path: head/**/go.sum
+
+      - name: Test the contract tool
+        working-directory: head/scripts/apicontract
+        run: go test ./...
+
+      - name: Snapshots are up to date
+        working-directory: head
+        run: scripts/contract-snapshot-update.sh --check
+
+      # The modules checked are those with a snapshot in the PR or in the base, so
+      # deleting a snapshot doesn't skip the check: its whole API counts as removed.
+      # The base is snapshotted from source with the PR's tool, so the check also works
+      # when the base has no api-report/ yet or an older tool version.
+      - name: Compare the base API with the PR API
+        run: |
+          (cd head/scripts/apicontract && go build -o "$RUNNER_TEMP/apicontract" .)
+          modules="$(ls head/api-report/*.api base/api-report/*.api 2>/dev/null | xargs -r -n1 basename | sed 's/\.api$//' | sort -u)"
+          broken=""
+          {
+            echo "## Public API contract"
+            echo
+            echo "Base: \`${{ github.event.pull_request.base.ref }}\` (${{ github.event.pull_request.base.sha }})"
+          } >> "$GITHUB_STEP_SUMMARY"
+          for m in $modules; do
+            old="$RUNNER_TEMP/base-$m.api"
+            new="head/api-report/$m.api"
+            if [ -f "base/$m/go.mod" ]; then
+              "$RUNNER_TEMP/apicontract" snapshot "base/$m" > "$old"
+            else
+              : > "$old"
+            fi
+            if [ ! -f "$new" ]; then
+              new="$RUNNER_TEMP/head-$m.api"
+              : > "$new"
+            fi
+            set +e
+            report="$("$RUNNER_TEMP/apicontract" compare "$old" "$new")"
+            rc=$?
+            set -e
+            [ $rc -gt 1 ] && { echo "$report"; exit $rc; }
+            [ $rc -eq 1 ] && broken="$broken $m"
+            echo "=== $m"; echo "$report"
+            printf '\n### %s\n\n```diff\n%s\n```\n' "$m" "$report" >> "$GITHUB_STEP_SUMMARY"
+          done
+          if [ -z "$broken" ]; then
+            echo "No breaking API changes."
+          elif [ "$BREAK_APPROVED" = "true" ]; then
+            echo "::warning::Breaking API changes in:$broken. Approved with the api-break-approved label."
+          else
+            echo "::error::Breaking API changes in:$broken. Restore the API, or get an SDK code owner to approve the break with the api-break-approved label (see CONTRIBUTING.md)."
+            exit 1
+          fi
