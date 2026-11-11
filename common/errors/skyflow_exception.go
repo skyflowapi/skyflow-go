@@ -77,6 +77,9 @@ func (se *SkyflowError) GetDetails() []interface{} {
 	}
 	return se.details
 }
+
+// GetResponseBody returns the JSON error body of an API error, decoded, or nil when the error
+// didn't come from a JSON API response (validation, network and non-JSON errors).
 func (se *SkyflowError) GetResponseBody() map[string]interface{} {
 	if se == nil {
 		return nil
@@ -109,6 +112,8 @@ func statusFor(code ErrorCodesEnum) string {
 		return http.StatusText(http.StatusInternalServerError)
 	case REQUEST_CANCELLED:
 		return constants.HTTP_STATUS_CLIENT_CLOSED_REQUEST
+	case TRANSPORT_ERROR:
+		return ""
 	}
 	return constants.HTTP_STATUS_BAD_REQUEST
 }
@@ -134,6 +139,7 @@ func SkyflowApiError(responseHeaders http.Response) *SkyflowError {
 		if err := json.Unmarshal(bodyBytes, &apiError); err != nil {
 			return NewSkyflowError(INVALID_INPUT_CODE, "Failed to unmarshal error")
 		}
+		skyflowError.responseBody = apiError
 		if errorBody, ok := apiError[constants.ERROR_KEY_ERROR].(map[string]interface{}); ok {
 			if httpCode, exists := errorBody[constants.ERROR_KEY_HTTP_CODE].(float64); exists {
 				skyflowError.httpCode = strconv.FormatFloat(httpCode, 'f', 0, 64)
@@ -182,6 +188,7 @@ func SkyflowApiError(responseHeaders http.Response) *SkyflowError {
 			skyflowError.httpStatusCode = responseHeaders.Status
 		}
 		if apiError != nil {
+			skyflowError.responseBody = apiError
 			if errorBody, ok := apiError[constants.ERROR_KEY_ERROR].(map[string]interface{}); ok {
 				if httpCode, exists := errorBody[constants.ERROR_KEY_HTTP_CODE].(float64); exists {
 					skyflowError.httpCode = strconv.FormatFloat(httpCode, 'f', 0, 64)
@@ -250,6 +257,7 @@ func SkyflowErrorApi(error error, header http.Header) *SkyflowError {
 	if err != nil {
 		return NewSkyflowError(INVALID_INPUT_CODE, rawBodyMessage(error.Error()))
 	}
+	skyflowError.responseBody = apiError
 	if errorBody, ok := apiError[constants.ERROR_KEY_ERROR].(map[string]interface{}); ok {
 		if httpCode, exists := errorBody[constants.ERROR_KEY_HTTP_CODE].(float64); exists {
 			skyflowError.httpCode = strconv.FormatFloat(httpCode, 'f', 0, 64)

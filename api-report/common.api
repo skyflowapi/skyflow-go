@@ -80,6 +80,7 @@ pkg github.com/skyflowapi/skyflow-go/common/errors, const INVALID_INPUT_CODE git
 pkg github.com/skyflowapi/skyflow-go/common/errors, const PARTIAL github.com/skyflowapi/skyflow-go/common/errors.ErrorCodesEnum = "404"
 pkg github.com/skyflowapi/skyflow-go/common/errors, const REQUEST_CANCELLED github.com/skyflowapi/skyflow-go/common/errors.ErrorCodesEnum = "499"
 pkg github.com/skyflowapi/skyflow-go/common/errors, const SERVER github.com/skyflowapi/skyflow-go/common/errors.ErrorCodesEnum = "500"
+pkg github.com/skyflowapi/skyflow-go/common/errors, const TRANSPORT_ERROR github.com/skyflowapi/skyflow-go/common/errors.ErrorCodesEnum = "0"
 pkg github.com/skyflowapi/skyflow-go/common/errors, func NewSkyflowError(github.com/skyflowapi/skyflow-go/common/errors.ErrorCodesEnum, string) *github.com/skyflowapi/skyflow-go/common/errors.SkyflowError
 pkg github.com/skyflowapi/skyflow-go/common/errors, func NewSkyflowErrorWithCause(github.com/skyflowapi/skyflow-go/common/errors.ErrorCodesEnum, string, error) *github.com/skyflowapi/skyflow-go/common/errors.SkyflowError
 pkg github.com/skyflowapi/skyflow-go/common/errors, func SkyflowApiError(net/http.Response) *github.com/skyflowapi/skyflow-go/common/errors.SkyflowError
