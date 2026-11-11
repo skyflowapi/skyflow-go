@@ -149,12 +149,12 @@ var upsertOption = common.UpsertOptions{Table:"<table_name>",Column:"<column_nam
 upsertArray = append(upsertArray,upsertOption)
 
 options = common.InsertOptions {
-        Tokens: true //Optional, indicates whether tokens should be returned for the inserted data. This value defaults to "true".
-        Upsert: upsertArray //Optional, upsert support.
-        ContinueOnError: true // Optional, decides whether to continue if error encountered or not
+        Tokens: true, //Optional, indicates whether tokens should be returned for the inserted data. This value defaults to "true".
+        Upsert: upsertArray, //Optional, upsert support.
+        ContinueOnError: true, // Optional, decides whether to continue if error encountered or not
 }
 
-res, err: = skyflowClient.Insert(records, options)
+res, err := skyflowClient.Insert(records, options)
 ```
 
 [Insert call example](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v1/vaultapi/insert.go):
@@ -184,10 +184,10 @@ func main() {
     records["records"] = recordsArray
 
     var options = common.InsertOptions {
-        Tokens: true
+        Tokens: true,
     }
 
-    res, err: = skyflowClient.Insert(records, options)
+    res, err := skyflowClient.Insert(records, options)
 
     if err == nil {
         fmt.Println(res.Records)
@@ -251,10 +251,10 @@ func main() {
 
     var options = common.InsertOptions {
         Tokens: true,
-        ContinueOnError: true
+        ContinueOnError: true,
     }
 
-    res, err: = skyflowClient.Insert(records, options)
+    res, err := skyflowClient.Insert(records, options)
 
     if err == nil {
         fmt.Println(res.Records)
@@ -323,11 +323,11 @@ func main() {
     upsertArray = append(upsertArray,upsertOption)
 
     var options = common.InsertOptions {
-        Tokens: true
-        Upsert: upsertArray
+        Tokens: true,
+        Upsert: upsertArray,
     }
 
-    res, err: = skyflowClient.Insert(records, options)
+    res, err := skyflowClient.Insert(records, options)
 
     if err == nil {
         fmt.Println(res.Records)
@@ -378,12 +378,12 @@ recordsArray = append(recordsArray, record2)
 
 records["records"] = recordsArray
 options := common.DetokenizeOptions {
-        ContinueOnError: true //Optional, true indicates making individual API calls. false indicates to make a bulk API call.. This value defaults to "true".
+        ContinueOnError: true, //Optional, true indicates making individual API calls. false indicates to make a bulk API call.. This value defaults to "true".
 }
 res, err := skyflowClient.Detokenize(records, options)
+```
 
 Note: `redaction` defaults to `common.PLAIN_TEXT`
-```
 
 An [example](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v1/vaultapi/detokenize.go) of a Detokenize call:
 
@@ -410,7 +410,7 @@ func main() {
     recordsArray = append(recordsArray, record2)
     records["records"] = recordsArray
 
-    res, err: = skyflowClient.Detokenize(records)
+    res, err := skyflowClient.Detokenize(records)
 
     if err == nil {
         fmt.Println("Records:",res.Records)
@@ -465,9 +465,9 @@ func main() {
     recordsArray = append(recordsArray, record2)
     records["records"] = recordsArray
     options := common.DetokenizeOptions {
-        ContinueOnError: false
+        ContinueOnError: false,
     }
-    res, err: = skyflowClient.Detokenize(records, options)
+    res, err := skyflowClient.Detokenize(records, options)
 
     if err == nil {
         fmt.Println("Records:",res.Records)
@@ -506,8 +506,8 @@ import (
 var records = make(map[string] interface {})
 
 var record1 = make(map[string] interface {})
-record1["ids"] = [] string {} {     // List of SkyflowID's of the records to be fetched
-    "<skyflow_id1>", "<skyflow_id2>"
+record1["ids"] = []interface{}{     // List of SkyflowID's of the records to be fetched
+    "<skyflow_id1>", "<skyflow_id2>",
 }
 record1["table"] = "<table_name>"   // name of table holding the above skyflow_id's
 record1["redaction"] =  common.PLAIN_TEXT   // redaction to be applied to retrieved data
@@ -545,8 +545,8 @@ func main() {
 
     var records = make(map[string] interface {})
     var record1 = make(map[string] interface {})
-    record1["ids"] = [] string {} {
-        "f8d8a622-b557-4c6b-a12c-c5ebe0b0bfd9", "da26de53-95d5-4bdb-99db-8d8c66a35ff9"
+    record1["ids"] = []interface{}{
+        "f8d8a622-b557-4c6b-a12c-c5ebe0b0bfd9", "da26de53-95d5-4bdb-99db-8d8c66a35ff9",
     }
     record1["table"] = "cards"
     record1["redaction"] = common.PLAIN_TEXT
@@ -555,7 +555,7 @@ func main() {
     recordsArray = append(recordsArray, record1)
     records["records"] = recordsArray
 
-    res, err: = skyflowClient.GetById(records)
+    res, err := skyflowClient.GetById(records)
 
     if err == nil {
       fmt.Println("Records:",res.Records)
@@ -620,8 +620,8 @@ import (
 var records = make(map[string] interface {})
 
 var record1 = make(map[string] interface {})
-record1["ids"] = [] string {} {              // List of SkyflowID's of the records to be fetched
-    "<skyflow_id1>", "<skyflow_id2>"
+record1["ids"] = []interface{}{              // List of SkyflowID's of the records to be fetched
+    "<skyflow_id1>", "<skyflow_id2>",
 }
 record1["table"] = "<table_name>"            // Name of table holding the records in the vault.
 record1["redaction"] =  common.PLAIN_TEXT    // Redaction type to apply to retrieved data.
@@ -646,8 +646,8 @@ import (
 var records = make(map[string] interface {})
 
 var record1 = make(map[string] interface {})
-record1["ids"] = [] string {} {     // List of SkyflowID's of the records to be fetched
-    "<skyflow_id1>", "<skyflow_id2>"
+record1["ids"] = []interface{}{     // List of SkyflowID's of the records to be fetched
+    "<skyflow_id1>", "<skyflow_id2>",
 }
 record1["table"] = "<table_name>"   // // Name of table holding the records in the vault.
 
@@ -670,8 +670,8 @@ import (
 var records = make(map[string] interface {})
 
 var record1 = make(map[string] interface {})
-record1["columnValues"] = [] string {} {     // List of given unique column values.
-    "<column_value1>", "<column_value2>"
+record1["columnValues"] = []interface{}{     // List of given unique column values.
+    "<column_value1>", "<column_value2>",
 }
 record1["columnName"] = "<column_name>"      // Unique column name in the vault.
 record1["redaction"] =  common.PLAIN_TEXT 
@@ -710,14 +710,14 @@ func main() {
 
     var records = make(map[string] interface {})
     var record1 = make(map[string] interface {})
-    record1["ids"] = [] string {} {
-        "f8d8a622-b557-4c6b-a12c-c5ebe0b0bfd9", "da26de53-95d5-4bdb-99db-8d8c66a35ff9"
+    record1["ids"] = []interface{}{
+        "f8d8a622-b557-4c6b-a12c-c5ebe0b0bfd9", "da26de53-95d5-4bdb-99db-8d8c66a35ff9",
     }
     record1["table"] = "cards"
     record1["redaction"] = common.PLAIN_TEXT
 
     var record2 = make(map[string] interface {})
-    record2["ids"] = [] string {} { "invalid-id" }
+    record2["ids"] = []interface{}{ "invalid-id" }
     record2["table"] = "cards"
     record2["redaction"] = common.PLAIN_TEXT
 
@@ -727,7 +727,7 @@ func main() {
 
     records["records"] = recordsArray
 
-    res, err: = skyflowClient.Get(records)
+    res, err := skyflowClient.Get(records)
 
     if err == nil {
       fmt.Println("Records:",res.Records)
@@ -789,13 +789,13 @@ func main() {
 
     var records = make(map[string] interface {})
     var record1 = make(map[string] interface {})
-    record1["ids"] = [] string {} {
-        "f8d8a622-b557-4c6b-a12c-c5ebe0b0bfd9", "da26de53-95d5-4bdb-99db-8d8c66a35ff9"
+    record1["ids"] = []interface{}{
+        "f8d8a622-b557-4c6b-a12c-c5ebe0b0bfd9", "da26de53-95d5-4bdb-99db-8d8c66a35ff9",
     }
     record1["table"] = "cards"
 
     var record2 = make(map[string] interface {})
-    record2["ids"] = [] string {} { "Invalid Skyflow ID" }
+    record2["ids"] = []interface{}{ "Invalid Skyflow ID" }
     record2["table"] = "cards"
 
     var recordsArray[] interface {}
@@ -804,7 +804,7 @@ func main() {
 
     records["records"] = recordsArray
 
-    res, err: = skyflowClient.Get(records, common.GetOptions{Tokens: true})
+    res, err := skyflowClient.Get(records, common.GetOptions{Tokens: true})
 
     if err == nil {
       fmt.Println("Records:",res.Records)
@@ -865,15 +865,15 @@ func main() {
 
     var records = make(map[string] interface {})
     var record1 = make(map[string] interface {})
-    record1["columnValues"] = [] string {} {
-        "123455432112345", "123455432112346"
+    record1["columnValues"] = []interface{}{
+        "123455432112345", "123455432112346",
     }
     record1["columnName"] = "bank_account_number"
     record1["table"] = "account_details"
     record1["redaction"] = common.PLAIN_TEXT
 
     var record2 = make(map[string] interface {})
-    record2["columnValues"] = [] string {} { "Invalid Skyflow column value" }
+    record2["columnValues"] = []interface{}{ "Invalid Skyflow column value" }
     record1["columnName"] = "bank_account_number"
     record2["table"] = "account_details"
     record2["redaction"] = common.PLAIN_TEXT
@@ -885,7 +885,7 @@ func main() {
 
     records["records"] = recordsArray
 
-    res, err: = skyflowClient.Get(records)
+    res, err := skyflowClient.Get(records)
 
     if err == nil {
       fmt.Println("Records:",res.Records)
@@ -949,7 +949,7 @@ The InvokeConnection method lets you bypass handling sensitive data by integrati
   requestBody := make(map[string]interface{})
   requestBody["<request_body_key>"] = "<request_body_value>"
 
-  connectionConfig := common.ConnectionConfig{ConnectionURL : "<your_connection_url>",MethodName : "<Method_Name>",PathParams : pathParams,QueryParams : queryParams, RequestBody : requestBody, RequestHeaders : requestHeader}
+  connectionConfig := common.ConnectionConfig{ConnectionURL : "<your_connection_url>",MethodName : common.POST,PathParams : pathParams,QueryParams : queryParams, RequestBody : requestBody, RequestHeader : requestHeader}
 
   skyflowClient.InvokeConnection(connectionConfig)  
 
@@ -972,6 +972,7 @@ An [example](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v1/vault
 package main
 
 import (
+    "encoding/json"
     "fmt"
     Skyflow "github.com/skyflowapi/skyflow-go/skyflow/client"
     "github.com/skyflowapi/skyflow-go/skyflow/common"
@@ -985,17 +986,17 @@ func main() {
     pathParams["card_number"] = "1852-344-234-34251"
 
     requestHeader := make(map[string]string)
-    requestHeaders["Authorization"] = "<YOUR_CONNECTION_AUTH>"
+    requestHeader["Authorization"] = "<YOUR_CONNECTION_AUTH>"
 
     requestBody := make(map[string]interface{})
     requestBody["expirationDate"] = "12/2026"
 
-    connectionConfig := common.ConnectionConfig{ConnectionURL : "<Connection_URL>",MethodName : "<Method_Name>",PathParams : pathParams, RequestBody : requestBody, RequestHeaders : requestHeader}
+    connectionConfig := common.ConnectionConfig{ConnectionURL : "<Connection_URL>", MethodName : common.POST, PathParams : pathParams, RequestBody : requestBody, RequestHeader : requestHeader}
 
-    res, err: = skyflowClient.InvokeConnection(connectionConfig)
+    res, err := skyflowClient.InvokeConnection(connectionConfig)
 
     if err == nil {
-          jsonRes, err: = json.Marshal(res)
+          jsonRes, err := json.Marshal(res)
           if err == nil {
                 fmt.Println("result: ", string(jsonRes))
           }
@@ -1004,7 +1005,7 @@ func main() {
 ```
 
 Sample invokeConnection Response
-```go
+```json
 {
     "receivedTimestamp": "2021-11-05 13:43:12.534",
     "processingTimeinMs": 12,
@@ -1022,7 +1023,7 @@ The skyflow-go SDK provides useful logging using go libray `github.com/sirupsen/
 import "github.com/skyflowapi/skyflow-go/commonutils/logwrapper"
 
 // sets the skyflow-go SDK log level to INFO
-logger.SetLogLevel(logger.LogLevel.INFO);
+logger.SetLogLevel(logger.INFO)
 ```
 
 Currently the following log levels are supported:
@@ -1048,7 +1049,7 @@ Currently the following log levels are supported:
   `LogLevel.OFF` can be used to turn off all logging from the Skyflow SDK.
 
 `Note`:
-  - The ranking of logging levels is as follows :  `DEBUG` < `INFO` < `WARN` < `ERROR`< `OFF`
+  - From most verbose to least verbose, the logging levels are: `DEBUG`, `INFO`, `WARN`, `ERROR`, `OFF`
 
 .
 ## Reporting a Vulnerability
