@@ -88,7 +88,7 @@ func UploadContentType(name string) string {
 	if ext == "" {
 		return fvconsts.DEFAULT_UPLOAD_CONTENT_TYPE
 	}
-	if known, ok := fvconsts.UPLOAD_CONTENT_TYPES[ext]; ok {
+	if known, ok := fvconsts.UploadContentTypes[ext]; ok {
 		return known
 	}
 	if guessed := mime.TypeByExtension("." + ext); guessed != "" {

@@ -30,6 +30,11 @@ const (
 	MAX_RAW_ERROR_BODY = 512
 	TRUNCATED_SUFFIX   = "... (truncated)"
 
+	// API_ERROR_FORMAT is "<status>: <JSON error body>", the error text SkyflowErrorApi parses.
+	API_ERROR_FORMAT = "%d: %s"
+	// EMPTY_JSON_OBJECT replaces a blank 2xx body so it parses as an empty response.
+	EMPTY_JSON_OBJECT = "{}"
+
 	// ERROR_WITH_STATUS_CODE is the message for an error response with an empty body.
 	ERROR_WITH_STATUS_CODE = "Error with status code %d"
 	// UNKNOWN_RECORD_ERROR is the error on a record of a failed call that reports neither an
@@ -95,11 +100,11 @@ const (
 // DEFAULT_UPLOAD_CONTENT_TYPE is the Content-Type of an uploaded file whose type isn't known.
 const DEFAULT_UPLOAD_CONTENT_TYPE = "application/octet-stream"
 
-// UPLOAD_CONTENT_TYPES maps a lowercase file extension to the Content-Type of an uploaded file.
+// UploadContentTypes maps a lowercase file extension to the Content-Type of an uploaded file.
 // It is the Java SDK's list, so a file gets the same type in both SDKs and on every OS (Go's
 // mime table depends on the system's). Other extensions fall back to Go's table, then to
 // DEFAULT_UPLOAD_CONTENT_TYPE.
-var UPLOAD_CONTENT_TYPES = map[string]string{
+var UploadContentTypes = map[string]string{
 	"pdf": "application/pdf",
 	"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "gif": "image/gif",
 	"bmp": "image/bmp", "tif": "image/tiff", "tiff": "image/tiff", "webp": "image/webp",

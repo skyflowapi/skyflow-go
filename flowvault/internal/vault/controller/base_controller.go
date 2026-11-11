@@ -236,7 +236,7 @@ func successResponse(resp *http.Response) (*http.Response, error) {
 	}
 	text := strings.TrimSpace(string(raw))
 	if text == "" {
-		text = "{}"
+		text = fvconsts.EMPTY_JSON_OBJECT
 	} else {
 		var object map[string]json.RawMessage
 		if json.Unmarshal(raw, &object) != nil || object == nil {

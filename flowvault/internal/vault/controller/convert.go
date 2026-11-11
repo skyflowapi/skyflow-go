@@ -98,7 +98,7 @@ func apiError(apiErr *core.APIError, header http.Header) *fverrors.SkyflowError 
 		errorBody[fvconsts.ERROR_KEY_HTTP_CODE] = apiErr.StatusCode
 	}
 	normalized, _ := json.Marshal(map[string]interface{}{fvconsts.ERROR_KEY_ERROR: errorBody})
-	return fverrors.SkyflowErrorApi(fmt.Errorf("%d: %s", apiErr.StatusCode, normalized), header)
+	return fverrors.SkyflowErrorApi(fmt.Errorf(fvconsts.API_ERROR_FORMAT, apiErr.StatusCode, normalized), header)
 }
 
 // fallbackMessage is the message for an error body without a Skyflow error object.
@@ -147,7 +147,7 @@ func uploadFilesCallError(callErr error, err *fverrors.SkyflowError) *fverrors.S
 		fvconsts.ERROR_KEY_HTTP_CODE: apiErr.StatusCode,
 		fvconsts.ERROR_KEY_MESSAGE:   rawBodyMessage(strings.Join(messages, fvconsts.RECORD_ERRORS_SEPARATOR)),
 	}})
-	return fverrors.SkyflowErrorApi(fmt.Errorf("%d: %s", apiErr.StatusCode, normalized), header)
+	return fverrors.SkyflowErrorApi(fmt.Errorf(fvconsts.API_ERROR_FORMAT, apiErr.StatusCode, normalized), header)
 }
 
 // failedCallStatus is the HTTP status of a call that failed but whose body still carried
