@@ -61,12 +61,15 @@ var _ = Describe("ValidateGet", func() {
 		Entry("ids", fvcommon.GetRequest{TableName: "t", SkyflowIds: []string{"id"}}, ""),
 		Entry("multi-table", fvcommon.GetRequest{Records: []fvcommon.GetRequestRecord{{TableName: "t", UniqueValues: []map[string]interface{}{data}}}}, ""),
 		Entry("both modes", fvcommon.GetRequest{TableName: "t", Records: []fvcommon.GetRequestRecord{{TableName: "t", SkyflowIds: []string{"id"}}}}, "not both"),
-		Entry("empty multi-table records", fvcommon.GetRequest{Records: []fvcommon.GetRequestRecord{}}, "Records must not be empty"),
+		Entry("zero offset with records", fvcommon.GetRequest{Offset: intPtr(0), Records: []fvcommon.GetRequestRecord{{TableName: "t", SkyflowIds: []string{"id"}}}}, "not both"),
+		Entry("empty Records counts as unset", fvcommon.GetRequest{Records: []fvcommon.GetRequestRecord{}}, "Table name must not be empty"),
+		Entry("empty Records with a single-table get", fvcommon.GetRequest{TableName: "t", SkyflowIds: []string{"id"}, Records: []fvcommon.GetRequestRecord{}}, ""),
+		Entry("empty single-table fields with records", fvcommon.GetRequest{SkyflowIds: []string{}, Columns: []string{}, Records: []fvcommon.GetRequestRecord{{TableName: "t", SkyflowIds: []string{"id"}}}}, ""),
 		Entry("ids and unique values", fvcommon.GetRequest{TableName: "t", SkyflowIds: []string{"id"}, UniqueValues: []map[string]interface{}{data}}, "exactly one"),
 		Entry("neither ids nor unique values", fvcommon.GetRequest{TableName: "t"}, "exactly one"),
 		Entry("empty unique value", fvcommon.GetRequest{TableName: "t", UniqueValues: []map[string]interface{}{{}}}, "empty entries"),
-		Entry("negative limit", fvcommon.GetRequest{TableName: "t", SkyflowIds: []string{"id"}, Limit: -1}, "must not be negative"),
-		Entry("bad redaction", fvcommon.GetRequest{TableName: "t", SkyflowIds: []string{"id"}, ColumnRedactions: []fvcommon.ColumnRedaction{{ColumnName: "a"}}}, "Column redactions"),
+		Entry("negative limit", fvcommon.GetRequest{TableName: "t", SkyflowIds: []string{"id"}, Limit: intPtr(-1)}, "must not be negative"),
+		Entry("bad redaction", fvcommon.GetRequest{TableName: "t", SkyflowIds: []string{"id"}, ColumnRedactions: []fvcommon.ColumnRedactions{{ColumnName: "a"}}}, "Column redactions"),
 	)
 })
 
@@ -80,7 +83,7 @@ var _ = Describe("Other validators", func() {
 	It("validates Detokenize", func() {
 		expectError(ValidateDetokenize(fvcommon.DetokenizeRequest{}), "Tokens must not be empty")
 		expectError(ValidateDetokenize(fvcommon.DetokenizeRequest{Tokens: []string{" "}}), "empty values")
-		expectError(ValidateDetokenize(fvcommon.DetokenizeRequest{Tokens: []string{"tok"}, TokenGroupRedactions: []fvcommon.TokenGroupRedaction{{TokenGroupName: "g"}}}), "Token group redactions")
+		expectError(ValidateDetokenize(fvcommon.DetokenizeRequest{Tokens: []string{"tok"}, TokenGroupRedactions: []fvcommon.TokenGroupRedactions{{TokenGroupName: "g"}}}), "Token group redactions")
 		expectError(ValidateDetokenize(fvcommon.DetokenizeRequest{Tokens: []string{"tok"}}), "")
 	})
 
@@ -127,3 +130,5 @@ var _ = Describe("Other validators", func() {
 		expectError(ValidateCustomHeaders(map[fvcommon.CustomHeaderKey]string{fvcommon.SkyflowAccountId: "acc"}, "Insert"), "")
 	})
 })
+
+func intPtr(v int) *int { return &v }

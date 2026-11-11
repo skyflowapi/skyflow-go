@@ -57,7 +57,7 @@ func main() {
 	}
 	fmt.Println("Request ID:", response.RequestId)
 	fmt.Println("Columns:", response.Metadata.Columns)
-	for _, row := range response.Fields {
+	for _, row := range response.Records {
 		fmt.Println(row)
 	}
 }

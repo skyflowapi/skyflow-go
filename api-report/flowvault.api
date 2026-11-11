@@ -31,6 +31,8 @@ pkg github.com/skyflowapi/skyflow-go/flowvault/serviceaccount, func GenerateSign
 pkg github.com/skyflowapi/skyflow-go/flowvault/serviceaccount, func GenerateSignedDataTokensFromCreds(string, github.com/skyflowapi/skyflow-go/flowvault/utils/common.SignedDataTokensOptions) ([]github.com/skyflowapi/skyflow-go/flowvault/utils/common.SignedDataTokensResponse, *github.com/skyflowapi/skyflow-go/flowvault/utils/error.SkyflowError)
 pkg github.com/skyflowapi/skyflow-go/flowvault/serviceaccount, func IsExpired(string) bool
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, const DEV github.com/skyflowapi/skyflow-go/flowvault/utils/common.Env = 3
+pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, const DeleteFilesStatusDeleted github.com/skyflowapi/skyflow-go/flowvault/utils/common.DeleteFilesStatus = "DELETED"
+pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, const DeleteFilesStatusUnknown github.com/skyflowapi/skyflow-go/flowvault/utils/common.DeleteFilesStatus = "UNKNOWN"
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, const PROD github.com/skyflowapi/skyflow-go/flowvault/utils/common.Env = 0
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, const RequestIdHeader github.com/skyflowapi/skyflow-go/flowvault/utils/common.CustomHeaderKey = "x-request-id"
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, const SANDBOX github.com/skyflowapi/skyflow-go/flowvault/utils/common.Env = 2
@@ -42,6 +44,7 @@ pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, const UpdateTypeUpd
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, const UploadStatusFailed github.com/skyflowapi/skyflow-go/flowvault/utils/common.UploadStatus = "FAILED"
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, const UploadStatusSkipped github.com/skyflowapi/skyflow-go/flowvault/utils/common.UploadStatus = "SKIPPED"
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, const UploadStatusUploaded github.com/skyflowapi/skyflow-go/flowvault/utils/common.UploadStatus = "UPLOADED"
+pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, func DeleteFilesStatusFromWire(string) github.com/skyflowapi/skyflow-go/flowvault/utils/common.DeleteFilesStatus
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, func IsCredentialsEmpty(github.com/skyflowapi/skyflow-go/flowvault/utils/common.Credentials) bool
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, method (*RequestContext) AddHeader(github.com/skyflowapi/skyflow-go/flowvault/utils/common.CustomHeaderKey, string)
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, method (*RequestContext) Headers() map[github.com/skyflowapi/skyflow-go/flowvault/utils/common.CustomHeaderKey]string
@@ -51,13 +54,9 @@ pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type BearerTokenOpt
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type BearerTokenOptions struct, field LogLevel github.com/skyflowapi/skyflow-go/flowvault/utils/logger.LogLevel
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type BearerTokenOptions struct, field RoleIDs []string
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type BearerTokenOptions struct, field RoleIds []string
-pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type ColumnRedaction struct
-pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type ColumnRedaction struct, field ColumnName string
-pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type ColumnRedaction struct, field Redaction string
-pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type ConnectionConfig struct
-pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type ConnectionConfig struct, field ConnectionId string
-pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type ConnectionConfig struct, field ConnectionUrl string
-pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type ConnectionConfig struct, field Credentials github.com/skyflowapi/skyflow-go/flowvault/utils/common.Credentials
+pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type ColumnRedactions struct
+pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type ColumnRedactions struct, field ColumnName string
+pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type ColumnRedactions struct, field Redaction string
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type Credentials struct
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type Credentials struct, field ApiKey string
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type Credentials struct, field Context interface{}
@@ -68,7 +67,8 @@ pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type Credentials st
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type CustomHeaderKey string
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type DeleteFilesColumnResult struct
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type DeleteFilesColumnResult struct, field Column string
-pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type DeleteFilesColumnResult struct, field Status string
+pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type DeleteFilesColumnResult struct, field RawStatus string
+pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type DeleteFilesColumnResult struct, field Status github.com/skyflowapi/skyflow-go/flowvault/utils/common.DeleteFilesStatus
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type DeleteFilesOptions struct
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type DeleteFilesOptions struct, field Interceptor github.com/skyflowapi/skyflow-go/flowvault/utils/common.Interceptor
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type DeleteFilesRequest struct
@@ -87,6 +87,7 @@ pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type DeleteFilesRes
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type DeleteFilesResponseRecord struct, field RequestId string
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type DeleteFilesResponseRecord struct, field SkyflowId string
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type DeleteFilesResponseRecord struct, field TableName string
+pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type DeleteFilesStatus string
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type DeleteOptions struct
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type DeleteOptions struct, field Interceptor github.com/skyflowapi/skyflow-go/flowvault/utils/common.Interceptor
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type DeleteRequest struct
@@ -102,36 +103,36 @@ pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type DeleteResponse
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type DeleteResponseRecord struct, field SkyflowId string
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type DetokenizeOptions struct
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type DetokenizeOptions struct, field Interceptor github.com/skyflowapi/skyflow-go/flowvault/utils/common.Interceptor
-pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type DetokenizeRecordMetadata struct
-pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type DetokenizeRecordMetadata struct, field SkyflowId string
-pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type DetokenizeRecordMetadata struct, field TableName string
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type DetokenizeRequest struct
-pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type DetokenizeRequest struct, field TokenGroupRedactions []github.com/skyflowapi/skyflow-go/flowvault/utils/common.TokenGroupRedaction
+pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type DetokenizeRequest struct, field TokenGroupRedactions []github.com/skyflowapi/skyflow-go/flowvault/utils/common.TokenGroupRedactions
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type DetokenizeRequest struct, field Tokens []string
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type DetokenizeResponse struct
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type DetokenizeResponse struct, field Records []github.com/skyflowapi/skyflow-go/flowvault/utils/common.DetokenizeResponseRecord
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type DetokenizeResponseRecord struct
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type DetokenizeResponseRecord struct, field Error string
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type DetokenizeResponseRecord struct, field HttpCode int
-pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type DetokenizeResponseRecord struct, field Metadata *github.com/skyflowapi/skyflow-go/flowvault/utils/common.DetokenizeRecordMetadata
+pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type DetokenizeResponseRecord struct, field Metadata *github.com/skyflowapi/skyflow-go/flowvault/utils/common.DetokenizeResponseRecordMetadata
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type DetokenizeResponseRecord struct, field RequestId string
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type DetokenizeResponseRecord struct, field Token string
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type DetokenizeResponseRecord struct, field TokenGroupName string
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type DetokenizeResponseRecord struct, field Value interface{}
+pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type DetokenizeResponseRecordMetadata struct
+pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type DetokenizeResponseRecordMetadata struct, field SkyflowId string
+pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type DetokenizeResponseRecordMetadata struct, field TableName string
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type Env int
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type GetOptions struct
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type GetOptions struct, field Interceptor github.com/skyflowapi/skyflow-go/flowvault/utils/common.Interceptor
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type GetRequest struct
-pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type GetRequest struct, field ColumnRedactions []github.com/skyflowapi/skyflow-go/flowvault/utils/common.ColumnRedaction
+pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type GetRequest struct, field ColumnRedactions []github.com/skyflowapi/skyflow-go/flowvault/utils/common.ColumnRedactions
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type GetRequest struct, field Columns []string
-pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type GetRequest struct, field Limit int
-pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type GetRequest struct, field Offset int
+pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type GetRequest struct, field Limit *int
+pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type GetRequest struct, field Offset *int
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type GetRequest struct, field Records []github.com/skyflowapi/skyflow-go/flowvault/utils/common.GetRequestRecord
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type GetRequest struct, field SkyflowIds []string
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type GetRequest struct, field TableName string
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type GetRequest struct, field UniqueValues []map[string]interface{}
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type GetRequestRecord struct
-pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type GetRequestRecord struct, field ColumnRedactions []github.com/skyflowapi/skyflow-go/flowvault/utils/common.ColumnRedaction
+pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type GetRequestRecord struct, field ColumnRedactions []github.com/skyflowapi/skyflow-go/flowvault/utils/common.ColumnRedactions
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type GetRequestRecord struct, field Columns []string
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type GetRequestRecord struct, field SkyflowIds []string
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type GetRequestRecord struct, field TableName string
@@ -141,7 +142,7 @@ pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type GetResponse st
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type GetResponseRecord struct
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type GetResponseRecord struct, field Data map[string]interface{}
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type GetResponseRecord struct, field Error string
-pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type GetResponseRecord struct, field HashedData map[string][]github.com/skyflowapi/skyflow-go/flowvault/utils/common.HashedValue
+pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type GetResponseRecord struct, field HashedData map[string]interface{}
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type GetResponseRecord struct, field HttpCode int
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type GetResponseRecord struct, field RequestId string
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type GetResponseRecord struct, field SkyflowId string
@@ -163,9 +164,6 @@ pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type GetTokensRespo
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type GetTokensResponseRecord struct, field Token string
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type GetTokensResponseRecord struct, field TokenGroupName string
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type GetTokensResponseRecord struct, field Value interface{}
-pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type HashedValue struct
-pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type HashedValue struct, field Data string
-pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type HashedValue struct, field HashName string
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type HttpConfig struct
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type HttpConfig struct, field InitialRetryDelay time.Duration
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type HttpConfig struct, field MaxRetries *int
@@ -187,7 +185,7 @@ pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type InsertResponse
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type InsertResponseRecord struct
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type InsertResponseRecord struct, field Data map[string]interface{}
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type InsertResponseRecord struct, field Error string
-pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type InsertResponseRecord struct, field HashedData map[string][]github.com/skyflowapi/skyflow-go/flowvault/utils/common.HashedValue
+pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type InsertResponseRecord struct, field HashedData map[string]interface{}
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type InsertResponseRecord struct, field HttpCode int
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type InsertResponseRecord struct, field RequestId string
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type InsertResponseRecord struct, field SkyflowId string
@@ -201,6 +199,7 @@ pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type QueryRequest s
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type QueryResponse struct
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type QueryResponse struct, field Fields []map[string]interface{}
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type QueryResponse struct, field Metadata github.com/skyflowapi/skyflow-go/flowvault/utils/common.QueryResponseMetadata
+pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type QueryResponse struct, field Records []map[string]interface{}
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type QueryResponse struct, field RequestId string
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type QueryResponseMetadata struct
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type QueryResponseMetadata struct, field Columns []string
@@ -218,9 +217,9 @@ pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type Token struct
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type Token struct, field Path string
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type Token struct, field Token string
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type Token struct, field TokenGroupName string
-pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type TokenGroupRedaction struct
-pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type TokenGroupRedaction struct, field Redaction string
-pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type TokenGroupRedaction struct, field TokenGroupName string
+pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type TokenGroupRedactions struct
+pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type TokenGroupRedactions struct, field Redaction string
+pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type TokenGroupRedactions struct, field TokenGroupName string
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type TokenResponse struct
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type TokenResponse struct, field AccessToken string
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type TokenResponse struct, field TokenType string
@@ -240,7 +239,7 @@ pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type UpdateResponse
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type UpdateResponseRecord struct
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type UpdateResponseRecord struct, field Data map[string]interface{}
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type UpdateResponseRecord struct, field Error string
-pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type UpdateResponseRecord struct, field HashedData map[string][]github.com/skyflowapi/skyflow-go/flowvault/utils/common.HashedValue
+pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type UpdateResponseRecord struct, field HashedData map[string]interface{}
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type UpdateResponseRecord struct, field HttpCode int
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type UpdateResponseRecord struct, field RequestId string
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/common, type UpdateResponseRecord struct, field SkyflowId string
@@ -319,7 +318,6 @@ pkg github.com/skyflowapi/skyflow-go/flowvault/utils/error, const IDS_OR_UNIQUE_
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/error, const INVALID_BASE64 string = "Skyflow FlowVault Go SDK v1.0.0 Validation error. UploadFiles failed. Column %q has invalid base64 content."
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/error, const INVALID_COLUMN_REDACTION string = "Skyflow FlowVault Go SDK v1.0.0 Validation error. %s failed. Column redactions need a column name and a redaction."
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/error, const INVALID_HEADER_KEY string = "Skyflow FlowVault Go SDK v1.0.0 Validation error. %s: header key %q is not supported. Use x-skyflow-account-id, x-skyflow-account-name or x-request-id."
-pkg github.com/skyflowapi/skyflow-go/flowvault/utils/error, const INVALID_INDEX github.com/skyflowapi/skyflow-go/flowvault/utils/error.ErrorCodesEnum = "404"
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/error, const INVALID_INPUT_CODE github.com/skyflowapi/skyflow-go/flowvault/utils/error.ErrorCodesEnum = "400"
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/error, const INVALID_TOKEN_GROUP_REDACTION string = "Skyflow FlowVault Go SDK v1.0.0 Validation error. Detokenize failed. Token group redactions need a token group name and a redaction."
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/error, const INVALID_UPDATE_TYPE string = "Skyflow FlowVault Go SDK v1.0.0 Validation error. %s failed. Invalid update type %q. Use UPDATE or REPLACE."
@@ -329,19 +327,20 @@ pkg github.com/skyflowapi/skyflow-go/flowvault/utils/error, const MISSING_VALUE 
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/error, const MULTIPLE_VAULT_CONFIGS string = "Skyflow FlowVault Go SDK v1.0.0 Validation error. Multiple vault configurations found. Specify a vaultId."
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/error, const NEGATIVE_LIMIT_OFFSET string = "Skyflow FlowVault Go SDK v1.0.0 Validation error. Get failed. Limit and Offset must not be negative."
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/error, const NIL_CONTEXT string = "Skyflow FlowVault Go SDK v1.0.0 Validation error. Context is nil. Pass a context, e.g. context.Background()."
-pkg github.com/skyflowapi/skyflow-go/flowvault/utils/error, const PARTIAL github.com/skyflowapi/skyflow-go/flowvault/utils/error.ErrorCodesEnum = "404"
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/error, const RECORD_UPSERT_NOT_ALLOWED string = "Skyflow FlowVault Go SDK v1.0.0 Validation error. Insert failed. Upsert is set on a record while the table name is set on the request. Set upsert on the request instead."
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/error, const REQUEST_CANCELLED github.com/skyflowapi/skyflow-go/flowvault/utils/error.ErrorCodesEnum = "499"
+pkg github.com/skyflowapi/skyflow-go/flowvault/utils/error, const REQUEST_INTERCEPTOR_FAILED string = "Skyflow FlowVault Go SDK v1.0.0 Request interceptor panicked: %v. The request was not sent."
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/error, const REQUEST_UPSERT_NOT_ALLOWED string = "Skyflow FlowVault Go SDK v1.0.0 Validation error. Insert failed. Upsert is set on the request while the table name is set on the records. Set upsert on each record instead."
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/error, const SERVER github.com/skyflowapi/skyflow-go/flowvault/utils/error.ErrorCodesEnum = "500"
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/error, const TABLE_IN_BOTH_PLACES string = "Skyflow FlowVault Go SDK v1.0.0 Validation error. %s failed. Table name is set on the request and on a record. Set it on the request or on every record, not both."
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/error, const TABLE_MISSING string = "Skyflow FlowVault Go SDK v1.0.0 Validation error. %s failed. Table name is missing. Set it on the request or on every record."
+pkg github.com/skyflowapi/skyflow-go/flowvault/utils/error, const TRANSPORT_ERROR github.com/skyflowapi/skyflow-go/flowvault/utils/error.ErrorCodesEnum = "0"
+pkg github.com/skyflowapi/skyflow-go/flowvault/utils/error, const UNPARSEABLE_SUCCESS_RESPONSE string = "Skyflow FlowVault Go SDK v1.0.0 The vault returned a response that isn't valid JSON. Response body: %s"
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/error, const VAULT_ID_ALREADY_IN_CONFIG_LIST string = "Skyflow FlowVault Go SDK v1.0.0 Validation error. VaultId is present in an existing config. Specify a new vaultId in config."
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/error, const VAULT_ID_EXISTS_IN_CONFIG_LIST string = "Skyflow FlowVault Go SDK v1.0.0 Validation error. %s already exists in the config list. Specify a new vaultId."
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/error, const VAULT_ID_NOT_IN_CONFIG_LIST string = "Skyflow FlowVault Go SDK v1.0.0 Validation error. VaultId is missing from the config. Specify the vaultIds from configs."
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/error, func NewSkyflowError(github.com/skyflowapi/skyflow-go/flowvault/utils/error.ErrorCodesEnum, string) *github.com/skyflowapi/skyflow-go/flowvault/utils/error.SkyflowError
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/error, func NewSkyflowErrorWithCause(github.com/skyflowapi/skyflow-go/flowvault/utils/error.ErrorCodesEnum, string, error) *github.com/skyflowapi/skyflow-go/flowvault/utils/error.SkyflowError
-pkg github.com/skyflowapi/skyflow-go/flowvault/utils/error, func SkyflowApiError(net/http.Response) *github.com/skyflowapi/skyflow-go/flowvault/utils/error.SkyflowError
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/error, func SkyflowErrorApi(error, net/http.Header) *github.com/skyflowapi/skyflow-go/flowvault/utils/error.SkyflowError
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/error, method (*SkyflowError) Error() string
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/error, method (*SkyflowError) GetCode() string
@@ -374,11 +373,15 @@ pkg github.com/skyflowapi/skyflow-go/flowvault/utils/messages, const CURRENT_LOG
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/messages, const EMPTY_CREDENTIALS untyped string = "[ Skyflow FlowVault Go SDK v1.0.0 ] No credentials found in the vault config, client config or SKYFLOW_CREDENTIALS."
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/messages, const EMPTY_VAULT_ARRAY untyped string = "[ Skyflow FlowVault Go SDK v1.0.0 ] Vault config array is empty."
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/messages, const GENERATE_BEARER_TOKEN_TRIGGERED untyped string = "[ Skyflow FlowVault Go SDK v1.0.0 ] Generating a new bearer token."
+pkg github.com/skyflowapi/skyflow-go/flowvault/utils/messages, const INCOMPLETE_UPLOAD_FILES_RESPONSE untyped string = "[ Skyflow FlowVault Go SDK v1.0.0 ] The upload response has a different number of records than the request, so no file was uploaded."
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/messages, const METHOD_TRIGGERED untyped string = "[ Skyflow FlowVault Go SDK v1.0.0 ] %s method triggered."
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/messages, const NIL_CONTEXT untyped string = "[ Skyflow FlowVault Go SDK v1.0.0 ] Context is nil."
+pkg github.com/skyflowapi/skyflow-go/flowvault/utils/messages, const QUERY_RECORD_LIMIT_REACHED untyped string = "[ Skyflow FlowVault Go SDK v1.0.0 ] Query returned %d rows, the most the vault returns in one call; more rows may match. Use LIMIT and OFFSET in the query to page through them."
+pkg github.com/skyflowapi/skyflow-go/flowvault/utils/messages, const REQUEST_INTERCEPTOR_FAILED untyped string = "[ Skyflow FlowVault Go SDK v1.0.0 ] Request interceptor panicked. The request was not sent."
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/messages, const REQUEST_REJECTED untyped string = "[ Skyflow FlowVault Go SDK v1.0.0 ] %s request resulted in failure."
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/messages, const REQUEST_RESOLVED untyped string = "[ Skyflow FlowVault Go SDK v1.0.0 ] %s request resolved."
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/messages, const REUSE_BEARER_TOKEN untyped string = "[ Skyflow FlowVault Go SDK v1.0.0 ] Reusing the cached bearer token."
+pkg github.com/skyflowapi/skyflow-go/flowvault/utils/messages, const UPLOAD_FILES_RECORD_MISMATCH untyped string = "[ Skyflow FlowVault Go SDK v1.0.0 ] Upload response record %d does not match its request record, so its files were not uploaded."
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/messages, const VALIDATING_CRED untyped string = "[ Skyflow FlowVault Go SDK v1.0.0 ] Validating credentials."
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/messages, const VALIDATING_REQUEST untyped string = "[ Skyflow FlowVault Go SDK v1.0.0 ] Validating %s request."
 pkg github.com/skyflowapi/skyflow-go/flowvault/utils/messages, const VALIDATING_VAULT_CONFIG untyped string = "[ Skyflow FlowVault Go SDK v1.0.0 ] Validating vault config."

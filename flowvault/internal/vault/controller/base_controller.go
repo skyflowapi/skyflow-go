@@ -2,10 +2,13 @@ package controller
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -202,10 +205,19 @@ type finalResponseClient struct {
 	client *http.Client
 }
 
+// It also checks 2xx bodies before the generated client parses them, as the Java SDK does: a
+// blank body becomes {}, an empty response, instead of a decoding failure; a body that is not
+// a JSON object becomes an APIError that keeps the real status and (truncated) body.
 func (c finalResponseClient) Do(req *http.Request) (*http.Response, error) {
 	resp, err := c.client.Do(req)
-	if err != nil || !fvhelpers.ShouldRetry(resp.StatusCode) {
+	if err != nil {
 		return resp, err
+	}
+	if resp.StatusCode >= http.StatusOK && resp.StatusCode < http.StatusMultipleChoices {
+		return successResponse(resp)
+	}
+	if !fvhelpers.ShouldRetry(resp.StatusCode) {
+		return resp, nil
 	}
 	defer func() { _ = resp.Body.Close() }()
 	raw, err := io.ReadAll(resp.Body)
@@ -215,12 +227,40 @@ func (c finalResponseClient) Do(req *http.Request) (*http.Response, error) {
 	return nil, core.NewAPIError(resp.StatusCode, resp.Header, errors.New(string(raw)))
 }
 
+// successResponse normalizes a 2xx response body; see finalResponseClient.
+func successResponse(resp *http.Response) (*http.Response, error) {
+	defer func() { _ = resp.Body.Close() }()
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	text := strings.TrimSpace(string(raw))
+	if text == "" {
+		text = "{}"
+	} else {
+		var object map[string]json.RawMessage
+		if json.Unmarshal(raw, &object) != nil || object == nil {
+			body, _ := json.Marshal(map[string]interface{}{fvconsts.ERROR_KEY_ERROR: map[string]interface{}{
+				fvconsts.ERROR_KEY_MESSAGE:   fmt.Sprintf(fverrors.UNPARSEABLE_SUCCESS_RESPONSE, rawBodyMessage(string(raw))),
+				fvconsts.ERROR_KEY_HTTP_CODE: resp.StatusCode,
+			}})
+			return nil, core.NewAPIError(resp.StatusCode, resp.Header, errors.New(string(body)))
+		}
+		text = string(raw)
+	}
+	resp.Body = io.NopCloser(strings.NewReader(text))
+	resp.ContentLength = int64(len(text))
+	return resp, nil
+}
+
 // buildHeaders merges the interceptor's per-call headers and the SDK metadata header.
 func buildHeaders(operation string, interceptor fvcommon.Interceptor) (http.Header, *fverrors.SkyflowError) {
 	headers := http.Header{}
 	if interceptor != nil {
-		rc := &fvcommon.RequestContext{Operation: operation}
-		interceptor(rc)
+		rc, err := runInterceptor(operation, interceptor)
+		if err != nil {
+			return nil, err
+		}
 		if added := rc.Headers(); len(added) > 0 {
 			if err := fvvalidation.ValidateCustomHeaders(added, operation); err != nil {
 				return nil, err
@@ -232,6 +272,29 @@ func buildHeaders(operation string, interceptor fvcommon.Interceptor) (http.Head
 	}
 	headers.Set(fvconsts.SDK_METRICS_HEADER_KEY, fvhelpers.CreateSDKMetadata())
 	return headers, nil
+}
+
+// runInterceptor calls the caller's interceptor. A panic in it fails the call with a
+// SkyflowError instead of crashing the caller, as the Java SDK wraps an interceptor's
+// exception; a non-nil *SkyflowError panic value is returned as is.
+func runInterceptor(operation string, interceptor fvcommon.Interceptor) (rc *fvcommon.RequestContext, err *fverrors.SkyflowError) {
+	rc = &fvcommon.RequestContext{Operation: operation}
+	defer func() {
+		recovered := recover()
+		if recovered == nil {
+			return
+		}
+		rc = nil
+		if skyflowErr, ok := recovered.(*fverrors.SkyflowError); ok && skyflowErr != nil {
+			err = skyflowErr
+			return
+		}
+		fvlogger.Error(logs.REQUEST_INTERCEPTOR_FAILED)
+		cause, _ := recovered.(error)
+		err = fverrors.NewSkyflowErrorWithCause(fverrors.INVALID_INPUT_CODE, fmt.Sprintf(fverrors.REQUEST_INTERCEPTOR_FAILED, recovered), cause)
+	}()
+	interceptor(rc)
+	return rc, nil
 }
 
 // authToken returns the API key or bearer token to send, generating and caching a

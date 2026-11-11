@@ -3,9 +3,12 @@ package controller
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -13,7 +16,9 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	fvconsts "github.com/skyflowapi/skyflow-go/flowvault/internal/constants"
 	fvcommon "github.com/skyflowapi/skyflow-go/flowvault/utils/common"
+	fverrors "github.com/skyflowapi/skyflow-go/flowvault/utils/error"
 )
 
 // fakeFlowService records each request and answers with the response set for its path.
@@ -25,6 +30,7 @@ type fakeFlowService struct {
 	responses map[string]fakeResponse
 	puts      map[string]string
 	putCalls  map[string]int
+	calls     map[string]int
 }
 
 type fakeResponse struct {
@@ -39,6 +45,7 @@ func newFakeFlowService() *fakeFlowService {
 		responses: map[string]fakeResponse{},
 		puts:      map[string]string{},
 		putCalls:  map[string]int{},
+		calls:     map[string]int{},
 	}
 	f.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		raw, _ := io.ReadAll(r.Body)
@@ -57,6 +64,7 @@ func newFakeFlowService() *fakeFlowService {
 		}
 		var body map[string]interface{}
 		_ = json.Unmarshal(raw, &body)
+		f.calls[r.URL.Path]++
 		f.requests[r.URL.Path] = body
 		f.headers[r.URL.Path] = r.Header.Clone()
 		response, ok := f.responses[r.URL.Path]
@@ -109,7 +117,7 @@ var _ = Describe("VaultController API calls", func() {
 		Expect(resp.Records).To(HaveLen(2))
 		Expect(resp.Records[0].SkyflowId).To(Equal("id1"))
 		Expect(resp.Records[0].Tokens["email"]).To(Equal([]fvcommon.Token{{Token: "tok1", TokenGroupName: "det"}}))
-		Expect(resp.Records[0].HashedData["email"]).To(Equal([]fvcommon.HashedValue{{Data: "h", HashName: "sha"}}))
+		Expect(resp.Records[0].HashedData["email"]).To(Equal([]interface{}{map[string]interface{}{"data": "h", "hashName": "sha"}}))
 		Expect(resp.Records[0].RequestId).To(BeEmpty())
 		Expect(resp.Records[1].Error).To(Equal("bad record"))
 		Expect(resp.Records[1].HttpCode).To(Equal(400))
@@ -183,8 +191,8 @@ var _ = Describe("VaultController API calls", func() {
 	It("gets from one table with limit, offset and redactions", func() {
 		fake.respond("/v2/records/get", http.StatusOK, `{"records":[{"skyflowID":"id1","data":{"name":"j"},"httpCode":200}]}`)
 		resp, err := v.Get(ctx, fvcommon.GetRequest{
-			TableName: "t", SkyflowIds: []string{"id1"}, Columns: []string{"name"}, Limit: 10, Offset: 5,
-			ColumnRedactions: []fvcommon.ColumnRedaction{{ColumnName: "name", Redaction: "MASKED"}},
+			TableName: "t", SkyflowIds: []string{"id1"}, Columns: []string{"name"}, Limit: intPtr(10), Offset: intPtr(5),
+			ColumnRedactions: []fvcommon.ColumnRedactions{{ColumnName: "name", Redaction: "MASKED"}},
 		}, fvcommon.GetOptions{})
 		Expect(err).To(BeNil())
 		sent := fake.requests["/v2/records/get"]
@@ -193,6 +201,15 @@ var _ = Describe("VaultController API calls", func() {
 		Expect(sent["offset"]).To(BeEquivalentTo(5))
 		Expect(sent["columnRedactions"]).To(Equal([]interface{}{map[string]interface{}{"columnName": "name", "redaction": "MASKED"}}))
 		Expect(resp.Records[0].Data).To(Equal(map[string]interface{}{"name": "j"}))
+	})
+
+	It("sends an explicit zero offset and omits an unset limit", func() {
+		fake.respond("/v2/records/get", http.StatusOK, `{"records":[]}`)
+		_, err := v.Get(ctx, fvcommon.GetRequest{TableName: "t", SkyflowIds: []string{"id1"}, Offset: intPtr(0)}, fvcommon.GetOptions{})
+		Expect(err).To(BeNil())
+		sent := fake.requests["/v2/records/get"]
+		Expect(sent).To(HaveKeyWithValue("offset", BeEquivalentTo(0)))
+		Expect(sent).ToNot(HaveKey("limit"))
 	})
 
 	It("gets from several tables", func() {
@@ -221,12 +238,12 @@ var _ = Describe("VaultController API calls", func() {
 			{"token":"tok2","httpCode":404,"error":"not found"}]}`)
 		resp, err := v.Detokenize(ctx, fvcommon.DetokenizeRequest{
 			Tokens:               []string{"tok1", "tok2"},
-			TokenGroupRedactions: []fvcommon.TokenGroupRedaction{{TokenGroupName: "g", Redaction: "PLAIN_TEXT"}},
+			TokenGroupRedactions: []fvcommon.TokenGroupRedactions{{TokenGroupName: "g", Redaction: "PLAIN_TEXT"}},
 		}, fvcommon.DetokenizeOptions{})
 		Expect(err).To(BeNil())
 		Expect(fake.requests["/v2/tokens/detokenize"]["tokenGroupRedactions"]).To(Equal([]interface{}{map[string]interface{}{"tokenGroupName": "g", "redaction": "PLAIN_TEXT"}}))
 		Expect(resp.Records[0].Value).To(Equal("john"))
-		Expect(resp.Records[0].Metadata).To(Equal(&fvcommon.DetokenizeRecordMetadata{SkyflowId: "id1", TableName: "users"}))
+		Expect(resp.Records[0].Metadata).To(Equal(&fvcommon.DetokenizeResponseRecordMetadata{SkyflowId: "id1", TableName: "users"}))
 		Expect(resp.Records[1].HttpCode).To(Equal(404))
 		Expect(resp.Records[1].RequestId).To(Equal("req-123"))
 	})
@@ -244,7 +261,8 @@ var _ = Describe("VaultController API calls", func() {
 		resp, err := v.Query(ctx, fvcommon.QueryRequest{Query: "SELECT name FROM users"}, fvcommon.QueryOptions{})
 		Expect(err).To(BeNil())
 		Expect(fake.requests["/v2/query"]["query"]).To(Equal("SELECT name FROM users"))
-		Expect(resp.Fields).To(Equal([]map[string]interface{}{{"name": "j"}}))
+		Expect(resp.Records).To(Equal([]map[string]interface{}{{"name": "j"}}))
+		Expect(resp.Fields).To(Equal(resp.Records)) //nolint:staticcheck // the deprecated alias still works
 		Expect(resp.Metadata.Columns).To(Equal([]string{"name"}))
 		Expect(resp.RequestId).To(Equal("req-123"))
 	})
@@ -275,8 +293,12 @@ var _ = Describe("VaultController API calls", func() {
 		Expect(resp.Records[0].SkyflowId).To(Equal("new1"))
 		Expect(resp.Records[0].Columns).To(Equal([]fvcommon.UploadFilesColumnResult{
 			{Column: "resume", FileName: "resume.pdf", UploadStatus: fvcommon.UploadStatusUploaded},
-			{Column: "photo", FileName: "photo.png", UploadStatus: fvcommon.UploadStatusSkipped},
+			{Column: "photo", FileName: "photo.png", UploadStatus: fvcommon.UploadStatusSkipped, Error: fvconsts.NO_SIGNED_URL_ERROR},
 		}))
+		// The vault accepted the record, but one of its files wasn't uploaded.
+		Expect(resp.Records[0].Error).To(Equal("1 of 2 files were not uploaded. See each column for details."))
+		Expect(resp.Records[0].HttpCode).To(Equal(200))
+		Expect(resp.Records[0].RequestId).To(Equal("req-123"))
 		Expect(resp.Records[1].Error).To(Equal("record not found"))
 		Expect(resp.Records[1].RequestId).To(Equal("req-123"))
 		Expect(resp.Records[1].Columns[0].UploadStatus).To(Equal(fvcommon.UploadStatusSkipped))
@@ -300,6 +322,84 @@ var _ = Describe("VaultController API calls", func() {
 		Expect(resp.Records[0].Columns[0]).To(Equal(fvcommon.UploadFilesColumnResult{
 			Column: "resume", FileName: "resume.pdf", UploadStatus: fvcommon.UploadStatusFailed, Error: "PUT failed: 503",
 		}))
+		Expect(resp.Records[0].Error).To(Equal("1 of 1 files were not uploaded. See each column for details."))
+	})
+
+	It("uploads one *os.File used by two columns in full to both", func() {
+		path := filepath.Join(GinkgoT().TempDir(), "shared.txt")
+		Expect(os.WriteFile(path, []byte(strings.Repeat("0123456789", 10000)), 0o600)).To(Succeed())
+		handle, err := os.Open(path)
+		Expect(err).To(BeNil())
+		DeferCleanup(handle.Close)
+		fake.respond("/v2/files/upload", http.StatusOK, `{"records":[{"skyflowID":"id1","tableName":"docs","httpCode":200,"data":{
+			"a":"`+fake.server.URL+`/signed/a","b":"`+fake.server.URL+`/signed/b"}}]}`)
+		resp, callErr := v.UploadFiles(ctx, fvcommon.UploadFilesRequest{Records: []fvcommon.UploadFilesRequestRecord{
+			{TableName: "docs", Columns: []fvcommon.UploadFilesRequestColumn{{Column: "a", FileObject: handle}, {Column: "b", FileObject: handle}}},
+		}}, fvcommon.UploadFilesOptions{})
+		Expect(callErr).To(BeNil())
+		Expect(resp.Records[0].Error).To(BeEmpty())
+		Expect(fake.puts["/signed/a"]).To(HaveLen(100000))
+		Expect(fake.puts["/signed/b"]).To(Equal(fake.puts["/signed/a"]))
+	})
+
+	It("fails an uploadFiles call with an error status even when the body has records, as in Java", func() {
+		request := fvcommon.UploadFilesRequest{Records: []fvcommon.UploadFilesRequestRecord{
+			{TableName: "docs", Columns: []fvcommon.UploadFilesRequestColumn{{Column: "a", Base64: "cGRm", FileName: "a.pdf"}}},
+			{TableName: "docs", Columns: []fvcommon.UploadFilesRequestColumn{{Column: "a", Base64: "cGRm", FileName: "a.pdf"}}},
+			{TableName: "docs", Columns: []fvcommon.UploadFilesRequestColumn{{Column: "a", Base64: "cGRm", FileName: "a.pdf"}}},
+		}}
+		fake.respond("/v2/files/upload", http.StatusBadRequest, `{"records":[
+			{"tableName":"docs","httpCode":400,"error":"bad column"},
+			{"skyflowID":"id2","tableName":"docs","data":{"a":"`+fake.server.URL+`/signed/a"}},
+			{"tableName":"docs","httpCode":400,"error":"bad column"},
+			null,
+			{"tableName":"docs","error":"quota exceeded"}]}`)
+		resp, err := v.UploadFiles(ctx, request, fvcommon.UploadFilesOptions{})
+		Expect(resp).To(BeNil())
+		Expect(err).ToNot(BeNil())
+		Expect(err.GetHttpCode()).To(Equal("400"))
+		Expect(err.GetMessage()).To(ContainSubstring("bad column; quota exceeded"))
+		Expect(err.GetRequestId()).To(Equal("req-123"))
+		Expect(fake.puts).To(BeEmpty())
+
+		fake.respond("/v2/files/upload", http.StatusBadRequest, `{"records":[{"skyflowID":"id2","tableName":"docs","data":{"a":"`+fake.server.URL+`/signed/a"}}]}`)
+		_, err = v.UploadFiles(ctx, request, fvcommon.UploadFilesOptions{})
+		Expect(err.GetHttpCode()).To(Equal("400"))
+		Expect(err.GetMessage()).To(ContainSubstring(`"skyflowID":"id2"`))
+		Expect(fake.puts).To(BeEmpty())
+
+		fake.respond("/v2/files/upload", http.StatusBadRequest, `{"records":{"error":"not a list"}}`)
+		_, err = v.UploadFiles(ctx, request, fvcommon.UploadFilesOptions{})
+		Expect(err.GetHttpCode()).To(Equal("400"))
+		Expect(err.GetMessage()).To(ContainSubstring("not a list"))
+	})
+
+	It("doesn't retry uploadFiles on a 5xx, as in Java, but retries other calls and 429", func() {
+		retries := 2
+		v.SetConfig(fvcommon.VaultConfig{VaultId: "vault1", BaseVaultUrl: fake.server.URL, MaxRetries: &retries, InitialRetryDelay: time.Millisecond}, false)
+		fake.respond("/v2/files/upload", http.StatusInternalServerError, `{"error":{"message":"boom"}}`)
+		fake.respond("/v2/files/delete", http.StatusServiceUnavailable, `{"error":{"message":"boom"}}`)
+		fake.respond("/v2/records/getTokens", http.StatusServiceUnavailable, `{"error":{"message":"boom"}}`)
+
+		_, err := v.UploadFiles(ctx, fvcommon.UploadFilesRequest{Records: []fvcommon.UploadFilesRequestRecord{
+			{TableName: "docs", Columns: []fvcommon.UploadFilesRequestColumn{{Column: "resume", Base64: "cGRm", FileName: "resume.pdf"}}},
+		}}, fvcommon.UploadFilesOptions{})
+		Expect(err.GetHttpCode()).To(Equal("500"))
+		_, err = v.DeleteFiles(ctx, fvcommon.DeleteFilesRequest{Records: []fvcommon.DeleteFilesRequestRecord{
+			{TableName: "docs", Columns: []string{"resume"}, SkyflowId: "id1"},
+		}}, fvcommon.DeleteFilesOptions{})
+		Expect(err.GetHttpCode()).To(Equal("503"))
+		_, err = v.GetTokens(ctx, fvcommon.GetTokensRequest{Records: []fvcommon.GetTokensRequestRecord{{Value: "v", TokenGroupName: "g"}}}, fvcommon.GetTokensOptions{})
+		Expect(err).ToNot(BeNil())
+		Expect(fake.calls["/v2/files/upload"]).To(Equal(1))
+		Expect(fake.calls["/v2/files/delete"]).To(Equal(3))
+		Expect(fake.calls["/v2/records/getTokens"]).To(Equal(3))
+
+		fake.respond("/v2/files/upload", http.StatusTooManyRequests, `{"error":{"message":"slow down"}}`)
+		_, _ = v.UploadFiles(ctx, fvcommon.UploadFilesRequest{Records: []fvcommon.UploadFilesRequestRecord{
+			{TableName: "docs", Columns: []fvcommon.UploadFilesRequestColumn{{Column: "resume", Base64: "cGRm", FileName: "resume.pdf"}}},
+		}}, fvcommon.UploadFilesOptions{})
+		Expect(fake.calls["/v2/files/upload"]).To(Equal(4))
 	})
 
 	It("deletes files", func() {
@@ -311,7 +411,9 @@ var _ = Describe("VaultController API calls", func() {
 		record := fake.requests["/v2/files/delete"]["records"].([]interface{})[0].(map[string]interface{})
 		Expect(record).ToNot(HaveKey("skyflowID"))
 		Expect(record["columns"]).To(Equal([]interface{}{"resume"}))
-		Expect(resp.Records[0].Columns).To(Equal([]fvcommon.DeleteFilesColumnResult{{Column: "resume", Status: "DELETED"}}))
+		Expect(resp.Records[0].Columns).To(Equal([]fvcommon.DeleteFilesColumnResult{
+			{Column: "resume", Status: fvcommon.DeleteFilesStatusDeleted, RawStatus: "DELETED"},
+		}))
 	})
 
 	It("sends interceptor headers", func() {
@@ -322,10 +424,124 @@ var _ = Describe("VaultController API calls", func() {
 		Expect(fake.headers["/v2/query"].Get("x-request-id")).To(Equal("mine"))
 	})
 
-	It("reports a network failure as a SkyflowError", func() {
+	It("reports a network failure with HTTP code 0 and no status, as in Java", func() {
 		fake.server.Close()
 		_, err := v.Query(ctx, fvcommon.QueryRequest{Query: "SELECT 1"}, fvcommon.QueryOptions{})
 		Expect(err).ToNot(BeNil())
-		Expect(err.GetCode()).To(ContainSubstring("500"))
+		Expect(err.GetHttpCode()).To(Equal(string(fverrors.TRANSPORT_ERROR)))
+		Expect(err.GetHttpStatusCode()).To(BeEmpty())
+		Expect(errors.Unwrap(err)).ToNot(BeNil())
+	})
+
+	It("reports the client's Timeout as HTTP code 0 and keeps the deadline error", func() {
+		slow := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			time.Sleep(500 * time.Millisecond)
+		}))
+		DeferCleanup(slow.Close)
+		timed := NewVaultController(fvcommon.VaultConfig{VaultId: "vault1", BaseVaultUrl: slow.URL, Timeout: 50 * time.Millisecond},
+			ClientSettings{Credentials: &fvcommon.Credentials{ApiKey: testApiKey}})
+		_, err := timed.Query(ctx, fvcommon.QueryRequest{Query: "SELECT 1"}, fvcommon.QueryOptions{})
+		Expect(err).ToNot(BeNil())
+		Expect(err.GetHttpCode()).To(Equal(string(fverrors.TRANSPORT_ERROR)))
+		Expect(errors.Is(err, context.DeadlineExceeded)).To(BeTrue())
+	})
+
+	It("logs a warning when a query returns a full page of rows", func() {
+		rows := make([]string, fvconsts.QUERY_RECORD_LIMIT)
+		for i := range rows {
+			rows[i] = `{"data":{"n":1}}`
+		}
+		fake.respond("/v2/query", http.StatusOK, `{"records":[`+strings.Join(rows, ",")+`]}`)
+		resp, err := v.Query(ctx, fvcommon.QueryRequest{Query: "SELECT n FROM t"}, fvcommon.QueryOptions{})
+		Expect(err).To(BeNil())
+		Expect(resp.Records).To(HaveLen(fvconsts.QUERY_RECORD_LIMIT))
+	})
+
+	It("reports getTokens records of a failed call as failed unless they report a 2xx", func() {
+		fake.respond("/v2/records/getTokens", http.StatusBadRequest, `{"records":[
+			{"token":"t1","httpCode":200},{"token":"","httpCode":400},{"token":""}]}`)
+		resp, err := v.GetTokens(ctx, fvcommon.GetTokensRequest{Records: []fvcommon.GetTokensRequestRecord{
+			{Value: "a", TokenGroupName: "g"}, {Value: "b", TokenGroupName: "g"}, {Value: "c", TokenGroupName: "g"},
+		}}, fvcommon.GetTokensOptions{})
+		Expect(err).To(BeNil())
+		Expect(resp.Records[0].Error).To(BeEmpty())
+		Expect(resp.Records[1].Error).To(Equal(fvconsts.UNKNOWN_RECORD_ERROR))
+		Expect(resp.Records[1].RequestId).To(Equal("req-123"))
+		Expect(resp.Records[2].HttpCode).To(Equal(http.StatusBadRequest))
+		Expect(resp.Records[2].Error).To(Equal(fvconsts.UNKNOWN_RECORD_ERROR))
+	})
+
+	It("treats a blank 2xx body as an empty response, as in Java", func() {
+		fake.respond("/v2/query", http.StatusOK, "")
+		resp, err := v.Query(ctx, fvcommon.QueryRequest{Query: "SELECT 1"}, fvcommon.QueryOptions{})
+		Expect(err).To(BeNil())
+		Expect(resp.Records).To(BeEmpty())
+		Expect(resp.RequestId).To(Equal("req-123"))
+
+		fake.respond("/v2/records/getTokens", http.StatusOK, " \n")
+		tokens, err := v.GetTokens(ctx, fvcommon.GetTokensRequest{Records: []fvcommon.GetTokensRequestRecord{{Value: "v", TokenGroupName: "g"}}}, fvcommon.GetTokensOptions{})
+		Expect(err).To(BeNil())
+		Expect(tokens.Records).To(BeEmpty())
+	})
+
+	It("reports a 2xx body that isn't a JSON object with its real status and body", func() {
+		for _, body := range []string{"<html>gateway</html>", "[1,2]", "null"} {
+			fake.respond("/v2/files/delete", http.StatusOK, body)
+			_, err := v.DeleteFiles(ctx, fvcommon.DeleteFilesRequest{Records: []fvcommon.DeleteFilesRequestRecord{
+				{TableName: "docs", Columns: []string{"resume"}, SkyflowId: "id1"},
+			}}, fvcommon.DeleteFilesOptions{})
+			Expect(err).ToNot(BeNil(), body)
+			Expect(err.GetHttpCode()).To(Equal("200"))
+			Expect(err.GetMessage()).To(ContainSubstring("isn't valid JSON. Response body: " + body))
+			Expect(err.GetRequestId()).To(Equal("req-123"))
+		}
+		fake.respond("/v2/query", http.StatusOK, strings.Repeat("x", 2000))
+		_, err := v.Query(ctx, fvcommon.QueryRequest{Query: "SELECT 1"}, fvcommon.QueryOptions{})
+		Expect(err.GetMessage()).To(HaveSuffix("... (truncated)"))
+	})
+
+	It("fails the call with a SkyflowError when the interceptor panics", func() {
+		_, err := v.Query(ctx, fvcommon.QueryRequest{Query: "SELECT 1"}, fvcommon.QueryOptions{
+			Interceptor: func(rc *fvcommon.RequestContext) { panic(errors.New("no tenant")) },
+		})
+		Expect(err).ToNot(BeNil())
+		Expect(err.GetHttpCode()).To(Equal(string(fverrors.INVALID_INPUT_CODE)))
+		Expect(err.GetMessage()).To(ContainSubstring("Request interceptor panicked: no tenant. The request was not sent."))
+		Expect(errors.Unwrap(err)).To(MatchError("no tenant"))
+		Expect(fake.calls).To(BeEmpty())
+
+		own := fverrors.NewSkyflowError(fverrors.INVALID_INPUT_CODE, "mine")
+		_, err = v.Query(ctx, fvcommon.QueryRequest{Query: "SELECT 1"}, fvcommon.QueryOptions{
+			Interceptor: func(rc *fvcommon.RequestContext) { panic(own) },
+		})
+		Expect(err).To(BeIdenticalTo(own))
+
+		_, err = v.Query(ctx, fvcommon.QueryRequest{Query: "SELECT 1"}, fvcommon.QueryOptions{
+			Interceptor: func(rc *fvcommon.RequestContext) { panic((*fverrors.SkyflowError)(nil)) },
+		})
+		Expect(err).ToNot(BeNil())
+		Expect(err.GetHttpCode()).To(Equal(string(fverrors.INVALID_INPUT_CODE)))
+		Expect(fake.calls).To(BeEmpty())
+	})
+
+	It("reports a context cancelled during the call as REQUEST_CANCELLED", func() {
+		cancelled, cancel := context.WithCancel(ctx)
+		cancel()
+		_, err := v.Query(cancelled, fvcommon.QueryRequest{Query: "SELECT 1"}, fvcommon.QueryOptions{})
+		Expect(err).ToNot(BeNil())
+		Expect(err.GetHttpCode()).To(Equal(string(fverrors.REQUEST_CANCELLED)))
+		Expect(errors.Is(err, context.Canceled)).To(BeTrue())
+	})
+
+	It("truncates a long non-JSON error body", func() {
+		fake.respond("/v2/query", http.StatusBadGateway, strings.Repeat("x", 2000))
+		_, err := v.Query(ctx, fvcommon.QueryRequest{Query: "SELECT 1"}, fvcommon.QueryOptions{})
+		Expect(err).ToNot(BeNil())
+		Expect(err.GetHttpCode()).To(Equal("502"))
+		Expect(err.GetMessage()).To(HaveSuffix("... (truncated)"))
+		Expect(len(err.GetMessage())).To(BeNumerically("<", 600))
+		Expect(err.GetRequestId()).To(Equal("req-123"))
 	})
 })
+
+func intPtr(v int) *int { return &v }

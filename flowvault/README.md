@@ -423,7 +423,7 @@ skyflowClient, err := client.NewSkyflow(
 )
 ```
 
-When retries are enabled, retryable responses (HTTP `408`, `429` and `5xx`) are retried with exponential backoff and jitter, bounded by `InitialRetryDelay`/`MaxRetryDelay` and the overall `Timeout`. A deadline on the `context.Context` you pass to a call also applies when it is shorter. The file uploads in [Upload Files](#upload-files) are not retried and have no overall timeout, so large files aren't cut off.
+When retries are enabled, retryable responses (HTTP `408`, `429` and `5xx`) are retried with exponential backoff and jitter, bounded by `InitialRetryDelay`/`MaxRetryDelay` and the overall `Timeout`. `UploadFiles` is the exception, as in the Java SDK: it is not retried on a `5xx`, because the vault may already have created the records before failing. It is still retried on `408` and `429`. A deadline on the `context.Context` you pass to a call also applies when it is shorter. The file uploads in [Upload Files](#upload-files) are not retried and have no overall timeout, so large files aren't cut off.
 
 ## Logging
 
@@ -435,7 +435,7 @@ The level and output are **process-wide**: they are shared by every client of th
 
 - **Concurrency**: `*client.Skyflow` and the `*VaultService` values it returns are safe for concurrent use. Vaults and client settings can be changed while calls are running; a call that is already running keeps the config it started with, and a `VaultService` obtained earlier sees the change on its next call.
 - **Lifecycle**: create the client once and reuse it. The underlying HTTP client and the cached bearer token are reused across calls rather than recreated per request. There is nothing to close.
-- **Cancellation**: every call takes a `context.Context`. If the context is cancelled or its deadline passes, the call stops and returns a `*SkyflowError`. When that happens while the call waits for a bearer token, the error has HTTP code `499` and unwraps to the context's error.
+- **Cancellation**: every call takes a `context.Context`. If the context is cancelled or its deadline passes, the call stops and returns a `*SkyflowError`. The error has HTTP code `499` and unwraps to the context's error, so `errors.Is(err, context.Canceled)` and `errors.Is(err, context.DeadlineExceeded)` work.
 
 # Vault operations
 
@@ -528,7 +528,7 @@ Sample response:
 }
 ```
 
-Records come back in the order you submitted them. `RequestId` is empty on success and the failing call's `x-request-id` on error. `Tokens` maps each column to a **slice** of `common.Token`, one entry per token group configured on that column, each with `Token`, `TokenGroupName` and `Path` (the location within a structured column's value the token came from, for example `"phone_numbers[0].type"`; empty for a flat column). `HashedData` maps each column to a slice of `common.HashedValue` (`Data`, `HashName`).
+Records come back in the order you submitted them. `RequestId` is empty on success and the failing call's `x-request-id` on error. `Tokens` maps each column to a **slice** of `common.Token`, one entry per token group configured on that column, each with `Token`, `TokenGroupName` and `Path` (the location within a structured column's value the token came from, for example `"phone_numbers[0].type"`; empty for a flat column). `HashedData` is the vault's `hashedData` passed through as returned, as in the Java SDK: a `map[string]interface{}` from column name to that column's hashes (typically a list of `{"data", "hashName"}` objects).
 
 ```go
 for _, record := range response.Records {
@@ -553,12 +553,12 @@ Detokenize tokens in a single API call, optionally overriding the redaction appl
 **Note:**
 
 - `Tokens` is required and must not be empty, and no entry may be blank.
-- `TokenGroupRedactions` is optional; each `common.TokenGroupRedaction` needs a non-blank `TokenGroupName` and `Redaction`.
+- `TokenGroupRedactions` is optional; each `common.TokenGroupRedactions` needs a non-blank `TokenGroupName` and `Redaction`.
 
 ```go
 request := common.DetokenizeRequest{
 	Tokens: []string{"5479-4229-4622-1393", "<TOKEN_1>"},
-	TokenGroupRedactions: []common.TokenGroupRedaction{
+	TokenGroupRedactions: []common.TokenGroupRedactions{
 		{TokenGroupName: "card_number_tg", Redaction: "MASKED"},
 	},
 }
@@ -592,7 +592,7 @@ Sample response:
 }
 ```
 
-`Value` is an `interface{}`. `Metadata` is a `*common.DetokenizeRecordMetadata` with `SkyflowId` and `TableName` (`nil` on records that failed).
+`Value` is an `interface{}`. `Metadata` is a `*common.DetokenizeResponseRecordMetadata` with `SkyflowId` and `TableName` (`nil` on records that failed).
 
 ```go
 for _, record := range response.Records {
@@ -616,21 +616,22 @@ Read records back from a table by Skyflow ID or by unique value, optionally over
 
 **Note:**
 
-- A `common.GetRequest` works in one of two modes, which are mutually exclusive: **single-table** (`TableName`, `SkyflowIds`/`UniqueValues`, `Columns`, `ColumnRedactions`, `Limit`, `Offset`) or **multi-table** (`Records`, a slice of `common.GetRequestRecord`). Setting fields from both fails validation.
+- A `common.GetRequest` works in one of two modes, which are mutually exclusive: **single-table** (`TableName`, `SkyflowIds`/`UniqueValues`, `Columns`, `ColumnRedactions`, `Limit`, `Offset`) or **multi-table** (`Records`, a slice of `common.GetRequestRecord`). Setting fields from both fails validation. As in the Java SDK, an empty slice counts as not set, so an empty `Records` makes the request single-table. `Limit` and `Offset` aren't sent in multi-table mode, so setting them with `Records` fails validation rather than being ignored.
 - `TableName` is required, and exactly one of `SkyflowIds` or `UniqueValues` must be set; both, or neither, fails validation. This holds per record in multi-table mode.
 - `UniqueValues` is a `[]map[string]interface{}`: one map per record, holding the unique column-name/value pairs that identify it.
 - `Columns` selects the columns to return; leave it nil or empty for all of them.
-- `Limit` and `Offset` apply to the call as a whole, are **only used in single-table mode**, and must not be negative. `0` means "not sent".
-- Each `common.ColumnRedaction` needs a non-blank `ColumnName` and `Redaction`.
+- `Limit` and `Offset` apply to the call as a whole, are **only used in single-table mode**, and must not be negative. They are `*int`: `nil` means "not sent", and an explicit `0` is sent.
+- Each `common.ColumnRedactions` needs a non-blank `ColumnName` and `Redaction`.
 
 ```go
 // Single table, by Skyflow ID
+limit := 10
 response, err := vault.Get(ctx, common.GetRequest{
 	TableName:        "table1",
 	SkyflowIds:       []string{"9fac9201-7b8a-4446-93f8-5244e1213bd1"},
 	Columns:          []string{"card_number", "cardholder_name"},
-	ColumnRedactions: []common.ColumnRedaction{{ColumnName: "card_number", Redaction: "MASKED"}},
-	Limit:            10,
+	ColumnRedactions: []common.ColumnRedactions{{ColumnName: "card_number", Redaction: "MASKED"}},
+	Limit:            &limit,
 }, common.GetOptions{})
 
 // Single table, by unique value
@@ -793,7 +794,7 @@ Run a read-only SQL `SELECT` against the vault in a single API call.
 **Note:**
 
 - `Query` is required and must not be blank. Only `SELECT` is supported.
-- A call returns at most 25 rows; page through more with the SQL `OFFSET` keyword.
+- A call returns at most 25 rows; page through more with the SQL `LIMIT` and `OFFSET` keywords. When a call returns 25 rows, the SDK logs a warning that more rows may match.
 - Returned values may be masked per your vault's policies; they are never tokens or file URLs.
 - Unlike the other operations, `Query` has **no per-record results**: any failure comes back as the `*SkyflowError`, and `RequestId` is always set.
 
@@ -806,7 +807,7 @@ Sample response:
 
 ```json
 {
-  "fields": [
+  "records": [
     { "skyflow_id": "9fac9201-7b8a-4446-93f8-5244e1213bd1", "name": "john doe", "email": "john@example.com" }
   ],
   "metadata": { "columns": ["skyflow_id", "name", "email"] },
@@ -814,10 +815,10 @@ Sample response:
 }
 ```
 
-`common.QueryResponse` has `Fields` (a `[]map[string]interface{}`, one map of column to value per row), `Metadata` (`common.QueryResponseMetadata` with `Columns`) and `RequestId`.
+`common.QueryResponse` has `Records` (a `[]map[string]interface{}`, one map of column to value per row, never nil), `Metadata` (`common.QueryResponseMetadata` with `Columns`) and `RequestId`. `Fields` holds the same rows but is deprecated, because these are rows, not fields; use `Records`.
 
 ```go
-for _, row := range response.Fields {
+for _, row := range response.Records {
 	fmt.Println(row)
 }
 ```
@@ -880,16 +881,17 @@ The signed URL is a credential that expires after about 15 minutes. The SDK uses
 **Note:**
 
 - `Records` is required and must be a non-empty slice of `common.UploadFilesRequestRecord`; each needs a `TableName` and a non-empty `Columns` slice, with no column repeated.
-- Each `common.UploadFilesRequestColumn` needs a `Column` name and **exactly one** file source: `FilePath`, `Base64` or `FileObject` (an `*os.File`, which you close). `Base64` also requires `FileName`. The content type is inferred from the file name's extension.
+- Each `common.UploadFilesRequestColumn` needs a `Column` name and **exactly one** file source: `FilePath`, `Base64` or `FileObject` (an `*os.File`, which you close). `Base64` also requires `FileName`. The content type comes from the file name's extension, using the same list as the Java SDK, so a file gets the same type on every OS. An unknown or missing extension is sent as `application/octet-stream`.
 - Leave `SkyflowId` empty to create a new record (CREATE permission); set it to upload into an existing record (UPDATE permission).
 - `FileName` is derived from `FilePath`/`FileObject` when empty; if it is still unset, the server generates one.
-- Every file is checked before anything is uploaded, so a missing or unreadable file fails the whole call. Files are then uploaded **concurrently** (at most 5 at once) and streamed from disk. The uploads to the signed URLs are not retried and have no overall timeout. The final virus-scan status is asynchronous; read it later with `Get`.
+- Every file is checked before anything is uploaded, so a missing or unreadable file, or invalid base64, fails the whole call. Files are then uploaded **concurrently** (at most 5 at once) and streamed: nothing is read into memory up front, and base64 content is decoded while it is uploaded. One `*os.File` can back several columns; each column uploads it from the offset it had when you made the call. The uploads to the signed URLs are not retried and have no overall timeout. The final virus-scan status is asynchronous; read it later with `Get`.
 - Errors:
-  - An error status from the first step (requesting the signed URLs) fails the whole call with a `*SkyflowError`, and nothing is uploaded.
+  - An error status from the first step (requesting the signed URLs) fails the whole call with a `*SkyflowError`, and nothing is uploaded, even when the response lists records. When those records carry errors, the message is the distinct record errors joined with `; `, as in the Java SDK.
   - A record that fails in the first step comes back with its `Error` set, and every one of its columns is `SKIPPED` with that error.
-  - A column the vault returned no signed URL for is `SKIPPED`, with no error.
+  - A column the vault returned no signed URL for is `SKIPPED`, with the error `"No signed URL was returned for this column; file was not uploaded."`.
   - A column whose upload fails is `FAILED`, with an error such as `"PUT failed: 403"`. Other columns and records are unaffected.
-  - A record's `Error` stays empty when only some of its columns failed, so check each column's `UploadStatus`.
+  - When any column of a record was not uploaded, the record's `Error` is set to `"<n> of <m> files were not uploaded. See each column for details."` and its `RequestId` is filled in. Its `HttpCode` stays the one the vault returned.
+  - Results are matched to your records by position. If the vault returns a different number of records, or a record for another table (or another `SkyflowId`, when you set one), nothing is uploaded for the records affected and they come back with the error `"Upload response did not match the request; file was not uploaded."`. Two new records in the same table can't be told apart, so if the vault ever returned those in a different order their files would be reported against each other.
 
 ```go
 file, openErr := os.Open("<PATH_TO_FILE>")
@@ -925,8 +927,8 @@ Sample response (partial success):
         { "column": "addressProof", "fileName": "proof.pdf",  "uploadStatus": "UPLOADED", "error": "" }
       ],
       "httpCode": 200,
-      "error": "",
-      "requestId": ""
+      "error": "1 of 3 files were not uploaded. See each column for details.",
+      "requestId": "a1b2c3d4-..."
     }
   ]
 }
@@ -934,20 +936,19 @@ Sample response (partial success):
 
 Fields on each `common.UploadFilesResponseRecord`: `SkyflowId`, `TableName`, `Columns`, `HttpCode`, `Error`, `RequestId`. Each entry in `Columns` is a `common.UploadFilesColumnResult` with `Column`, `FileName`, `UploadStatus` (`common.UploadStatusUploaded`, `common.UploadStatusFailed` or `common.UploadStatusSkipped`) and `Error`. A column is `SKIPPED` when its record failed or no signed URL came back for it. Compare `UploadStatus` with these constants rather than with strings.
 
+A record's `Error` is set whenever any of its files wasn't uploaded; check each column to see which:
+
 ```go
 for _, record := range response.Records {
 	if record.Error != "" {
-		fmt.Println("record failed:", record.HttpCode, record.Error, record.RequestId) // every column is SKIPPED
-		continue
+		fmt.Println("record:", record.HttpCode, record.Error, record.RequestId)
 	}
 	for _, column := range record.Columns {
 		switch column.UploadStatus {
 		case common.UploadStatusUploaded:
 			fmt.Println(column.Column, "uploaded")
-		case common.UploadStatusFailed:
-			fmt.Println(column.Column, "failed:", column.Error)
-		case common.UploadStatusSkipped:
-			fmt.Println(column.Column, "skipped: no signed URL came back")
+		case common.UploadStatusFailed, common.UploadStatusSkipped:
+			fmt.Println(column.Column, column.UploadStatus, column.Error)
 		}
 	}
 }
@@ -985,7 +986,7 @@ Sample response (partial success):
     {
       "skyflowId": "9fac9201-...",
       "tableName": "onboarding",
-      "columns": [ { "column": "resumePDF", "status": "DELETED" } ],
+      "columns": [ { "column": "resumePDF", "status": "DELETED", "rawStatus": "DELETED" } ],
       "httpCode": 200,
       "error": "",
       "requestId": ""
@@ -1002,7 +1003,9 @@ Sample response (partial success):
 }
 ```
 
-Fields on each `common.DeleteFilesResponseRecord`: `SkyflowId`, `TableName`, `Columns`, `HttpCode`, `Error`, `RequestId`. On a successful record `Columns` is a slice of `common.DeleteFilesColumnResult` (`Column`, `Status`: `"DELETED"`); on a failed record it is `nil`.
+Fields on each `common.DeleteFilesResponseRecord`: `SkyflowId`, `TableName`, `Columns`, `HttpCode`, `Error`, `RequestId`. On a successful record `Columns` is a slice of `common.DeleteFilesColumnResult` with `Column`, `Status` and `RawStatus`; on a failed record it is `nil`. `Status` is a `common.DeleteFilesStatus`: `common.DeleteFilesStatusDeleted`, or `common.DeleteFilesStatusUnknown` when the vault reported a status this SDK version does not recognize (or none). `RawStatus` is the status exactly as the vault sent it.
+
+When the whole call fails but its error body still lists per-record results, those records are returned instead of an error. Such a record counts as failed unless it reports a `2xx` `HttpCode` of its own; one that reports neither an error nor a status gets the error `"Unknown error"` and the call's status. The same applies to [Get Tokens](#get-tokens).
 
 ```go
 for _, record := range response.Records {
@@ -1026,7 +1029,7 @@ To add custom HTTP headers to one call, set an `Interceptor` on that operation's
 | `common.SkyflowAccountName` | `x-skyflow-account-name` |
 | `common.RequestIdHeader` | `x-request-id` |
 
-Any other key, or a blank value, fails the call with a `*SkyflowError` before it is sent.
+Any other key, or a blank value, fails the call with a `*SkyflowError` before it is sent. So does a panic in the interceptor: the call returns a `*SkyflowError` (`"Request interceptor panicked: ... The request was not sent."`, with the panic value as its cause when it is an `error`) instead of crashing your program. A `*SkyflowError` you panic with is returned as is.
 
 [Example](../samples/flowvault/vaultapi/custom_header_example.go):
 
@@ -1074,7 +1077,7 @@ Every response (except `Query`) has `Records`, with one entry per submitted item
 
 | Field | Meaning |
 |---|---|
-| `HttpCode` | Per-item status (`int`). `2xx` for success; `4xx`/`5xx` for failure. |
+| `HttpCode` | Per-item status (`int`). `2xx` for success; `4xx`/`5xx` for failure. When the vault leaves it out, it is `200`, or `500` for an item with an error, as in the Java SDK. |
 | `Error` | Error message for this item. Empty means this item succeeded. |
 | `RequestId` | The `x-request-id` of the call this item was part of, set only on failure. Quote it in support requests. |
 
@@ -1119,7 +1122,7 @@ if err != nil {
 
 | Method | Returns | Description |
 |---|---|---|
-| `GetHttpCode()` | `string` | HTTP status code, for example `"400"`, `"404"`, `"500"`. `"499"` when the call's context ended while it waited for a bearer token. |
+| `GetHttpCode()` | `string` | HTTP status code, for example `"400"`, `"404"`, `"500"`. `"499"` when the call's context was cancelled or its deadline passed. `"0"` (with an empty `GetHttpStatusCode()`, as in the Java SDK) when no usable HTTP response came back: a network failure, the call ran past its `Timeout`, or the response body couldn't be read. |
 | `GetMessage()` | `string` | Human-readable description of the error. |
 | `GetGrpcCode()` | `string` | gRPC status code from the server. |
 | `GetHttpStatusCode()` | `string` | HTTP status text from the server. |
@@ -1127,9 +1130,11 @@ if err != nil {
 | `GetDetails()` | `[]interface{}` | Additional error context from the server. Empty for validation errors. |
 | `GetResponseBody()` | `map[string]interface{}` | The parsed error response body, when there is one. |
 | `Error()` | `string` | Implements `error`. |
-| `Unwrap()` | `error` | The underlying error when the SDK kept one (for example the context's error for a `"499"`), so `errors.Is` / `errors.As` work. |
+| `Unwrap()` | `error` | The underlying error when the SDK kept one (the context's error for a `"499"`, the network or timeout error for a `"0"`), so `errors.Is` / `errors.As` work. |
 
-**Validation errors** (table name on both levels, empty token list and similar) are returned before any network call, with HTTP code `"400"`. **API errors** come from the Skyflow server, with the fields filled in from the response body and headers.
+**Validation errors** (table name on both levels, empty token list and similar) are returned before any network call, with HTTP code `"400"`. **API errors** come from the Skyflow server, with the fields filled in from the response body and headers. When the body isn't a Skyflow JSON error, the message is, in order: an `error` string in the body, a top-level `message`, the body itself (for example an HTML page from a proxy; only its first 512 bytes are kept), or `"Error with status code <N>"` for an empty body.
+
+A successful (`2xx`) response with an empty body is treated as an empty result. One whose body isn't a JSON object fails the call with its real status code (for example `"200"`) and a message that includes the first 512 bytes of the body.
 
 ## Retrying the failed records
 

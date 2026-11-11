@@ -43,18 +43,12 @@ type Token struct {
 	Path           string `json:"path,omitempty"`
 }
 
-// HashedValue is one hash computed for a column value.
-type HashedValue struct {
-	Data     string `json:"data"`
-	HashName string `json:"hashName,omitempty"`
-}
-
-type ColumnRedaction struct {
+type ColumnRedactions struct {
 	ColumnName string
 	Redaction  string
 }
 
-type TokenGroupRedaction struct {
+type TokenGroupRedactions struct {
 	TokenGroupName string
 	Redaction      string
 }

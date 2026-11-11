@@ -27,7 +27,7 @@ var _ = Describe("Validation edge cases", func() {
 	It("checks every record of a multi-table get", func() {
 		expectError(ValidateGet(fvcommon.GetRequest{Records: []fvcommon.GetRequestRecord{{SkyflowIds: []string{"id"}}}}), "Table name must not be empty")
 		expectError(ValidateGet(fvcommon.GetRequest{Records: []fvcommon.GetRequestRecord{{
-			TableName: "t", SkyflowIds: []string{"id"}, ColumnRedactions: []fvcommon.ColumnRedaction{{Redaction: "MASKED"}},
+			TableName: "t", SkyflowIds: []string{"id"}, ColumnRedactions: []fvcommon.ColumnRedactions{{Redaction: "MASKED"}},
 		}}}), "Column redactions")
 	})
 

@@ -14,10 +14,10 @@ type ErrorCodesEnum = v2errors.ErrorCodesEnum
 const (
 	SERVER             ErrorCodesEnum = v2errors.SERVER
 	INVALID_INPUT_CODE ErrorCodesEnum = v2errors.INVALID_INPUT_CODE
-	INVALID_INDEX      ErrorCodesEnum = v2errors.INVALID_INDEX
-	PARTIAL            ErrorCodesEnum = v2errors.PARTIAL
 	// REQUEST_CANCELLED - The call's context ended before the call finished.
 	REQUEST_CANCELLED ErrorCodesEnum = v2errors.REQUEST_CANCELLED
+	// TRANSPORT_ERROR - The call got no usable HTTP response (code "0", empty status).
+	TRANSPORT_ERROR ErrorCodesEnum = v2errors.TRANSPORT_ERROR
 )
 
 func NewSkyflowError(code ErrorCodesEnum, message string) *SkyflowError {
@@ -28,10 +28,6 @@ func NewSkyflowError(code ErrorCodesEnum, message string) *SkyflowError {
 // can match it with errors.Is or errors.As, e.g. context.DeadlineExceeded.
 func NewSkyflowErrorWithCause(code ErrorCodesEnum, message string, cause error) *SkyflowError {
 	return v2errors.NewSkyflowErrorWithCause(code, message, cause)
-}
-
-func SkyflowApiError(responseHeaders http.Response) *SkyflowError {
-	return v2errors.SkyflowApiError(responseHeaders)
 }
 
 func SkyflowErrorApi(err error, header http.Header) *SkyflowError {

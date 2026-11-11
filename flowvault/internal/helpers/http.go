@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	fvconsts "github.com/skyflowapi/skyflow-go/flowvault/internal/constants"
@@ -81,6 +82,7 @@ func newUploadHTTPClient() *http.Client {
 }
 
 // retryTransport retries 408, 429 and 5xx responses with exponential backoff and jitter.
+// UploadFiles and DeleteFiles are not retried on a 5xx (see ShouldRetryRequest).
 type retryTransport struct {
 	base   http.RoundTripper
 	config ResolvedHttpConfig
@@ -89,7 +91,7 @@ type retryTransport struct {
 
 func (t *retryTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	resp, err := t.base.RoundTrip(req)
-	for retry := 0; err == nil && ShouldRetry(resp.StatusCode) && retry < t.config.MaxRetries; retry++ {
+	for retry := 0; err == nil && ShouldRetryRequest(req, resp.StatusCode) && retry < t.config.MaxRetries; retry++ {
 		if req.Body != nil && req.GetBody == nil {
 			break
 		}
@@ -129,6 +131,25 @@ func (t *retryTransport) wait(req *http.Request, delay time.Duration) error {
 // ShouldRetry reports whether a response with this status is retried: 408, 429 and 5xx.
 func ShouldRetry(status int) bool {
 	return status == http.StatusRequestTimeout || status == http.StatusTooManyRequests || status >= http.StatusInternalServerError
+}
+
+// ShouldRetryRequest is ShouldRetry, except that the uploadFiles signed-URL request is not
+// retried on a 5xx, as in the Java SDK: it creates a record for every entry without a
+// SkyflowId, so the vault may already have created them before failing and a retry would
+// create duplicates. 408 and 429 mean the request was not processed, so those are still
+// retried.
+func ShouldRetryRequest(req *http.Request, status int) bool {
+	if status >= http.StatusInternalServerError && notReplayableOnServerError(req) {
+		return false
+	}
+	return ShouldRetry(status)
+}
+
+func notReplayableOnServerError(req *http.Request) bool {
+	if req == nil || req.URL == nil {
+		return false
+	}
+	return strings.HasSuffix(req.URL.Path, fvconsts.UPLOAD_FILES_PATH)
 }
 
 // backoff doubles the delay per attempt up to max, then applies +/-20% jitter.

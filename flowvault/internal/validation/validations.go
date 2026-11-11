@@ -115,16 +115,16 @@ func ValidateUpdate(req fvcommon.UpdateRequest) *fverrors.SkyflowError {
 
 func ValidateGet(req fvcommon.GetRequest) *fverrors.SkyflowError {
 	name := fvconsts.METHOD_GET
-	if req.Limit < 0 || req.Offset < 0 {
+	if (req.Limit != nil && *req.Limit < 0) || (req.Offset != nil && *req.Offset < 0) {
 		return invalid(fverrors.NEGATIVE_LIMIT_OFFSET)
 	}
-	if req.Records != nil {
-		if req.TableName != "" || req.SkyflowIds != nil || req.UniqueValues != nil || req.Columns != nil ||
-			req.ColumnRedactions != nil || req.Limit != 0 || req.Offset != 0 {
+	// As in the Java SDK, an empty Records slice counts as unset: the request is then a
+	// single-table get. Limit and Offset aren't sent with Records, so setting them is refused
+	// rather than silently ignored.
+	if len(req.Records) > 0 {
+		if req.TableName != "" || len(req.SkyflowIds) > 0 || len(req.UniqueValues) > 0 || len(req.Columns) > 0 ||
+			len(req.ColumnRedactions) > 0 || req.Limit != nil || req.Offset != nil {
 			return invalid(fverrors.GET_MODE_CONFLICT)
-		}
-		if len(req.Records) == 0 {
-			return invalid(fverrors.EMPTY_RECORDS, name)
 		}
 		for _, record := range req.Records {
 			if err := validateTableTarget(name, record.TableName, record.SkyflowIds, record.UniqueValues); err != nil {
@@ -171,7 +171,7 @@ func validateUniqueValues(name string, uniqueValues []map[string]interface{}) *f
 	return nil
 }
 
-func validateColumnRedactions(name string, redactions []fvcommon.ColumnRedaction) *fverrors.SkyflowError {
+func validateColumnRedactions(name string, redactions []fvcommon.ColumnRedactions) *fverrors.SkyflowError {
 	for _, redaction := range redactions {
 		if blank(redaction.ColumnName) || blank(redaction.Redaction) {
 			return invalid(fverrors.INVALID_COLUMN_REDACTION, name)

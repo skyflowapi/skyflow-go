@@ -46,7 +46,7 @@ func main() {
 	// Step 3: Detokenize tokens. Redactions are set per token group.
 	request := common.DetokenizeRequest{
 		Tokens: []string{"<TOKEN1>", "<TOKEN2>"},
-		// TokenGroupRedactions: []common.TokenGroupRedaction{{TokenGroupName: "<TOKEN_GROUP_NAME>", Redaction: "<REDACTION>"}},
+		// TokenGroupRedactions: []common.TokenGroupRedactions{{TokenGroupName: "<TOKEN_GROUP_NAME>", Redaction: "<REDACTION>"}},
 	}
 	response, err := vault.Detokenize(context.Background(), request, common.DetokenizeOptions{})
 

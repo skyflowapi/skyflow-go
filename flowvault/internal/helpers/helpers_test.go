@@ -92,6 +92,15 @@ var _ = Describe("HTTP config", func() {
 })
 
 var _ = Describe("Files", func() {
+	It("picks the upload Content-Type as the Java SDK does", func() {
+		Expect(UploadContentType("Report.DOCX")).To(Equal("application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
+		Expect(UploadContentType("page.html")).To(Equal("text/html"))
+		Expect(UploadContentType("site.css")).To(HavePrefix("text/css"))
+		Expect(UploadContentType("data.unknownext")).To(Equal("application/octet-stream"))
+		Expect(UploadContentType("noextension")).To(Equal("application/octet-stream"))
+		Expect(UploadContentType("")).To(Equal("application/octet-stream"))
+	})
+
 	It("resolves files from a path, base64 and an *os.File", func() {
 		dir := GinkgoT().TempDir()
 		path := filepath.Join(dir, "resume.pdf")
@@ -103,8 +112,9 @@ var _ = Describe("Files", func() {
 
 		file, err = ResolveFile(fvcommon.UploadFilesRequestColumn{Column: "c", Base64: base64.StdEncoding.EncodeToString([]byte("txt")), FileName: "notes.txt"})
 		Expect(err).To(BeNil())
-		Expect(file.Content).To(Equal([]byte("txt")))
-		Expect(file.ContentType).To(HavePrefix("text/plain"))
+		Expect(file.Base64).To(Equal(base64.StdEncoding.EncodeToString([]byte("txt"))))
+		Expect(file.DecodedSize).To(Equal(int64(3)))
+		Expect(file.ContentType).To(Equal("text/plain"))
 
 		handle, _ := os.Open(path)
 		defer handle.Close()
@@ -112,7 +122,7 @@ var _ = Describe("Files", func() {
 		Expect(err).To(BeNil())
 		Expect(file.Name).To(Equal("resume.pdf"))
 		Expect(file.Object).To(BeIdenticalTo(handle))
-		Expect(file.Content).To(BeNil())
+		Expect(file.Base64).To(BeEmpty())
 	})
 
 	It("rejects an unreadable path, a directory, a closed file and invalid base64", func() {
@@ -151,7 +161,7 @@ var _ = Describe("Files", func() {
 			w.WriteHeader(http.StatusOK)
 		}))
 		defer server.Close()
-		file := ResolvedFile{Name: "a.pdf", ContentType: "application/pdf", Content: []byte("pdf")}
+		file := ResolvedFile{Name: "a.pdf", ContentType: "application/pdf", Base64: "cGRm", DecodedSize: 3}
 
 		status, msg := PutFile(context.Background(), http.DefaultClient, server.URL+"/ok", file)
 		Expect(status).To(Equal(fvcommon.UploadStatusUploaded))
@@ -276,16 +286,13 @@ var _ = Describe("Parsing", func() {
 		Expect(tokens["email"]).To(Equal([]fvcommon.Token{{Token: "tok", TokenGroupName: "det", Path: "$.a"}}))
 		Expect(tokens["ssn"]).To(Equal([]fvcommon.Token{{Token: "plain-token"}}))
 		Expect(ParseTokens(nil)).To(BeNil())
-
-		hashes := ParseHashedData(map[string]interface{}{"email": map[string]interface{}{"data": "abc", "hashName": "h1"}})
-		Expect(hashes["email"]).To(Equal([]fvcommon.HashedValue{{Data: "abc", HashName: "h1"}}))
 	})
 
 	It("accepts table or tableName in detokenize metadata", func() {
 		Expect(ParseDetokenizeMetadata(map[string]interface{}{"skyflowID": "id", "table": "t1"})).
-			To(Equal(&fvcommon.DetokenizeRecordMetadata{SkyflowId: "id", TableName: "t1"}))
+			To(Equal(&fvcommon.DetokenizeResponseRecordMetadata{SkyflowId: "id", TableName: "t1"}))
 		Expect(ParseDetokenizeMetadata(map[string]interface{}{"skyflowId": "id", "tableName": "t2"})).
-			To(Equal(&fvcommon.DetokenizeRecordMetadata{SkyflowId: "id", TableName: "t2"}))
+			To(Equal(&fvcommon.DetokenizeResponseRecordMetadata{SkyflowId: "id", TableName: "t2"}))
 		Expect(ParseDetokenizeMetadata(nil)).To(BeNil())
 	})
 
@@ -293,7 +300,14 @@ var _ = Describe("Parsing", func() {
 		Expect(ParseDeleteFilesColumns(map[string]interface{}{
 			"resumePDF": map[string]interface{}{"status": "DELETED"},
 			"photoID":   "DELETED",
-		})).To(Equal([]fvcommon.DeleteFilesColumnResult{{Column: "photoID", Status: "DELETED"}, {Column: "resumePDF", Status: "DELETED"}}))
+			"other":     map[string]interface{}{"status": "archived"},
+			"lower":     "deleted",
+		})).To(Equal([]fvcommon.DeleteFilesColumnResult{
+			{Column: "lower", Status: fvcommon.DeleteFilesStatusDeleted, RawStatus: "deleted"},
+			{Column: "other", Status: fvcommon.DeleteFilesStatusUnknown, RawStatus: "archived"},
+			{Column: "photoID", Status: fvcommon.DeleteFilesStatusDeleted, RawStatus: "DELETED"},
+			{Column: "resumePDF", Status: fvcommon.DeleteFilesStatusDeleted, RawStatus: "DELETED"},
+		}))
 		Expect(ParseDeleteFilesColumns(nil)).To(BeNil())
 	})
 

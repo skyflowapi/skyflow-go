@@ -44,3 +44,12 @@ var _ = Describe("RequestContext", func() {
 		Expect(rc.Headers()).ToNot(HaveKey(SkyflowAccountName))
 	})
 })
+
+var _ = Describe("DeleteFilesStatusFromWire", func() {
+	It("matches DELETED case-insensitively and maps anything else to UNKNOWN", func() {
+		Expect(DeleteFilesStatusFromWire("DELETED")).To(Equal(DeleteFilesStatusDeleted))
+		Expect(DeleteFilesStatusFromWire(" deleted ")).To(Equal(DeleteFilesStatusDeleted))
+		Expect(DeleteFilesStatusFromWire("ARCHIVED")).To(Equal(DeleteFilesStatusUnknown))
+		Expect(DeleteFilesStatusFromWire("")).To(Equal(DeleteFilesStatusUnknown))
+	})
+})

@@ -54,6 +54,22 @@ var _ = Describe("URL, metadata and shared services", func() {
 	})
 })
 
+var _ = Describe("Retries for requests that aren't safe to replay", func() {
+	It("doesn't retry uploadFiles on a 5xx, but does on 408 and 429, and retries other calls", func() {
+		upload, _ := http.NewRequest(http.MethodPost, "https://v.example.com/v2/files/upload", nil)
+		remove, _ := http.NewRequest(http.MethodPost, "https://v.example.com/v2/files/delete", nil)
+		other, _ := http.NewRequest(http.MethodPost, "https://v.example.com/v2/records/getTokens", nil)
+		Expect(ShouldRetryRequest(upload, http.StatusInternalServerError)).To(BeFalse())
+		Expect(ShouldRetryRequest(upload, http.StatusServiceUnavailable)).To(BeFalse())
+		Expect(ShouldRetryRequest(upload, http.StatusTooManyRequests)).To(BeTrue())
+		Expect(ShouldRetryRequest(upload, http.StatusRequestTimeout)).To(BeTrue())
+		Expect(ShouldRetryRequest(remove, http.StatusServiceUnavailable)).To(BeTrue())
+		Expect(ShouldRetryRequest(other, http.StatusServiceUnavailable)).To(BeTrue())
+		Expect(ShouldRetryRequest(nil, http.StatusServiceUnavailable)).To(BeTrue())
+		Expect(ShouldRetryRequest(&http.Request{}, http.StatusServiceUnavailable)).To(BeTrue())
+	})
+})
+
 var _ = Describe("HTTP config and retries, edge cases", func() {
 	It("falls back to the client's retries and returns zero when no duration is set", func() {
 		clientRetries := 4
@@ -135,7 +151,7 @@ var _ = Describe("Files, edge cases", func() {
 		Expect(status).To(Equal(fvcommon.UploadStatusFailed))
 		Expect(msg).To(HavePrefix("PUT failed: open "))
 
-		status, msg = PutFile(context.Background(), http.DefaultClient, "://bad-url?signature=secret", ResolvedFile{Content: []byte("a")})
+		status, msg = PutFile(context.Background(), http.DefaultClient, "://bad-url?signature=secret", ResolvedFile{Base64: "YQ==", DecodedSize: 1})
 		Expect(status).To(Equal(fvcommon.UploadStatusFailed))
 		Expect(msg).To(Equal("PUT failed: missing protocol scheme"))
 		Expect(msg).NotTo(ContainSubstring("signature"))
@@ -154,12 +170,14 @@ var _ = Describe("Files, edge cases", func() {
 		reader, writer, err := os.Pipe()
 		Expect(err).To(BeNil())
 		defer reader.Close()
-		Expect(remaining(reader)).To(Equal(int64(-1)))
+		_, size := position(reader)
+		Expect(size).To(Equal(int64(-1)))
 		// A seekable file that isn't a regular file has no known length either.
 		devNull, err := os.Open(os.DevNull)
 		Expect(err).To(BeNil())
 		defer devNull.Close()
-		Expect(remaining(devNull)).To(Equal(int64(-1)))
+		_, size = position(devNull)
+		Expect(size).To(Equal(int64(-1)))
 		go func() {
 			_, _ = writer.WriteString("piped")
 			_ = writer.Close()
@@ -189,19 +207,11 @@ var _ = Describe("Parsing, edge cases", func() {
 			"c": {{Token: "7"}},
 		}))
 
-		Expect(ParseHashedData(nil)).To(BeNil())
-		hashes := ParseHashedData(map[string]interface{}{
-			"a": []interface{}{"h1", nil, map[string]interface{}{"data": 3.5}},
-			"b": nil,
-		})
-		Expect(hashes).To(Equal(map[string][]fvcommon.HashedValue{
-			"a": {{Data: "h1"}, {Data: "3.5"}},
-		}))
 	})
 
-	It("leaves the status empty for an unexpected delete-files value", func() {
+	It("reports an unexpected delete-files value as UNKNOWN with no raw status", func() {
 		Expect(ParseDeleteFilesColumns(map[string]interface{}{"c": 1})).
-			To(Equal([]fvcommon.DeleteFilesColumnResult{{Column: "c"}}))
+			To(Equal([]fvcommon.DeleteFilesColumnResult{{Column: "c", Status: fvcommon.DeleteFilesStatusUnknown}}))
 		Expect(RequestIdFor(nil, "boom")).To(BeEmpty())
 	})
 })
