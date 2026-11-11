@@ -79,6 +79,13 @@ func TestOperationsRejectEmptyResponses(t *testing.T) {
 			t.Errorf("%s: err = %v", name, err)
 		}
 	}
+
+	// An empty run ID can't be polled or looked up either.
+	f.responses[pathDeidentifyFile] = []string{`{"runId":""}`}
+	if err := allOperations(t.TempDir())[methodDeidentifyFile](c); err == nil ||
+		!strings.Contains(err.GetMessage(), fmt.Sprintf(errEmptyResponse, methodDeidentifyFile)) {
+		t.Errorf("empty run ID: err = %v", err)
+	}
 }
 
 func TestApiErrorWithoutApiDetails(t *testing.T) {

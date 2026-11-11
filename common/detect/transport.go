@@ -100,7 +100,7 @@ func (c *Controller) callDeidentifyFile(ctx context.Context, call *vaultclient.C
 	if err != nil {
 		return "", apiError(err)
 	}
-	if resp == nil || resp.RunID == nil {
+	if resp == nil || resp.RunID == nil || *resp.RunID == "" {
 		return "", c.emptyResponse(methodDeidentifyFile)
 	}
 	return *resp.RunID, nil

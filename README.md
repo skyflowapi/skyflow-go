@@ -1982,7 +1982,7 @@ default: // FAILED or UNKNOWN
 
 A field left nil uses its default; a value that is set must be within the limit, so `0` is rejected (`common.Ptr(2 * time.Minute)` sets one).
 
-Polling backs off 1s, 2s, 4s … up to 32s between lookups, and stops at the first of `WaitTime`, `MaxAttempts` or a final status (`SUCCESS`, `FAILED`, `UNKNOWN`).
+Polling backs off 1s, 2s, 4s … up to 32s between lookups, and stops at the first of `WaitTime`, `MaxAttempts` or a final status (`SUCCESS`, `FAILED`, `UNKNOWN`). `WaitTime` counts the pauses between lookups, not the time each lookup takes, so a call can run a little longer than `WaitTime`. With this backoff at most 7 lookups fit in 60s and 15 in 300s, so `MaxAttempts` only stops polling earlier when it is set below that.
 
 Sample response (polled, successful):
 ```json
@@ -2148,7 +2148,7 @@ Sample response:
 > See the full example in the samples directory: [reidentify_file.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v2/detectapi/reidentify_file.go)
 
 ### Check Guardrails
-`CheckGuardrails` screens text for toxicity and denied topics. `CheckToxicity` is a `*bool`: nil leaves it to the server, which checks toxicity by default, and false turns it off.
+`CheckGuardrails` screens text for toxicity and denied topics. `CheckToxicity` is a `*bool`: toxicity is checked only when it is `true`. Nil leaves the field out of the request, and the server then doesn't check toxicity.
 
 ```go
 response, err := service.CheckGuardrails(ctx, common.CheckGuardrailsRequest{

@@ -784,3 +784,29 @@ func TestFileDataFormatIsUpperCaseAndWireIsLowerCase(t *testing.T) {
 		}
 	})
 }
+
+// The documented budget: pauses add up to exactly WaitTime, and the backoff fits 7
+// lookups in 60s and 15 in 300s, so the default MaxAttempts of 23 is never reached.
+func TestPollBudgetLookupsPerWaitTime(t *testing.T) {
+	for _, tc := range []struct {
+		wait    time.Duration
+		lookups int
+	}{{60 * time.Second, 7}, {300 * time.Second, 15}} {
+		f := newFakeDetect(t)
+		f.responses[pathDeidentifyFile] = []string{`{"runId":"run-1"}`}
+		f.responses[pathRuns+"run-1"] = []string{`{"status":"IN_PROGRESS"}`}
+		c, pauses := newTestController(f)
+		resp, err := c.DeidentifyFile(context.Background(), DeidentifyFileRequest{DataSource: SkyDeidentifySourceTypeBase64, Value: "YQ=="},
+			DeidentifyFileOptions{Poll: &PollOptions{WaitTime: &tc.wait}})
+		if err != nil || resp.Status != DetectRunStatusInProgress {
+			t.Fatalf("%v: resp = %+v, err = %v", tc.wait, resp, err)
+		}
+		var total time.Duration
+		for _, p := range *pauses {
+			total += p
+		}
+		if lookups := len(*pauses) + 1; lookups != tc.lookups || total != tc.wait {
+			t.Errorf("%v: %d lookups, pauses total %v; want %d lookups, %v", tc.wait, lookups, total, tc.lookups, tc.wait)
+		}
+	}
+}

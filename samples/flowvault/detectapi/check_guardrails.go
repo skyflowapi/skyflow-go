@@ -43,8 +43,8 @@ func main() {
 		return
 	}
 
-	// Step 3: Check the text. CheckToxicity is a pointer: nil leaves it to the server
-	// (checked by default), false turns it off.
+	// Step 3: Check the text. CheckToxicity is a pointer: toxicity is checked only when it
+	// is true (nil or false skips the check).
 	response, err := service.CheckGuardrails(context.Background(), common.CheckGuardrailsRequest{
 		Text:          "<USER_PROMPT>",
 		CheckToxicity: common.Ptr(true),

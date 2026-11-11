@@ -27,9 +27,9 @@ func isTerminal(status DetectRunStatus) bool {
 
 // poll looks the run up until it reaches a terminal status (SUCCESS, FAILED, UNKNOWN) or the
 // budget runs out, and returns the last run seen. The first lookup is immediate; after that
-// the pause doubles from 1s up to 32s, and the last pause is trimmed so the total never
-// exceeds WaitTime. If ctx ends while waiting, the last run is returned as when the budget
-// runs out, so the caller keeps the run ID.
+// the pause doubles from 1s up to 32s, and the last pause is trimmed so the pauses add up
+// to at most WaitTime. The lookups' own time isn't counted. If ctx ends while waiting, the
+// last run is returned as when the budget runs out, so the caller keeps the run ID.
 func (c *Controller) poll(ctx context.Context, runId string, options PollOptions, fetch func(context.Context) (*GetRunResponse, *skyflowError.SkyflowError)) (*GetRunResponse, *skyflowError.SkyflowError) {
 	waitTime, maxAttempts := options.effective()
 	logger.Info(fmt.Sprintf(c.logMsg(logPollStarted), runId, waitTime, maxAttempts))

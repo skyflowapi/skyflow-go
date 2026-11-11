@@ -151,9 +151,11 @@ type DeidentifyFileOptions struct {
 // a set field must be in range, as in the Java SDK, so a zero is rejected rather than taken
 // as the default. &PollOptions{} polls with both defaults.
 type PollOptions struct {
-	// WaitTime is the longest DeidentifyFile waits: 1s to 300s, default 60s.
+	// WaitTime caps the total pause between run lookups: 1s to 300s, default 60s. The
+	// lookups' own time isn't counted, so a call can take a little longer.
 	WaitTime *time.Duration
-	// MaxAttempts is the most run lookups made: 1 to 23, default 23.
+	// MaxAttempts is the most run lookups made: 1 to 23, default 23. The backoff fits at
+	// most 7 lookups in 60s and 15 in 300s, so only a lower value stops polling earlier.
 	MaxAttempts *int
 }
 
@@ -252,7 +254,8 @@ type ReidentifyFileResponse struct {
 // CheckGuardrailsRequest screens Text for toxicity and denied topics.
 type CheckGuardrailsRequest struct {
 	Text string `json:"text"`
-	// CheckToxicity nil leaves it to the server, which checks toxicity by default.
+	// CheckToxicity nil leaves the field out of the request, and the server then doesn't
+	// check toxicity: it checks only when CheckToxicity is true.
 	CheckToxicity *bool    `json:"checkToxicity,omitempty"`
 	DenyTopics    []string `json:"denyTopics,omitempty"`
 }

@@ -209,7 +209,7 @@ The biggest behaviour change: **`DeidentifyFile` no longer waits for the run.** 
 | `File: common.FileInput{File: f}` | `FileObject` on the request (you still close the file) |
 | — | New: `DataSource` + `Value`, to send base64 content (`DeidentifySourceTypeBase64`), a presigned URL (`DeidentifySourceTypePresignedURL`) or a Skyflow ID (`DeidentifySourceTypeSkyflowID`) |
 | Always waited | Waits only when `Options.Poll` is set |
-| `WaitTime int` (seconds; default and max 64) | `Options.Poll.WaitTime time.Duration` (default 60s, max 300s), plus `Poll.MaxAttempts` (default and max 23) |
+| `WaitTime int` (seconds; default and max 64) | `Options.Poll.WaitTime time.Duration` (default 60s, max 300s), plus `Poll.MaxAttempts` (default and max 23). `WaitTime` counts only the pauses between lookups, so a call can run a little longer. |
 | `OutputDirectory` on the request | `Options.OutputDirectory`. Requires `Poll`. |
 | `Entities`, `TokenFormat`, `AllowRegexList`, `RestrictRegexList`, `Transformations` | The configuration, as for [de-identify text](#de-identify-text) |
 | `OutputProcessedImage`, `OutputOcrText`, `MaskingMethod` | `Configuration.Media.Image{OutputProcessedImage, OutputOcrText, MaskingMethod}`. The flags are `*bool`, so use `common.Ptr`. Masking methods are `common.MaskingMethodBlackbox` and `common.MaskingMethodBlur`. |
