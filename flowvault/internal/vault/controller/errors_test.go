@@ -123,7 +123,7 @@ var _ = Describe("VaultController error paths", func() {
 		_, err := v.UploadFiles(ctx, fvcommon.UploadFilesRequest{Records: []fvcommon.UploadFilesRequestRecord{
 			{TableName: "t", Columns: []fvcommon.UploadFilesRequestColumn{{Column: "c", FilePath: filepath.Join(GinkgoT().TempDir(), "missing.pdf")}}},
 		}}, fvcommon.UploadFilesOptions{})
-		Expect(err.GetMessage()).To(ContainSubstring("Could not read file"))
+		Expect(err.GetMessage()).To(ContainSubstring(fverrors.INVALID_FILE_PATH))
 		Expect(fake.requests).To(BeEmpty())
 	})
 
@@ -226,12 +226,21 @@ var _ = Describe("Response conversion", func() {
 	It("treats a record of a failed call as failed unless it reports a 2xx itself", func() {
 		header := http.Header{}
 		header.Set("x-request-id", "req-9")
-		ok, noCode, bad := 200, 0, 404
+		ok, bad := 200, 404
+		raw := []map[string]interface{}{
+			{"token": "t1", "httpCode": 200.0},
+			{"token": "t2"},
+			{"token": "t3", "httpCode": 404.0},
+			{"token": "t4", "http_code": "404", "message": "not found"},
+			{"token": "t5", "statusCode": 201.0},
+		}
 		tokens := toGetTokensResults([]*api.TokenizeResponseObject{
 			{Token: "t1", HTTPCode: &ok},
-			{Token: "t2", HTTPCode: &noCode},
+			{Token: "t2"},
 			{Token: "t3", HTTPCode: &bad},
-		}, header, http.StatusBadRequest)
+			{Token: "t4"},
+			{Token: "t5"},
+		}, header, http.StatusBadRequest, raw)
 		Expect(tokens[0].Error).To(BeEmpty())
 		Expect(tokens[0].RequestId).To(BeEmpty())
 		Expect(tokens[1].Error).To(Equal(fvconsts.UNKNOWN_RECORD_ERROR))
@@ -239,13 +248,20 @@ var _ = Describe("Response conversion", func() {
 		Expect(tokens[1].RequestId).To(Equal("req-9"))
 		Expect(tokens[2].Error).To(Equal(fvconsts.UNKNOWN_RECORD_ERROR))
 		Expect(tokens[2].HttpCode).To(Equal(404))
+		// As in the Java SDK, "message" and the http_code / statusCode spellings are read too.
+		Expect(tokens[3].Error).To(Equal("not found"))
+		Expect(tokens[3].HttpCode).To(Equal(404))
+		Expect(tokens[4].Error).To(BeEmpty())
+		Expect(tokens[4].HttpCode).To(Equal(201))
 
-		files := toDeleteFilesResults([]*api.FileDeleteResponseObject{{TableName: "t", HTTPCode: 500}}, header, http.StatusMultiStatus)
+		files := toDeleteFilesResults([]*api.FileDeleteResponseObject{{TableName: "t", HTTPCode: 500}}, header, http.StatusMultiStatus,
+			[]map[string]interface{}{{"tableName": "t", "httpCode": 500.0}})
 		Expect(files[0].Error).To(Equal(fvconsts.UNKNOWN_RECORD_ERROR))
+		Expect(files[0].HttpCode).To(Equal(500))
 		Expect(files[0].RequestId).To(Equal("req-9"))
 
 		// In a successful call a record's own values are kept.
-		files = toDeleteFilesResults([]*api.FileDeleteResponseObject{{TableName: "t", HTTPCode: 500}}, header, 0)
+		files = toDeleteFilesResults([]*api.FileDeleteResponseObject{{TableName: "t", HTTPCode: 500}}, header, 0, nil)
 		Expect(files[0].Error).To(BeEmpty())
 		Expect(files[0].HttpCode).To(Equal(500))
 	})
@@ -259,10 +275,28 @@ var _ = Describe("Response conversion", func() {
 		Expect([]int{deleted[0].HttpCode, deleted[1].HttpCode}).To(Equal([]int{200, 500}))
 		detokenized := toDetokenizeResults([]*api.DetokenizeResponseObject{{}, {Error: &failed}}, header)
 		Expect([]int{detokenized[0].HttpCode, detokenized[1].HttpCode}).To(Equal([]int{200, 500}))
-		tokens := toGetTokensResults([]*api.TokenizeResponseObject{{}, {Error: &failed}}, header, 0)
+		tokens := toGetTokensResults([]*api.TokenizeResponseObject{{}, {Error: &failed}}, header, 0, nil)
 		Expect([]int{tokens[0].HttpCode, tokens[1].HttpCode}).To(Equal([]int{200, 500}))
-		files := toDeleteFilesResults([]*api.FileDeleteResponseObject{{}, {Error: &failed}}, header, 0)
+		files := toDeleteFilesResults([]*api.FileDeleteResponseObject{{}, {Error: &failed}}, header, 0, nil)
 		Expect([]int{files[0].HttpCode, files[1].HttpCode}).To(Equal([]int{200, 500}))
+	})
+
+	It("reads a failed call's records as raw maps, and only from an API error with a matching body", func() {
+		apiErr := func(body string) error { return core.NewAPIError(http.StatusBadRequest, nil, errors.New(body)) }
+		Expect(failedRecordMaps(errors.New("network"), fvconsts.ERROR_KEY_RECORDS)).To(BeNil())
+		Expect(failedRecordMaps(core.NewAPIError(http.StatusBadRequest, nil, nil), fvconsts.ERROR_KEY_RECORDS)).To(BeNil())
+		Expect(failedRecordMaps(apiErr(`not json`), fvconsts.ERROR_KEY_RECORDS)).To(BeNil())
+		Expect(failedRecordMaps(apiErr(`{"records":"nope"}`), fvconsts.ERROR_KEY_RECORDS)).To(BeNil())
+		Expect(failedRecordMaps(apiErr(`{"records":[{"a":1},7,null]}`), fvconsts.ERROR_KEY_RECORDS)).
+			To(Equal([]map[string]interface{}{{"a": 1.0}, nil, nil}))
+		Expect(rawAt(nil, 0)).To(BeNil())
+
+		Expect(readString(map[string]interface{}{"n": 42.0, "b": true}, "n")).To(Equal("42"))
+		Expect(readString(map[string]interface{}{"b": true}, "b")).To(Equal("true"))
+		Expect(readString(nil, "missing")).To(BeEmpty())
+		Expect(failedRecordHTTPCode(map[string]interface{}{"httpCode": "x", "statusCode": 418.0}, 400)).To(Equal(418))
+		Expect(failedRecordErrorOrSuccess(map[string]interface{}{"error": "boom", "httpCode": 200.0})).To(Equal("boom"))
+		Expect(failedRecordErrorOrSuccess(nil)).To(Equal(fvconsts.UNKNOWN_RECORD_ERROR))
 	})
 
 	It("skips null records", func() {
@@ -270,8 +304,8 @@ var _ = Describe("Response conversion", func() {
 		Expect(toRecordResults([]*api.RecordResponseObject{nil}, header)).To(BeEmpty())
 		Expect(toDeleteResults([]*api.DeleteResponseObject{nil}, header)).To(BeEmpty())
 		Expect(toDetokenizeResults([]*api.DetokenizeResponseObject{nil}, header)).To(BeEmpty())
-		Expect(toGetTokensResults([]*api.TokenizeResponseObject{nil}, header, 0)).To(BeEmpty())
-		Expect(toDeleteFilesResults([]*api.FileDeleteResponseObject{nil}, header, 0)).To(BeEmpty())
+		Expect(toGetTokensResults([]*api.TokenizeResponseObject{nil}, header, 0, nil)).To(BeEmpty())
+		Expect(toDeleteFilesResults([]*api.FileDeleteResponseObject{nil}, header, 0, nil)).To(BeEmpty())
 	})
 })
 

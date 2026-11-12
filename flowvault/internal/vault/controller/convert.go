@@ -6,9 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
+	commonerrors "github.com/skyflowapi/skyflow-go/common/errors"
 	fvconsts "github.com/skyflowapi/skyflow-go/flowvault/internal/constants"
 	api "github.com/skyflowapi/skyflow-go/flowvault/internal/generated"
 	"github.com/skyflowapi/skyflow-go/flowvault/internal/generated/core"
@@ -82,7 +84,9 @@ func rawBodyMessage(body string) string {
 // apiError converts a failed call. The status code and request ID are kept even when the
 // body isn't a Skyflow error object. The message is then, as in the Java SDK, the first of:
 // an "error" string, a top-level "message", the raw body (truncated by rawBodyMessage), or
-// "Error with status code N" for an empty body.
+// "Error with status code N" for an empty body. The error's httpCode is always the response's
+// HTTP status, as in the Java and Python SDKs, even when the body carries an http_code, and its
+// response body is the server's own JSON body (nil when it isn't a JSON object), as in Java.
 func apiError(apiErr *core.APIError, header http.Header) *fverrors.SkyflowError {
 	raw := ""
 	if apiErr.Unwrap() != nil {
@@ -94,11 +98,25 @@ func apiError(apiErr *core.APIError, header http.Header) *fverrors.SkyflowError 
 	if !ok {
 		errorBody = map[string]interface{}{fvconsts.ERROR_KEY_MESSAGE: fallbackMessage(body, raw, apiErr.StatusCode)}
 	}
-	if _, ok := errorBody[fvconsts.ERROR_KEY_HTTP_CODE].(float64); !ok {
-		errorBody[fvconsts.ERROR_KEY_HTTP_CODE] = apiErr.StatusCode
-	}
+	errorBody[fvconsts.ERROR_KEY_HTTP_CODE] = apiErr.StatusCode
 	normalized, _ := json.Marshal(map[string]interface{}{fvconsts.ERROR_KEY_ERROR: errorBody})
-	return fverrors.SkyflowErrorApi(fmt.Errorf(fvconsts.API_ERROR_FORMAT, apiErr.StatusCode, normalized), header)
+	return apiErrorFrom(apiErr.StatusCode, normalized, header, rawBody(raw))
+}
+
+// rawBody is a response body decoded as a JSON object, or nil when it isn't one.
+func rawBody(raw string) map[string]interface{} {
+	var body map[string]interface{}
+	if json.Unmarshal([]byte(raw), &body) != nil {
+		return nil
+	}
+	return body
+}
+
+// apiErrorFrom builds the error from a normalized {"error": {...}} body, keeping the server's
+// own body as the error's response body.
+func apiErrorFrom(status int, normalized []byte, header http.Header, serverBody map[string]interface{}) *fverrors.SkyflowError {
+	return commonerrors.SkyflowErrorApi(fmt.Errorf(fvconsts.API_ERROR_FORMAT, status, normalized), header,
+		commonerrors.RawMessage(), commonerrors.WithResponseBody(serverBody))
 }
 
 // fallbackMessage is the message for an error body without a Skyflow error object.
@@ -147,7 +165,7 @@ func uploadFilesCallError(callErr error, err *fverrors.SkyflowError) *fverrors.S
 		fvconsts.ERROR_KEY_HTTP_CODE: apiErr.StatusCode,
 		fvconsts.ERROR_KEY_MESSAGE:   rawBodyMessage(strings.Join(messages, fvconsts.RECORD_ERRORS_SEPARATOR)),
 	}})
-	return fverrors.SkyflowErrorApi(fmt.Errorf(fvconsts.API_ERROR_FORMAT, apiErr.StatusCode, normalized), header)
+	return apiErrorFrom(apiErr.StatusCode, normalized, header, rawBody(apiErr.Unwrap().Error()))
 }
 
 // failedCallStatus is the HTTP status of a call that failed but whose body still carried
@@ -172,21 +190,154 @@ func recordHTTPCode(httpCode int, recordErr string) int {
 	return http.StatusOK
 }
 
-// recordOutcome returns a record's httpCode and error. In a successful call (failedStatus 0)
-// they are the record's own, with recordHTTPCode filling in a missing httpCode. In a failed call, as in the Java SDK, a record counts as a
-// success only when it says so itself: no error and a 2xx status of its own. A record with
-// neither gets UNKNOWN_RECORD_ERROR, and a missing httpCode becomes the call's status.
-func recordOutcome(httpCode int, recordErr string, failedStatus int) (int, string) {
+// recordOutcome returns a getTokens or deleteFiles record's httpCode and error. In a
+// successful call (failedStatus 0) they are the record's own, with recordHTTPCode filling in a
+// missing httpCode. In a failed call they are read from the record's raw map, as in the Java
+// SDK: see failedRecordHTTPCode and failedRecordErrorOrSuccess.
+func recordOutcome(httpCode int, recordErr string, failedStatus int, raw map[string]interface{}) (int, string) {
 	if failedStatus == 0 {
 		return recordHTTPCode(httpCode, recordErr), recordErr
 	}
-	if recordErr == "" && (httpCode < http.StatusOK || httpCode >= http.StatusMultipleChoices) {
-		recordErr = fvconsts.UNKNOWN_RECORD_ERROR
+	return failedRecordHTTPCode(raw, failedStatus), failedRecordErrorOrSuccess(raw)
+}
+
+// httpCodeKeys are the spellings of a record's HTTP status that the Java SDK reads in a failed
+// call's body, in order.
+var httpCodeKeys = []string{fvconsts.ERROR_KEY_HTTP_CODE, "httpCode", "statusCode"}
+
+// failedRecordMaps returns the records under key ("records", or "response" for detokenize) in
+// a failed call's body, as raw maps, so the fields the vault may use there can be read as the
+// Java SDK reads them. A record that isn't an object is returned as nil.
+func failedRecordMaps(callErr error, key string) []map[string]interface{} {
+	var apiErr *core.APIError
+	if !errors.As(callErr, &apiErr) || apiErr.Unwrap() == nil {
+		return nil
 	}
-	if httpCode == 0 {
-		httpCode = failedStatus
+	var body map[string]json.RawMessage
+	if json.Unmarshal([]byte(apiErr.Unwrap().Error()), &body) != nil {
+		return nil
 	}
-	return httpCode, recordErr
+	var records []json.RawMessage
+	if json.Unmarshal(body[key], &records) != nil {
+		return nil
+	}
+	maps := make([]map[string]interface{}, len(records))
+	for i, record := range records {
+		_ = json.Unmarshal(record, &maps[i])
+	}
+	return maps
+}
+
+// rawAt is raw[i], or nil when there is no such record.
+func rawAt(raw []map[string]interface{}, i int) map[string]interface{} {
+	if i < len(raw) {
+		return raw[i]
+	}
+	return nil
+}
+
+// readString is a raw record field as text: a string as it is, another value formatted, and
+// a missing or null one as "".
+func readString(record map[string]interface{}, key string) string {
+	switch value := record[key].(type) {
+	case nil:
+		return ""
+	case string:
+		return value
+	default:
+		return fmt.Sprint(value)
+	}
+}
+
+// failedRecordHTTPCode is a record's own HTTP status in a failed call, read from http_code,
+// httpCode or statusCode (a number or numeric text), else the call's status.
+func failedRecordHTTPCode(record map[string]interface{}, callStatus int) int {
+	for _, key := range httpCodeKeys {
+		switch value := record[key].(type) {
+		case float64:
+			return int(value)
+		case string:
+			if code, err := strconv.Atoi(strings.TrimSpace(value)); err == nil {
+				return code
+			}
+		}
+	}
+	return callStatus
+}
+
+// failedRecordError is the error of a record in a failed insert, update, get, delete or
+// detokenize call. As in the Java SDK, every such record counts as failed: its error is
+// "error", else "message", else UNKNOWN_RECORD_ERROR, so it is never empty.
+func failedRecordError(record map[string]interface{}) string {
+	for _, key := range []string{fvconsts.ERROR_KEY_ERROR, fvconsts.ERROR_KEY_MESSAGE} {
+		if text := readString(record, key); text != "" {
+			return text
+		}
+	}
+	return fvconsts.UNKNOWN_RECORD_ERROR
+}
+
+// failedRecordErrorOrSuccess is the error of a record in a failed getTokens or deleteFiles
+// call, or "" for a record that succeeded. As in the Java SDK, a record counts as a success
+// only when it says so itself: no error and a 2xx status of its own.
+func failedRecordErrorOrSuccess(record map[string]interface{}) string {
+	if text := readString(record, fvconsts.ERROR_KEY_ERROR); text != "" {
+		return text
+	}
+	if code := failedRecordHTTPCode(record, 0); code >= http.StatusOK && code < http.StatusMultipleChoices {
+		return ""
+	}
+	return failedRecordError(record)
+}
+
+// failedRecordResults converts the records of a failed insert, update or get call, as the
+// Java SDK does: each one failed, with its table and skyflowID, its own httpCode or the call's
+// status, and the call's request ID. Its tokens and data aren't returned.
+func failedRecordResults(raw []map[string]interface{}, callStatus int, header http.Header) []fvcommon.InsertResponseRecord {
+	results := make([]fvcommon.InsertResponseRecord, 0, len(raw))
+	for _, record := range raw {
+		recordErr := failedRecordError(record)
+		results = append(results, fvcommon.InsertResponseRecord{
+			TableName: readString(record, "tableName"),
+			SkyflowId: readString(record, "skyflowID"),
+			HttpCode:  failedRecordHTTPCode(record, callStatus),
+			Error:     recordErr,
+			RequestId: fvhelpers.RequestIdFor(header, recordErr),
+		})
+	}
+	return results
+}
+
+// failedDeleteResults converts the records of a failed delete call, as failedRecordResults.
+func failedDeleteResults(raw []map[string]interface{}, callStatus int, header http.Header) []fvcommon.DeleteResponseRecord {
+	results := make([]fvcommon.DeleteResponseRecord, 0, len(raw))
+	for _, record := range raw {
+		recordErr := failedRecordError(record)
+		results = append(results, fvcommon.DeleteResponseRecord{
+			SkyflowId: readString(record, "skyflowID"),
+			HttpCode:  failedRecordHTTPCode(record, callStatus),
+			Error:     recordErr,
+			RequestId: fvhelpers.RequestIdFor(header, recordErr),
+		})
+	}
+	return results
+}
+
+// failedDetokenizeResults converts the records of a failed detokenize call, as
+// failedRecordResults: the token and its group are kept, the value and metadata aren't.
+func failedDetokenizeResults(raw []map[string]interface{}, callStatus int, header http.Header) []fvcommon.DetokenizeResponseRecord {
+	results := make([]fvcommon.DetokenizeResponseRecord, 0, len(raw))
+	for _, record := range raw {
+		recordErr := failedRecordError(record)
+		results = append(results, fvcommon.DetokenizeResponseRecord{
+			Token:          readString(record, "token"),
+			TokenGroupName: readString(record, "tokenGroupName"),
+			HttpCode:       failedRecordHTTPCode(record, callStatus),
+			Error:          recordErr,
+			RequestId:      fvhelpers.RequestIdFor(header, recordErr),
+		})
+	}
+	return results
 }
 
 func deref[T any](value *T) T {
@@ -232,7 +383,7 @@ func toWireUpsert(upsert *fvcommon.UpsertOptions) *api.Upsert {
 	}
 	wire := &api.Upsert{UniqueColumns: upsert.UniqueColumns}
 	if upsert.UpdateType != "" {
-		wire.UpdateType = api.UpsertUpdateType(upsert.UpdateType).Ptr()
+		wire.UpdateType = api.UpsertUpdateType(strings.ToUpper(string(upsert.UpdateType))).Ptr()
 	}
 	return wire
 }
@@ -262,7 +413,7 @@ func toWireUpdate(vaultID string, request fvcommon.UpdateRequest) *api.UpdateReq
 		Records:   make([]*api.UpdateRecordData, 0, len(request.Records)),
 	}
 	if request.UpdateType != "" {
-		wire.UpdateType = api.UpdateRequestUpdateType(request.UpdateType).Ptr()
+		wire.UpdateType = api.UpdateRequestUpdateType(strings.ToUpper(string(request.UpdateType))).Ptr()
 	}
 	for _, record := range request.Records {
 		wire.Records = append(wire.Records, &api.UpdateRecordData{
@@ -419,14 +570,15 @@ func toDetokenizeResults(records []*api.DetokenizeResponseObject, header http.He
 	return results
 }
 
-// toGetTokensResults converts getTokens records; failedStatus is failedCallStatus of the call.
-func toGetTokensResults(records []*api.TokenizeResponseObject, header http.Header, failedStatus int) []fvcommon.GetTokensResponseRecord {
+// toGetTokensResults converts getTokens records; failedStatus is failedCallStatus of the call
+// and raw the call's records as raw maps when it failed (failedRecordMaps).
+func toGetTokensResults(records []*api.TokenizeResponseObject, header http.Header, failedStatus int, raw []map[string]interface{}) []fvcommon.GetTokensResponseRecord {
 	results := make([]fvcommon.GetTokensResponseRecord, 0, len(records))
-	for _, record := range records {
+	for i, record := range records {
 		if record == nil {
 			continue
 		}
-		httpCode, recordErr := recordOutcome(deref(record.HTTPCode), deref(record.Error), failedStatus)
+		httpCode, recordErr := recordOutcome(deref(record.HTTPCode), deref(record.Error), failedStatus, rawAt(raw, i))
 		results = append(results, fvcommon.GetTokensResponseRecord{
 			Value:          deref(record.Value),
 			TokenGroupName: deref(record.TokenGroupName),
@@ -439,14 +591,15 @@ func toGetTokensResults(records []*api.TokenizeResponseObject, header http.Heade
 	return results
 }
 
-// toDeleteFilesResults converts deleteFiles records; failedStatus is failedCallStatus of the call.
-func toDeleteFilesResults(records []*api.FileDeleteResponseObject, header http.Header, failedStatus int) []fvcommon.DeleteFilesResponseRecord {
+// toDeleteFilesResults converts deleteFiles records; failedStatus is failedCallStatus of the
+// call and raw the call's records as raw maps when it failed (failedRecordMaps).
+func toDeleteFilesResults(records []*api.FileDeleteResponseObject, header http.Header, failedStatus int, raw []map[string]interface{}) []fvcommon.DeleteFilesResponseRecord {
 	results := make([]fvcommon.DeleteFilesResponseRecord, 0, len(records))
-	for _, record := range records {
+	for i, record := range records {
 		if record == nil {
 			continue
 		}
-		httpCode, recordErr := recordOutcome(record.HTTPCode, deref(record.Error), failedStatus)
+		httpCode, recordErr := recordOutcome(record.HTTPCode, deref(record.Error), failedStatus, rawAt(raw, i))
 		results = append(results, fvcommon.DeleteFilesResponseRecord{
 			SkyflowId: deref(record.SkyflowID),
 			TableName: record.TableName,

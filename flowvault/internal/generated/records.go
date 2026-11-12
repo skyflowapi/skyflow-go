@@ -44,7 +44,7 @@ type InsertRequest struct {
 	// ID of the vault.
 	VaultID string `json:"vaultID" url:"-"`
 	// Name of the table to perform the operation on. Can be defined at both the request body level and individual record level. If provided at both levels, the record-level `tableName` takes precedence.
-	TableName string `json:"tableName" url:"-"`
+	TableName string `json:"tableName,omitempty" url:"-"`
 	// Data to insert as a list of records.
 	Records []*InsertRecordData `json:"records,omitempty" url:"-"`
 	Upsert  *Upsert             `json:"upsert,omitempty" url:"-"`
@@ -222,7 +222,7 @@ type GetRequestData struct {
 	// Name of the table.
 	TableName string `json:"tableName" url:"tableName"`
 	// Skyflow IDs of the records to return.
-	SkyflowIDs []string `json:"skyflowIDs" url:"skyflowIDs"`
+	SkyflowIDs []string `json:"skyflowIDs,omitempty" url:"skyflowIDs"`
 	// List of columns to redact.
 	ColumnRedactions []*ColumnRedactions `json:"columnRedactions,omitempty" url:"columnRedactions,omitempty"`
 	// List of columns to return.
@@ -829,7 +829,7 @@ type UpdateRequest struct {
 	// ID of the vault.
 	VaultID string `json:"vaultID" url:"-"`
 	// Name of the table.
-	TableName string `json:"tableName" url:"-"`
+	TableName string `json:"tableName,omitempty" url:"-"`
 	// Data to update as a list of records.
 	Records []*UpdateRecordData `json:"records,omitempty" url:"-"`
 	// Type of update operation to perform.

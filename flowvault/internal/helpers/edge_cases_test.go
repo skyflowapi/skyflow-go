@@ -17,6 +17,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	fvconsts "github.com/skyflowapi/skyflow-go/flowvault/internal/constants"
 	fvcommon "github.com/skyflowapi/skyflow-go/flowvault/utils/common"
 )
 
@@ -31,13 +32,14 @@ var _ = Describe("URL, metadata and shared services", func() {
 		Entry("prod", fvcommon.PROD, "https://cluster.skyvault.skyflowapis.com"),
 	)
 
-	It("describes the SDK and runtime in the metadata header", func() {
+	It("describes the SDK and runtime in the metadata header, with the v2, Java and Python keys", func() {
 		var metadata map[string]string
 		Expect(json.Unmarshal([]byte(CreateSDKMetadata()), &metadata)).To(Succeed())
+		Expect(metadata).To(HaveLen(4))
 		Expect(metadata["sdk_name_version"]).To(HavePrefix("skyflow-flowvault-go@"))
-		Expect(metadata["device_model"]).To(Equal(runtime.GOOS))
-		Expect(metadata["os_details"]).To(Equal(runtime.GOOS + " " + runtime.GOARCH))
-		Expect(metadata["runtime_details"]).To(Equal(runtime.Version()))
+		Expect(metadata["sdk_client_device_model"]).To(Equal(runtime.GOOS))
+		Expect(metadata["sdk_client_os_details"]).To(Equal(runtime.GOOS + " " + runtime.GOARCH))
+		Expect(metadata["sdk_runtime_details"]).To(Equal(runtime.Version()))
 	})
 
 	It("shares one authenticator and one config validator", func() {
@@ -45,12 +47,27 @@ var _ = Describe("URL, metadata and shared services", func() {
 		Expect(Auth()).To(BeIdenticalTo(Auth()))
 		Expect(Auth().IsExpired("")).To(BeTrue())
 
-		Expect(ConfigValidator().ValidateUpdateVaultConfig(fvcommon.VaultConfig{})).ToNot(BeNil())
+		// The Java SDK's messages, raw (no "Message: " prefix), like every flowvault error.
+		Expect(ConfigValidator().ValidateUpdateVaultConfig(fvcommon.VaultConfig{}).GetMessage()).
+			To(Equal(fvconsts.SDK_PREFIX + " Initialization failed. Invalid vault ID. Vault ID must not be empty."))
 		Expect(ConfigValidator().ValidateUpdateVaultConfig(fvcommon.VaultConfig{VaultId: "v"})).To(BeNil())
+		Expect(ConfigValidator().ValidateVaultConfig(fvcommon.VaultConfig{VaultId: "v"}).GetMessage()).
+			To(Equal(fvconsts.SDK_PREFIX + " Initialization failed. Specify either 'clusterId' or 'vaultURL'."))
 		// Plain http is rejected for hosts other than localhost.
-		err := ConfigValidator().ValidateUpdateVaultConfig(fvcommon.VaultConfig{VaultId: "v", BaseVaultUrl: "http://vault.example.com"})
-		Expect(err).NotTo(BeNil())
-		Expect(err.GetMessage()).To(ContainSubstring("Insecure vault URL"))
+		for _, url := range []string{"http://vault.example.com", "ftp://vault.example.com"} {
+			err := ConfigValidator().ValidateUpdateVaultConfig(fvcommon.VaultConfig{VaultId: "v", BaseVaultUrl: url})
+			Expect(err.GetMessage()).To(Equal(fvconsts.SDK_PREFIX + " Initialization failed. Vault URL must start with 'https://'."))
+		}
+		_, err := Auth().GenerateBearerToken("", fvcommon.BearerTokenOptions{})
+		Expect(err.GetMessage()).To(HavePrefix(fvconsts.SDK_PREFIX))
+	})
+
+	It("names the SDK as Skyflow FlowVault Go SDK with the version without its v", func() {
+		Expect(fvconsts.SDK_PREFIX).To(Equal("Skyflow FlowVault Go SDK 1.0.0"))
+		Expect(fvconsts.SDK_LOG_PREFIX).To(Equal("[Skyflow FlowVault Go SDK 1.0.0] "))
+		var metadata map[string]string
+		Expect(json.Unmarshal([]byte(CreateSDKMetadata()), &metadata)).To(Succeed())
+		Expect(metadata["sdk_name_version"]).To(Equal("skyflow-flowvault-go@1.0.0"))
 	})
 })
 
@@ -170,14 +187,12 @@ var _ = Describe("Files, edge cases", func() {
 		reader, writer, err := os.Pipe()
 		Expect(err).To(BeNil())
 		defer reader.Close()
-		_, size := position(reader)
-		Expect(size).To(Equal(int64(-1)))
+		Expect(fileSize(reader)).To(Equal(int64(-1)))
 		// A seekable file that isn't a regular file has no known length either.
 		devNull, err := os.Open(os.DevNull)
 		Expect(err).To(BeNil())
 		defer devNull.Close()
-		_, size = position(devNull)
-		Expect(size).To(Equal(int64(-1)))
+		Expect(fileSize(devNull)).To(Equal(int64(-1)))
 		go func() {
 			_, _ = writer.WriteString("piped")
 			_ = writer.Close()
@@ -207,6 +222,15 @@ var _ = Describe("Parsing, edge cases", func() {
 			"c": {{Token: "7"}},
 		}))
 
+	})
+
+	It("keeps a column whose token list is empty, as the Java and Python SDKs do", func() {
+		tokens := ParseTokens(map[string]interface{}{"email": []interface{}{}, "ssn": []interface{}{nil}, "gone": nil})
+		Expect(tokens).To(HaveLen(2))
+		Expect(tokens).To(HaveKeyWithValue("email", []fvcommon.Token{}))
+		Expect(tokens["email"]).ToNot(BeNil())
+		Expect(tokens).To(HaveKeyWithValue("ssn", []fvcommon.Token{}))
+		Expect(tokens).ToNot(HaveKey("gone"))
 	})
 
 	It("reports an unexpected delete-files value as UNKNOWN with no raw status", func() {

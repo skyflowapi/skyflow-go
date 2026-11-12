@@ -505,9 +505,24 @@ var _ = Describe("VaultController API calls", func() {
 			Interceptor: func(rc *fvcommon.RequestContext) { panic(errors.New("no tenant")) },
 		})
 		Expect(err).ToNot(BeNil())
-		Expect(err.GetHttpCode()).To(Equal(string(fverrors.INVALID_INPUT_CODE)))
-		Expect(err.GetMessage()).To(ContainSubstring("Request interceptor panicked: no tenant. The request was not sent."))
+		// As in the Java SDK, there is no HTTP code ("0", empty status) and the message is the
+		// interceptor's own when it has one.
+		Expect(err.GetHttpCode()).To(Equal(string(fverrors.TRANSPORT_ERROR)))
+		Expect(err.GetHttpStatusCode()).To(BeEmpty())
+		Expect(err.GetMessage()).To(ContainSubstring("no tenant"))
 		Expect(errors.Unwrap(err)).To(MatchError("no tenant"))
+		Expect(fake.calls).To(BeEmpty())
+
+		_, err = v.Query(ctx, fvcommon.QueryRequest{Query: "SELECT 1"}, fvcommon.QueryOptions{
+			Interceptor: func(rc *fvcommon.RequestContext) { panic("missing tenant") },
+		})
+		Expect(err.GetMessage()).To(ContainSubstring("missing tenant"))
+		for _, recovered := range []interface{}{42, errors.New(""), ""} {
+			_, err = v.Query(ctx, fvcommon.QueryRequest{Query: "SELECT 1"}, fvcommon.QueryOptions{
+				Interceptor: func(rc *fvcommon.RequestContext) { panic(recovered) },
+			})
+			Expect(err.GetMessage()).To(ContainSubstring(fverrors.REQUEST_INTERCEPTOR_FAILED))
+		}
 		Expect(fake.calls).To(BeEmpty())
 
 		own := fverrors.NewSkyflowError(fverrors.INVALID_INPUT_CODE, "mine")
@@ -520,7 +535,7 @@ var _ = Describe("VaultController API calls", func() {
 			Interceptor: func(rc *fvcommon.RequestContext) { panic((*fverrors.SkyflowError)(nil)) },
 		})
 		Expect(err).ToNot(BeNil())
-		Expect(err.GetHttpCode()).To(Equal(string(fverrors.INVALID_INPUT_CODE)))
+		Expect(err.GetHttpCode()).To(Equal(string(fverrors.TRANSPORT_ERROR)))
 		Expect(fake.calls).To(BeEmpty())
 	})
 

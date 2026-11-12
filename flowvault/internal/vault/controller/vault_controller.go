@@ -71,6 +71,9 @@ func (v *VaultController) Insert(ctx context.Context, request fvcommon.InsertReq
 	if err := finish(fvconsts.METHOD_INSERT, err); err != nil {
 		return nil, err
 	}
+	if status := failedCallStatus(callErr); status != 0 {
+		return &fvcommon.InsertResponse{Records: failedRecordResults(failedRecordMaps(callErr, fvconsts.ERROR_KEY_RECORDS), status, header)}, nil
+	}
 	return &fvcommon.InsertResponse{Records: toRecordResults(body.Records, header)}, nil
 }
 
@@ -86,6 +89,9 @@ func (v *VaultController) Update(ctx context.Context, request fvcommon.UpdateReq
 	body, header, err := result(ctx, resp, callErr, hasRecords(func(b *api.UpdateResponse) int { return len(b.Records) }))
 	if err := finish(fvconsts.METHOD_UPDATE, err); err != nil {
 		return nil, err
+	}
+	if status := failedCallStatus(callErr); status != 0 {
+		return &fvcommon.UpdateResponse{Records: failedRecordResults(failedRecordMaps(callErr, fvconsts.ERROR_KEY_RECORDS), status, header)}, nil
 	}
 	return &fvcommon.UpdateResponse{Records: toRecordResults(body.Records, header)}, nil
 }
@@ -103,6 +109,9 @@ func (v *VaultController) Get(ctx context.Context, request fvcommon.GetRequest, 
 	if err := finish(fvconsts.METHOD_GET, err); err != nil {
 		return nil, err
 	}
+	if status := failedCallStatus(callErr); status != 0 {
+		return &fvcommon.GetResponse{Records: failedRecordResults(failedRecordMaps(callErr, fvconsts.ERROR_KEY_RECORDS), status, header)}, nil
+	}
 	return &fvcommon.GetResponse{Records: toRecordResults(body.Records, header)}, nil
 }
 
@@ -118,6 +127,9 @@ func (v *VaultController) Delete(ctx context.Context, request fvcommon.DeleteReq
 	body, header, err := result(ctx, resp, callErr, hasRecords(func(b *api.DeleteResponse) int { return len(b.Records) }))
 	if err := finish(fvconsts.METHOD_DELETE, err); err != nil {
 		return nil, err
+	}
+	if status := failedCallStatus(callErr); status != 0 {
+		return &fvcommon.DeleteResponse{Records: failedDeleteResults(failedRecordMaps(callErr, fvconsts.ERROR_KEY_RECORDS), status, header)}, nil
 	}
 	return &fvcommon.DeleteResponse{Records: toDeleteResults(body.Records, header)}, nil
 }
@@ -135,6 +147,9 @@ func (v *VaultController) Detokenize(ctx context.Context, request fvcommon.Detok
 	if err := finish(fvconsts.METHOD_DETOKENIZE, err); err != nil {
 		return nil, err
 	}
+	if status := failedCallStatus(callErr); status != 0 {
+		return &fvcommon.DetokenizeResponse{Records: failedDetokenizeResults(failedRecordMaps(callErr, fvconsts.ERROR_KEY_RESPONSE), status, header)}, nil
+	}
 	return &fvcommon.DetokenizeResponse{Records: toDetokenizeResults(body.Response, header)}, nil
 }
 
@@ -151,7 +166,7 @@ func (v *VaultController) GetTokens(ctx context.Context, request fvcommon.GetTok
 	if err := finish(fvconsts.METHOD_GET_TOKENS, err); err != nil {
 		return nil, err
 	}
-	return &fvcommon.GetTokensResponse{Records: toGetTokensResults(body.Records, header, failedCallStatus(callErr))}, nil
+	return &fvcommon.GetTokensResponse{Records: toGetTokensResults(body.Records, header, failedCallStatus(callErr), failedRecordMaps(callErr, fvconsts.ERROR_KEY_RECORDS))}, nil
 }
 
 // Query runs a SELECT query. It returns at most 25 rows per call, so page with LIMIT and
@@ -186,8 +201,9 @@ func (v *VaultController) Query(ctx context.Context, request fvcommon.QueryReque
 
 // UploadFiles uploads files into file columns. It requests a signed upload URL per column,
 // then PUTs each file to its URL, at most MAX_CONCURRENT_UPLOADS at once. The PUTs use
-// fvhelpers.UploadHTTPClient: no retries, no overall timeout and no SDK headers. A column
-// that can't be uploaded is reported as FAILED or SKIPPED; the other columns are unaffected.
+// fvhelpers.UploadHTTPClient: no retries, no overall timeout and no SDK headers, but the
+// vault's ConnectTimeout, ReadTimeout and WriteTimeout. A column that can't be uploaded is
+// reported as FAILED or SKIPPED; the other columns are unaffected.
 func (v *VaultController) UploadFiles(ctx context.Context, request fvcommon.UploadFilesRequest, options fvcommon.UploadFilesOptions) (*fvcommon.UploadFilesResponse, *fverrors.SkyflowError) {
 	files := make([][]fvhelpers.ResolvedFile, len(request.Records))
 	setup, err := v.prepare(ctx, fvconsts.METHOD_UPLOAD_FILES, fvconsts.OPERATION_UPLOAD_FILES, options.Interceptor, func() *fverrors.SkyflowError {
@@ -222,7 +238,7 @@ func (v *VaultController) UploadFiles(ctx context.Context, request fvcommon.Uplo
 		return nil, err
 	}
 
-	return &fvcommon.UploadFilesResponse{Records: uploadToSignedURLs(ctx, request.Records, files, body.Records, header)}, nil
+	return &fvcommon.UploadFilesResponse{Records: uploadToSignedURLs(ctx, fvhelpers.UploadHTTPClient(setup.HttpConfig), request.Records, files, body.Records, header)}, nil
 }
 
 // uploadToSignedURLs PUTs each file to the signed URL the vault returned for its column and
@@ -235,7 +251,7 @@ func (v *VaultController) UploadFiles(ctx context.Context, request fvcommon.Uplo
 //   - A column with no signed URL is SKIPPED with NO_SIGNED_URL_ERROR.
 //   - When any column of a record wasn't uploaded, the record's error says how many, and its
 //     httpCode stays the one the vault returned.
-func uploadToSignedURLs(ctx context.Context, requested []fvcommon.UploadFilesRequestRecord, files [][]fvhelpers.ResolvedFile,
+func uploadToSignedURLs(ctx context.Context, client *http.Client, requested []fvcommon.UploadFilesRequestRecord, files [][]fvhelpers.ResolvedFile,
 	returned []*api.FileUploadResponseObject, header http.Header) []fvcommon.UploadFilesResponseRecord {
 	requestID := header.Get(fvconsts.RESPONSE_HEADER_REQUEST_ID)
 	records := make([]fvcommon.UploadFilesResponseRecord, len(requested))
@@ -287,7 +303,7 @@ func uploadToSignedURLs(ctx context.Context, requested []fvcommon.UploadFilesReq
 				continue
 			}
 			uploads = append(uploads, func() {
-				columnResult.UploadStatus, columnResult.Error = fvhelpers.PutFile(ctx, fvhelpers.UploadHTTPClient(), signedURL, file)
+				columnResult.UploadStatus, columnResult.Error = fvhelpers.PutFile(ctx, client, signedURL, file)
 			})
 		}
 	}
@@ -352,5 +368,5 @@ func (v *VaultController) DeleteFiles(ctx context.Context, request fvcommon.Dele
 	if err := finish(fvconsts.METHOD_DELETE_FILES, err); err != nil {
 		return nil, err
 	}
-	return &fvcommon.DeleteFilesResponse{Records: toDeleteFilesResults(body.Records, header, failedCallStatus(callErr))}, nil
+	return &fvcommon.DeleteFilesResponse{Records: toDeleteFilesResults(body.Records, header, failedCallStatus(callErr), failedRecordMaps(callErr, fvconsts.ERROR_KEY_RECORDS))}, nil
 }

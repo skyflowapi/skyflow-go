@@ -141,7 +141,7 @@ Requests are authorized with Skyflow credentials, set as a `common.Credentials` 
 
 ## Credential types
 
-Set **exactly one** of the following fields. Setting more than one, or none, fails validation with a `*SkyflowError`.
+Set **exactly one** of the following fields. Setting more than one, or none, fails validation with a `*SkyflowError`, and so does a field that holds only spaces. Credentials are checked when you add them, as in the Java SDK.
 
 | Field | What it is |
 |---|---|
@@ -155,7 +155,7 @@ Two optional fields apply when the SDK generates tokens for you (with `Path` or 
 | Field | Description |
 |---|---|
 | `Roles` | Restrict the generated token to specific role IDs (a scoped token). When set, it must not be empty or contain a blank role. |
-| `Context` | Attach context to the generated token for context-aware authorization: a `string` or a `map[string]interface{}`. |
+| `Context` | Attach context to the generated token for context-aware authorization: a non-blank `string`, or a non-empty `map[string]interface{}` whose keys contain only letters, digits and underscores. Any other type fails validation. |
 
 ```go
 // API key
@@ -355,6 +355,9 @@ vault, err := skyflowClient.Vault("<VAULT_ID>")
 | `MaxRetries` | `*int` | optional | Retry attempts after the first failure. |
 | `InitialRetryDelay` | `time.Duration` | optional | Backoff before the first retry. |
 | `MaxRetryDelay` | `time.Duration` | optional | Ceiling the exponential backoff grows to. |
+| `ConnectTimeout` | `time.Duration` | optional | Per attempt: bound on connecting, including the TLS handshake. |
+| `ReadTimeout` | `time.Duration` | optional | Per attempt: bound on waiting for the response once the request is sent. |
+| `WriteTimeout` | `time.Duration` | optional | Per attempt: bound on each write of the request that makes no progress. |
 
 The vault URL for each `Env`:
 
@@ -380,14 +383,14 @@ Methods on `*client.Skyflow`:
 
 | Method | Description |
 |---|---|
-| `Vault(vaultId string)` | The `*VaultService` for a registered vault. |
+| `Vault(vaultId string)` | The `*VaultService` for a registered vault. `Vault("")` returns the default vault, the first one added, as `vault()` does in the Java and Python SDKs. |
 | `AddVaultConfig(config)` | Register another vault. Fails if the vault ID is already registered. |
 | `UpdateVaultConfig(config)` | Update a registered vault in place. Only the fields you set change, except `Env`, which is always applied (leaving it out moves the vault to `PROD`). |
 | `RemoveVaultConfig(vaultId)` | Unregister a vault. |
-| `GetVaultConfig(vaultId)` | A copy of a registered vault's config. |
+| `GetVaultConfig(vaultId)` | A copy of a registered vault's config; `""` means the default vault. |
 | `AddSkyflowCredentials(credentials)` / `UpdateSkyflowCredentials(credentials)` | Set or replace the client-wide credentials. |
 | `GetSkyflowCredentials()` | A copy of the client-wide credentials, or `nil`. |
-| `UpdateLogLevel(level)` / `GetLoglevel()` | Change or read the log level. |
+| `SetLogLevel(level)` / `GetLogLevel()` | Change or read the log level. `UpdateLogLevel` and `GetLoglevel` are deprecated aliases. |
 
 Each of these that can fail returns a `*SkyflowError`.
 
@@ -401,6 +404,9 @@ Each HTTP setting resolves **most specific first**: the value on the `VaultConfi
 | `MaxRetries` | `0`: retries are **opt-in**, so non-idempotent writes are never replayed silently |
 | `InitialRetryDelay` | 500 ms |
 | `MaxRetryDelay` | 2000 ms |
+| `ConnectTimeout`, `ReadTimeout`, `WriteTimeout` (each attempt, as `connectTimeout`, `readTimeout` and `writeTimeout` in the Java and Python SDKs) | 10 s each |
+
+The per-attempt timeouts also apply to the file uploads `UploadFiles` sends to signed URLs, which have no overall timeout.
 
 [Example](../samples/flowvault/vaultapi/timeout_and_retry_config_example.go):
 
@@ -427,7 +433,7 @@ When retries are enabled, retryable responses (HTTP `408`, `429` and `5xx`) are 
 
 ## Logging
 
-The SDK logs at `logger.ERROR` by default, to standard error. Set the level with `client.WithLogLevel(logger.DEBUG)` or `skyflowClient.UpdateLogLevel(logger.DEBUG)`, or turn logging off with `logger.OFF`. Send the output elsewhere with `logger.SetOutput(w io.Writer)`.
+The SDK logs at `logger.ERROR` by default, to standard error. Set the level with `client.WithLogLevel(logger.DEBUG)` or `skyflowClient.SetLogLevel(logger.DEBUG)`, or turn logging off with `logger.OFF`. Send the output elsewhere with `logger.SetOutput(w io.Writer)`.
 
 The level and output are **process-wide**: they are shared by every client of the FlowVault and SkyVault Go SDKs in the process.
 
@@ -882,9 +888,9 @@ The signed URL is a credential that expires after about 15 minutes. The SDK uses
 
 - `Records` is required and must be a non-empty slice of `common.UploadFilesRequestRecord`; each needs a `TableName` and a non-empty `Columns` slice, with no column repeated.
 - Each `common.UploadFilesRequestColumn` needs a `Column` name and **exactly one** file source: `FilePath`, `Base64` or `FileObject` (an `*os.File`, which you close). `Base64` also requires `FileName`. The content type comes from the file name's extension, using the same list as the Java SDK, so a file gets the same type on every OS. An unknown or missing extension is sent as `application/octet-stream`.
-- Leave `SkyflowId` empty to create a new record (CREATE permission); set it to upload into an existing record (UPDATE permission).
+- Leave `SkyflowId` empty to create a new record (CREATE permission); set it to upload into an existing record (UPDATE permission). A `SkyflowId` of only spaces fails validation rather than creating a new record.
 - `FileName` is derived from `FilePath`/`FileObject` when empty; if it is still unset, the server generates one.
-- Every file is checked before anything is uploaded, so a missing or unreadable file, or invalid base64, fails the whole call. Files are then uploaded **concurrently** (at most 5 at once) and streamed: nothing is read into memory up front, and base64 content is decoded while it is uploaded. One `*os.File` can back several columns; each column uploads it from the offset it had when you made the call. The uploads to the signed URLs are not retried and have no overall timeout. The final virus-scan status is asynchronous; read it later with `Get`.
+- Every file is checked before anything is uploaded, so a missing or unreadable file, or invalid base64, fails the whole call. Files are then uploaded **concurrently** (at most 5 at once) and streamed: nothing is read into memory up front, and base64 content is decoded while it is uploaded. A `FileObject` is uploaded whole, from its start, whatever its current offset, and its offset is left unchanged, so one `*os.File` can back several columns. The uploads to the signed URLs are not retried and have no overall timeout. The final virus-scan status is asynchronous; read it later with `Get`.
 - Errors:
   - An error status from the first step (requesting the signed URLs) fails the whole call with a `*SkyflowError`, and nothing is uploaded, even when the response lists records. When those records carry errors, the message is the distinct record errors joined with `; `, as in the Java SDK.
   - A record that fails in the first step comes back with its `Error` set, and every one of its columns is `SKIPPED` with that error.
@@ -964,8 +970,8 @@ Delete files from file columns of existing records, and remove the stored object
 
 **Note:**
 
-- `Records` is required and must be a non-empty slice of `common.DeleteFilesRequestRecord` (at most 20,000); each needs a `TableName` and a non-empty `Columns` slice of file-column names, with no column repeated.
-- Each record sets **exactly one** of `SkyflowId` or `UniqueValues`; both, or neither, fails validation.
+- `Records` is required and must be a non-empty slice of `common.DeleteFilesRequestRecord`; each needs a `TableName` and a non-empty `Columns` slice of file-column names, with no column repeated.
+- Each record sets **exactly one** of `SkyflowId` or `UniqueValues`; both, or neither, fails validation. A `SkyflowId` of only spaces fails validation too.
 - `UniqueValues` has the same shape as in [Get](#get); each map may resolve to more than one record.
 - It is a **hard delete** and can't be undone: afterwards `Get` no longer returns a file for that column. It works whatever the file's `fileStatus`: a `PENDING` upload is cancelled and its signed URL invalidated, a `READY` file's stored object is removed, and a `FAILED` or `SCAN_ERROR` file just has its metadata cleared.
 - Record-level failures come back on the response. Whole-call failures come back as the `*SkyflowError`.
@@ -1021,7 +1027,7 @@ for _, record := range response.Records {
 
 # Custom Request Headers
 
-To add custom HTTP headers to one call, set an `Interceptor` on that operation's options struct. The interceptor is a `func(rc *common.RequestContext)`; it runs once per call, just before the request is sent, and adds headers with `rc.AddHeader(key, value)`. `rc.Operation` names the operation (for example `"INSERT"`). The supported keys are `common.CustomHeaderKey` constants:
+To add custom HTTP headers to one call, set an `Interceptor` on that operation's options struct. The interceptor is a `func(rc *common.RequestContext)`; it runs once per call, just before the request is sent, and adds headers with `rc.AddHeader(key, value)`. `rc.Operation` names the operation (for example `"INSERT"`). `rc.BatchIndex` and `rc.TotalBatches` are `common.NotBatched` (`-1`), as in the Java and Python SDKs, because every operation sends one request. The supported keys are `common.CustomHeaderKey` constants:
 
 | `CustomHeaderKey` | HTTP header name |
 |---|---|
@@ -1029,7 +1035,7 @@ To add custom HTTP headers to one call, set an `Interceptor` on that operation's
 | `common.SkyflowAccountName` | `x-skyflow-account-name` |
 | `common.RequestIdHeader` | `x-request-id` |
 
-Any other key, or a blank value, fails the call with a `*SkyflowError` before it is sent. So does a panic in the interceptor: the call returns a `*SkyflowError` (`"Request interceptor panicked: ... The request was not sent."`, with the panic value as its cause when it is an `error`) instead of crashing your program. A `*SkyflowError` you panic with is returned as is.
+Any other key, or a blank value, fails the call with a `*SkyflowError` before it is sent. So does a panic in the interceptor: the call returns a `*SkyflowError` instead of crashing your program. As in the Java SDK, its message is the panic's own (an `error`'s text or a `string`), else `"Request interceptor threw an exception. The request was not sent."`, and it has no HTTP code (`GetHttpCode()` is `"0"`, with an empty status); an `error` is also kept as the cause. A `*SkyflowError` you panic with is returned as is.
 
 [Example](../samples/flowvault/vaultapi/custom_header_example.go):
 
@@ -1123,16 +1129,20 @@ if err != nil {
 | Method | Returns | Description |
 |---|---|---|
 | `GetHttpCode()` | `string` | HTTP status code, for example `"400"`, `"404"`, `"500"`. `"499"` when the call's context was cancelled or its deadline passed. `"0"` (with an empty `GetHttpStatusCode()`, as in the Java SDK) when no usable HTTP response came back: a network failure, the call ran past its `Timeout`, or the response body couldn't be read. |
-| `GetMessage()` | `string` | Human-readable description of the error. |
+| `GetHttpCodeInt()` | `int` | `GetHttpCode()` as a number, as the Java SDK's `getHttpCode()` returns it; `0` when there is no HTTP code. |
+| `GetMessage()` | `string` | Human-readable description of the error, as it is (as the Java SDK's `getMessage()` returns it). For example `"Skyflow FlowVault Go SDK 1.0.0 Validation error. 'query' can't be empty. Specify a query"`. |
 | `GetGrpcCode()` | `string` | gRPC status code from the server. |
+| `GetGrpcCodeInt()` | `int` | `GetGrpcCode()` as a number; `0` when the server sent none. |
 | `GetHttpStatusCode()` | `string` | HTTP status text from the server. |
 | `GetRequestId()` | `string` | The `x-request-id` response header. Useful for support requests. |
 | `GetDetails()` | `[]interface{}` | Additional error context from the server. Empty for validation errors. |
-| `GetResponseBody()` | `map[string]interface{}` | The parsed error response body, when there is one. |
-| `Error()` | `string` | Implements `error`. |
+| `GetResponseBody()` | `map[string]interface{}` | The server's error response body as it was sent, decoded, when it is a JSON object; `nil` otherwise (for example a validation error or an HTML page from a proxy). |
+| `Error()` | `string` | Implements `error`: the message, followed by `": "` and the cause when the SDK kept one. |
 | `Unwrap()` | `error` | The underlying error when the SDK kept one (the context's error for a `"499"`, the network or timeout error for a `"0"`), so `errors.Is` / `errors.As` work. |
 
-**Validation errors** (table name on both levels, empty token list and similar) are returned before any network call, with HTTP code `"400"`. **API errors** come from the Skyflow server, with the fields filled in from the response body and headers. When the body isn't a Skyflow JSON error, the message is, in order: an `error` string in the body, a top-level `message`, the body itself (for example an HTML page from a proxy; only its first 512 bytes are kept), or `"Error with status code <N>"` for an empty body.
+**Validation errors** (table name on both levels, empty token list and similar) are returned before any network call, with HTTP code `"400"`. **API errors** come from the Skyflow server, with the fields filled in from the response body and headers; `GetHttpCode()` is always the response's HTTP status, as in the Java and Python SDKs. When the body isn't a Skyflow JSON error, the message is, in order: an `error` string in the body, a top-level `message`, the body itself (for example an HTML page from a proxy; only its first 512 bytes are kept), or `"Error with status code <N>"` for an empty body.
+
+When a call fails (a non-`2xx` status) but its body still lists per-record results, `Insert`, `Update`, `Get`, `Delete`, `Detokenize`, `GetTokens` and `DeleteFiles` return those records instead of an error, as the Java SDK does. For `Insert`, `Update`, `Get`, `Delete` and `Detokenize` every such record is failed: its `HttpCode` is its own status or else the call's, its `Error` is its own error or message or else `"Unknown error"`, every record carries the request ID, and no data, tokens or detokenized values are returned. For `GetTokens` and `DeleteFiles` a record counts as a success only when it reports no error and a `2xx` status of its own. `UploadFiles` instead fails the whole call, so no file is uploaded.
 
 A successful (`2xx`) response with an empty body is treated as an empty result. One whose body isn't a JSON object fails the call with its real status code (for example `"200"`) and a message that includes the first 512 bytes of the body.
 

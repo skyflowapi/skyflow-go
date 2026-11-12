@@ -10,16 +10,23 @@ const (
 	SANDBOX_DOMAIN         = ".skyvault.skyflowapis-preview.com"
 	PROD_DOMAIN            = ".skyvault.skyflowapis.com"
 	SDK_NAME               = "Skyflow FlowVault Go SDK "
-	SDK_VERSION            = "v1.0.0" // flowvault module version; bump with each flowvault/vX.Y.Z tag
+	SDK_VERSION            = "1.0.0" // flowvault module version without the "v", as Java and Python report it; bump with each flowvault/vX.Y.Z tag
 	METRICS_SDK_NAME       = "skyflow-flowvault-go"
 	SDK_PREFIX             = SDK_NAME + SDK_VERSION
-	SDK_LOG_PREFIX         = "[ " + SDK_PREFIX + " ] "
+	SDK_LOG_PREFIX         = "[" + SDK_PREFIX + "] " // as the Java and Python SDKs format it
+
+	// sky-metadata header keys, the same in the v2, Java and Python SDKs.
+	SDK_METADATA_KEY_NAME_VERSION    = "sdk_name_version"
+	SDK_METADATA_KEY_DEVICE_MODEL    = "sdk_client_device_model"
+	SDK_METADATA_KEY_OS_DETAILS      = "sdk_client_os_details"
+	SDK_METADATA_KEY_RUNTIME_DETAILS = "sdk_runtime_details"
 
 	// Error response keys
 	ERROR_KEY_ERROR     = "error"
 	ERROR_KEY_HTTP_CODE = "http_code"
 	ERROR_KEY_MESSAGE   = "message"
 	ERROR_KEY_RECORDS   = "records"
+	ERROR_KEY_RESPONSE  = "response" // the records key of a detokenize body
 
 	// RECORD_ERRORS_SEPARATOR joins the distinct record errors of a failed uploadFiles call.
 	RECORD_ERRORS_SEPARATOR = "; "
@@ -71,7 +78,6 @@ const (
 	OPERATION_UPLOAD_FILES = "UPLOAD_FILES"
 	OPERATION_DELETE_FILES = "DELETE_FILES"
 
-	MAX_DELETE_FILES_RECORDS   = 20000
 	QUERY_RECORD_LIMIT         = 25 // the most rows the vault returns in one query call
 	MAX_CONCURRENT_UPLOADS     = 5
 	RESPONSE_HEADER_REQUEST_ID = "x-request-id"
@@ -90,11 +96,12 @@ const (
 	// records before failing, so a retry would create duplicates (as in the Java SDK).
 	UPLOAD_FILES_PATH = "/v2/files/upload"
 
-	// Signed-URL uploads: bounds for connecting and for the storage service's response,
-	// matching the Java and Python defaults. There is no overall upload timeout.
-	UPLOAD_CONNECT_TIMEOUT_SECONDS         = 10
-	UPLOAD_RESPONSE_HEADER_TIMEOUT_SECONDS = 10
-	UPLOAD_KEEP_ALIVE_SECONDS              = 30
+	// Per-attempt bounds, as the Java and Python SDKs' connectTimeout, readTimeout and
+	// writeTimeout (10s each by default). They apply to API calls and signed-URL uploads.
+	DEFAULT_CONNECT_TIMEOUT_SECONDS = 10
+	DEFAULT_READ_TIMEOUT_SECONDS    = 10
+	DEFAULT_WRITE_TIMEOUT_SECONDS   = 10
+	KEEP_ALIVE_SECONDS              = 30
 )
 
 // DEFAULT_UPLOAD_CONTENT_TYPE is the Content-Type of an uploaded file whose type isn't known.

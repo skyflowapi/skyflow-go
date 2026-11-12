@@ -16,20 +16,25 @@ const (
 	INVALID_INPUT_CODE ErrorCodesEnum = v2errors.INVALID_INPUT_CODE
 	// REQUEST_CANCELLED - The call's context ended before the call finished.
 	REQUEST_CANCELLED ErrorCodesEnum = v2errors.REQUEST_CANCELLED
-	// TRANSPORT_ERROR - The call got no usable HTTP response (code "0", empty status).
+	// TRANSPORT_ERROR - The call got no usable HTTP response, or was not sent because the
+	// request interceptor failed (code "0", empty status, as in the Java SDK).
 	TRANSPORT_ERROR ErrorCodesEnum = v2errors.TRANSPORT_ERROR
 )
 
+// Every flowvault error is built with v2errors.RawMessage, so GetMessage returns the message
+// as it is, as the Java SDK's getMessage() and the Python SDK's str(e) do. The v2 SDK's errors,
+// the same type, keep their "Message: " prefix.
+
 func NewSkyflowError(code ErrorCodesEnum, message string) *SkyflowError {
-	return v2errors.NewSkyflowError(code, message)
+	return v2errors.NewSkyflowError(code, message, v2errors.RawMessage())
 }
 
 // NewSkyflowErrorWithCause is NewSkyflowError keeping the error that caused it, so callers
 // can match it with errors.Is or errors.As, e.g. context.DeadlineExceeded.
 func NewSkyflowErrorWithCause(code ErrorCodesEnum, message string, cause error) *SkyflowError {
-	return v2errors.NewSkyflowErrorWithCause(code, message, cause)
+	return v2errors.NewSkyflowErrorWithCause(code, message, cause, v2errors.RawMessage())
 }
 
 func SkyflowErrorApi(err error, header http.Header) *SkyflowError {
-	return v2errors.SkyflowErrorApi(err, header)
+	return v2errors.SkyflowErrorApi(err, header, v2errors.RawMessage())
 }

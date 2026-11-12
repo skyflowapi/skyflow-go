@@ -10,10 +10,19 @@ const (
 	UpdateTypeReplace UpdateType = "REPLACE"
 )
 
+// NotBatched is RequestContext's BatchIndex and TotalBatches for an operation that was not
+// split into batches, as in the Java and Python SDKs. Every flowvault Go operation sends a
+// single request, so it is the only value today.
+const NotBatched = -1
+
 // RequestContext is passed to an options Interceptor before each API call.
 type RequestContext struct {
 	Operation string
-	headers   map[CustomHeaderKey]string
+	// BatchIndex is the zero-based position of this batch within the caller's request, and
+	// TotalBatches the number of batches; both are NotBatched (-1) for an unbatched call.
+	BatchIndex   int
+	TotalBatches int
+	headers      map[CustomHeaderKey]string
 }
 
 // AddHeader adds a custom header to the outgoing request.

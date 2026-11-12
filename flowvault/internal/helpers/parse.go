@@ -12,13 +12,18 @@ import (
 const statusKey = "status"
 
 // ParseTokens accepts a column value that is a token string, a token object or a list of either.
+// As in the Java and Python SDKs, a column whose value is null is left out, while one whose list
+// is empty is kept with an empty (non-nil) list.
 func ParseTokens(raw map[string]interface{}) map[string][]fvcommon.Token {
 	if raw == nil {
 		return nil
 	}
 	parsed := make(map[string][]fvcommon.Token, len(raw))
 	for column, value := range raw {
-		var tokens []fvcommon.Token
+		if value == nil {
+			continue
+		}
+		tokens := []fvcommon.Token{}
 		for _, item := range asList(value) {
 			switch entry := item.(type) {
 			case map[string]interface{}:
@@ -32,9 +37,7 @@ func ParseTokens(raw map[string]interface{}) map[string][]fvcommon.Token {
 				tokens = append(tokens, fvcommon.Token{Token: fmt.Sprint(entry)})
 			}
 		}
-		if tokens != nil {
-			parsed[column] = tokens
-		}
+		parsed[column] = tokens
 	}
 	return parsed
 }

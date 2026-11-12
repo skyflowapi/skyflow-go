@@ -1,11 +1,13 @@
 package helpers
 
 import (
+	"context"
 	"io"
 	"math/rand"
 	"net"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	fvconsts "github.com/skyflowapi/skyflow-go/flowvault/internal/constants"
@@ -18,6 +20,9 @@ type ResolvedHttpConfig struct {
 	MaxRetries        int
 	InitialRetryDelay time.Duration
 	MaxRetryDelay     time.Duration
+	ConnectTimeout    time.Duration
+	ReadTimeout       time.Duration
+	WriteTimeout      time.Duration
 }
 
 // ResolveHttpConfig picks each setting from the vault config, then the client config,
@@ -28,6 +33,9 @@ func ResolveHttpConfig(vault, client fvcommon.HttpConfig) ResolvedHttpConfig {
 		MaxRetries:        fvconsts.DEFAULT_MAX_RETRIES,
 		InitialRetryDelay: firstDuration(vault.InitialRetryDelay, client.InitialRetryDelay, fvconsts.DEFAULT_INITIAL_RETRY_DELAY_MILLIS*time.Millisecond),
 		MaxRetryDelay:     firstDuration(vault.MaxRetryDelay, client.MaxRetryDelay, fvconsts.DEFAULT_MAX_RETRY_DELAY_MILLIS*time.Millisecond),
+		ConnectTimeout:    firstDuration(vault.ConnectTimeout, client.ConnectTimeout, fvconsts.DEFAULT_CONNECT_TIMEOUT_SECONDS*time.Second),
+		ReadTimeout:       firstDuration(vault.ReadTimeout, client.ReadTimeout, fvconsts.DEFAULT_READ_TIMEOUT_SECONDS*time.Second),
+		WriteTimeout:      firstDuration(vault.WriteTimeout, client.WriteTimeout, fvconsts.DEFAULT_WRITE_TIMEOUT_SECONDS*time.Second),
 	}
 	if vault.MaxRetries != nil {
 		resolved.MaxRetries = *vault.MaxRetries
@@ -47,42 +55,81 @@ func firstDuration(values ...time.Duration) time.Duration {
 }
 
 // NewHTTPClient builds the client used for API calls. Timeout covers the whole call,
-// including retries.
+// including retries; ConnectTimeout, ReadTimeout and WriteTimeout bound each attempt.
 func NewHTTPClient(config ResolvedHttpConfig) *http.Client {
 	return &http.Client{
 		Timeout: config.Timeout,
 		Transport: &retryTransport{
-			base:   http.DefaultTransport,
+			base:   transportFor(config),
 			config: config,
 		},
 	}
 }
 
-// uploadClient is shared by all uploads so they reuse one connection pool.
-var uploadClient = newUploadHTTPClient()
-
 // UploadHTTPClient returns the client that PUTs files to signed URLs. Like the Java and
 // Python SDKs, it doesn't retry and has no overall timeout, because a large file can take
-// longer than one API call's timeout while still uploading. Connecting and waiting for the
-// storage service's response are bounded, so a stalled connection still fails, and the
-// caller's context can cancel an upload at any time.
-func UploadHTTPClient() *http.Client {
-	return uploadClient
+// longer than one API call's timeout while still uploading. The vault's ConnectTimeout,
+// ReadTimeout and WriteTimeout still apply, so a stalled connection fails, and the caller's
+// context can cancel an upload at any time.
+func UploadHTTPClient(config ResolvedHttpConfig) *http.Client {
+	return &http.Client{Transport: transportFor(config)}
 }
 
-func newUploadHTTPClient() *http.Client {
+// transportKey identifies the transports that can share a connection pool.
+type transportKey struct {
+	connect, read, write time.Duration
+}
+
+var (
+	transportsMu sync.Mutex
+	transports   = map[transportKey]*http.Transport{}
+)
+
+// transportFor returns the shared transport for config's per-attempt timeouts, creating it
+// the first time, so calls with the same settings reuse one connection pool:
+//   - ConnectTimeout bounds dialing and the TLS handshake (connectTimeout);
+//   - ReadTimeout bounds the wait for the response once the request is sent (readTimeout);
+//   - WriteTimeout bounds each write of the request to the connection (writeTimeout).
+func transportFor(config ResolvedHttpConfig) *http.Transport {
+	key := transportKey{connect: config.ConnectTimeout, read: config.ReadTimeout, write: config.WriteTimeout}
+	transportsMu.Lock()
+	defer transportsMu.Unlock()
+	if transport, ok := transports[key]; ok {
+		return transport
+	}
 	transport := http.DefaultTransport.(*http.Transport).Clone()
-	transport.DialContext = (&net.Dialer{
-		Timeout:   fvconsts.UPLOAD_CONNECT_TIMEOUT_SECONDS * time.Second,
-		KeepAlive: fvconsts.UPLOAD_KEEP_ALIVE_SECONDS * time.Second,
-	}).DialContext
-	transport.TLSHandshakeTimeout = fvconsts.UPLOAD_CONNECT_TIMEOUT_SECONDS * time.Second
-	transport.ResponseHeaderTimeout = fvconsts.UPLOAD_RESPONSE_HEADER_TIMEOUT_SECONDS * time.Second
-	return &http.Client{Transport: transport}
+	dialer := &net.Dialer{Timeout: key.connect, KeepAlive: fvconsts.KEEP_ALIVE_SECONDS * time.Second}
+	transport.DialContext = func(ctx context.Context, network, address string) (net.Conn, error) {
+		conn, err := dialer.DialContext(ctx, network, address)
+		if err != nil || key.write <= 0 {
+			return conn, err
+		}
+		return &writeDeadlineConn{Conn: conn, timeout: key.write}, nil
+	}
+	transport.TLSHandshakeTimeout = key.connect
+	transport.ResponseHeaderTimeout = key.read
+	transports[key] = transport
+	return transport
+}
+
+// writeDeadlineConn fails a write that makes no progress for timeout. The deadline is set
+// per write and cleared after it, so it never limits reads or an idle pooled connection.
+type writeDeadlineConn struct {
+	net.Conn
+	timeout time.Duration
+}
+
+func (c *writeDeadlineConn) Write(p []byte) (int, error) {
+	if err := c.SetWriteDeadline(time.Now().Add(c.timeout)); err != nil {
+		return 0, err
+	}
+	n, err := c.Conn.Write(p)
+	_ = c.SetWriteDeadline(time.Time{})
+	return n, err
 }
 
 // retryTransport retries 408, 429 and 5xx responses with exponential backoff and jitter.
-// UploadFiles and DeleteFiles are not retried on a 5xx (see ShouldRetryRequest).
+// The uploadFiles request is not retried on a 5xx (see ShouldRetryRequest).
 type retryTransport struct {
 	base   http.RoundTripper
 	config ResolvedHttpConfig

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"strings"
 	"sync"
 	"time"
@@ -78,6 +77,7 @@ type RequestSetup struct {
 	AuthToken  string
 	Headers    http.Header
 	HTTPClient *http.Client
+	HttpConfig fvhelpers.ResolvedHttpConfig // also bounds the signed-URL uploads
 	API        *apiclient.Client
 }
 
@@ -186,6 +186,7 @@ func (b *BaseController) SetupRequest(ctx context.Context, operation string, int
 		AuthToken:  authToken,
 		Headers:    headers,
 		HTTPClient: fvhelpers.NewHTTPClient(httpConfig),
+		HttpConfig: httpConfig,
 	}
 	// Retries happen in setup.HTTPClient, so the generated client makes a single attempt.
 	setup.API = apiclient.NewClient(
@@ -278,7 +279,7 @@ func buildHeaders(operation string, interceptor fvcommon.Interceptor) (http.Head
 // SkyflowError instead of crashing the caller, as the Java SDK wraps an interceptor's
 // exception; a non-nil *SkyflowError panic value is returned as is.
 func runInterceptor(operation string, interceptor fvcommon.Interceptor) (rc *fvcommon.RequestContext, err *fverrors.SkyflowError) {
-	rc = &fvcommon.RequestContext{Operation: operation}
+	rc = &fvcommon.RequestContext{Operation: operation, BatchIndex: fvcommon.NotBatched, TotalBatches: fvcommon.NotBatched}
 	defer func() {
 		recovered := recover()
 		if recovered == nil {
@@ -290,8 +291,18 @@ func runInterceptor(operation string, interceptor fvcommon.Interceptor) (rc *fvc
 			return
 		}
 		fvlogger.Error(logs.REQUEST_INTERCEPTOR_FAILED)
+		// As in the Java SDK, the message is the interceptor's own (a panic with an error or a
+		// string), else REQUEST_INTERCEPTOR_FAILED.
+		message := fverrors.REQUEST_INTERCEPTOR_FAILED
 		cause, _ := recovered.(error)
-		err = fverrors.NewSkyflowErrorWithCause(fverrors.INVALID_INPUT_CODE, fmt.Sprintf(fverrors.REQUEST_INTERCEPTOR_FAILED, recovered), cause)
+		if cause != nil && cause.Error() != "" {
+			message = cause.Error()
+		} else if text, isText := recovered.(string); isText && text != "" {
+			message = text
+		}
+		// No HTTP status applies, so the code is "0" with an empty status, as the Java SDK's
+		// exception has no httpCode.
+		err = fverrors.NewSkyflowErrorWithCause(fverrors.TRANSPORT_ERROR, message, cause)
 	}()
 	interceptor(rc)
 	return rc, nil
@@ -409,7 +420,8 @@ func baseURL(config fvcommon.VaultConfig) string {
 	return fvhelpers.GetURLWithEnv(config.Env, config.ClusterId)
 }
 
-// resolveCredentials picks vault credentials, then client credentials, then SKYFLOW_CREDENTIALS.
+// resolveCredentials picks vault credentials, then client credentials, then SKYFLOW_CREDENTIALS
+// from the environment or the working directory's .env file.
 func resolveCredentials(current settings) (*fvcommon.Credentials, *fverrors.SkyflowError) {
 	if !fvcommon.IsCredentialsEmpty(current.config.Credentials) {
 		creds := current.config.Credentials
@@ -418,7 +430,7 @@ func resolveCredentials(current settings) (*fvcommon.Credentials, *fverrors.Skyf
 	if current.client.Credentials != nil && !fvcommon.IsCredentialsEmpty(*current.client.Credentials) {
 		return current.client.Credentials, nil
 	}
-	if envCreds := os.Getenv(fvconsts.SKYFLOW_CREDENTIALS_ENV); envCreds != "" {
+	if envCreds := fvhelpers.EnvCredentials(); envCreds != "" {
 		return &fvcommon.Credentials{CredentialsString: envCreds}, nil
 	}
 	fvlogger.Error(logs.EMPTY_CREDENTIALS)
