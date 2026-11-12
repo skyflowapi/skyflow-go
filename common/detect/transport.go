@@ -54,24 +54,24 @@ func (c finalResponseClient) Do(req *http.Request) (*http.Response, error) {
 // header, so the request ID is kept. Any other error, such as a cancelled or timed-out
 // context or a network failure, is kept as the cause, so errors.Is(err,
 // context.DeadlineExceeded) works on the result.
-func apiError(err error) *skyflowError.SkyflowError {
+func (c *Controller) apiError(err error) *skyflowError.SkyflowError {
 	var apiErr *core.APIError
 	if errors.As(err, &apiErr) {
 		header := apiErr.Header
 		if header == nil {
 			header = http.Header{}
 		}
-		return skyflowError.SkyflowErrorApi(apiErr, header)
+		return c.base.Profile().ApiError(apiErr, header)
 	}
 	code := skyflowError.SERVER
 	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 		code = skyflowError.REQUEST_CANCELLED
 	}
-	return skyflowError.NewSkyflowErrorWithCause(code, err.Error(), err)
+	return c.base.Profile().NewErrorWithCause(code, err.Error(), err)
 }
 
 func (c *Controller) emptyResponse(method string) *skyflowError.SkyflowError {
-	return skyflowError.NewSkyflowError(skyflowError.SERVER, fmt.Sprintf(c.errMsg(errEmptyResponse), method))
+	return c.base.Profile().NewError(skyflowError.SERVER, fmt.Sprintf(c.errMsg(errEmptyResponse), method))
 }
 
 func (c *Controller) callDeidentifyString(ctx context.Context, call *vaultclient.Call, request DeidentifyStringRequest) (*DeidentifyStringResponse, *skyflowError.SkyflowError) {
@@ -81,7 +81,7 @@ func (c *Controller) callDeidentifyString(ctx context.Context, call *vaultclient
 		Configuration:   requestConfiguration(request.ConfigurationId, request.Configuration, call.VaultID),
 	})
 	if err != nil {
-		return nil, apiError(err)
+		return nil, c.apiError(err)
 	}
 	if resp == nil {
 		return nil, c.emptyResponse(methodDeidentifyString)
@@ -98,7 +98,7 @@ func (c *Controller) callDeidentifyFile(ctx context.Context, call *vaultclient.C
 		Configuration:   requestConfiguration(request.ConfigurationId, request.Configuration, call.VaultID),
 	})
 	if err != nil {
-		return "", apiError(err)
+		return "", c.apiError(err)
 	}
 	if resp == nil || resp.RunID == nil || *resp.RunID == "" {
 		return "", c.emptyResponse(methodDeidentifyFile)
@@ -109,7 +109,7 @@ func (c *Controller) callDeidentifyFile(ctx context.Context, call *vaultclient.C
 func (c *Controller) callGetRun(ctx context.Context, call *vaultclient.Call, runId string) (*GetRunResponse, *skyflowError.SkyflowError) {
 	resp, err := newAPI(call).FilesV2.GetRunV2(ctx, &gen.GetRunV2Request{RunID: runId, VaultID: call.VaultID})
 	if err != nil {
-		return nil, apiError(err)
+		return nil, c.apiError(err)
 	}
 	if resp == nil {
 		return nil, c.emptyResponse(methodGetRun)
@@ -124,7 +124,7 @@ func (c *Controller) callReidentifyString(ctx context.Context, call *vaultclient
 		RedactionLevel: toGenRedactionLevels(request.RedactionLevel),
 	})
 	if err != nil {
-		return nil, apiError(err)
+		return nil, c.apiError(err)
 	}
 	if resp == nil {
 		return nil, c.emptyResponse(methodReidentifyString)
@@ -141,7 +141,7 @@ func (c *Controller) callReidentifyFile(ctx context.Context, call *vaultclient.C
 		RedactionLevel: toGenRedactionLevels(request.RedactionLevel),
 	})
 	if err != nil {
-		return nil, apiError(err)
+		return nil, c.apiError(err)
 	}
 	if resp == nil {
 		return nil, c.emptyResponse(methodReidentifyFile)
@@ -162,7 +162,7 @@ func (c *Controller) callCheckGuardrails(ctx context.Context, call *vaultclient.
 		DenyTopics:    request.DenyTopics,
 	})
 	if err != nil {
-		return nil, apiError(err)
+		return nil, c.apiError(err)
 	}
 	if resp == nil {
 		return nil, c.emptyResponse(methodCheckGuardrails)

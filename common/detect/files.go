@@ -230,8 +230,12 @@ func writeOutputFile(target string, content []byte, rename func(oldpath, newpath
 	return err
 }
 
+// writeFailure is the error for an output file that could not be written. The failure is
+// local, with no HTTP exchange behind it, so, as in the Java SDK, it has no HTTP status: the
+// code is TRANSPORT_ERROR ("0") with an empty status. err is kept as the cause, so
+// errors.Is(result, fs.ErrPermission) works.
 func (c *Controller) writeFailure(path string, err error) *skyflowError.SkyflowError {
 	message := fmt.Sprintf(c.errMsg(errOutputNotWritten), path, err.Error())
 	logger.Error(message)
-	return skyflowError.NewSkyflowError(skyflowError.SERVER, message)
+	return c.base.Profile().NewErrorWithCause(skyflowError.TRANSPORT_ERROR, message, err)
 }

@@ -46,6 +46,8 @@ type Config struct {
 	// HTTPClient used for the token endpoint. Nil uses a client with DefaultTimeout; a client
 	// without a timeout is used through a copy with DefaultTimeout set.
 	HTTPClient *http.Client
+	// ErrorOptions are applied to every error the service returns, e.g. errors.RawMessage().
+	ErrorOptions []skyflowError.ErrorOption
 }
 
 // DefaultTimeout bounds a token request when Config sets no HTTPClient or one without a
@@ -89,6 +91,11 @@ type TokenResult struct {
 }
 
 func (s *Service) errMsg(base string) string { return s.cfg.SDKPrefix + base }
+
+// newError builds an error with the service's ErrorOptions.
+func (s *Service) newError(code skyflowError.ErrorCodesEnum, message string) *skyflowError.SkyflowError {
+	return skyflowError.NewSkyflowError(code, message, s.cfg.ErrorOptions...)
+}
 func (s *Service) logMsg(base string) string { return s.cfg.LogPrefix + base }
 
 func (s *Service) baseURLResolver() BaseURLResolver {
@@ -107,7 +114,7 @@ func (s *Service) GenerateBearerToken(credentialsFilePath string, options sa.Bea
 	logger.Info(s.logMsg(logGenerateBearerTokenTriggered))
 	if credentialsFilePath == "" {
 		logger.Error(s.logMsg(logEmptyCredentialsPath))
-		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, s.errMsg(errEmptyCredentialFilePath))
+		return nil, s.newError(skyflowError.INVALID_INPUT_CODE, s.errMsg(errEmptyCredentialFilePath))
 	}
 	credKeys, err := s.ParseCredentialsFile(credentialsFilePath)
 	if err != nil {
@@ -122,7 +129,7 @@ func (s *Service) GenerateBearerTokenFromCreds(credentials string, options sa.Be
 	var credKeys map[string]interface{}
 	if err := json.Unmarshal([]byte(credentials), &credKeys); err != nil {
 		logger.Error(s.logMsg(logInvalidCredentialsStringFormat))
-		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, s.errMsg(errInvalidCredentials))
+		return nil, s.newError(skyflowError.INVALID_INPUT_CODE, s.errMsg(errInvalidCredentials))
 	}
 	return s.bearerTokenResponse(credKeys, options)
 }
@@ -134,7 +141,7 @@ func (s *Service) bearerTokenResponse(credKeys map[string]interface{}, options s
 	}
 	if token.AccessToken == nil || token.TokenType == nil {
 		logger.Error(s.logMsg(logBearerTokenRejected))
-		return nil, skyflowError.NewSkyflowError(skyflowError.SERVER, s.logMsg(logBearerTokenRejected))
+		return nil, s.newError(skyflowError.SERVER, s.logMsg(logBearerTokenRejected))
 	}
 	logger.Info(s.logMsg(logGenerateBearerTokenSuccess))
 	return &sa.TokenResponse{
@@ -148,10 +155,10 @@ func (s *Service) GenerateSignedDataTokens(credentialsFilePath string, options s
 	logger.Info(s.logMsg(logGenerateSignedDataTokensTriggered))
 	if credentialsFilePath == "" {
 		logger.Error(s.logMsg(logEmptyCredentialsPath))
-		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, s.errMsg(errEmptyCredentialFilePath))
+		return nil, s.newError(skyflowError.INVALID_INPUT_CODE, s.errMsg(errEmptyCredentialFilePath))
 	}
 	if len(options.DataTokens) == 0 {
-		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, s.errMsg(errEmptyTokensDetokenize))
+		return nil, s.newError(skyflowError.INVALID_INPUT_CODE, s.errMsg(errEmptyTokensDetokenize))
 	}
 	credKeys, err := s.ParseCredentialsFile(credentialsFilePath)
 	if err != nil {
@@ -164,13 +171,13 @@ func (s *Service) GenerateSignedDataTokens(credentialsFilePath string, options s
 func (s *Service) GenerateSignedDataTokensFromCreds(credentials string, options sa.SignedDataTokensOptions) ([]sa.SignedDataTokensResponse, *skyflowError.SkyflowError) {
 	if credentials == "" {
 		logger.Error(s.logMsg(logInvalidCredentialsStringFormat))
-		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, s.errMsg(errEmptyCredentialsString))
+		return nil, s.newError(skyflowError.INVALID_INPUT_CODE, s.errMsg(errEmptyCredentialsString))
 	}
 	logger.Info(s.logMsg(logGenerateSignedDataTokensTriggered))
 	var credKeys map[string]interface{}
 	if err := json.Unmarshal([]byte(credentials), &credKeys); err != nil {
 		logger.Error(s.logMsg(logInvalidCredentialsStringFormat))
-		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, s.errMsg(errInvalidCredentials))
+		return nil, s.newError(skyflowError.INVALID_INPUT_CODE, s.errMsg(errInvalidCredentials))
 	}
 	return s.GetSignedDataTokens(credKeys, options)
 }
@@ -217,19 +224,19 @@ func (s *Service) ParseCredentialsFile(credentialsFilePath string) (map[string]i
 	file, err := os.Open(credentialsFilePath)
 	if err != nil {
 		logger.Error(fmt.Sprintf(s.logMsg(logFileNotFound), credentialsFilePath))
-		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(s.errMsg(errFileNotFound), credentialsFilePath))
+		return nil, s.newError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(s.errMsg(errFileNotFound), credentialsFilePath))
 	}
 	defer file.Close()
 
 	raw, err := io.ReadAll(file)
 	if err != nil {
 		logger.Error(fmt.Sprintf(s.logMsg(logInvalidInputFile), credentialsFilePath))
-		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(s.logMsg(logInvalidInputFile), credentialsFilePath))
+		return nil, s.newError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(s.logMsg(logInvalidInputFile), credentialsFilePath))
 	}
 	var credKeys map[string]interface{}
 	if err := json.Unmarshal(raw, &credKeys); err != nil {
 		logger.Error(s.logMsg(logNotAValidJSON))
-		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, s.errMsg(errCredentialsStringInvalidJSON))
+		return nil, s.newError(skyflowError.INVALID_INPUT_CODE, s.errMsg(errCredentialsStringInvalidJSON))
 	}
 	return credKeys, nil
 }
@@ -243,7 +250,7 @@ func (s *Service) GetCredentialParams(credKeys map[string]interface{}) (string, 
 	}
 	if !ok {
 		logger.Error(s.logMsg(logClientIdNotFound))
-		return "", "", "", skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, s.errMsg(errMissingClientId))
+		return "", "", "", s.newError(skyflowError.INVALID_INPUT_CODE, s.errMsg(errMissingClientId))
 	}
 
 	tokenUri, ok := credKeys["tokenUri"].(string)
@@ -252,7 +259,7 @@ func (s *Service) GetCredentialParams(credKeys map[string]interface{}) (string, 
 	}
 	if !ok {
 		logger.Error(s.logMsg(logTokenUriNotFound))
-		return "", "", "", skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, s.errMsg(errMissingTokenUri))
+		return "", "", "", s.newError(skyflowError.INVALID_INPUT_CODE, s.errMsg(errMissingTokenUri))
 	}
 
 	keyId, ok := credKeys["keyId"].(string)
@@ -261,7 +268,7 @@ func (s *Service) GetCredentialParams(credKeys map[string]interface{}) (string, 
 	}
 	if !ok {
 		logger.Error(s.logMsg(logKeyIdNotFound))
-		return "", "", "", skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, s.errMsg(errMissingKeyId))
+		return "", "", "", s.newError(skyflowError.INVALID_INPUT_CODE, s.errMsg(errMissingKeyId))
 	}
 	return clientId, tokenUri, keyId, nil
 }
@@ -271,7 +278,7 @@ func (s *Service) GetPrivateKey(credKeys map[string]interface{}) (*rsa.PrivateKe
 	privateKeyStr, ok := credKeys[credKeyPrivateKey].(string)
 	if !ok {
 		logger.Error(s.logMsg(logPrivateKeyNotFound))
-		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, s.errMsg(errMissingPrivateKey))
+		return nil, s.newError(skyflowError.INVALID_INPUT_CODE, s.errMsg(errMissingPrivateKey))
 	}
 	return s.ParsePrivateKey(privateKeyStr)
 }
@@ -281,11 +288,11 @@ func (s *Service) ParsePrivateKey(pemKey string) (*rsa.PrivateKey, *skyflowError
 	privPem, _ := pem.Decode([]byte(pemKey))
 	if privPem == nil {
 		logger.Error(s.logMsg(logJwtInvalidFormat))
-		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, s.errMsg(errJwtInvalidFormat))
+		return nil, s.newError(skyflowError.INVALID_INPUT_CODE, s.errMsg(errJwtInvalidFormat))
 	}
 	if privPem.Type != privateKeyPEMType {
 		logger.Error(fmt.Sprintf(s.logMsg(logPrivateKeyType), privPem.Type))
-		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, s.errMsg(errJwtInvalidFormat))
+		return nil, s.newError(skyflowError.INVALID_INPUT_CODE, s.errMsg(errJwtInvalidFormat))
 	}
 	if key, err := x509.ParsePKCS1PrivateKey(privPem.Bytes); err == nil {
 		return key, nil
@@ -293,13 +300,13 @@ func (s *Service) ParsePrivateKey(pemKey string) (*rsa.PrivateKey, *skyflowError
 	parsedKey, err := x509.ParsePKCS8PrivateKey(privPem.Bytes)
 	if err != nil {
 		logger.Error(s.logMsg(logInvalidAlgorithm))
-		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, s.errMsg(errInvalidAlgorithm))
+		return nil, s.newError(skyflowError.INVALID_INPUT_CODE, s.errMsg(errInvalidAlgorithm))
 	}
 	if privateKey, ok := parsedKey.(*rsa.PrivateKey); ok {
 		return privateKey, nil
 	}
 	logger.Error(s.logMsg(logInvalidKeySpec))
-	return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, s.errMsg(errInvalidKeySpec))
+	return nil, s.newError(skyflowError.INVALID_INPUT_CODE, s.errMsg(errInvalidKeySpec))
 }
 
 // GetSignedDataTokens signs options.DataTokens with the key in credKeys.
@@ -343,7 +350,7 @@ func (s *Service) GenerateSignedDataTokensHelper(clientId, keyId string, pvtKey 
 		tokenString, err := jwt.NewWithClaims(jwt.SigningMethodRS256, claims).SignedString(pvtKey)
 		if err != nil {
 			logger.Error(s.logMsg(logParseJwtPayload))
-			return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(s.errMsg(errErrorOccurred)+"%v", err))
+			return nil, s.newError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(s.errMsg(errErrorOccurred)+"%v", err))
 		}
 		responseArray = append(responseArray, sa.SignedDataTokensResponse{Token: token, SignedToken: signedTokenPrefix + tokenString})
 	}
@@ -370,7 +377,7 @@ func (s *Service) GetSignedBearerUserToken(clientId, keyId, tokenUri string, pvt
 	signedToken, err := jwt.NewWithClaims(jwt.SigningMethodRS256, claims).SignedString(pvtKey)
 	if err != nil {
 		logger.Error(s.logMsg(logParseJwtPayload))
-		return "", skyflowError.NewSkyflowError(skyflowError.SERVER, fmt.Sprintf(s.errMsg(errUnknownError), err))
+		return "", s.newError(skyflowError.SERVER, fmt.Sprintf(s.errMsg(errUnknownError), err))
 	}
 	return signedToken, nil
 }
@@ -381,7 +388,7 @@ func (s *Service) GenerateBearerTokenHelper(credKeys map[string]interface{}, opt
 	privateKey, ok := credKeys[credKeyPrivateKey].(string)
 	if !ok {
 		logger.Error(s.logMsg(logPrivateKeyNotFound))
-		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, s.errMsg(errMissingPrivateKey))
+		return nil, s.newError(skyflowError.INVALID_INPUT_CODE, s.errMsg(errMissingPrivateKey))
 	}
 	pvtKey, err := s.ParsePrivateKey(privateKey)
 	if err != nil {
@@ -425,7 +432,7 @@ func (s *Service) postAuthToken(baseURL string, body *gen.GetAuthTokenRequest) (
 	client := genauth.NewClient(option.WithBaseURL(baseURL), option.WithHTTPClient(s.cfg.HTTPClient))
 	resp, err := client.WithRawResponse.GetBearerToken(context.Background(), body)
 	if err != nil {
-		return nil, skyflowError.SkyflowErrorApi(err, responseHeader(err))
+		return nil, skyflowError.SkyflowErrorApi(err, responseHeader(err), s.cfg.ErrorOptions...)
 	}
 	return &TokenResult{AccessToken: resp.Body.AccessToken, TokenType: resp.Body.TokenType}, nil
 }
@@ -454,7 +461,7 @@ func (s *Service) GetBaseURL(urlStr string) (string, *skyflowError.SkyflowError)
 	parsedUrl, err := url.Parse(urlStr)
 	if err != nil || parsedUrl.Scheme != httpsProtocol || parsedUrl.Host == "" {
 		logger.Error(s.logMsg(logInvalidTokenUri))
-		return "", skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, s.errMsg(errInvalidTokenUri))
+		return "", s.newError(skyflowError.INVALID_INPUT_CODE, s.errMsg(errInvalidTokenUri))
 	}
 	return fmt.Sprintf("%s://%s", parsedUrl.Scheme, parsedUrl.Host), nil
 }
@@ -484,11 +491,11 @@ func (s *Service) ValidateAndResolveCtx(ctx interface{}) (interface{}, *skyflowE
 		}
 		for key := range v {
 			if !ctxKeyPattern.MatchString(key) {
-				return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(s.errMsg(errInvalidCtxMapKey), key))
+				return nil, s.newError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(s.errMsg(errInvalidCtxMapKey), key))
 			}
 		}
 		return v, nil
 	default:
-		return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, s.errMsg(errInvalidCtxType))
+		return nil, s.newError(skyflowError.INVALID_INPUT_CODE, s.errMsg(errInvalidCtxType))
 	}
 }

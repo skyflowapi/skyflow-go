@@ -14,6 +14,7 @@ import (
 
 	"github.com/skyflowapi/skyflow-go/flowvault/internal/testutil"
 	fvcommon "github.com/skyflowapi/skyflow-go/flowvault/utils/common"
+	fverrors "github.com/skyflowapi/skyflow-go/flowvault/utils/error"
 )
 
 func TestClient(t *testing.T) {
@@ -42,7 +43,7 @@ var _ = Describe("Skyflow client", func() {
 
 		config := fvcommon.VaultConfig{VaultId: testVaultID, ClusterId: "cluster"}
 		_, err = NewSkyflow(WithVaults(config, config))
-		Expect(err.GetMessage()).To(ContainSubstring("already exists"))
+		Expect(err.GetMessage()).To(ContainSubstring(fverrors.VAULT_ID_ALREADY_IN_CONFIG_LIST))
 	})
 
 	It("rejects negative HTTP settings on the client and on a vault", func() {
@@ -207,9 +208,9 @@ var _ = Describe("VaultService", func() {
 
 	It("validates before anything else", func() {
 		_, err := vault.Insert(ctx, fvcommon.InsertRequest{}, fvcommon.InsertOptions{})
-		Expect(err.GetMessage()).To(ContainSubstring("Records must not be empty"))
+		Expect(err.GetMessage()).To(ContainSubstring(fverrors.EMPTY_RECORDS))
 		_, err = vault.Query(ctx, fvcommon.QueryRequest{}, fvcommon.QueryOptions{})
-		Expect(err.GetMessage()).To(ContainSubstring("Query must not be empty"))
+		Expect(err.GetMessage()).To(ContainSubstring(fverrors.EMPTY_QUERY))
 	})
 
 	It("rejects interceptor headers that aren't supported", func() {

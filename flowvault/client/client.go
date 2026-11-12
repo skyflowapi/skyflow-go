@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	fvhelpers "github.com/skyflowapi/skyflow-go/flowvault/internal/helpers"
+	fvvalidation "github.com/skyflowapi/skyflow-go/flowvault/internal/validation"
 	"github.com/skyflowapi/skyflow-go/flowvault/internal/vault/controller"
 	fvcommon "github.com/skyflowapi/skyflow-go/flowvault/utils/common"
 	fverrors "github.com/skyflowapi/skyflow-go/flowvault/utils/error"
@@ -73,6 +74,7 @@ func WithLogLevel(logLevel fvlogger.LogLevel) Option {
 		defer s.mu.Unlock()
 		s.logLevel = logLevel
 		fvlogger.SetLogLevel(logLevel)
+		fvlogger.Info(fmt.Sprintf(logs.CURRENT_LOG_LEVEL, logLevel))
 		return nil
 	}
 }
@@ -153,26 +155,26 @@ func copyValue(value interface{}) interface{} {
 	return value
 }
 
-// Vault returns the vault service registered under vaultId. With no vaultId it returns the
-// first vault registered, as the other Skyflow SDKs do; only the first vaultId is used.
+// Vault returns the vault service registered under vaultId. With no vaultId, or an empty
+// one, it returns the default vault, the first one added, as vault() with no ID does in the
+// Java and Python SDKs; only the first vaultId is used.
 func (s *Skyflow) Vault(vaultId ...string) (*VaultService, *fverrors.SkyflowError) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	var svc *VaultService
-	ok := false
+	id := ""
 	if len(vaultId) > 0 {
-		svc, ok = s.vaultServices[vaultId[0]]
-	} else if len(s.vaultOrder) > 0 {
-		svc, ok = s.vaultServices[s.vaultOrder[0]]
+		id = vaultId[0]
 	}
+	svc, ok := s.lookup(id)
 	if !ok {
+		fvlogger.Error(fmt.Sprintf(logs.VAULT_CONFIG_DOES_NOT_EXIST, vaultIdForLog(id)))
 		return nil, fverrors.NewSkyflowError(fverrors.INVALID_INPUT_CODE, fverrors.VAULT_ID_NOT_IN_CONFIG_LIST)
 	}
 	return svc, nil
 }
 
 // Detect returns the Detect service of the vault registered under vaultId, or of the
-// first vault registered when no vaultId is given. It uses the same vault config,
+// default vault when vaultId is omitted or empty. It uses the same vault config,
 // credentials and bearer token as Vault(vaultId).
 func (s *Skyflow) Detect(vaultId ...string) (*DetectService, *fverrors.SkyflowError) {
 	svc, err := s.Vault(vaultId...)
@@ -180,6 +182,27 @@ func (s *Skyflow) Detect(vaultId ...string) (*DetectService, *fverrors.SkyflowEr
 		return nil, err
 	}
 	return svc.detect, nil
+}
+
+// lookup finds the vault registered under vaultId, or the default vault when vaultId is
+// empty. The caller holds s.mu.
+func (s *Skyflow) lookup(vaultId string) (*VaultService, bool) {
+	if vaultId == "" {
+		if len(s.vaultOrder) == 0 {
+			return nil, false
+		}
+		vaultId = s.vaultOrder[0]
+	}
+	svc, ok := s.vaultServices[vaultId]
+	return svc, ok
+}
+
+// vaultIdForLog names the vault ID in a log line; an empty one asked for the default vault.
+func vaultIdForLog(vaultId string) string {
+	if vaultId == "" {
+		return logs.DEFAULT_VAULT
+	}
+	return vaultId
 }
 
 // ---------------------------------------------------------------------------
@@ -200,7 +223,7 @@ func (s *Skyflow) AddVaultConfig(cfg fvcommon.VaultConfig) *fverrors.SkyflowErro
 	defer s.mu.Unlock()
 	if _, exists := s.vaultServices[cfg.VaultId]; exists {
 		fvlogger.Error(fmt.Sprintf(logs.VAULT_CONFIG_EXISTS, cfg.VaultId))
-		return fverrors.NewSkyflowError(fverrors.INVALID_INPUT_CODE, fmt.Sprintf(fverrors.VAULT_ID_EXISTS_IN_CONFIG_LIST, cfg.VaultId))
+		return fverrors.NewSkyflowError(fverrors.INVALID_INPUT_CODE, fverrors.VAULT_ID_ALREADY_IN_CONFIG_LIST)
 	}
 	s.vaultServices[cfg.VaultId] = newVaultService(controller.NewVaultController(copyVaultConfig(cfg), s.clientSettings()))
 	s.vaultOrder = append(s.vaultOrder, cfg.VaultId)
@@ -279,7 +302,7 @@ func validateVaultCredentials(credentials fvcommon.Credentials) *fverrors.Skyflo
 	if fvcommon.IsCredentialsEmpty(credentials) {
 		return nil
 	}
-	return fvhelpers.ConfigValidator().ValidateCredentials(credentials)
+	return fvvalidation.ValidateCredentials(credentials)
 }
 
 // RemoveVaultConfig removes the vault config registered under vaultId.
@@ -297,11 +320,12 @@ func (s *Skyflow) RemoveVaultConfig(vaultId string) *fverrors.SkyflowError {
 }
 
 // GetVaultConfig returns a copy of the VaultConfig registered under vaultId, or an error if
-// it is not found. Use UpdateVaultConfig to change it.
+// it is not found. An empty vaultId means the default vault, the first one added, as in the
+// Java and Python SDKs. Use UpdateVaultConfig to change it.
 func (s *Skyflow) GetVaultConfig(vaultId string) (*fvcommon.VaultConfig, *fverrors.SkyflowError) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	svc, exists := s.vaultServices[vaultId]
+	svc, exists := s.lookup(vaultId)
 	if !exists {
 		return nil, fverrors.NewSkyflowError(fverrors.INVALID_INPUT_CODE, fverrors.VAULT_ID_NOT_IN_CONFIG_LIST)
 	}
@@ -316,7 +340,7 @@ func (s *Skyflow) GetVaultConfig(vaultId string) (*fvcommon.VaultConfig, *fverro
 // AddSkyflowCredentials sets or replaces client-level credentials and propagates them to all vaults.
 func (s *Skyflow) AddSkyflowCredentials(credentials fvcommon.Credentials) *fverrors.SkyflowError {
 	fvlogger.Info(logs.VALIDATING_CRED)
-	if err := fvhelpers.ConfigValidator().ValidateCredentials(credentials); err != nil {
+	if err := fvvalidation.ValidateCredentials(credentials); err != nil {
 		return err
 	}
 	s.mu.Lock()
@@ -348,9 +372,10 @@ func (s *Skyflow) GetSkyflowCredentials() *fvcommon.Credentials {
 // Logging
 // ---------------------------------------------------------------------------
 
-// UpdateLogLevel changes the log level for the client.
-// The level is process-wide: it is shared by every client of the v2 and flowvault SDKs.
-func (s *Skyflow) UpdateLogLevel(logLevel fvlogger.LogLevel) {
+// SetLogLevel changes the log level for the client, as setLogLevel / set_log_level do in the
+// Java and Python SDKs. The level is process-wide: it is shared by every client of the v2 and
+// flowvault SDKs.
+func (s *Skyflow) SetLogLevel(logLevel fvlogger.LogLevel) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.logLevel = logLevel
@@ -358,11 +383,25 @@ func (s *Skyflow) UpdateLogLevel(logLevel fvlogger.LogLevel) {
 	fvlogger.Info(fmt.Sprintf(logs.CURRENT_LOG_LEVEL, logLevel))
 }
 
-// GetLoglevel returns the level last set on this client. Another client, in either SDK,
+// GetLogLevel returns the level last set on this client. Another client, in either SDK,
 // may have changed the process-wide level since.
-func (s *Skyflow) GetLoglevel() *fvlogger.LogLevel {
+func (s *Skyflow) GetLogLevel() fvlogger.LogLevel {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	logLevel := s.logLevel
+	return s.logLevel
+}
+
+// UpdateLogLevel changes the log level for the client.
+//
+// Deprecated: Use SetLogLevel instead, as in the Java and Python SDKs.
+func (s *Skyflow) UpdateLogLevel(logLevel fvlogger.LogLevel) {
+	s.SetLogLevel(logLevel)
+}
+
+// GetLoglevel returns the level last set on this client.
+//
+// Deprecated: Use GetLogLevel instead, which returns the level rather than a pointer to it.
+func (s *Skyflow) GetLoglevel() *fvlogger.LogLevel {
+	logLevel := s.GetLogLevel()
 	return &logLevel
 }

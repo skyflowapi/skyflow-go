@@ -14,6 +14,7 @@ const (
 	errBearerTokenCancelled = " Request cancelled. The context ended before a bearer token was available."
 	errInvalidHeaderKey     = " Validation error. %s: header key %q is not supported. Use x-skyflow-account-id, x-skyflow-account-name or x-request-id."
 	errEmptyHeaderValue     = " Validation error. %s: header %q must have a value."
+	errInterceptorFailed    = " Request interceptor threw an exception. The request was not sent."
 )
 
 // Log messages: prefixed with Profile.LogPrefix.
@@ -23,6 +24,7 @@ const (
 	logReuseBearerToken             = "Reusing the cached bearer token."
 	logEmptyCredentials             = "No credentials found in the vault config, client config or SKYFLOW_CREDENTIALS (environment or .env file)."
 	logBearerTokenCancelled         = "The context ended before a bearer token was available."
+	logInterceptorFailed            = "Request interceptor threw an exception. The request was not sent."
 
 	// The 401 retry; the same lines as the Java SDK.
 	logUnauthorizedRegenerating       = "Bearer token rejected with 401 and is past expiry; regenerating once and resending the request."

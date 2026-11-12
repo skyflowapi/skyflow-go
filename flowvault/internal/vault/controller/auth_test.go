@@ -254,22 +254,26 @@ var _ = Describe("SetupRequest, edge cases", func() {
 		Expect(err.GetMessage()).To(ContainSubstring("is not supported"))
 	})
 
-	It("reports a retryable response whose body can't be read", func() {
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			conn, buf, err := w.(http.Hijacker).Hijack()
+	DescribeTable("reports a response whose body can't be read",
+		func(statusLine string) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				conn, buf, err := w.(http.Hijacker).Hijack()
+				Expect(err).To(BeNil())
+				defer conn.Close()
+				_, _ = buf.WriteString(statusLine + "\r\nContent-Type: application/json\r\nContent-Length: 100\r\n\r\nshort")
+				_ = buf.Flush()
+			}))
+			defer server.Close()
+			v := NewVaultController(fvcommon.VaultConfig{VaultId: "v", BaseVaultUrl: server.URL}, ClientSettings{Credentials: &fvcommon.Credentials{ApiKey: testApiKey}})
+			setup, err := v.SetupRequest(context.Background(), "QUERY", nil)
 			Expect(err).To(BeNil())
-			defer conn.Close()
-			_, _ = buf.WriteString("HTTP/1.1 503 Service Unavailable\r\nContent-Type: application/json\r\nContent-Length: 100\r\n\r\nshort")
-			_ = buf.Flush()
-		}))
-		defer server.Close()
-		v := NewVaultController(fvcommon.VaultConfig{VaultId: "v", BaseVaultUrl: server.URL}, ClientSettings{Credentials: &fvcommon.Credentials{ApiKey: testApiKey}})
-		setup, err := v.SetupRequest(context.Background(), "QUERY", nil)
-		Expect(err).To(BeNil())
 
-		req, _ := http.NewRequest(http.MethodGet, server.URL, nil)
-		resp, doErr := finalResponseClient{setup.HTTPClient}.Do(req)
-		Expect(resp).To(BeNil())
-		Expect(doErr).To(MatchError(io.ErrUnexpectedEOF))
-	})
+			req, _ := http.NewRequest(http.MethodGet, server.URL, nil)
+			resp, doErr := finalResponseClient{setup.HTTPClient}.Do(req)
+			Expect(resp).To(BeNil())
+			Expect(doErr).To(MatchError(io.ErrUnexpectedEOF))
+		},
+		Entry("retryable", "HTTP/1.1 503 Service Unavailable"),
+		Entry("successful", "HTTP/1.1 200 OK"),
+	)
 })

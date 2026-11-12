@@ -61,7 +61,7 @@ func (c *Controller) logMsg(base string) string { return c.base.Profile().LogPre
 func (c *Controller) invalid(text string) *skyflowError.SkyflowError {
 	message := c.errMsg(text)
 	logger.Error(message)
-	return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, message)
+	return c.base.Profile().NewError(skyflowError.INVALID_INPUT_CODE, message)
 }
 
 // prepare logs the call, validates the request and resolves auth, headers and HTTP settings.

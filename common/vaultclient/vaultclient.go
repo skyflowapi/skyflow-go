@@ -50,8 +50,14 @@ type Profile struct {
 	// ErrTokenExpired, when set, replaces the expired-bearer-token error message (SDK prefix
 	// included).
 	ErrTokenExpired string
+	// ErrEmptyCredentials, when set, replaces the no-credentials error message (SDK prefix
+	// included).
+	ErrEmptyCredentials string
 	// Logs, when set, replace or add log lines.
 	Logs Logs
+	// ErrorOptions are applied to every error built for this SDK, by Base and by the
+	// controllers that share it (common/detect), e.g. errors.RawMessage() for flowvault.
+	ErrorOptions []skyflowError.ErrorOption
 }
 
 // Logs are an SDK's own log lines, SDK log prefix included. An empty field uses the
@@ -66,6 +72,21 @@ type Logs struct {
 }
 
 func (p Profile) errMsg(base string) string { return p.SDKPrefix + base }
+
+// NewError is errors.NewSkyflowError with the profile's ErrorOptions.
+func (p Profile) NewError(code skyflowError.ErrorCodesEnum, message string) *skyflowError.SkyflowError {
+	return skyflowError.NewSkyflowError(code, message, p.ErrorOptions...)
+}
+
+// NewErrorWithCause is errors.NewSkyflowErrorWithCause with the profile's ErrorOptions.
+func (p Profile) NewErrorWithCause(code skyflowError.ErrorCodesEnum, message string, cause error) *skyflowError.SkyflowError {
+	return skyflowError.NewSkyflowErrorWithCause(code, message, cause, p.ErrorOptions...)
+}
+
+// ApiError is errors.SkyflowErrorApi with the profile's ErrorOptions.
+func (p Profile) ApiError(err error, header http.Header) *skyflowError.SkyflowError {
+	return skyflowError.SkyflowErrorApi(err, header, p.ErrorOptions...)
+}
 func (p Profile) logMsg(base string) string { return p.LogPrefix + base }
 
 // logLine returns the SDK's own line when set, else the default with the log prefix.
@@ -74,6 +95,13 @@ func (p Profile) logLine(own, base string) string {
 		return own
 	}
 	return p.logMsg(base)
+}
+
+func (p Profile) emptyCredentialsMsg() string {
+	if p.ErrEmptyCredentials != "" {
+		return p.ErrEmptyCredentials
+	}
+	return p.errMsg(errEmptyCredentials)
 }
 
 func (p Profile) tokenExpiredMsg() string {
@@ -304,7 +332,7 @@ func (p Profile) GenerateToken(creds config.Credentials) (string, *skyflowError.
 		}
 		return resp.AccessToken, nil
 	}
-	return "", skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, p.errMsg(errEmptyCredentials))
+	return "", p.NewError(skyflowError.INVALID_INPUT_CODE, p.emptyCredentialsMsg())
 }
 
 // tokenRefreshMargin is how long before it expires a cached bearer token is replaced, so it
@@ -332,7 +360,7 @@ func (b *Base) authToken(ctx context.Context, current settings) (string, *skyflo
 	if creds.Token != "" {
 		if b.profile.Auth.IsExpired(creds.Token) {
 			logger.Error(b.profile.logLine(b.profile.Logs.TokenExpired, logBearerTokenExpired))
-			return "", skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, b.profile.tokenExpiredMsg())
+			return "", b.profile.NewError(skyflowError.INVALID_INPUT_CODE, b.profile.tokenExpiredMsg())
 		}
 		logOptional(logger.Info, b.profile.Logs.UsingBearerToken)
 		return creds.Token, nil
@@ -375,7 +403,7 @@ func (b *Base) authToken(ctx context.Context, current settings) (string, *skyflo
 // cancelled is the error for a call whose context ended while it waited for a bearer token.
 func (b *Base) cancelled(ctx context.Context) *skyflowError.SkyflowError {
 	logger.Error(b.profile.logMsg(logBearerTokenCancelled))
-	return skyflowError.NewSkyflowErrorWithCause(skyflowError.REQUEST_CANCELLED, b.profile.errMsg(errBearerTokenCancelled), ctx.Err())
+	return b.profile.NewErrorWithCause(skyflowError.REQUEST_CANCELLED, b.profile.errMsg(errBearerTokenCancelled), ctx.Err())
 }
 
 // resolveCredentials picks vault credentials, then client credentials, then SKYFLOW_CREDENTIALS
@@ -392,7 +420,7 @@ func (b *Base) resolveCredentials(current settings) (*config.Credentials, *skyfl
 		return &config.Credentials{CredentialsString: envCreds}, nil
 	}
 	logger.Error(b.profile.logMsg(logEmptyCredentials))
-	return nil, skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, b.profile.errMsg(errEmptyCredentials))
+	return nil, b.profile.NewError(skyflowError.INVALID_INPUT_CODE, b.profile.emptyCredentialsMsg())
 }
 
 // baseURL picks BaseVaultUrl, then the deprecated BaseVaultURL, then the cluster URL.

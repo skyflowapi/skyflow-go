@@ -55,3 +55,12 @@ var _ = Describe("Ptr", func() {
 		Expect(*Ptr(float32(0.5))).To(Equal(float32(0.5)))
 	})
 })
+
+var _ = Describe("DeleteFilesStatusFromWire", func() {
+	It("matches DELETED case-insensitively and maps anything else to UNKNOWN", func() {
+		Expect(DeleteFilesStatusFromWire("DELETED")).To(Equal(DeleteFilesStatusDeleted))
+		Expect(DeleteFilesStatusFromWire(" deleted ")).To(Equal(DeleteFilesStatusDeleted))
+		Expect(DeleteFilesStatusFromWire("ARCHIVED")).To(Equal(DeleteFilesStatusUnknown))
+		Expect(DeleteFilesStatusFromWire("")).To(Equal(DeleteFilesStatusUnknown))
+	})
+})

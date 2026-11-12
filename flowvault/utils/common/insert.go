@@ -20,14 +20,16 @@ type InsertRequestRecord struct {
 
 // InsertResponseRecord is the per-record result of Insert, Update and Get.
 type InsertResponseRecord struct {
-	TableName  string                   `json:"tableName"`
-	SkyflowId  string                   `json:"skyflowId"`
-	Tokens     map[string][]Token       `json:"tokens"`
-	Data       map[string]interface{}   `json:"data"`
-	HashedData map[string][]HashedValue `json:"hashedData"`
-	HttpCode   int                      `json:"httpCode"`
-	Error      string                   `json:"error"`
-	RequestId  string                   `json:"requestId"`
+	TableName string                 `json:"tableName"`
+	SkyflowId string                 `json:"skyflowId"`
+	Tokens    map[string][]Token     `json:"tokens"`
+	Data      map[string]interface{} `json:"data"`
+	// HashedData is the vault's hashedData for the record, passed through as returned
+	// (as in the Java SDK): column name to that column's hashes.
+	HashedData map[string]interface{} `json:"hashedData"`
+	HttpCode   int                    `json:"httpCode"`
+	Error      string                 `json:"error"`
+	RequestId  string                 `json:"requestId"`
 }
 
 type InsertResponse struct {

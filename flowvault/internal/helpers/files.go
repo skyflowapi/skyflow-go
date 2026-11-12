@@ -1,7 +1,6 @@
 package helpers
 
 import (
-	"bytes"
 	"context"
 	"encoding/base64"
 	"errors"
@@ -12,9 +11,11 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"syscall"
 
+	fvconsts "github.com/skyflowapi/skyflow-go/flowvault/internal/constants"
 	fvcommon "github.com/skyflowapi/skyflow-go/flowvault/utils/common"
 	fverrors "github.com/skyflowapi/skyflow-go/flowvault/utils/error"
 )
@@ -23,18 +24,26 @@ const (
 	putFailedStatus  = "PUT failed: %d"
 	putFailedRequest = "PUT failed: %s"
 	notRegularFile   = "not a regular file"
+	base64LineBreak  = "base64 content contains a line break"
 	contentType      = "Content-Type"
 )
 
 // ResolvedFile is a file column's source plus the name and content type to upload it with.
-// Like Java, a FilePath or FileObject is streamed when it is uploaded, not held in memory;
-// base64 content is decoded up front.
+// Like Java, nothing is held in memory: a FilePath or FileObject is streamed when it is
+// uploaded, and base64 content is checked up front but decoded only while it is uploaded.
 type ResolvedFile struct {
 	Name        string
 	ContentType string
-	Content     []byte   // decoded base64
+	Base64      string   // base64 content, decoded while it is uploaded
+	DecodedSize int64    // length of the decoded base64 content
 	Path        string   // FilePath, opened for the upload
-	Object      *os.File // FileObject, read from its current offset; the caller closes it
+	Object      *os.File // FileObject; the caller closes it
+	// objectSize is the FileObject's size, or -1 when it is not a regular file. As in the Java
+	// and Python SDKs, a regular file is uploaded whole, from its start, whatever its current
+	// offset. It is read by position, not through the shared offset, so the offset is left
+	// as it was and the same *os.File can back several columns that upload at the same time.
+	objectSize int64
+	sized      bool // objectSize was set by ResolveFile
 }
 
 // ResolveFile checks the column's file source and works out its name and content type. A
@@ -44,31 +53,53 @@ func ResolveFile(column fvcommon.UploadFilesRequestColumn) (ResolvedFile, *fverr
 	switch {
 	case column.FilePath != "":
 		if err := checkReadable(column.FilePath); err != nil {
-			return file, fverrors.NewSkyflowError(fverrors.INVALID_INPUT_CODE, fmt.Sprintf(fverrors.FILE_NOT_READABLE, column.Column, err.Error()))
+			return file, fverrors.NewSkyflowErrorWithCause(fverrors.INVALID_INPUT_CODE, fverrors.INVALID_FILE_PATH, err)
 		}
 		file.Path = column.FilePath
 		if file.Name == "" {
 			file.Name = filepath.Base(column.FilePath)
 		}
 	case column.Base64 != "":
-		content, err := base64.StdEncoding.DecodeString(column.Base64)
-		if err != nil {
-			return file, fverrors.NewSkyflowError(fverrors.INVALID_INPUT_CODE, fmt.Sprintf(fverrors.INVALID_BASE64, column.Column))
+		// Decoding into io.Discard checks the content without keeping a decoded copy. As in the
+		// Java and Python SDKs, the content must be strict base64: line breaks, which Go's
+		// decoder would skip, are refused too.
+		size, err := io.Copy(io.Discard, base64Reader(column.Base64))
+		if err == nil && strings.ContainsAny(column.Base64, "\r\n") {
+			err = errors.New(base64LineBreak)
 		}
-		file.Content = content
+		if err != nil {
+			return file, fverrors.NewSkyflowErrorWithCause(fverrors.INVALID_INPUT_CODE, fverrors.INVALID_BASE64, err)
+		}
+		file.Base64, file.DecodedSize = column.Base64, size
 	default:
 		if _, err := column.FileObject.Stat(); err != nil {
-			return file, fverrors.NewSkyflowError(fverrors.INVALID_INPUT_CODE, fmt.Sprintf(fverrors.FILE_NOT_READABLE, column.Column, err.Error()))
+			return file, fverrors.NewSkyflowErrorWithCause(fverrors.INVALID_INPUT_CODE, fverrors.INVALID_FILE_OBJECT, err)
 		}
 		file.Object = column.FileObject
+		file.objectSize, file.sized = fileSize(column.FileObject), true
 		if file.Name == "" && column.FileObject.Name() != "" {
 			file.Name = filepath.Base(column.FileObject.Name())
 		}
 	}
-	if file.Name != "" {
-		file.ContentType = mime.TypeByExtension(filepath.Ext(file.Name))
-	}
+	file.ContentType = UploadContentType(file.Name)
 	return file, nil
+}
+
+// UploadContentType is the Content-Type an uploaded file is sent with, as in the Java SDK:
+// the SDK's own type for the name's extension (case-insensitive), else Go's, else
+// application/octet-stream.
+func UploadContentType(name string) string {
+	ext := strings.ToLower(strings.TrimPrefix(filepath.Ext(name), "."))
+	if ext == "" {
+		return fvconsts.DEFAULT_UPLOAD_CONTENT_TYPE
+	}
+	if known, ok := fvconsts.UploadContentTypes[ext]; ok {
+		return known
+	}
+	if guessed := mime.TypeByExtension("." + ext); guessed != "" {
+		return guessed
+	}
+	return fvconsts.DEFAULT_UPLOAD_CONTENT_TYPE
 }
 
 // checkReadable reports why path can't be uploaded: it must be a regular file that opens.
@@ -107,23 +138,33 @@ func (f ResolvedFile) body() (io.ReadCloser, int64, error) {
 		}
 		return file, size, nil
 	case f.Object != nil:
-		return io.NopCloser(f.Object), remaining(f.Object), nil
+		size := f.objectSize
+		if !f.sized {
+			size = fileSize(f.Object)
+		}
+		if size < 0 {
+			// A pipe or similar can't be rewound, so it is read as a stream from where it is.
+			return io.NopCloser(f.Object), -1, nil
+		}
+		return io.NopCloser(io.NewSectionReader(f.Object, 0, size)), size, nil
 	}
-	return io.NopCloser(bytes.NewReader(f.Content)), int64(len(f.Content)), nil
+	return io.NopCloser(base64Reader(f.Base64)), f.DecodedSize, nil
 }
 
-// remaining is the length from the file's current offset to its end, or -1 when it can't
-// be told, e.g. for a pipe.
-func remaining(file *os.File) int64 {
-	offset, err := file.Seek(0, io.SeekCurrent)
-	if err != nil {
-		return -1
-	}
+// base64Reader decodes standard base64. Go's decoder skips line breaks, so ResolveFile refuses
+// content with any before it gets here.
+func base64Reader(content string) io.Reader {
+	return base64.NewDecoder(base64.StdEncoding, strings.NewReader(content))
+}
+
+// fileSize is the size of a regular file, or -1 when it isn't one (a pipe, a device), whose
+// length can't be told up front.
+func fileSize(file *os.File) int64 {
 	info, err := file.Stat()
 	if err != nil || !info.Mode().IsRegular() {
 		return -1
 	}
-	return info.Size() - offset
+	return info.Size()
 }
 
 // PutFile uploads one file to its signed URL. The signature is in the URL, so no

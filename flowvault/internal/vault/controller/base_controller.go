@@ -2,11 +2,15 @@ package controller
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/skyflowapi/skyflow-go/common/vaultclient"
+	fvconsts "github.com/skyflowapi/skyflow-go/flowvault/internal/constants"
 	apiclient "github.com/skyflowapi/skyflow-go/flowvault/internal/generated/client"
 	"github.com/skyflowapi/skyflow-go/flowvault/internal/generated/core"
 	"github.com/skyflowapi/skyflow-go/flowvault/internal/generated/option"
@@ -93,10 +97,19 @@ type finalResponseClient struct {
 	client *http.Client
 }
 
+// It also checks 2xx bodies before the generated client parses them, as the Java SDK does: a
+// blank body becomes {}, an empty response, instead of a decoding failure; a body that is not
+// a JSON object becomes an APIError that keeps the real status and (truncated) body.
 func (c finalResponseClient) Do(req *http.Request) (*http.Response, error) {
 	resp, err := c.client.Do(req)
-	if err != nil || !vaultclient.ShouldRetry(resp.StatusCode) {
+	if err != nil {
 		return resp, err
+	}
+	if resp.StatusCode >= http.StatusOK && resp.StatusCode < http.StatusMultipleChoices {
+		return successResponse(resp)
+	}
+	if !vaultclient.ShouldRetry(resp.StatusCode) {
+		return resp, nil
 	}
 	defer func() { _ = resp.Body.Close() }()
 	raw, err := io.ReadAll(resp.Body)
@@ -104,4 +117,30 @@ func (c finalResponseClient) Do(req *http.Request) (*http.Response, error) {
 		return nil, err
 	}
 	return nil, core.NewAPIError(resp.StatusCode, resp.Header, errors.New(string(raw)))
+}
+
+// successResponse normalizes a 2xx response body; see finalResponseClient.
+func successResponse(resp *http.Response) (*http.Response, error) {
+	defer func() { _ = resp.Body.Close() }()
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	text := strings.TrimSpace(string(raw))
+	if text == "" {
+		text = fvconsts.EMPTY_JSON_OBJECT
+	} else {
+		var object map[string]json.RawMessage
+		if json.Unmarshal(raw, &object) != nil || object == nil {
+			body, _ := json.Marshal(map[string]interface{}{fvconsts.ERROR_KEY_ERROR: map[string]interface{}{
+				fvconsts.ERROR_KEY_MESSAGE:   fmt.Sprintf(fverrors.UNPARSEABLE_SUCCESS_RESPONSE, rawBodyMessage(string(raw))),
+				fvconsts.ERROR_KEY_HTTP_CODE: resp.StatusCode,
+			}})
+			return nil, core.NewAPIError(resp.StatusCode, resp.Header, errors.New(string(body)))
+		}
+		text = string(raw)
+	}
+	resp.Body = io.NopCloser(strings.NewReader(text))
+	resp.ContentLength = int64(len(text))
+	return resp, nil
 }

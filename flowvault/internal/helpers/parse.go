@@ -12,13 +12,18 @@ import (
 const statusKey = "status"
 
 // ParseTokens accepts a column value that is a token string, a token object or a list of either.
+// As in the Java and Python SDKs, a column whose value is null is left out, while one whose list
+// is empty is kept with an empty (non-nil) list.
 func ParseTokens(raw map[string]interface{}) map[string][]fvcommon.Token {
 	if raw == nil {
 		return nil
 	}
 	parsed := make(map[string][]fvcommon.Token, len(raw))
 	for column, value := range raw {
-		var tokens []fvcommon.Token
+		if value == nil {
+			continue
+		}
+		tokens := []fvcommon.Token{}
 		for _, item := range asList(value) {
 			switch entry := item.(type) {
 			case map[string]interface{}:
@@ -32,43 +37,17 @@ func ParseTokens(raw map[string]interface{}) map[string][]fvcommon.Token {
 				tokens = append(tokens, fvcommon.Token{Token: fmt.Sprint(entry)})
 			}
 		}
-		if tokens != nil {
-			parsed[column] = tokens
-		}
-	}
-	return parsed
-}
-
-// ParseHashedData accepts a column value that is a hash string, a {data, hashName} object or a list of either.
-func ParseHashedData(raw map[string]interface{}) map[string][]fvcommon.HashedValue {
-	if raw == nil {
-		return nil
-	}
-	parsed := make(map[string][]fvcommon.HashedValue, len(raw))
-	for column, value := range raw {
-		var hashes []fvcommon.HashedValue
-		for _, item := range asList(value) {
-			switch entry := item.(type) {
-			case map[string]interface{}:
-				hashes = append(hashes, fvcommon.HashedValue{Data: stringField(entry, "data"), HashName: stringField(entry, "hashName")})
-			case nil:
-			default:
-				hashes = append(hashes, fvcommon.HashedValue{Data: fmt.Sprint(entry)})
-			}
-		}
-		if hashes != nil {
-			parsed[column] = hashes
-		}
+		parsed[column] = tokens
 	}
 	return parsed
 }
 
 // ParseDetokenizeMetadata accepts both "table" and "tableName" keys.
-func ParseDetokenizeMetadata(raw map[string]interface{}) *fvcommon.DetokenizeRecordMetadata {
+func ParseDetokenizeMetadata(raw map[string]interface{}) *fvcommon.DetokenizeResponseRecordMetadata {
 	if raw == nil {
 		return nil
 	}
-	return &fvcommon.DetokenizeRecordMetadata{
+	return &fvcommon.DetokenizeResponseRecordMetadata{
 		SkyflowId: stringField(raw, "skyflowID", "skyflowId"),
 		TableName: stringField(raw, "tableName", "table"),
 	}
@@ -94,7 +73,9 @@ func stringField(entry map[string]interface{}, keys ...string) string {
 	return ""
 }
 
-// ParseDeleteFilesColumns converts {column: {"status": "DELETED"}} into results sorted by column.
+// ParseDeleteFilesColumns converts {column: {"status": "DELETED"}} into results sorted by
+// column. An unrecognized or missing status is DeleteFilesStatusUnknown, with the wire value
+// kept in RawStatus.
 func ParseDeleteFilesColumns(data map[string]interface{}) []fvcommon.DeleteFilesColumnResult {
 	if data == nil {
 		return nil
@@ -108,7 +89,11 @@ func ParseDeleteFilesColumns(data map[string]interface{}) []fvcommon.DeleteFiles
 		case string:
 			status = entry
 		}
-		columns = append(columns, fvcommon.DeleteFilesColumnResult{Column: name, Status: status})
+		columns = append(columns, fvcommon.DeleteFilesColumnResult{
+			Column:    name,
+			Status:    fvcommon.DeleteFilesStatusFromWire(status),
+			RawStatus: status,
+		})
 	}
 	sort.Slice(columns, func(i, j int) bool { return columns[i].Column < columns[j].Column })
 	return columns

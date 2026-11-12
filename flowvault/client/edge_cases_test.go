@@ -31,6 +31,47 @@ var _ = Describe("Skyflow client, edge cases", func() {
 		Expect(*client.GetLoglevel()).To(Equal(fvlogger.WARN))
 	})
 
+	It("sets and returns the log level with SetLogLevel and GetLogLevel, as in Java and Python", func() {
+		DeferCleanup(fvlogger.SetLogLevel, fvlogger.ERROR)
+		var logs bytes.Buffer
+		fvlogger.SetOutput(&logs)
+		DeferCleanup(fvlogger.SetOutput, os.Stderr)
+		client := newTestClient(WithLogLevel(fvlogger.INFO))
+		Expect(client.GetLogLevel()).To(Equal(fvlogger.INFO))
+		Expect(logs.String()).To(ContainSubstring("Current log level is %v.", fvlogger.INFO))
+		client.SetLogLevel(fvlogger.DEBUG)
+		Expect(client.GetLogLevel()).To(Equal(fvlogger.DEBUG))
+		Expect(*client.GetLoglevel()).To(Equal(fvlogger.DEBUG))
+	})
+
+	It("uses the first vault added as the default vault, as vault() does in Java and Python", func() {
+		client := newTestClient(WithVaults(fvcommon.VaultConfig{VaultId: "second", ClusterId: "c2"}))
+		Expect(client.AddVaultConfig(fvcommon.VaultConfig{VaultId: "third", ClusterId: "c3"})).To(BeNil())
+		first, err := client.Vault(testVaultID)
+		Expect(err).To(BeNil())
+		defaultVault, err := client.Vault("")
+		Expect(err).To(BeNil())
+		Expect(defaultVault).To(BeIdenticalTo(first))
+		config, err := client.GetVaultConfig("")
+		Expect(err).To(BeNil())
+		Expect(config.VaultId).To(Equal(testVaultID))
+
+		// Removing the default makes the next vault added the default.
+		Expect(client.RemoveVaultConfig(testVaultID)).To(BeNil())
+		config, err = client.GetVaultConfig("")
+		Expect(err).To(BeNil())
+		Expect(config.VaultId).To(Equal("second"))
+		Expect(client.RemoveVaultConfig("third")).To(BeNil())
+		config, _ = client.GetVaultConfig("")
+		Expect(config.VaultId).To(Equal("second"))
+
+		Expect(client.RemoveVaultConfig("second")).To(BeNil())
+		_, err = client.Vault("")
+		Expect(err.GetMessage()).To(ContainSubstring("VaultId is missing"))
+		_, err = client.GetVaultConfig("")
+		Expect(err.GetMessage()).To(ContainSubstring("VaultId is missing"))
+	})
+
 	It("reports vault IDs that aren't registered", func() {
 		client := newTestClient()
 		_, err := client.Vault("unknown")

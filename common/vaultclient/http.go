@@ -186,7 +186,7 @@ type retryTransport struct {
 
 func (t *retryTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	resp, err := t.base.RoundTrip(req)
-	for retry := 0; err == nil && ShouldRetry(resp.StatusCode) && retry < t.config.MaxRetries; retry++ {
+	for retry := 0; err == nil && ShouldRetryRequest(req, resp.StatusCode) && retry < t.config.MaxRetries; retry++ {
 		if req.Body != nil && req.GetBody == nil {
 			break
 		}
@@ -226,6 +226,27 @@ func (t *retryTransport) wait(req *http.Request, delay time.Duration) error {
 // ShouldRetry reports whether a response with this status is retried: 408, 429 and 5xx.
 func ShouldRetry(status int) bool {
 	return status == http.StatusRequestTimeout || status == http.StatusTooManyRequests || status >= http.StatusInternalServerError
+}
+
+// noServerErrorRetryKey marks a context whose requests are not retried on a 5xx.
+type noServerErrorRetryKey struct{}
+
+// WithoutServerErrorRetry returns a context whose requests are retried on 408 and 429 but
+// not on a 5xx, for a call that isn't safe to repeat once the server may have acted on it.
+// For example, the Java SDK doesn't retry FlowVault's uploadFiles on a 5xx: it creates a
+// record for every entry without a SkyflowId, so a retry could create duplicates. 408 and
+// 429 mean the request was not processed, so those are still retried.
+func WithoutServerErrorRetry(ctx context.Context) context.Context {
+	return context.WithValue(ctx, noServerErrorRetryKey{}, true)
+}
+
+// ShouldRetryRequest is ShouldRetry, except that a request whose context comes from
+// WithoutServerErrorRetry is not retried on a 5xx.
+func ShouldRetryRequest(req *http.Request, status int) bool {
+	if status >= http.StatusInternalServerError && req.Context().Value(noServerErrorRetryKey{}) != nil {
+		return false
+	}
+	return ShouldRetry(status)
 }
 
 // backoff doubles the delay per attempt up to max, then applies +/-20% jitter.

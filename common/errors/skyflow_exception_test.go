@@ -171,6 +171,7 @@ var _ = Describe("Skyflow Error", func() {
 			Expect(skyflowError.GetGrpcCode()).To(Equal("3"))
 			Expect(skyflowError.GetRequestId()).To(Equal("req-12345"))
 			Expect(skyflowError.GetDetails()[0]).To(Equal(map[string]interface{}{"errorFromClient": true}))
+			Expect(skyflowError.GetResponseBody()).To(HaveKeyWithValue("error", HaveKeyWithValue("message", "Invalid Input")))
 		})
 		It("should parse JSON response correctly when error-from-client is in wrong format", func() {
 			header := http.Header{}
@@ -277,6 +278,7 @@ var _ = Describe("Skyflow Error", func() {
 			skyflowErr := SkyflowApiError(response)
 			Expect(skyflowErr.GetMessage()).To(ContainSubstring("plain error message"))
 			Expect(skyflowErr.GetHttpStatusCode()).To(Equal("503 Service Unavailable"))
+			Expect(skyflowErr.GetResponseBody()).To(BeNil())
 		})
 
 		It("should parse JSON error body when body is valid JSON", func() {
@@ -292,6 +294,7 @@ var _ = Describe("Skyflow Error", func() {
 			Expect(skyflowErr.GetMessage()).To(ContainSubstring("Forbidden"))
 			Expect(skyflowErr.GetCode()).To(Equal("Code: 403"))
 			Expect(skyflowErr.GetGrpcCode()).To(Equal("7"))
+			Expect(skyflowErr.GetResponseBody()).To(HaveKeyWithValue("error", HaveKeyWithValue("grpc_code", 7.0)))
 		})
 
 		It("should parse string error when JSON error field is a string", func() {
@@ -616,6 +619,7 @@ var _ = Describe("Skyflow Error", func() {
 			Expect(skyflowErr.GetGrpcCode()).To(Equal("3"))
 			Expect(skyflowErr.GetRequestId()).To(Equal("req-67890"))
 			Expect(skyflowErr.GetHttpStatusCode()).To(Equal("Bad Request"))
+			Expect(skyflowErr.GetResponseBody()).To(HaveKeyWithValue("error", HaveKeyWithValue("details", map[string]interface{}{"demo": "demo"})))
 		})
 
 		It("should return an error when JSON parsing fails", func() {
@@ -624,6 +628,7 @@ var _ = Describe("Skyflow Error", func() {
 			skyflowErr := SkyflowErrorApi(err, header)
 
 			Expect(skyflowErr).ToNot(BeNil())
+			Expect(skyflowErr.GetResponseBody()).To(BeNil())
 			Expect(skyflowErr.GetMessage()).To(Equal(fmt.Sprintf(`Message: %s`, err.Error())))
 		})
 
@@ -747,6 +752,9 @@ var _ = Describe("NewSkyflowErrorWithCause", func() {
 		Expect(NewSkyflowErrorWithCause(SERVER, "m", cause).GetHttpStatusCode()).To(Equal("Internal Server Error"))
 		Expect(NewSkyflowErrorWithCause(REQUEST_CANCELLED, "m", cause).GetHttpStatusCode()).To(Equal("Client Closed Request"))
 		Expect(NewSkyflowErrorWithCause(INVALID_INPUT_CODE, "m", cause).GetHttpStatusCode()).To(Equal("Bad Request"))
+		transport := NewSkyflowErrorWithCause(TRANSPORT_ERROR, "m", cause)
+		Expect(transport.GetHttpCode()).To(Equal("0"))
+		Expect(transport.GetHttpStatusCode()).To(BeEmpty())
 	})
 
 	It("unwraps to nil without a cause or a receiver", func() {
@@ -785,5 +793,47 @@ var _ = Describe("raw error bodies", func() {
 			Body:   io.NopCloser(strings.NewReader(strings.Repeat("z", 2000))),
 		}
 		Expect(SkyflowApiError(resp).GetMessage()).To(HaveSuffix("... (truncated)"))
+	})
+})
+
+var _ = Describe("error options", func() {
+	It("keeps the \"Message: \" prefix by default", func() {
+		err := NewSkyflowError(INVALID_INPUT_CODE, "bad input")
+		Expect(err.GetMessage()).To(Equal("Message: bad input"))
+		Expect(err.Error()).To(Equal("Message: bad input"))
+	})
+
+	It("returns the raw message with RawMessage, as the Java and Python SDKs do", func() {
+		err := NewSkyflowError(INVALID_INPUT_CODE, "bad input", RawMessage())
+		Expect(err.GetMessage()).To(Equal("bad input"))
+		Expect(err.Error()).To(Equal("bad input"))
+
+		cause := errors.New("dial tcp: refused")
+		withCause := NewSkyflowErrorWithCause(TRANSPORT_ERROR, "call failed", cause, RawMessage())
+		Expect(withCause.GetMessage()).To(Equal("call failed"))
+		Expect(withCause.Error()).To(Equal("call failed: dial tcp: refused"))
+		Expect(errors.Is(withCause, cause)).To(BeTrue())
+		same := NewSkyflowErrorWithCause(TRANSPORT_ERROR, "same", errors.New("same"), RawMessage())
+		Expect(same.Error()).To(Equal("same"))
+	})
+
+	It("applies the options to an API error, including one whose body isn't JSON", func() {
+		raw := map[string]interface{}{"error": map[string]interface{}{"message": "denied"}, "extra": true}
+		err := SkyflowErrorApi(errors.New(`403: {"error":{"message":"denied","http_code":403}}`), http.Header{}, RawMessage(), WithResponseBody(raw))
+		Expect(err.GetMessage()).To(Equal("denied"))
+		Expect(err.GetResponseBody()).To(Equal(raw))
+		Expect(SkyflowErrorApi(errors.New("no separator"), http.Header{}, RawMessage()).GetMessage()).To(Equal("no separator"))
+		Expect(SkyflowErrorApi(errors.New("500: not json"), http.Header{}, RawMessage()).GetMessage()).To(Equal("500: not json"))
+	})
+
+	It("returns the HTTP and gRPC codes as numbers, 0 when there is none", func() {
+		err := SkyflowErrorApi(errors.New(`400: {"error":{"message":"m","http_code":400,"grpc_code":3}}`), http.Header{})
+		Expect(err.GetHttpCodeInt()).To(Equal(400))
+		Expect(err.GetGrpcCodeInt()).To(Equal(3))
+		transport := NewSkyflowErrorWithCause(TRANSPORT_ERROR, "down", errors.New("x"))
+		Expect(transport.GetHttpCodeInt()).To(Equal(0))
+		Expect(transport.GetGrpcCodeInt()).To(Equal(0))
+		var nilErr *SkyflowError
+		Expect(nilErr.GetHttpCodeInt()).To(Equal(0))
 	})
 })

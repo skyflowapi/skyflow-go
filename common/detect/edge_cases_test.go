@@ -89,11 +89,12 @@ func TestOperationsRejectEmptyResponses(t *testing.T) {
 }
 
 func TestApiErrorWithoutApiDetails(t *testing.T) {
-	err := apiError(errors.New("connection reset"))
+	c, _ := newTestController(newFakeDetect(t))
+	err := c.apiError(errors.New("connection reset"))
 	if err == nil || !strings.Contains(err.GetMessage(), "connection reset") {
 		t.Fatalf("err = %v", err)
 	}
-	err = apiError(core.NewAPIError(http.StatusBadGateway, nil, errors.New("bad gateway")))
+	err = c.apiError(core.NewAPIError(http.StatusBadGateway, nil, errors.New("bad gateway")))
 	if err == nil || err.GetRequestId() != "" {
 		t.Fatalf("API error without a header: err = %v", err)
 	}
@@ -238,8 +239,13 @@ func TestWriteOutputs(t *testing.T) {
 		bad := FileOutput{ProcessedFile: "%%%", ProcessedFileExtension: FileDataFormatTXT}
 		dir := t.TempDir()
 		target := filepath.Join(dir, "processed-a.txt")
-		if err := c.writeOutputs([]FileOutput{bad}, SkyDeidentifySourceTypeBase64, "a.txt", dir); err == nil || !strings.Contains(err.GetMessage(), outputNotWritten(target)) {
+		err := c.writeOutputs([]FileOutput{bad}, SkyDeidentifySourceTypeBase64, "a.txt", dir)
+		if err == nil || !strings.Contains(err.GetMessage(), outputNotWritten(target)) {
 			t.Fatalf("err = %v", err)
+		}
+		// A write failure is local, so, as in the Java SDK, it has no HTTP status.
+		if err.GetHttpCode() != string(skyflowError.TRANSPORT_ERROR) || err.GetHttpStatusCode() != "" || err.Unwrap() == nil {
+			t.Fatalf("http code = %q, status = %q, cause = %v", err.GetHttpCode(), err.GetHttpStatusCode(), err.Unwrap())
 		}
 	})
 

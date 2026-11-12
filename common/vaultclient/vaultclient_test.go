@@ -204,6 +204,16 @@ func TestProfileHooksValidateClientHeadersAndReplaceTokenExpired(t *testing.T) {
 	if _, err := b.Prepare("GET", nil); err == nil || !strings.Contains(err.GetMessage(), "custom expired") {
 		t.Fatalf("expired token: err = %v", err)
 	}
+
+	t.Setenv(CredentialsEnv, "")
+	profile.ErrEmptyCredentials = "custom no credentials"
+	b = New(profile, config.VaultConfig{VaultId: "v", ClusterId: "c"}, ClientSettings{})
+	if _, err := b.Prepare("GET", nil); err == nil || err.GetMessage() != "Message: custom no credentials" {
+		t.Fatalf("no credentials: err = %v", err)
+	}
+	if _, err := profile.GenerateToken(config.Credentials{}); err == nil || err.GetMessage() != "Message: custom no credentials" {
+		t.Fatalf("GenerateToken without credentials: err = %v", err)
+	}
 }
 
 func TestProfileLogsReplaceAndAddLines(t *testing.T) {
@@ -314,6 +324,40 @@ func TestShouldRetry(t *testing.T) {
 	for status, want := range map[int]bool{http.StatusOK: false, http.StatusBadRequest: false, http.StatusRequestTimeout: true, http.StatusTooManyRequests: true, http.StatusInternalServerError: true, http.StatusServiceUnavailable: true} {
 		if ShouldRetry(status) != want {
 			t.Errorf("ShouldRetry(%d) = %v", status, !want)
+		}
+	}
+}
+
+// A request marked WithoutServerErrorRetry gets one attempt on a 5xx but is still retried
+// on 408 and 429, which mean the request was not processed.
+func TestWithoutServerErrorRetry(t *testing.T) {
+	var calls int32
+	server := newUnavailableServer(&calls)
+	defer server.Close()
+	transport := &retryTransport{base: http.DefaultTransport, config: ResolvedHttpConfig{MaxRetries: 3}, sleep: func(time.Duration) {}}
+
+	req, _ := http.NewRequestWithContext(WithoutServerErrorRetry(context.Background()), http.MethodPost, server.URL, strings.NewReader("payload"))
+	resp, err := transport.RoundTrip(req)
+	if err != nil || resp.StatusCode != http.StatusServiceUnavailable || atomic.LoadInt32(&calls) != 1 {
+		t.Fatalf("resp=%v err=%v calls=%d", resp, err, calls)
+	}
+	_ = resp.Body.Close()
+
+	marked, _ := http.NewRequestWithContext(WithoutServerErrorRetry(context.Background()), http.MethodPost, server.URL, nil)
+	plain, _ := http.NewRequest(http.MethodPost, server.URL, nil)
+	for _, c := range []struct {
+		req    *http.Request
+		status int
+		want   bool
+	}{
+		{marked, http.StatusInternalServerError, false},
+		{marked, http.StatusRequestTimeout, true},
+		{marked, http.StatusTooManyRequests, true},
+		{marked, http.StatusBadRequest, false},
+		{plain, http.StatusInternalServerError, true},
+	} {
+		if got := ShouldRetryRequest(c.req, c.status); got != c.want {
+			t.Errorf("ShouldRetryRequest(status %d) = %v, want %v", c.status, got, c.want)
 		}
 	}
 }
@@ -487,5 +531,53 @@ func TestSignedURLClientDropsRetriesAndTheOverallTimeout(t *testing.T) {
 	plain := &http.Client{Transport: http.DefaultTransport}
 	if SignedURLClient(plain).Transport != http.DefaultTransport {
 		t.Fatal("a non-retrying transport should be kept")
+	}
+}
+
+// The interceptor sees an unbatched call, and a panic in it fails the call instead of
+// crashing the caller: with the panic's own message, else the default one, as TRANSPORT_ERROR.
+func TestInterceptorBatchFieldsAndPanics(t *testing.T) {
+	profile := testProfile()
+	profile.ErrorOptions = []skyflowError.ErrorOption{skyflowError.RawMessage()}
+	b := New(profile, config.VaultConfig{VaultId: "v1", ClusterId: "c1"}, ClientSettings{Credentials: &config.Credentials{ApiKey: testApiKey}})
+
+	var seen RequestContext
+	if _, err := b.Prepare("GET", func(rc *RequestContext) { seen = *rc }); err != nil {
+		t.Fatal(err)
+	}
+	if seen.Operation != "GET" || seen.BatchIndex != NotBatched || seen.TotalBatches != NotBatched {
+		t.Fatalf("request context = %+v", seen)
+	}
+
+	own := skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "own")
+	cause := errors.New("boom")
+	for name, c := range map[string]struct {
+		panicWith interface{}
+		message   string
+		cause     error
+	}{
+		"error":        {cause, "boom", cause},
+		"string":       {"stop", "stop", nil},
+		"empty string": {"", "Test SDK" + errInterceptorFailed, nil},
+		"other value":  {42, "Test SDK" + errInterceptorFailed, nil},
+	} {
+		_, err := b.Prepare("GET", func(*RequestContext) { panic(c.panicWith) })
+		if err == nil || err.GetMessage() != c.message || err.GetHttpCode() != string(skyflowError.TRANSPORT_ERROR) ||
+			err.GetHttpStatusCode() != "" || err.Unwrap() != c.cause {
+			t.Errorf("%s: err = %v", name, err)
+		}
+	}
+	if _, err := b.Prepare("GET", func(*RequestContext) { panic(own) }); err != own {
+		t.Errorf("SkyflowError panic: err = %v, want it returned as is", err)
+	}
+}
+
+func TestProfileApiErrorAppliesErrorOptions(t *testing.T) {
+	profile := Profile{SDKPrefix: "Test SDK", ErrorOptions: []skyflowError.ErrorOption{skyflowError.RawMessage()}}
+	header := http.Header{}
+	header.Set("x-request-id", "req-1")
+	err := profile.ApiError(errors.New(`500: {"error":{"message":"down","http_code":500}}`), header)
+	if err.GetMessage() != "down" || err.GetHttpCode() != "500" || err.GetRequestId() != "req-1" {
+		t.Fatalf("err = %v, code = %q, request ID = %q", err, err.GetHttpCode(), err.GetRequestId())
 	}
 }

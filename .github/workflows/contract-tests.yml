@@ -1,102 +1,84 @@
 name: Contract Tests
 
-# Public API contract check for common, flowvault and v2 (the Go counterpart of the
-# japicmp check in skyflow-java). Two gates:
-#   1. api-report/<module>.api must match the code. If not, run
-#      scripts/contract-snapshot-update.sh and commit the result.
-#   2. The API of the PR's base is compared with the API of the PR. A removed or
-#      changed line is a breaking change and fails the job unless an SDK code owner
-#      adds the api-break-approved label. Additions only need the updated snapshot.
-# The snapshots are alias-aware, so moving a type to common behind
-# `type X = common/pkg.X` is not reported as a break when its API stays the same.
+# Public API compatibility check (the Go counterpart of the japicmp check in skyflow-java).
+# scripts/apidiff/apidiff.sh compares the public API of each module at the PR's base
+# commit with the PR, using golang.org/x/exp/cmd/apidiff pinned in scripts/apidiff/go.mod.
+# An incompatible change fails the job unless an SDK code owner adds the
+# api-break-approved label (see CONTRIBUTING.md). Compatible changes are reported only.
+# An internal type reachable from the public API always fails: the label can't approve it.
 
 on:
   pull_request:
-    branches: [ "main", "flowvault-release/**" ]
+    # skyvault (v2) releases: release/x.x.x (e.g. release/26.6.25); flowvault: flowvault-release/x.x.x.
+    branches: [ "main", "release/**", "flowvault-release/**" ]
     # labeled/unlabeled re-run the check when api-break-approved is added or removed.
     types: [ opened, synchronize, reopened, labeled, unlabeled ]
-    paths:
-      - "common/**"
-      - "flowvault/**"
-      - "v2/**"
-      - "api-report/**"
-      - "scripts/apicontract/**"
-      - "scripts/contract-snapshot-update.sh"
-      - ".github/workflows/contract-tests.yml"
+    # No paths filter: the job runs on every pull request so it can be a required check
+    # (a required check that is skipped by a paths filter never reports and blocks merge).
 
 permissions:
   contents: read
 
+concurrency:
+  group: contract-tests-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
-  api-contract:
-    name: Public API contract
+  api-compatibility:
+    # One job per module, so the PR's checks list shows which module broke, as in
+    # skyflow-java ("Contract Tests (<module>)"). A module that isn't on the target
+    # branch passes as skipped, so the same list works on main and the release branches.
+    name: Contract Tests (${{ matrix.module }})
     runs-on: ubuntu-latest
-    env:
-      MODULES: "common flowvault v2"
-      BREAK_APPROVED: ${{ contains(github.event.pull_request.labels.*.name, 'api-break-approved') }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        # Keep in sync with DEFAULT_MODULES in scripts/apidiff/apidiff.sh.
+        module: [ v2, common, flowvault ]
     steps:
       - name: Check out the PR
         uses: actions/checkout@v4
         with:
-          path: head
+          # Full history, so the base commit can be checked out next to the PR.
+          fetch-depth: 0
           persist-credentials: false
 
-      - name: Check out the base branch
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.base.sha }}
-          path: base
-          persist-credentials: false
-
+      # The Go version comes from the apidiff tool module. It must be at least the
+      # highest `go` line of the modules under contract.
       - uses: actions/setup-go@v5
         with:
-          go-version-file: head/scripts/apicontract/go.mod
-          cache-dependency-path: |
-            head/scripts/apicontract/go.sum
-            head/common/go.sum
-            head/flowvault/go.sum
-            head/v2/go.sum
+          go-version-file: scripts/apidiff/go.mod
+          cache-dependency-path: "**/go.sum"
 
-      - name: Test the contract tool
-        working-directory: head/scripts/apicontract
-        run: go test ./...
-
-      - name: Snapshots are up to date
-        working-directory: head
-        run: scripts/contract-snapshot-update.sh --check
-
-      # The base is snapshotted from source with the PR's tool, so the check also works
-      # when the base has no api-report/ yet or an older tool version.
+      # The script annotates each change on the PR's Checks tab under
+      # "Breaking API change in <module>" (a warning once the break is approved).
       - name: Compare the base API with the PR API
+        env:
+          # The PR is checked out as its merge commit, so base..merge is exactly this PR's change.
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          MODULE: ${{ matrix.module }}
+          BREAK_APPROVED: ${{ contains(github.event.pull_request.labels.*.name, 'api-break-approved') }}
         run: |
-          (cd head/scripts/apicontract && go build -o "$RUNNER_TEMP/apicontract" .)
-          broken=""
-          {
-            echo "## Public API contract"
-            echo
-            echo "Base: \`${{ github.event.pull_request.base.ref }}\` (${{ github.event.pull_request.base.sha }})"
-          } >> "$GITHUB_STEP_SUMMARY"
-          for m in $MODULES; do
-            old="$RUNNER_TEMP/base-$m.api"
-            if [ -f "base/$m/go.mod" ]; then
-              "$RUNNER_TEMP/apicontract" snapshot "base/$m" > "$old"
-            else
-              : > "$old"
-            fi
-            set +e
-            report="$("$RUNNER_TEMP/apicontract" compare "$old" "head/api-report/$m.api")"
-            rc=$?
-            set -e
-            [ $rc -gt 1 ] && { echo "$report"; exit $rc; }
-            [ $rc -eq 1 ] && broken="$broken $m"
-            echo "=== $m"; echo "$report"
-            printf '\n### %s\n\n```diff\n%s\n```\n' "$m" "$report" >> "$GITHUB_STEP_SUMMARY"
-          done
-          if [ -z "$broken" ]; then
-            echo "No breaking API changes."
-          elif [ "$BREAK_APPROVED" = "true" ]; then
-            echo "::warning::Breaking API changes in:$broken. Approved with the api-break-approved label."
-          else
-            echo "::error::Breaking API changes in:$broken. Restore the API, or get an SDK code owner to approve the break with the api-break-approved label (see CONTRIBUTING.md)."
-            exit 1
-          fi
+          level=error
+          [ "$BREAK_APPROVED" = "true" ] && level=warning
+          set +e
+          scripts/apidiff/apidiff.sh -r "$BASE_SHA" -a "$level" "$MODULE"
+          rc=$?
+          set -e
+          case "$rc" in
+            0) ;;
+            1)
+              if [ "$BREAK_APPROVED" = "true" ]; then
+                echo "Breaking API change in $MODULE, approved with the api-break-approved label."
+              else
+                echo "::error title=Breaking API change in $MODULE::Restore the API, or get an SDK code owner to approve the break with the api-break-approved label (see CONTRIBUTING.md)."
+                exit 1
+              fi
+              ;;
+            3)
+              echo "::error title=Internal types in the public API of $MODULE::Move them to a public package. The api-break-approved label doesn't apply to this."
+              exit 1
+              ;;
+            *) exit "$rc" ;;
+          esac

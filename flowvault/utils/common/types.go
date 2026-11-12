@@ -12,6 +12,11 @@ const (
 	UpdateTypeReplace UpdateType = "REPLACE"
 )
 
+// NotBatched is RequestContext's BatchIndex and TotalBatches for an operation that was not
+// split into batches, as in the Java and Python SDKs. Every flowvault Go operation sends a
+// single request, so it is the only value today.
+const NotBatched = vaultclient.NotBatched
+
 // RequestContext is passed to an options Interceptor before each API call. It is the
 // shared skyflow-go/common/vaultclient type, so detect and vault options use the same one.
 type RequestContext = vaultclient.RequestContext
@@ -26,18 +31,12 @@ type Token struct {
 	Path           string `json:"path,omitempty"`
 }
 
-// HashedValue is one hash computed for a column value.
-type HashedValue struct {
-	Data     string `json:"data"`
-	HashName string `json:"hashName,omitempty"`
-}
-
-type ColumnRedaction struct {
+type ColumnRedactions struct {
 	ColumnName string
 	Redaction  string
 }
 
-type TokenGroupRedaction struct {
+type TokenGroupRedactions struct {
 	TokenGroupName string
 	Redaction      string
 }

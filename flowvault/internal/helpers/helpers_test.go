@@ -3,6 +3,7 @@ package helpers
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"github.com/skyflowapi/skyflow-go/common/vaultclient"
 	"io"
 	"net/http"
@@ -17,7 +18,16 @@ import (
 	. "github.com/onsi/gomega"
 
 	fvcommon "github.com/skyflowapi/skyflow-go/flowvault/utils/common"
+	fverrors "github.com/skyflowapi/skyflow-go/flowvault/utils/error"
 )
+
+// zeroReader is an endless source of zero bytes.
+type zeroReader struct{}
+
+func (zeroReader) Read(p []byte) (int, error) {
+	clear(p)
+	return len(p), nil
+}
 
 func TestHelpers(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -66,6 +76,15 @@ var _ = Describe("HTTP config", func() {
 })
 
 var _ = Describe("Files", func() {
+	It("picks the upload Content-Type as the Java SDK does", func() {
+		Expect(UploadContentType("Report.DOCX")).To(Equal("application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
+		Expect(UploadContentType("page.html")).To(Equal("text/html"))
+		Expect(UploadContentType("site.css")).To(HavePrefix("text/css"))
+		Expect(UploadContentType("data.unknownext")).To(Equal("application/octet-stream"))
+		Expect(UploadContentType("noextension")).To(Equal("application/octet-stream"))
+		Expect(UploadContentType("")).To(Equal("application/octet-stream"))
+	})
+
 	It("resolves files from a path, base64 and an *os.File", func() {
 		dir := GinkgoT().TempDir()
 		path := filepath.Join(dir, "resume.pdf")
@@ -77,8 +96,9 @@ var _ = Describe("Files", func() {
 
 		file, err = ResolveFile(fvcommon.UploadFilesRequestColumn{Column: "c", Base64: base64.StdEncoding.EncodeToString([]byte("txt")), FileName: "notes.txt"})
 		Expect(err).To(BeNil())
-		Expect(file.Content).To(Equal([]byte("txt")))
-		Expect(file.ContentType).To(HavePrefix("text/plain"))
+		Expect(file.Base64).To(Equal(base64.StdEncoding.EncodeToString([]byte("txt"))))
+		Expect(file.DecodedSize).To(Equal(int64(3)))
+		Expect(file.ContentType).To(Equal("text/plain"))
 
 		handle, _ := os.Open(path)
 		defer handle.Close()
@@ -86,20 +106,31 @@ var _ = Describe("Files", func() {
 		Expect(err).To(BeNil())
 		Expect(file.Name).To(Equal("resume.pdf"))
 		Expect(file.Object).To(BeIdenticalTo(handle))
-		Expect(file.Content).To(BeNil())
+		Expect(file.Base64).To(BeEmpty())
 	})
 
 	It("rejects an unreadable path, a directory, a closed file and invalid base64", func() {
+		// The messages are the Java SDK's; the reason is kept as the error's cause.
 		_, err := ResolveFile(fvcommon.UploadFilesRequestColumn{Column: "c", FilePath: "/does/not/exist"})
-		Expect(err.GetMessage()).To(ContainSubstring("Could not read file"))
+		Expect(err.GetMessage()).To(ContainSubstring(fverrors.INVALID_FILE_PATH))
+		Expect(errors.Is(err, os.ErrNotExist)).To(BeTrue())
 		_, err = ResolveFile(fvcommon.UploadFilesRequestColumn{Column: "c", FilePath: GinkgoT().TempDir()})
-		Expect(err.GetMessage()).To(ContainSubstring("not a regular file"))
+		Expect(err.GetMessage()).To(ContainSubstring(fverrors.INVALID_FILE_PATH))
+		Expect(err.Error()).To(ContainSubstring("not a regular file"))
 		closed, _ := os.CreateTemp(GinkgoT().TempDir(), "closed")
 		_ = closed.Close()
 		_, err = ResolveFile(fvcommon.UploadFilesRequestColumn{Column: "c", FileObject: closed})
-		Expect(err.GetMessage()).To(ContainSubstring("Could not read file"))
+		Expect(err.GetMessage()).To(ContainSubstring(fverrors.INVALID_FILE_OBJECT))
 		_, err = ResolveFile(fvcommon.UploadFilesRequestColumn{Column: "c", Base64: "%%%", FileName: "a.txt"})
-		Expect(err.GetMessage()).To(ContainSubstring("invalid base64"))
+		Expect(err.GetMessage()).To(ContainSubstring(fverrors.INVALID_BASE64))
+		// Strict base64, as in the Java and Python SDKs: Go's decoder would skip line breaks.
+		for _, content := range []string{"cGRm\ncGRm", "cGRm\r\n", "cGRm cGRm"} {
+			_, err = ResolveFile(fvcommon.UploadFilesRequestColumn{Column: "c", Base64: content, FileName: "a.txt"})
+			Expect(err).ToNot(BeNil(), content)
+			Expect(err.GetMessage()).To(ContainSubstring(fverrors.INVALID_BASE64))
+		}
+		_, err = ResolveFile(fvcommon.UploadFilesRequestColumn{Column: "c", Base64: "cGRmcGRm", FileName: "a.txt"})
+		Expect(err).To(BeNil())
 	})
 
 	It("rejects a regular file that can't be opened", func() {
@@ -109,7 +140,8 @@ var _ = Describe("Files", func() {
 		locked := filepath.Join(GinkgoT().TempDir(), "locked.txt")
 		Expect(os.WriteFile(locked, []byte("x"), 0o000)).To(Succeed())
 		_, err := ResolveFile(fvcommon.UploadFilesRequestColumn{Column: "c", FilePath: locked})
-		Expect(err.GetMessage()).To(ContainSubstring("Could not read file"))
+		Expect(err.GetMessage()).To(ContainSubstring(fverrors.INVALID_FILE_PATH))
+		Expect(errors.Is(err, os.ErrPermission)).To(BeTrue())
 	})
 
 	It("PUTs a file without an Authorization header and reports failures", func() {
@@ -125,7 +157,7 @@ var _ = Describe("Files", func() {
 			w.WriteHeader(http.StatusOK)
 		}))
 		defer server.Close()
-		file := ResolvedFile{Name: "a.pdf", ContentType: "application/pdf", Content: []byte("pdf")}
+		file := ResolvedFile{Name: "a.pdf", ContentType: "application/pdf", Base64: "cGRm", DecodedSize: 3}
 
 		status, msg := PutFile(context.Background(), http.DefaultClient, server.URL+"/ok", file)
 		Expect(status).To(Equal(fvcommon.UploadStatusUploaded))
@@ -164,15 +196,23 @@ var _ = Describe("Files", func() {
 		Expect(length).To(Equal(int64(14)))
 		Expect(body).To(Equal("header:content"))
 
+		// A FileObject is uploaded whole, from its start, whatever its offset (as in the Java
+		// and Python SDKs), and its offset is left where it was.
 		handle, _ := os.Open(path)
 		defer handle.Close()
 		_, _ = handle.Seek(7, io.SeekStart)
+		resolved, rerr := ResolveFile(fvcommon.UploadFilesRequestColumn{Column: "doc", FileObject: handle})
+		Expect(rerr).To(BeNil())
+		status, _ = PutFile(context.Background(), http.DefaultClient, server.URL, resolved)
+		Expect(status).To(Equal(fvcommon.UploadStatusUploaded))
+		Expect(length).To(Equal(int64(14)))
+		Expect(body).To(Equal("header:content"))
 		status, _ = PutFile(context.Background(), http.DefaultClient, server.URL, ResolvedFile{Object: handle})
 		Expect(status).To(Equal(fvcommon.UploadStatusUploaded))
-		Expect(length).To(Equal(int64(7)))
-		Expect(body).To(Equal("content"))
-		_, err := handle.Stat()
+		Expect(body).To(Equal("header:content"))
+		offset, err := handle.Seek(0, io.SeekCurrent)
 		Expect(err).To(BeNil())
+		Expect(offset).To(Equal(int64(7)))
 
 		empty := filepath.Join(GinkgoT().TempDir(), "empty.txt")
 		Expect(os.WriteFile(empty, nil, 0o600)).To(Succeed())
@@ -249,16 +289,13 @@ var _ = Describe("Parsing", func() {
 		Expect(tokens["email"]).To(Equal([]fvcommon.Token{{Token: "tok", TokenGroupName: "det", Path: "$.a"}}))
 		Expect(tokens["ssn"]).To(Equal([]fvcommon.Token{{Token: "plain-token"}}))
 		Expect(ParseTokens(nil)).To(BeNil())
-
-		hashes := ParseHashedData(map[string]interface{}{"email": map[string]interface{}{"data": "abc", "hashName": "h1"}})
-		Expect(hashes["email"]).To(Equal([]fvcommon.HashedValue{{Data: "abc", HashName: "h1"}}))
 	})
 
 	It("accepts table or tableName in detokenize metadata", func() {
 		Expect(ParseDetokenizeMetadata(map[string]interface{}{"skyflowID": "id", "table": "t1"})).
-			To(Equal(&fvcommon.DetokenizeRecordMetadata{SkyflowId: "id", TableName: "t1"}))
+			To(Equal(&fvcommon.DetokenizeResponseRecordMetadata{SkyflowId: "id", TableName: "t1"}))
 		Expect(ParseDetokenizeMetadata(map[string]interface{}{"skyflowId": "id", "tableName": "t2"})).
-			To(Equal(&fvcommon.DetokenizeRecordMetadata{SkyflowId: "id", TableName: "t2"}))
+			To(Equal(&fvcommon.DetokenizeResponseRecordMetadata{SkyflowId: "id", TableName: "t2"}))
 		Expect(ParseDetokenizeMetadata(nil)).To(BeNil())
 	})
 
@@ -266,7 +303,14 @@ var _ = Describe("Parsing", func() {
 		Expect(ParseDeleteFilesColumns(map[string]interface{}{
 			"resumePDF": map[string]interface{}{"status": "DELETED"},
 			"photoID":   "DELETED",
-		})).To(Equal([]fvcommon.DeleteFilesColumnResult{{Column: "photoID", Status: "DELETED"}, {Column: "resumePDF", Status: "DELETED"}}))
+			"other":     map[string]interface{}{"status": "archived"},
+			"lower":     "deleted",
+		})).To(Equal([]fvcommon.DeleteFilesColumnResult{
+			{Column: "lower", Status: fvcommon.DeleteFilesStatusDeleted, RawStatus: "deleted"},
+			{Column: "other", Status: fvcommon.DeleteFilesStatusUnknown, RawStatus: "archived"},
+			{Column: "photoID", Status: fvcommon.DeleteFilesStatusDeleted, RawStatus: "DELETED"},
+			{Column: "resumePDF", Status: fvcommon.DeleteFilesStatusDeleted, RawStatus: "DELETED"},
+		}))
 		Expect(ParseDeleteFilesColumns(nil)).To(BeNil())
 	})
 
