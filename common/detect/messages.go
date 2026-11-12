@@ -17,6 +17,19 @@ const (
 	OperationCheckGuardrails  = "CHECK_GUARDRAILS"
 )
 
+// Error-response conversion (see responseError).
+const (
+	// apiErrorFormat is "<status>: <JSON error body>", the error text SkyflowErrorApi parses.
+	apiErrorFormat = "%d: %s"
+	// errorWithStatusCode is the message for an error response with an empty body, as in the
+	// Java SDK and flowvault's vault operations. It has no SDK prefix: it stands for the
+	// server's own message.
+	errorWithStatusCode = "Error with status code %d"
+	// The camelCase spellings of grpc_code and http_status that the Python SDK also accepts.
+	errorKeyGrpcCodeCamel   = "grpcCode"
+	errorKeyHttpStatusCamel = "httpStatus"
+)
+
 // API paths, relative to the vault URL.
 const (
 	pathDeidentifyString = "/v2/detect/deidentify/string"
@@ -68,18 +81,21 @@ const (
 	errInvalidDeidentifyDataSource = " Validation error. Invalid DataSource in deidentify file request. Specify a DeidentifySourceType."
 	errInvalidDeidentifyValue      = " Validation error. Invalid Value in deidentify file request. Specify the non-empty content or reference that DataSource describes."
 	errFileNotFound                = " Validation error. The file to deidentify was not found at the specified path. Verify the file path and try again."
-	errFileNotReadable             = " Validation error. The file to deidentify is not readable. Check the file permissions and try again."
+	// errFailedToEncodeFile is for a local file that exists but can't be read, as in the Java
+	// and Python SDKs.
+	errFailedToEncodeFile          = " Validation error. Failed to encode the file. Ensure the file is in a supported format and try again."
 	errInvalidWaitTime             = " Validation error. WaitTime in Poll must be between %d and %d seconds."
 	errInvalidMaxAttempts          = " Validation error. MaxAttempts in Poll must be between %d and %d."
 	errOutputDirectoryNeedPoll     = " Validation error. OutputDirectory in deidentify file options requires Poll."
 	errEmptyRunId                  = " Validation error. Invalid RunId in get run request. Specify a non-empty run id."
 	errInvalidReidentifyDataSource = " Validation error. Invalid DataSource in reidentify file request. Specify a ReidentifySourceType."
 	errInvalidReidentifyValue      = " Validation error. Invalid Value in reidentify file request. Specify the non-empty base64 content or presigned URL of the file."
-	// errOutputNotWritten is the Java text with the cause appended.
-	errOutputNotWritten = " Failed to write the processed output to %s: %s"
+	// errOutputNotWritten is the Java and Python text; the cause is logged and kept on the error
+	// (Unwrap), not repeated in the message.
+	errOutputNotWritten = " Failed to write the processed output to %s."
 	errEmptyResponse    = " API error. %s returned an empty response."
 
-	// Cause appended to errOutputNotWritten.
+	// notRegularFile is the cause of a failed read or write of something that isn't a regular file.
 	notRegularFile = "not a regular file"
 )
 
@@ -95,4 +111,5 @@ const (
 	logPollCancelled       = "Polling run %s stopped by the context while %s."
 	logOutputNotWritten    = "Run outputs are %s, not BASE64, so nothing is written."
 	logOutputFileWritten   = "Wrote run output to %s."
+	logOutputWriteFailed   = "Failed to write the processed output to %s: %s"
 )

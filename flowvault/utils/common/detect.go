@@ -35,6 +35,7 @@ type (
 	ReidentifyFileSource       = cdetect.ReidentifyFileSource
 	ReidentifySourceType       = cdetect.FlowReidentifySourceType
 	FileDataFormat             = cdetect.FileDataFormat
+	ReidentifyFileDataFormat   = cdetect.ReidentifyFileDataFormat
 	DetectRunStatus            = cdetect.DetectRunStatus
 	ProcessedFileType          = cdetect.ProcessedFileType
 	ObjectEntityType           = cdetect.ObjectEntityType
@@ -45,6 +46,7 @@ type (
 	GuardrailsValidation       = cdetect.GuardrailsValidation
 	Metrics                    = cdetect.Metrics
 	FileOutput                 = cdetect.FileOutput
+	ReidentifyFileOutput       = cdetect.ReidentifyFileOutput
 	RedactionRule              = cdetect.RedactionRule
 	RedactionLevel             = cdetect.FlowRedactionLevel
 	DeidentifyStringRequest    = cdetect.DeidentifyStringRequest
@@ -179,6 +181,14 @@ const (
 	FileDataFormatJSONL                                       = cdetect.FileDataFormatJSONL
 	FileDataFormatZIP                                         = cdetect.FileDataFormatZIP
 	FileDataFormatGIF                                         = cdetect.FileDataFormatGIF
+	ReidentifyFileDataFormatCSV                               = cdetect.ReidentifyFileDataFormatCSV
+	ReidentifyFileDataFormatDOCX                              = cdetect.ReidentifyFileDataFormatDOCX
+	ReidentifyFileDataFormatJSON                              = cdetect.ReidentifyFileDataFormatJSON
+	ReidentifyFileDataFormatJSONL                             = cdetect.ReidentifyFileDataFormatJSONL
+	ReidentifyFileDataFormatPPTX                              = cdetect.ReidentifyFileDataFormatPPTX
+	ReidentifyFileDataFormatTXT                               = cdetect.ReidentifyFileDataFormatTXT
+	ReidentifyFileDataFormatXLSX                              = cdetect.ReidentifyFileDataFormatXLSX
+	ReidentifyFileDataFormatXML                               = cdetect.ReidentifyFileDataFormatXML
 	DetectRunStatusUnknown                                    = cdetect.DetectRunStatusUnknown
 	DetectRunStatusFailed                                     = cdetect.DetectRunStatusFailed
 	DetectRunStatusSuccess                                    = cdetect.DetectRunStatusSuccess

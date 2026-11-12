@@ -93,7 +93,9 @@ func main() {
 	response, err := service.ReidentifyFile(context.Background(), common.ReidentifyFileRequest{
 		DataSource: common.ReidentifySourceTypeBase64,
 		Value:      redacted.ProcessedFile,
-		DataFormat: redacted.ProcessedFileExtension,
+		// Re-identification works with fewer formats than de-identification (see
+		// ReidentifyFileDataFormat), so the de-identified file's format is converted.
+		DataFormat: common.ReidentifyFileDataFormat(redacted.ProcessedFileExtension),
 	}, common.ReidentifyFileOptions{})
 
 	// Step 5: Handle the response and errors, and save the output yourself

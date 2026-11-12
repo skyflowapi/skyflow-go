@@ -228,6 +228,21 @@ const (
 	FileDataFormatGIF   FileDataFormat = "GIF"
 )
 
+// ReidentifyFileDataFormat is the format of a file to re-identify, and of its output: the
+// formats re-identification works with, as in the Java and Python SDKs.
+type ReidentifyFileDataFormat string
+
+const (
+	ReidentifyFileDataFormatCSV   ReidentifyFileDataFormat = "CSV"
+	ReidentifyFileDataFormatDOCX  ReidentifyFileDataFormat = "DOCX"
+	ReidentifyFileDataFormatJSON  ReidentifyFileDataFormat = "JSON"
+	ReidentifyFileDataFormatJSONL ReidentifyFileDataFormat = "JSONL"
+	ReidentifyFileDataFormatPPTX  ReidentifyFileDataFormat = "PPTX"
+	ReidentifyFileDataFormatTXT   ReidentifyFileDataFormat = "TXT"
+	ReidentifyFileDataFormatXLSX  ReidentifyFileDataFormat = "XLSX"
+	ReidentifyFileDataFormatXML   ReidentifyFileDataFormat = "XML"
+)
+
 // DetectRunStatus is the state of a de-identify file run. SUCCESS, FAILED and UNKNOWN are terminal.
 type DetectRunStatus string
 

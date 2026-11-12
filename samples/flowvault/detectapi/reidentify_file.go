@@ -57,7 +57,7 @@ func main() {
 	response, err := service.ReidentifyFile(context.Background(), common.ReidentifyFileRequest{
 		DataSource: common.ReidentifySourceTypeBase64, // or ReidentifySourceTypePresignedURL with a URL in Value
 		Value:      base64.StdEncoding.EncodeToString(content),
-		DataFormat: common.FileDataFormatTXT,
+		DataFormat: common.ReidentifyFileDataFormatTXT,
 		RedactionLevel: []common.RedactionRule{common.RedactionLevel{
 			TokenGroupName:   "<TOKEN_GROUP_NAME>",
 			RedactionPattern: "<REDACTION_PATTERN_NAME>",

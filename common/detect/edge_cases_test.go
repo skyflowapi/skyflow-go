@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -90,13 +91,94 @@ func TestOperationsRejectEmptyResponses(t *testing.T) {
 
 func TestApiErrorWithoutApiDetails(t *testing.T) {
 	c, _ := newTestController(newFakeDetect(t))
-	err := c.apiError(errors.New("connection reset"))
-	if err == nil || !strings.Contains(err.GetMessage(), "connection reset") {
-		t.Fatalf("err = %v", err)
-	}
-	err = c.apiError(core.NewAPIError(http.StatusBadGateway, nil, errors.New("bad gateway")))
+	err := c.apiError(context.Background(), core.NewAPIError(http.StatusBadGateway, nil, errors.New("bad gateway")))
 	if err == nil || err.GetRequestId() != "" {
 		t.Fatalf("API error without a header: err = %v", err)
+	}
+}
+
+// A call that got no usable response is TRANSPORT_ERROR ("0", no status), as in the Java and
+// Python SDKs, unless the caller's context ended: then it is REQUEST_CANCELLED ("499"). The
+// error doesn't decide: net/http's own timeout error matches context.DeadlineExceeded.
+func TestApiErrorWithoutAResponse(t *testing.T) {
+	c, _ := newTestController(newFakeDetect(t))
+	reset := errors.New("connection reset")
+	err := c.apiError(context.Background(), reset)
+	if err.GetHttpCode() != string(skyflowError.TRANSPORT_ERROR) || err.GetHttpStatusCode() != "" ||
+		!errors.Is(err, reset) || !strings.Contains(err.GetMessage(), "connection reset") {
+		t.Fatalf("network failure: code = %q, status = %q, err = %v", err.GetHttpCode(), err.GetHttpStatusCode(), err)
+	}
+	clientTimeout := fmt.Errorf("Post: %w", context.DeadlineExceeded) // as http.Client.Timeout reports
+	if err = c.apiError(context.Background(), clientTimeout); err.GetHttpCode() != string(skyflowError.TRANSPORT_ERROR) {
+		t.Fatalf("client timeout: code = %q, want %q", err.GetHttpCode(), skyflowError.TRANSPORT_ERROR)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if err = c.apiError(ctx, context.Canceled); err.GetHttpCode() != string(skyflowError.REQUEST_CANCELLED) || !errors.Is(err, context.Canceled) {
+		t.Fatalf("cancelled: code = %q, err = %v", err.GetHttpCode(), err)
+	}
+}
+
+// An error response has the response's HTTP status as its code, as in the Java and Python
+// SDKs, and a message even when the body isn't a Skyflow error object.
+func TestApiErrorFromAnErrorResponse(t *testing.T) {
+	c, _ := newTestController(newFakeDetect(t))
+	header := http.Header{}
+	header.Set("x-request-id", "req-1")
+	long := strings.Repeat("x", 600)
+	for name, tc := range map[string]struct {
+		status  int
+		body    string
+		message string
+	}{
+		"skyflow error, body http_code ignored": {http.StatusBadRequest, `{"error":{"http_code":500,"message":"bad config","grpc_code":3,"http_status":"INVALID_ARGUMENT"}}`, "bad config"},
+		"error string":                          {http.StatusForbidden, `{"error":"denied"}`, "denied"},
+		"top-level message":                     {http.StatusNotFound, `{"message":"no such run"}`, "no such run"},
+		"non-JSON body":                         {http.StatusBadGateway, `<html>bad gateway</html>`, "<html>bad gateway</html>"},
+		"long non-JSON body":                    {http.StatusBadGateway, long, long[:512] + "... (truncated)"},
+		"empty body":                            {http.StatusServiceUnavailable, ``, "Error with status code 503"},
+	} {
+		err := c.apiError(context.Background(), core.NewAPIError(tc.status, header, errors.New(tc.body)))
+		if err.GetHttpCode() != fmt.Sprint(tc.status) || err.GetMessage() != "Message: "+tc.message || err.GetRequestId() != "req-1" {
+			t.Errorf("%s: code = %q, message = %q, request ID = %q", name, err.GetHttpCode(), err.GetMessage(), err.GetRequestId())
+		}
+	}
+
+	err := c.apiError(context.Background(), core.NewAPIError(http.StatusBadRequest, header, errors.New(`{"error":{"http_code":500,"message":"bad config","grpc_code":3,"http_status":"INVALID_ARGUMENT"}}`)))
+	if err.GetGrpcCode() != "3" || err.GetHttpStatusCode() != "INVALID_ARGUMENT" {
+		t.Errorf("grpc code = %q, status = %q", err.GetGrpcCode(), err.GetHttpStatusCode())
+	}
+	// GetResponseBody is the server's body as sent, not the normalized one.
+	if code := err.GetResponseBody()["error"].(map[string]interface{})["http_code"]; code != float64(500) {
+		t.Errorf("response body http_code = %v, want the server's 500", code)
+	}
+	// A multi-byte character at the cut is dropped whole, not split.
+	multiByte := strings.Repeat("x", 511) + "é" + "tail"
+	if got := truncateBody(multiByte); got != strings.Repeat("x", 511)+"... (truncated)" {
+		t.Errorf("truncated multi-byte body = %q", got)
+	}
+	if body := c.apiError(context.Background(), core.NewAPIError(http.StatusBadGateway, header, errors.New("<html/>"))).GetResponseBody(); body != nil {
+		t.Errorf("non-JSON response body = %v, want nil", body)
+	}
+
+	// grpcCode and httpStatus are read when the snake_case keys are missing (Python SDK), and
+	// an error-from-client header is added to the details (Java SDK).
+	fromClient := http.Header{}
+	fromClient.Set("error-from-client", "true")
+	err = c.apiError(context.Background(), core.NewAPIError(http.StatusBadRequest, fromClient,
+		errors.New(`{"error":{"message":"m","grpcCode":5,"httpStatus":"NOT_FOUND","details":[{"a":1}]}}`)))
+	if err.GetGrpcCode() != "5" || err.GetHttpStatusCode() != "NOT_FOUND" {
+		t.Errorf("camelCase keys: grpc code = %q, status = %q", err.GetGrpcCode(), err.GetHttpStatusCode())
+	}
+	want := []interface{}{map[string]interface{}{"a": float64(1)}, map[string]interface{}{"errorFromClient": "true"}}
+	if !reflect.DeepEqual(err.GetDetails(), want) {
+		t.Errorf("details = %v, want %v", err.GetDetails(), want)
+	}
+	// The snake_case key wins when both are sent, and no header means no extra detail.
+	err = c.apiError(context.Background(), core.NewAPIError(http.StatusBadRequest, header,
+		errors.New(`{"error":{"message":"m","grpc_code":3,"grpcCode":5}}`)))
+	if err.GetGrpcCode() != "3" || len(err.GetDetails()) != 0 {
+		t.Errorf("grpc code = %q, details = %v", err.GetGrpcCode(), err.GetDetails())
 	}
 }
 
@@ -222,12 +304,19 @@ func TestWriteOutputs(t *testing.T) {
 
 	t.Run("current directory, default name, empty outputs skipped", func(t *testing.T) {
 		chdir(t, t.TempDir())
-		if err := c.writeOutputs([]FileOutput{{}, pdf}, SkyDeidentifySourceTypeBase64, ".pdf", ""); err != nil {
+		if err := c.writeOutputs([]FileOutput{{}, pdf}, SkyDeidentifySourceTypeBase64, "", ""); err != nil {
 			t.Fatal(err)
 		}
 		got, err := os.ReadFile("processed-output.pdf")
 		if err != nil || string(got) != "data" {
 			t.Fatalf("output = %q, err = %v", got, err)
+		}
+		// As in the Java and Python SDKs, a dotfile keeps its whole name as the stem.
+		if err := c.writeOutputs([]FileOutput{pdf}, SkyDeidentifySourceTypeBase64, ".env", ""); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := os.Stat("processed-.env.pdf"); err != nil {
+			t.Fatalf("dotfile output: %v", err)
 		}
 		info, err := os.Stat("processed-output.pdf")
 		if err != nil || info.Mode().Perm() != outputFileMode {
@@ -254,7 +343,7 @@ func TestWriteOutputs(t *testing.T) {
 		if err := os.Mkdir(filepath.Join(dir, "processed-a.pdf"), outputDirMode); err != nil {
 			t.Fatal(err)
 		}
-		if err := c.writeOutputs([]FileOutput{pdf}, SkyDeidentifySourceTypeBase64, "a.pdf", dir); err == nil || !strings.Contains(err.GetMessage(), notRegularFile) {
+		if err := c.writeOutputs([]FileOutput{pdf}, SkyDeidentifySourceTypeBase64, "a.pdf", dir); err == nil || !errors.Is(err, errNotRegularFile) {
 			t.Fatalf("err = %v", err)
 		}
 	})
@@ -287,7 +376,7 @@ func TestWriteOutputs(t *testing.T) {
 		if err := os.Symlink(elsewhere, filepath.Join(dir, "processed-a.pdf")); err != nil {
 			t.Skipf("symlinks not supported: %v", err)
 		}
-		if err := c.writeOutputs([]FileOutput{pdf}, SkyDeidentifySourceTypeBase64, "a.pdf", dir); err == nil || !strings.Contains(err.GetMessage(), notRegularFile) {
+		if err := c.writeOutputs([]FileOutput{pdf}, SkyDeidentifySourceTypeBase64, "a.pdf", dir); err == nil || !errors.Is(err, errNotRegularFile) {
 			t.Fatalf("err = %v", err)
 		}
 		if got, err := os.ReadFile(elsewhere); err != nil || string(got) != "keep" {
@@ -342,14 +431,15 @@ func TestReadLocalFileRefusesNonRegularFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 	_ = closed.Close()
-	if _, err := c.readLocalFile("", closed); err == nil || !strings.Contains(err.GetMessage(), errFileNotReadable) {
+	if _, err := c.readLocalFile("", closed); err == nil || !strings.Contains(err.GetMessage(), errFailedToEncodeFile) {
 		t.Fatalf("closed file object: err = %v", err)
 	}
 }
 
-// outputNotWritten is the start of the write-failure message for path, before the OS error.
+// outputNotWritten is the write-failure message for path. As in the Java and Python SDKs it
+// has no cause; the cause is the error's Unwrap.
 func outputNotWritten(path string) string {
-	return fmt.Sprintf(errOutputNotWritten, path, "")
+	return fmt.Sprintf(errOutputNotWritten, path)
 }
 
 // chdir stands in for t.Chdir, which needs Go 1.24; this module targets 1.23. It changes the
@@ -506,11 +596,12 @@ func TestTransportErrorsKeepTheirCause(t *testing.T) {
 		t.Fatalf("err = %v, want it to wrap context.Canceled with code REQUEST_CANCELLED", err)
 	}
 
-	// A failure that is not the context's keeps the SERVER code.
+	// A failure that is not the context's, such as a refused connection, is TRANSPORT_ERROR:
+	// code "0" and no status, as in the Java and Python SDKs.
 	f.server.Close()
 	_, err = c.GetRun(context.Background(), GetRunRequest{RunId: "run-1"}, GetRunOptions{})
-	if err == nil || err.GetHttpCode() != string(skyflowError.SERVER) {
-		t.Fatalf("err = %v, want code SERVER", err)
+	if err == nil || err.GetHttpCode() != string(skyflowError.TRANSPORT_ERROR) || err.GetHttpStatusCode() != "" || err.Unwrap() == nil {
+		t.Fatalf("err = %v, want code TRANSPORT_ERROR with no status and its cause", err)
 	}
 }
 
@@ -614,5 +705,31 @@ func TestReidentifyFileDataSource(t *testing.T) {
 		if _, err := c.ReidentifyFile(ctx, ReidentifyFileRequest{DataSource: source, Value: "v"}, ReidentifyFileOptions{}); err == nil || !strings.Contains(err.GetMessage(), errInvalidReidentifyDataSource) {
 			t.Fatalf("%#v: err = %v", source, err)
 		}
+	}
+}
+
+// As in the Java and Python SDKs, a missing local file is reported before the poll options are
+// checked, and a file that exists but can't be read fails to encode.
+func TestDeidentifyFileLocalFileChecks(t *testing.T) {
+	c, _ := newTestController(newFakeDetect(t))
+	badWait := time.Duration(0)
+	missing := filepath.Join(t.TempDir(), "missing.txt")
+	_, err := c.DeidentifyFile(context.Background(), DeidentifyFileRequest{FilePath: missing}, DeidentifyFileOptions{Poll: &PollOptions{WaitTime: &badWait}})
+	if err == nil || !strings.Contains(err.GetMessage(), errFileNotFound) {
+		t.Fatalf("missing file with a bad WaitTime: err = %v, want the file-not-found error", err)
+	}
+	if _, err = c.DeidentifyFile(context.Background(), DeidentifyFileRequest{FilePath: t.TempDir()}, DeidentifyFileOptions{}); err == nil || !strings.Contains(err.GetMessage(), errFileNotFound) {
+		t.Fatalf("directory: err = %v, want the file-not-found error", err)
+	}
+
+	if os.Geteuid() == 0 {
+		t.Skip("root can read any file")
+	}
+	locked := filepath.Join(t.TempDir(), "locked.txt")
+	if err := os.WriteFile(locked, []byte("x"), 0o000); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = c.DeidentifyFile(context.Background(), DeidentifyFileRequest{FilePath: locked}, DeidentifyFileOptions{}); err == nil || !strings.Contains(err.GetMessage(), errFailedToEncodeFile) {
+		t.Fatalf("unreadable file: err = %v, want the failed-to-encode error", err)
 	}
 }

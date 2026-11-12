@@ -1179,7 +1179,7 @@ Sample response (entity-counter placeholders):
 }
 ```
 
-`Value` is set only when the configuration's `ReturnEntities` is `ReturnEntitiesTypeAll`.
+`Value` is set only when the configuration's `ReturnEntities` is `ReturnEntitiesTypeAll`. `Location` is a `*common.EntityLocation`: nil when the server sends no location, as in the Java and Python SDKs.
 
 > [!TIP]
 > See the full example in the samples directory: [deidentify_string.go](../samples/flowvault/detectapi/deidentify_string.go)
@@ -1193,14 +1193,14 @@ Sample response (entity-counter placeholders):
 | `FileObject` | An open `*os.File`, sent the same way. The caller closes it. |
 | `DataSource` + `Value` | `DeidentifySourceTypeBase64` with base64 content, or `DeidentifySourceTypePresignedURL` with a presigned URL. |
 
-Before calling the API, the SDK checks that exactly one is set, that a `Value` has a `DataSource` and isn't blank, and that a local file exists. It sends `DataSource` as given; the server rejects one the vault doesn't accept.
+Before calling the API, the SDK checks that exactly one is set, that a `Value` has a `DataSource` and isn't blank, and that a local file exists and is a regular file. A local file is checked before the `Poll` options, as in the Java and Python SDKs, and one that exists but can't be read fails with "Failed to encode the file". It sends `DataSource` as given; the server rejects one the vault doesn't accept.
 
 `ConfigurationId` and `Configuration` work as for [Deidentify String](#deidentify-string). `DataFormat` is optional: the server infers it, and for a local file the SDK infers it from the extension. Set it to override either.
 
 > [!WARNING]
 > **`DeidentifyFile` doesn't wait for the result by default.** It returns as soon as the file is submitted, with only `RunId` set: `Status` is empty and there is no `Output`. Get the result later with [GetRun](#get-run), or set `Poll` to wait for the run.
 
-Outputs are written to disk only when all three hold: the input is a local file (`FilePath` or `FileObject`), the polled run reached `SUCCESS`, and its outputs are base64. They are named `processed-<name>.<ext>`, `processed-entities-<name>.json` and `processed-object-entities-<name>.json`. `OutputDirectory` requires `Poll`. It is created if missing and defaults to the current directory (an empty or blank value means the current directory). Each output goes to a hidden temporary file first and is then renamed into place, so a process that dies mid-write can leave a `.processed-*.tmp` file behind. Presigned-URL outputs are not fetched: read them from `Output`.
+Outputs are written to disk only when all three hold: the input is a local file (`FilePath` or `FileObject`), the polled run reached `SUCCESS`, and its outputs are base64. They are named `processed-<name>.<ext>`, `processed-entities-<name>.json` and `processed-object-entities-<name>.json`, where `<name>` is the input's name without its extension (a dotfile such as `.env` keeps its whole name, as in the Java and Python SDKs). A file that can't be written fails the call with "Failed to write the processed output to <path>." and code `"0"`; the underlying error is `Unwrap()`. `OutputDirectory` requires `Poll`. It is created if missing and defaults to the current directory (an empty or blank value means the current directory). Each output goes to a hidden temporary file first and is then renamed into place, so a process that dies mid-write can leave a `.processed-*.tmp` file behind. Presigned-URL outputs are not fetched: read them from `Output`.
 
 `DeidentificationTypeVaultToken` is supported only for `txt`, `csv`, `json`, `jsonl`, `xml`, `docx`, `xlsx` and `pptx` files.
 
@@ -1381,7 +1381,7 @@ Sample response, with a redaction pattern that masks the middle of the name:
 > See the full example in the samples directory: [reidentify_string.go](../samples/flowvault/detectapi/reidentify_string.go)
 
 ## Reidentify File
-`ReidentifyFile` is synchronous: there's no run to poll. `DataSource` and `Value` are required: either `ReidentifySourceTypeBase64` with base64 content, or `ReidentifySourceTypePresignedURL` with a URL. There's no `FilePath` or `FileObject`, so encode a local file into `Value` yourself. `DataFormat` is optional and limited to `txt`, `csv`, `json`, `jsonl`, `xml`, `docx`, `xlsx` and `pptx`. `RedactionLevel` works as in [Reidentify String](#reidentify-string). The response's `OutputType` is a `ReidentifySourceType`, or nil for a value the SDK doesn't know.
+`ReidentifyFile` is synchronous: there's no run to poll. `DataSource` and `Value` are required: either `ReidentifySourceTypeBase64` with base64 content, or `ReidentifySourceTypePresignedURL` with a URL. There's no `FilePath` or `FileObject`, so encode a local file into `Value` yourself. `DataFormat` is optional: a `ReidentifyFileDataFormat*` constant (`CSV`, `DOCX`, `JSON`, `JSONL`, `PPTX`, `TXT`, `XLSX`, `XML`), the formats re-identification works with, as in the Java and Python SDKs. Each output is a `common.ReidentifyFileOutput`, whose `ProcessedFileExtension` is the same type: empty for any other format. `RedactionLevel` works as in [Reidentify String](#reidentify-string). The response's `OutputType` is a `ReidentifySourceType`, or nil for a value the SDK doesn't know.
 
 The SDK writes nothing to disk: the re-identified output is in `response.Output` for you to handle.
 
@@ -1394,7 +1394,7 @@ if readErr != nil {
 response, err := service.ReidentifyFile(ctx, common.ReidentifyFileRequest{
 	DataSource: common.ReidentifySourceTypeBase64,
 	Value:      base64.StdEncoding.EncodeToString(content),
-	DataFormat: common.FileDataFormatTXT,
+	DataFormat: common.ReidentifyFileDataFormatTXT,
 	RedactionLevel: []common.RedactionRule{common.RedactionLevel{
 		TokenGroupName:   "<TOKEN_GROUP_NAME>",
 		RedactionPattern: "<REDACTION_PATTERN_NAME>",

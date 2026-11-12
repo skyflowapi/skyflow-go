@@ -51,14 +51,31 @@ func (c *Controller) readLocalFile(filePath string, fileObject *os.File) (*local
 	return &localFile{name: name, base64: base64.StdEncoding.EncodeToString(content), format: formatFromName(name)}, nil
 }
 
-// unreadable is the error for a local file that could not be read, with the Java SDK's
-// texts: one that does not exist or is not a regular file was not found; any other failure
-// (permissions, I/O) is not readable.
+// unreadable is the error for a local file that could not be read, with the Java and Python
+// SDKs' texts: one that does not exist or is not a regular file was not found; any other
+// failure (permissions, I/O) failed to encode.
 func (c *Controller) unreadable(err error) *skyflowError.SkyflowError {
 	if errors.Is(err, fs.ErrNotExist) || errors.Is(err, errNotRegularFile) {
 		return c.invalid(errFileNotFound)
 	}
-	return c.invalid(errFileNotReadable)
+	return c.invalid(errFailedToEncodeFile)
+}
+
+// checkLocalFile reports, before anything is read, whether the local input is a regular file,
+// as the Java and Python SDKs check it during validation. A file that can't be read is
+// reported later, when it is read (unreadable).
+func (c *Controller) checkLocalFile(filePath string, fileObject *os.File) *skyflowError.SkyflowError {
+	var info os.FileInfo
+	var err error
+	if fileObject != nil {
+		info, err = fileObject.Stat()
+	} else {
+		info, err = os.Stat(filePath)
+	}
+	if err != nil || !info.Mode().IsRegular() {
+		return c.invalid(errFileNotFound)
+	}
+	return nil
 }
 
 // readRegularFile reads the whole of file, refusing anything but a regular file: a device or
@@ -130,7 +147,12 @@ func (c *Controller) writeOutputs(outputs []FileOutput, outputType DeidentifyFil
 	} else if err := os.MkdirAll(dir, outputDirMode); err != nil {
 		return c.writeFailure(dir, err)
 	}
-	stem := strings.TrimSuffix(inputName, filepath.Ext(inputName))
+	// As in the Java and Python SDKs, only an extension after the first character is dropped,
+	// so a dotfile such as ".env" keeps its whole name.
+	stem := inputName
+	if dot := strings.LastIndex(inputName, extensionSeparator); dot > 0 {
+		stem = inputName[:dot]
+	}
 	if stem == "" {
 		stem = defaultOutputName
 	}
@@ -235,7 +257,7 @@ func writeOutputFile(target string, content []byte, rename func(oldpath, newpath
 // code is TRANSPORT_ERROR ("0") with an empty status. err is kept as the cause, so
 // errors.Is(result, fs.ErrPermission) works.
 func (c *Controller) writeFailure(path string, err error) *skyflowError.SkyflowError {
-	message := fmt.Sprintf(c.errMsg(errOutputNotWritten), path, err.Error())
-	logger.Error(message)
+	logger.Error(fmt.Sprintf(c.logMsg(logOutputWriteFailed), path, err.Error()))
+	message := fmt.Sprintf(c.errMsg(errOutputNotWritten), path)
 	return c.base.Profile().NewErrorWithCause(skyflowError.TRANSPORT_ERROR, message, err)
 }

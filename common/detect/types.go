@@ -35,6 +35,14 @@ type FileOutput struct {
 	ProcessedFileExtension FileDataFormat    `json:"processedFileExtension"`
 }
 
+// ReidentifyFileOutput is one output of ReidentifyFile, as FileOutput is of a de-identify
+// file run. ProcessedFileExtension is empty for a format re-identification doesn't work with.
+type ReidentifyFileOutput struct {
+	ProcessedFile          string                   `json:"processedFile"`
+	ProcessedFileType      ProcessedFileType        `json:"processedFileType"`
+	ProcessedFileExtension ReidentifyFileDataFormat `json:"processedFileExtension"`
+}
+
 // RedactionRule is one element of ReidentifyStringRequest.RedactionLevel and
 // ReidentifyFileRequest.RedactionLevel. Each SDK exports its own RedactionLevel that
 // implements it, carrying the pair of fields its vault type uses: FlowVault names a
@@ -91,8 +99,9 @@ type DeidentifyStringResponse struct {
 type DetectedEntity struct {
 	Token string `json:"token"` // e.g. "NAME_1"
 	// Value is empty unless the configuration returns entities (ReturnEntitiesTypeAll).
-	Value    string         `json:"value"`
-	Location EntityLocation `json:"location"`
+	Value string `json:"value"`
+	// Location is nil when the server doesn't send one, as in the Java and Python SDKs.
+	Location *EntityLocation `json:"location"`
 	// EntityType is a string, not an EntityType, because it also carries custom-type labels.
 	EntityType   string             `json:"entityType"`
 	EntityScores map[string]float64 `json:"entityScores"` // 0.0 - 1.0
@@ -226,10 +235,10 @@ type ReidentifyStringResponse struct {
 // DataSource and Value are required; to send a local file, base64-encode it into Value.
 type ReidentifyFileRequest struct {
 	// DataSource says what Value holds: the SDK's ReidentifySourceType.
-	DataSource     ReidentifyFileSource `json:"dataSource"`
-	Value          string               `json:"value"` // base64 content or a presigned URL
-	DataFormat     FileDataFormat       `json:"dataFormat,omitempty"`
-	RedactionLevel []RedactionRule      `json:"redactionLevel,omitempty"`
+	DataSource     ReidentifyFileSource     `json:"dataSource"`
+	Value          string                   `json:"value"` // base64 content or a presigned URL
+	DataFormat     ReidentifyFileDataFormat `json:"dataFormat,omitempty"`
+	RedactionLevel []RedactionRule          `json:"redactionLevel,omitempty"`
 }
 
 // ReidentifyFileOptions customise a ReidentifyFile call.
@@ -242,9 +251,9 @@ type ReidentifyFileOptions struct {
 type ReidentifyFileResponse struct {
 	Status DetectRunStatus `json:"status"`
 	// OutputType is the SDK's ReidentifySourceType, or nil for a value the SDK doesn't know.
-	OutputType ReidentifyFileSource `json:"outputType"`
-	Output     []FileOutput         `json:"output"`
-	Metrics    *Metrics             `json:"metrics"`
+	OutputType ReidentifyFileSource   `json:"outputType"`
+	Output     []ReidentifyFileOutput `json:"output"`
+	Metrics    *Metrics               `json:"metrics"`
 }
 
 // ---------------------------------------------------------------------------

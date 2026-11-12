@@ -83,7 +83,7 @@ var _ = Describe("Detect service", func() {
 		Expect(text.ProcessedText).To(Equal("done"))
 
 		file, err := service.ReidentifyFile(ctx, fvcommon.ReidentifyFileRequest{
-			DataSource: fvcommon.ReidentifySourceTypeBase64, Value: "aGk=", DataFormat: fvcommon.FileDataFormatTXT, RedactionLevel: levels,
+			DataSource: fvcommon.ReidentifySourceTypeBase64, Value: "aGk=", DataFormat: fvcommon.ReidentifyFileDataFormatTXT, RedactionLevel: levels,
 		}, fvcommon.ReidentifyFileOptions{})
 		Expect(err).To(BeNil())
 		Expect(file.OutputType).To(Equal(fvcommon.ReidentifyFileSource(fvcommon.ReidentifySourceTypeBase64)))

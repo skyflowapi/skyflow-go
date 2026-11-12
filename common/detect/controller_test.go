@@ -480,7 +480,7 @@ func TestReidentifyFileReturnsTheOutputInTheResponse(t *testing.T) {
 	c, _ := newTestController(f)
 
 	redacted := base64.StdEncoding.EncodeToString([]byte("[NAME_1]"))
-	resp, err := c.ReidentifyFile(context.Background(), ReidentifyFileRequest{DataSource: SkyReidentifySourceTypeBase64, Value: redacted, DataFormat: FileDataFormatTXT},
+	resp, err := c.ReidentifyFile(context.Background(), ReidentifyFileRequest{DataSource: SkyReidentifySourceTypeBase64, Value: redacted, DataFormat: ReidentifyFileDataFormatTXT},
 		ReidentifyFileOptions{})
 	if err != nil || resp.Status != DetectRunStatusSuccess || resp.OutputType != SkyReidentifySourceTypeBase64 ||
 		len(resp.Output) != 1 || resp.Output[0].ProcessedFile != plain {
@@ -759,7 +759,7 @@ func TestFileDataFormatIsUpperCaseAndWireIsLowerCase(t *testing.T) {
 		f.responses[pathReidentifyFile] = []string{`{"status":"SUCCESS","outputType":"BASE64","output":[{"processedFile":"aGk=","processedFileType":"REIDENTIFIED_FILE","processedFileExtension":"docx"}]}`}
 		c, _ := newTestController(f)
 		resp, err := c.ReidentifyFile(context.Background(), ReidentifyFileRequest{
-			DataSource: SkyReidentifySourceTypeBase64, Value: "aGk=", DataFormat: FileDataFormatDOCX,
+			DataSource: SkyReidentifySourceTypeBase64, Value: "aGk=", DataFormat: ReidentifyFileDataFormatDOCX,
 		}, ReidentifyFileOptions{})
 		if err != nil {
 			t.Fatal(err)
@@ -767,8 +767,20 @@ func TestFileDataFormatIsUpperCaseAndWireIsLowerCase(t *testing.T) {
 		if got := f.last().body["dataFormat"]; got != "docx" {
 			t.Errorf("reidentify DataFormat sent as %v", got)
 		}
-		if got := resp.Output[0].ProcessedFileExtension; got != FileDataFormatDOCX {
-			t.Errorf("ProcessedFileExtension = %q, want %q", got, FileDataFormatDOCX)
+		if got := resp.Output[0].ProcessedFileExtension; got != ReidentifyFileDataFormatDOCX {
+			t.Errorf("ProcessedFileExtension = %q, want %q", got, ReidentifyFileDataFormatDOCX)
+		}
+	})
+
+	// As in the Java and Python SDKs, an output extension re-identification doesn't work with
+	// (here pdf) maps to an empty format, and a null output is skipped.
+	t.Run("reidentify maps an unsupported output extension to empty", func(t *testing.T) {
+		f := newFakeDetect(t)
+		f.responses[pathReidentifyFile] = []string{`{"status":"SUCCESS","outputType":"BASE64","output":[null,{"processedFile":"aGk=","processedFileType":"REIDENTIFIED_FILE","processedFileExtension":"pdf"}]}`}
+		c, _ := newTestController(f)
+		resp, err := c.ReidentifyFile(context.Background(), ReidentifyFileRequest{DataSource: SkyReidentifySourceTypeBase64, Value: "aGk="}, ReidentifyFileOptions{})
+		if err != nil || len(resp.Output) != 1 || resp.Output[0].ProcessedFileExtension != "" {
+			t.Fatalf("resp = %+v, err = %v", resp, err)
 		}
 	})
 

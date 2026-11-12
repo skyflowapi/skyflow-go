@@ -50,11 +50,12 @@ func (c *Controller) validateDeidentifyFile(request DeidentifyFileRequest, optio
 	return nil
 }
 
-// validateDeidentifyFileSource checks, as the Java SDK does, that the file comes from exactly
-// one of FilePath, FileObject and Value, each counted when set (Value even when blank), and
-// that Value has a DataSource and is not blank. DataSource is ignored for a local file, and
-// its value is sent as given: the server rejects one its vault does not accept. Whether a
-// local file exists is checked when it is read.
+// validateDeidentifyFileSource checks, as the Java and Python SDKs do, that the file comes
+// from exactly one of FilePath, FileObject and Value, each counted when set (Value only when
+// non-empty: Go can't tell an empty string from an unset one), that Value has a DataSource
+// and is not blank, and that a local file is a regular file, before the poll options are
+// checked. DataSource is ignored for a local file, and its value is sent as given: the server
+// rejects one its vault does not accept.
 func (c *Controller) validateDeidentifyFileSource(request DeidentifyFileRequest) *skyflowError.SkyflowError {
 	switch countSet(request.FilePath != "", request.FileObject != nil, request.Value != "") {
 	case 0:
@@ -64,7 +65,7 @@ func (c *Controller) validateDeidentifyFileSource(request DeidentifyFileRequest)
 		return c.invalid(errMultipleFileSources)
 	}
 	if request.Value == "" {
-		return nil
+		return c.checkLocalFile(request.FilePath, request.FileObject)
 	}
 	if deidentifySourceName(request.DataSource) == "" {
 		return c.invalid(errInvalidDeidentifyDataSource)

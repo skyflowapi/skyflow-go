@@ -89,8 +89,12 @@ func main() {
 		return
 	}
 	for _, entity := range response.Entities {
-		fmt.Printf("%-16s %-18s [%d,%d] %v\n", entity.EntityType, entity.Token,
-			entity.Location.StartIndex, entity.Location.EndIndex, entity.EntityScores)
+		// Location is nil when the server doesn't send one.
+		location := "-"
+		if entity.Location != nil {
+			location = fmt.Sprintf("[%d,%d]", entity.Location.StartIndex, entity.Location.EndIndex)
+		}
+		fmt.Printf("%-16s %-18s %s %v\n", entity.EntityType, entity.Token, location, entity.EntityScores)
 	}
 	// Metrics and each count are pointers: nil when the server leaves them out.
 	if m := response.Metrics; m != nil && m.WordCount != nil && m.CharacterCount != nil {

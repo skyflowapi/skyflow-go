@@ -2,6 +2,7 @@ package detect
 
 import (
 	"slices"
+	"strings"
 
 	gen "github.com/skyflowapi/skyflow-go/common/internal/generated"
 )
@@ -287,7 +288,7 @@ func fromGenDeidentifyString(r *gen.DeidentifyStringResponseV2) *DeidentifyStrin
 			entity.EntityScores = map[string]float64{} // as in the other SDKs
 		}
 		if l := e.Location; l != nil {
-			entity.Location = EntityLocation{
+			entity.Location = &EntityLocation{
 				StartIndex: deref(l.StartIndex), EndIndex: deref(l.EndIndex),
 				StartIndexProcessed: deref(l.StartIndexProcessed), EndIndexProcessed: deref(l.EndIndexProcessed),
 			}
@@ -344,6 +345,41 @@ func fromGenOutputs(outputs []*gen.FileOutput) []FileOutput {
 		})
 	}
 	return out
+}
+
+// fromGenReidentifyOutputs never returns nil.
+func fromGenReidentifyOutputs(outputs []*gen.FileOutput) []ReidentifyFileOutput {
+	out := []ReidentifyFileOutput{}
+	for _, o := range outputs {
+		if o == nil {
+			continue
+		}
+		out = append(out, ReidentifyFileOutput{
+			ProcessedFile:          deref(o.ProcessedFile),
+			ProcessedFileType:      ProcessedFileType(derefEnum(o.ProcessedFileType)),
+			ProcessedFileExtension: reidentifyFormatFromWire(derefEnum(o.ProcessedFileExtension)), // unknown: empty
+		})
+	}
+	return out
+}
+
+// reidentifyFormats maps each re-identify format's lower-case wire value (also its file
+// extension) to its constant.
+var reidentifyFormats = func() map[string]ReidentifyFileDataFormat {
+	formats := map[string]ReidentifyFileDataFormat{}
+	for _, f := range []ReidentifyFileDataFormat{
+		ReidentifyFileDataFormatCSV, ReidentifyFileDataFormatDOCX, ReidentifyFileDataFormatJSON, ReidentifyFileDataFormatJSONL,
+		ReidentifyFileDataFormatPPTX, ReidentifyFileDataFormatTXT, ReidentifyFileDataFormatXLSX, ReidentifyFileDataFormatXML,
+	} {
+		formats[strings.ToLower(string(f))] = f
+	}
+	return formats
+}()
+
+// reidentifyFormatFromWire returns the re-identify format for a wire value or extension in
+// any case, or "" for one re-identification doesn't work with, as in the Java and Python SDKs.
+func reidentifyFormatFromWire(value string) ReidentifyFileDataFormat {
+	return reidentifyFormats[strings.ToLower(value)]
 }
 
 func fromGenMetrics(m *gen.Metrics) *Metrics {
