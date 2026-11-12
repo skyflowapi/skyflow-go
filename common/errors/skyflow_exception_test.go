@@ -740,3 +740,45 @@ var _ = Describe("raw error bodies", func() {
 		Expect(SkyflowApiError(resp).GetMessage()).To(HaveSuffix("... (truncated)"))
 	})
 })
+
+var _ = Describe("error options", func() {
+	It("keeps the \"Message: \" prefix by default", func() {
+		err := NewSkyflowError(INVALID_INPUT_CODE, "bad input")
+		Expect(err.GetMessage()).To(Equal("Message: bad input"))
+		Expect(err.Error()).To(Equal("Message: bad input"))
+	})
+
+	It("returns the raw message with RawMessage, as the Java and Python SDKs do", func() {
+		err := NewSkyflowError(INVALID_INPUT_CODE, "bad input", RawMessage())
+		Expect(err.GetMessage()).To(Equal("bad input"))
+		Expect(err.Error()).To(Equal("bad input"))
+
+		cause := errors.New("dial tcp: refused")
+		withCause := NewSkyflowErrorWithCause(TRANSPORT_ERROR, "call failed", cause, RawMessage())
+		Expect(withCause.GetMessage()).To(Equal("call failed"))
+		Expect(withCause.Error()).To(Equal("call failed: dial tcp: refused"))
+		Expect(errors.Is(withCause, cause)).To(BeTrue())
+		same := NewSkyflowErrorWithCause(TRANSPORT_ERROR, "same", errors.New("same"), RawMessage())
+		Expect(same.Error()).To(Equal("same"))
+	})
+
+	It("applies the options to an API error, including one whose body isn't JSON", func() {
+		raw := map[string]interface{}{"error": map[string]interface{}{"message": "denied"}, "extra": true}
+		err := SkyflowErrorApi(errors.New(`403: {"error":{"message":"denied","http_code":403}}`), http.Header{}, RawMessage(), WithResponseBody(raw))
+		Expect(err.GetMessage()).To(Equal("denied"))
+		Expect(err.GetResponseBody()).To(Equal(raw))
+		Expect(SkyflowErrorApi(errors.New("no separator"), http.Header{}, RawMessage()).GetMessage()).To(Equal("no separator"))
+		Expect(SkyflowErrorApi(errors.New("500: not json"), http.Header{}, RawMessage()).GetMessage()).To(Equal("500: not json"))
+	})
+
+	It("returns the HTTP and gRPC codes as numbers, 0 when there is none", func() {
+		err := SkyflowErrorApi(errors.New(`400: {"error":{"message":"m","http_code":400,"grpc_code":3}}`), http.Header{})
+		Expect(err.GetHttpCodeInt()).To(Equal(400))
+		Expect(err.GetGrpcCodeInt()).To(Equal(3))
+		transport := NewSkyflowErrorWithCause(TRANSPORT_ERROR, "down", errors.New("x"))
+		Expect(transport.GetHttpCodeInt()).To(Equal(0))
+		Expect(transport.GetGrpcCodeInt()).To(Equal(0))
+		var nilErr *SkyflowError
+		Expect(nilErr.GetHttpCodeInt()).To(Equal(0))
+	})
+})

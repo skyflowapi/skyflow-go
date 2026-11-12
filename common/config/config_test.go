@@ -34,12 +34,18 @@ var _ = Describe("Config types", func() {
 				MaxRetries:        &retries,
 				InitialRetryDelay: 100 * time.Millisecond,
 				MaxRetryDelay:     2 * time.Second,
+				ConnectTimeout:    3 * time.Second,
+				ReadTimeout:       4 * time.Second,
+				WriteTimeout:      6 * time.Second,
 			}
 			Expect(vc.HttpConfig()).To(Equal(HttpConfig{
 				Timeout:           5 * time.Second,
 				MaxRetries:        &retries,
 				InitialRetryDelay: 100 * time.Millisecond,
 				MaxRetryDelay:     2 * time.Second,
+				ConnectTimeout:    3 * time.Second,
+				ReadTimeout:       4 * time.Second,
+				WriteTimeout:      6 * time.Second,
 			}))
 		})
 

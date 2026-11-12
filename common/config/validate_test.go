@@ -144,6 +144,7 @@ var _ = Describe("Validator", func() {
 		It("should accept positive and zero settings", func() {
 			Expect(v.ValidateHttpConfig(HttpConfig{
 				Timeout: time.Second, MaxRetries: &pos, InitialRetryDelay: time.Millisecond, MaxRetryDelay: time.Second,
+				ConnectTimeout: time.Second, ReadTimeout: time.Second, WriteTimeout: time.Second,
 			})).To(BeNil())
 			Expect(v.ValidateHttpConfig(HttpConfig{MaxRetries: &zero})).To(BeNil())
 		})
@@ -157,6 +158,9 @@ var _ = Describe("Validator", func() {
 			Entry("initial retry delay", HttpConfig{InitialRetryDelay: -time.Millisecond}),
 			Entry("max retry delay", HttpConfig{MaxRetryDelay: -time.Second}),
 			Entry("max retries", HttpConfig{MaxRetries: &neg}),
+			Entry("connect timeout", HttpConfig{ConnectTimeout: -time.Second}),
+			Entry("read timeout", HttpConfig{ReadTimeout: -time.Second}),
+			Entry("write timeout", HttpConfig{WriteTimeout: -time.Second}),
 		)
 	})
 
@@ -252,5 +256,30 @@ var _ = Describe("Validator", func() {
 			Entry("token", Credentials{Token: "t"}),
 			Entry("apiKey", Credentials{ApiKey: "k"}),
 		)
+	})
+})
+
+var _ = Describe("Validator options", func() {
+	It("uses an SDK's own messages and error options, keeping the defaults for the rest", func() {
+		v := NewValidator(testSDKPrefix, testLogPrefix,
+			WithMessages(Messages{
+				InvalidVaultId:    " vault ID must not be empty.",
+				ClusterIdRequired: " give a cluster ID or a vault URL.",
+				InvalidVaultUrl:   " bad URL.",
+				InsecureVaultUrl:  " use https.",
+			}),
+			WithErrorOptions(skyflowError.RawMessage()),
+		)
+		Expect(v.ValidateVaultConfig(VaultConfig{}).GetMessage()).To(Equal(testSDKPrefix + " vault ID must not be empty."))
+		Expect(v.ValidateVaultConfig(VaultConfig{VaultId: "v"}).GetMessage()).To(Equal(testSDKPrefix + " give a cluster ID or a vault URL."))
+		Expect(v.ValidateVaultConfig(VaultConfig{VaultId: "v", BaseVaultUrl: "ftp://x"}).GetMessage()).To(Equal(testSDKPrefix + " bad URL."))
+		Expect(v.ValidateVaultConfig(VaultConfig{VaultId: "v", BaseVaultUrl: "http://vault.example.com"}).GetMessage()).To(Equal(testSDKPrefix + " use https."))
+		Expect(v.ValidateCredentials(Credentials{}).GetMessage()).To(Equal(testSDKPrefix + errNoTokenGenerationMeansPassed))
+		Expect(v.ValidateCredentials(Credentials{Token: "t", Roles: []string{""}}).GetMessage()).To(Equal(testSDKPrefix + errEmptyRoleInRoles))
+	})
+
+	It("keeps the default message where an SDK sets none", func() {
+		v := NewValidator(testSDKPrefix, testLogPrefix, WithMessages(Messages{InvalidVaultId: " custom."}))
+		expectInvalid(v.ValidateVaultConfig(VaultConfig{VaultId: "v"}), errInvalidClusterId)
 	})
 })

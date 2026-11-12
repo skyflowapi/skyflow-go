@@ -46,6 +46,12 @@ type VaultConfig struct {
 	MaxRetries        *int
 	InitialRetryDelay time.Duration
 	MaxRetryDelay     time.Duration
+	// ConnectTimeout, ReadTimeout and WriteTimeout bound each attempt, as connectTimeout,
+	// readTimeout and writeTimeout do in the Java and Python SDKs: setting up the connection,
+	// waiting for the response once the request is sent, and each write of the request.
+	ConnectTimeout time.Duration
+	ReadTimeout    time.Duration
+	WriteTimeout   time.Duration
 }
 
 // HttpConfig holds client-level call timeout and retry settings. A value set on
@@ -55,6 +61,9 @@ type HttpConfig struct {
 	MaxRetries        *int
 	InitialRetryDelay time.Duration
 	MaxRetryDelay     time.Duration
+	ConnectTimeout    time.Duration
+	ReadTimeout       time.Duration
+	WriteTimeout      time.Duration
 }
 
 // HttpConfig returns the vault's own HTTP settings.
@@ -64,6 +73,9 @@ func (c VaultConfig) HttpConfig() HttpConfig {
 		MaxRetries:        c.MaxRetries,
 		InitialRetryDelay: c.InitialRetryDelay,
 		MaxRetryDelay:     c.MaxRetryDelay,
+		ConnectTimeout:    c.ConnectTimeout,
+		ReadTimeout:       c.ReadTimeout,
+		WriteTimeout:      c.WriteTimeout,
 	}
 }
 

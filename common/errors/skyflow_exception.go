@@ -22,13 +22,46 @@ type SkyflowError struct {
 	details        []interface{}
 	responseBody   map[string]interface{}
 	originalError  error
+	// rawMessage is set by RawMessage: Error and GetMessage return the message as it is.
+	rawMessage bool
+}
+
+// ErrorOption configures a SkyflowError as it is built. An SDK passes its options to every
+// error it creates, so its errors behave as its users expect without changing the other's.
+type ErrorOption func(*SkyflowError)
+
+// RawMessage makes GetMessage return the message as it is, without the "Message: " prefix,
+// and Error return it followed by its cause, as the Java SDK's getMessage() and the Python
+// SDK's str(e) do. The flowvault SDK builds every error with it; v2's errors keep the prefix.
+func RawMessage() ErrorOption {
+	return func(se *SkyflowError) { se.rawMessage = true }
+}
+
+// WithResponseBody makes GetResponseBody return body: the server's error body as it was sent,
+// as in the Java SDK, rather than the body the error was built from.
+func WithResponseBody(body map[string]interface{}) ErrorOption {
+	return func(se *SkyflowError) { se.responseBody = body }
+}
+
+func (se *SkyflowError) apply(opts []ErrorOption) *SkyflowError {
+	for _, opt := range opts {
+		opt(se)
+	}
+	return se
 }
 
 func (se *SkyflowError) Error() string {
 	if se == nil {
 		return ""
 	}
-	if se.originalError != nil && se.originalError.Error() != se.message {
+	hasCause := se.originalError != nil && se.originalError.Error() != se.message
+	if se.rawMessage {
+		if hasCause {
+			return se.message + ": " + se.originalError.Error()
+		}
+		return se.message
+	}
+	if hasCause {
 		return fmt.Sprintf("Message: %s, Original Error (if any): %s", se.message, se.originalError.Error())
 	}
 	return fmt.Sprintf("Message: %s", se.message) //nolint:revive
@@ -36,6 +69,9 @@ func (se *SkyflowError) Error() string {
 func (se *SkyflowError) GetMessage() string {
 	if se == nil {
 		return ""
+	}
+	if se.rawMessage {
+		return se.message
 	}
 	return fmt.Sprintf("Message: %s", se.message) //nolint:revive
 }
@@ -53,6 +89,27 @@ func (se *SkyflowError) GetHttpCode() string {
 	}
 	return se.httpCode
 }
+
+// GetHttpCodeInt is GetHttpCode as a number, as the Java SDK's getHttpCode() returns it, or 0
+// when the error has no HTTP code (for example a network failure).
+func (se *SkyflowError) GetHttpCodeInt() int {
+	return codeInt(se.GetHttpCode())
+}
+
+// GetGrpcCodeInt is GetGrpcCode as a number, as the Java SDK's getGrpcCode() returns it, or 0
+// when the server sent none.
+func (se *SkyflowError) GetGrpcCodeInt() int {
+	return codeInt(se.GetGrpcCode())
+}
+
+func codeInt(code string) int {
+	value, err := strconv.Atoi(code)
+	if err != nil {
+		return 0
+	}
+	return value
+}
+
 func (se *SkyflowError) GetRequestId() string {
 	if se == nil {
 		return ""
@@ -86,23 +143,24 @@ func (se *SkyflowError) GetResponseBody() map[string]interface{} {
 	}
 	return se.responseBody
 }
-func NewSkyflowError(code ErrorCodesEnum, message string) *SkyflowError {
-	return &SkyflowError{
+func NewSkyflowError(code ErrorCodesEnum, message string, opts ...ErrorOption) *SkyflowError {
+	skyflowError := &SkyflowError{
 		httpCode:       string(code),
 		message:        message,
 		httpStatusCode: constants.HTTP_STATUS_BAD_REQUEST,
 	}
+	return skyflowError.apply(opts)
 }
 
 // NewSkyflowErrorWithCause is NewSkyflowError keeping the error that caused it, so callers
 // can match it with errors.Is or errors.As, e.g. context.DeadlineExceeded. Unlike
 // NewSkyflowError, whose status is always "Bad Request", SERVER gets "Internal Server Error"
 // and REQUEST_CANCELLED gets "Client Closed Request"; other codes keep "Bad Request".
-func NewSkyflowErrorWithCause(code ErrorCodesEnum, message string, cause error) *SkyflowError {
+func NewSkyflowErrorWithCause(code ErrorCodesEnum, message string, cause error, opts ...ErrorOption) *SkyflowError {
 	skyflowError := NewSkyflowError(code, message)
 	skyflowError.httpStatusCode = statusFor(code)
 	skyflowError.originalError = cause
-	return skyflowError
+	return skyflowError.apply(opts)
 }
 
 // statusFor is the HTTP status text for an SDK error code.
@@ -242,7 +300,7 @@ func SkyflowApiError(responseHeaders http.Response) *SkyflowError {
 	}
 	return &skyflowError
 }
-func SkyflowErrorApi(error error, header http.Header) *SkyflowError {
+func SkyflowErrorApi(error error, header http.Header, opts ...ErrorOption) *SkyflowError {
 	skyflowError := SkyflowError{}
 	var apiError map[string]interface{}
 	// Set the request ID from the header
@@ -251,11 +309,11 @@ func SkyflowErrorApi(error error, header http.Header) *SkyflowError {
 	}
 	parts := strings.SplitN(error.Error(), ": ", 2)
 	if len(parts) < 2 {
-		return NewSkyflowError(INVALID_INPUT_CODE, rawBodyMessage(error.Error()))
+		return NewSkyflowError(INVALID_INPUT_CODE, rawBodyMessage(error.Error()), opts...)
 	}
 	err := json.Unmarshal([]byte(parts[1]), &apiError)
 	if err != nil {
-		return NewSkyflowError(INVALID_INPUT_CODE, rawBodyMessage(error.Error()))
+		return NewSkyflowError(INVALID_INPUT_CODE, rawBodyMessage(error.Error()), opts...)
 	}
 	skyflowError.responseBody = apiError
 	if errorBody, ok := apiError[constants.ERROR_KEY_ERROR].(map[string]interface{}); ok {
@@ -284,7 +342,7 @@ func SkyflowErrorApi(error error, header http.Header) *SkyflowError {
 	} else {
 		skyflowError.message = rawBodyMessage(error.Error())
 	}
-	return &skyflowError
+	return skyflowError.apply(opts)
 }
 
 // rawBodyMessage is a response body that is not a Skyflow JSON error, used as the message.

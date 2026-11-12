@@ -23,6 +23,25 @@ const (
 	OFF
 )
 
+// String returns the level's name (ERROR, INFO, DEBUG, WARN or OFF), as the Java and Python
+// SDKs print it, so a level formats as its name in log lines rather than as a number.
+func (l LogLevel) String() string {
+	switch l {
+	case ERROR:
+		return "ERROR"
+	case INFO:
+		return "INFO"
+	case DEBUG:
+		return "DEBUG"
+	case WARN:
+		return "WARN"
+	case OFF:
+		return "OFF"
+	default:
+		return fmt.Sprintf("LogLevel(%d)", int(l))
+	}
+}
+
 var (
 	// mu guards writer and serializes rebuilds. The hot logging path does not
 	// take it; it reads the published logger via log.Load() instead.
