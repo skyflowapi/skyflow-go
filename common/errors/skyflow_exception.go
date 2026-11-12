@@ -26,6 +26,9 @@ type SkyflowError struct {
 	rawMessage bool
 }
 
+// causeSeparator joins a raw message and its cause in Error(), the Go way: "message: cause".
+const causeSeparator = ": "
+
 // ErrorOption configures a SkyflowError as it is built. An SDK passes its options to every
 // error it creates, so its errors behave as its users expect without changing the other's.
 type ErrorOption func(*SkyflowError)
@@ -57,7 +60,7 @@ func (se *SkyflowError) Error() string {
 	hasCause := se.originalError != nil && se.originalError.Error() != se.message
 	if se.rawMessage {
 		if hasCause {
-			return se.message + ": " + se.originalError.Error()
+			return se.message + causeSeparator + se.originalError.Error()
 		}
 		return se.message
 	}

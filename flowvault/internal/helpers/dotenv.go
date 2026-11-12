@@ -7,6 +7,9 @@ import (
 	fvconsts "github.com/skyflowapi/skyflow-go/flowvault/internal/constants"
 )
 
+// newline separates the lines of a .env file.
+const newline = "\n"
+
 // dotenvPath is the .env file EnvCredentials reads: the working directory's, as in the Java
 // SDK. Tests point it elsewhere.
 var dotenvPath = ".env"
@@ -32,7 +35,7 @@ func EnvCredentials() string {
 // lines. An unquoted value ends at a " #" comment. The last assignment wins.
 func dotenvValue(content, key string) string {
 	value, found := "", false
-	rest := strings.ReplaceAll(content, "\r\n", "\n")
+	rest := strings.ReplaceAll(content, "\r\n", newline)
 	for rest != "" {
 		var line string
 		line, rest = cutLine(rest)
@@ -62,7 +65,7 @@ func dotenvValue(content, key string) string {
 
 // cutLine splits off the first line of s.
 func cutLine(s string) (string, string) {
-	line, rest, _ := strings.Cut(s, "\n")
+	line, rest, _ := strings.Cut(s, newline)
 	return line, rest
 }
 
@@ -81,7 +84,7 @@ func quotedValue(raw, rest string) (string, string) {
 		}
 		var line string
 		line, rest = cutLine(rest)
-		text += "\n" + line
+		text += newline + line
 	}
 	if quote == '"' {
 		text = strings.NewReplacer(`\\`, `\`, `\"`, `"`).Replace(text)
