@@ -261,8 +261,9 @@ func (s *Skyflow) UpdateVaultConfig(updatedConfig fvcommon.VaultConfig) *fverror
 		config.ClusterId = updatedConfig.ClusterId
 	}
 	// A URL set through either field replaces both, so the deprecated BaseVaultURL is
-	// honored and an older BaseVaultUrl can't take precedence over it (as in v2).
-	if updatedConfig.BaseVaultUrl != "" || updatedConfig.BaseVaultURL != "" {
+	// honored and an older BaseVaultUrl can't take precedence over it (as in v2). A cluster
+	// ID without a URL clears both too: a stored URL would take precedence over it.
+	if updatedConfig.BaseVaultUrl != "" || updatedConfig.BaseVaultURL != "" || updatedConfig.ClusterId != "" {
 		config.BaseVaultUrl = updatedConfig.BaseVaultUrl
 		config.BaseVaultURL = updatedConfig.BaseVaultURL
 	}

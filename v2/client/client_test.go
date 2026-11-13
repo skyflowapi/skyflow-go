@@ -352,6 +352,28 @@ var _ = Describe("Skyflow Client", func() {
 			Expect(config.BaseVaultURL).To(Equal("https://legacy.example.com"))
 		})
 
+		It("moves a vault registered with a URL to a cluster when an update sets only ClusterId", func() {
+			Expect(client.AddVaultConfig(common.VaultConfig{VaultId: "moved-vault", BaseVaultURL: "https://legacy.example.com"})).To(BeNil())
+			held, _ := client.Vault("moved-vault")
+			Expect(client.UpdateVaultConfig(common.VaultConfig{VaultId: "moved-vault", BaseVaultUrl: "https://vault.example.com"})).To(BeNil())
+			Expect(held.controller.Config.BaseVaultUrl).To(Equal("https://vault.example.com"))
+			Expect(held.controller.Config.BaseVaultURL).To(BeEmpty())
+
+			Expect(client.UpdateVaultConfig(common.VaultConfig{VaultId: "moved-vault", ClusterId: "newcluster"})).To(BeNil())
+
+			// A stored URL would take precedence over the cluster ID, so it is cleared everywhere.
+			config, err := client.GetVaultConfig("moved-vault")
+			Expect(err).To(BeNil())
+			Expect(config.ClusterId).To(Equal("newcluster"))
+			Expect(config.BaseVaultUrl).To(BeEmpty())
+			Expect(config.BaseVaultURL).To(BeEmpty())
+			Expect(held.controller.Config.ClusterId).To(Equal("newcluster"))
+			Expect(held.controller.Config.BaseVaultUrl).To(BeEmpty())
+			detect, _ := client.Detect("moved-vault")
+			Expect(detect.base.Config().ClusterId).To(Equal("newcluster"))
+			Expect(detect.base.Config().BaseVaultUrl).To(BeEmpty())
+		})
+
 		It("should return an error when trying to update a non-existing vault configuration", func() {
 			nonExistingConfig := common.VaultConfig{
 				VaultId:   "non-existing-vault",

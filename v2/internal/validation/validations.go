@@ -158,7 +158,8 @@ func validateTokenForStrict(tokens map[string]interface{}, values map[string]int
 // validateVaultConfig function
 // configValidator is the shared implementation (skyflow-go/common/config) of the
 // vault-config and credential checks, configured with v2's SDK prefix.
-var configValidator = cfg.NewValidator(constants.SDK_PREFIX, constants.SDK_LOG_PREFIX)
+// The validator accepts a plain http vault URL for any host, as v2 always has.
+var configValidator = cfg.NewValidator(constants.SDK_PREFIX, constants.SDK_LOG_PREFIX, cfg.WithInsecureVaultUrl())
 
 func ValidateVaultConfig(vaultConfig common.VaultConfig) *skyflowError.SkyflowError {
 	return configValidator.ValidateVaultConfig(helpers.CommonVaultConfig(vaultConfig))

@@ -31,19 +31,26 @@ func dotenvLookup(path, key string) string {
 	return parseDotenv(string(data))[key]
 }
 
+// byteOrderMark is the UTF-8 BOM some editors put at the start of a file.
+const byteOrderMark = "\ufeff"
+
 // parseDotenv reads KEY=VALUE lines. It skips blank lines and # comments and accepts an
-// "export " prefix. A value can be single-quoted (taken as is), double-quoted (\" and \\
+// "export" prefix. A value can be single-quoted (taken as is), double-quoted (\" and \\
 // are unescaped; other escapes such as the \n of a JSON private key are kept), or unquoted
-// (a " #" starts a comment). A quoted value may span lines. A later line wins.
+// (a " #" starts a comment). A quoted value may span lines and ends at its closing quote:
+// what follows it on the line, such as a comment, is ignored. A later line wins.
 func parseDotenv(content string) map[string]string {
 	values := map[string]string{}
+	content = strings.TrimPrefix(content, byteOrderMark)
 	lines := strings.Split(strings.ReplaceAll(content, "\r\n", newline), newline)
 	for i := 0; i < len(lines); i++ {
 		line := strings.TrimSpace(lines[i])
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
-		line = strings.TrimPrefix(line, "export ")
+		if rest, ok := strings.CutPrefix(line, "export"); ok && rest != "" && (rest[0] == ' ' || rest[0] == '\t') {
+			line = strings.TrimSpace(rest)
+		}
 		key, value, found := strings.Cut(line, "=")
 		key = strings.TrimSpace(key)
 		if !found || key == "" {
@@ -58,15 +65,19 @@ func parseDotenv(content string) map[string]string {
 			continue
 		}
 		quote := value[0]
-		// Join the following lines until one ends with the closing quote.
-		for !closesQuote(value, quote) && i+1 < len(lines) {
+		// Join the following lines until one has the closing quote.
+		first := i
+		end := closingQuote(value, quote)
+		for end < 0 && i+1 < len(lines) {
 			i++
 			value += newline + strings.TrimRight(lines[i], " \t")
+			end = closingQuote(value, quote)
 		}
-		if !closesQuote(value, quote) {
-			continue // unterminated: ignore the entry
+		if end < 0 {
+			i = first // unterminated: ignore the entry, but still read the lines after it
+			continue
 		}
-		value = value[1 : len(value)-1]
+		value = value[1:end]
 		if quote == '"' {
 			value = strings.NewReplacer(`\"`, `"`, `\\`, `\`).Replace(value)
 		}
@@ -75,9 +86,21 @@ func parseDotenv(content string) map[string]string {
 	return values
 }
 
-// closesQuote reports whether value, which starts with quote, also ends with it.
-func closesQuote(value string, quote byte) bool {
-	return len(value) >= 2 && value[len(value)-1] == quote && (quote == '\'' || !escaped(value, len(value)-1))
+// closingQuote returns the index of the quote that closes value, which starts with quote,
+// or -1 when there is none. It is the first quote followed, on its line, by nothing or by a
+// comment, so a quote inside the value (the apostrophe of 'it's') doesn't end it. A
+// backslash escapes a double quote, not a single one.
+func closingQuote(value string, quote byte) int {
+	for i := 1; i < len(value); i++ {
+		if value[i] != quote || (quote == '"' && escaped(value, i)) {
+			continue
+		}
+		rest, _, _ := strings.Cut(value[i+1:], newline)
+		if rest = strings.TrimSpace(rest); rest == "" || strings.HasPrefix(rest, "#") {
+			return i
+		}
+	}
+	return -1
 }
 
 // escaped reports whether value[i] is preceded by an odd number of backslashes.

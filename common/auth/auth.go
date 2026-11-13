@@ -433,6 +433,11 @@ func (s *Service) postAuthToken(baseURL string, body *gen.GetAuthTokenRequest) (
 	if err != nil {
 		return nil, skyflowError.SkyflowErrorApi(err, responseHeader(err), s.cfg.ErrorOptions...)
 	}
+	// A 2xx with a null body decodes to no response at all: return an empty result, which
+	// callers report as a rejected token request.
+	if resp == nil || resp.Body == nil {
+		return &TokenResult{}, nil
+	}
 	return &TokenResult{AccessToken: resp.Body.AccessToken, TokenType: resp.Body.TokenType}, nil
 }
 

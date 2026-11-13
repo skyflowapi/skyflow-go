@@ -106,8 +106,8 @@ var _ = Describe("Detect", func() {
 		Expect(calls).To(Equal(2))
 		Expect(path).To(BeEmpty()) // the original server was not called
 
-		// An update that doesn't set the URL keeps it.
-		Expect(client.UpdateVaultConfig(common.VaultConfig{VaultId: vaultId, ClusterId: "other"})).To(BeNil())
+		// An update that sets neither a URL nor a cluster ID keeps the URL.
+		Expect(client.UpdateVaultConfig(common.VaultConfig{VaultId: vaultId, Env: common.SANDBOX})).To(BeNil())
 		_, err = service.ReidentifyString(context.Background(), common.ReidentifyStringRequest{Text: "x"}, common.ReidentifyStringOptions{})
 		Expect(err).To(BeNil())
 		Expect(calls).To(Equal(3))

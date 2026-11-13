@@ -97,5 +97,5 @@ const (
 	INVALID_HEADER_KEY           string = internal.SDK_PREFIX + " Validation error. %s: header key %q is not supported. Use x-skyflow-account-id, x-skyflow-account-name or x-request-id."
 	EMPTY_HEADER_VALUE           string = internal.SDK_PREFIX + " Validation error. %s: header %q must have a value."
 	REQUEST_INTERCEPTOR_FAILED   string = internal.SDK_PREFIX + " Request interceptor threw an exception. The request was not sent."
-	UNPARSEABLE_SUCCESS_RESPONSE string = internal.SDK_PREFIX + " The vault returned a response that isn't valid JSON. Response body: %s"
+	UNPARSEABLE_SUCCESS_RESPONSE string = internal.SDK_PREFIX + " The vault returned a response that isn't valid JSON."
 )

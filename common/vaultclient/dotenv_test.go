@@ -21,8 +21,12 @@ func TestParseDotenv(t *testing.T) {
 		"ESCAPED_END=\"ends with \\\\\"\n" +
 		"LATER=first\n" +
 		"LATER=second\n" +
+		"COMMENTED=\"quoted\" # a \"comment\"\n" +
+		"APOSTROPHE='it's' # note\n" +
+		"export\tTABBED='yes'\n" +
+		"exported=no\n" +
 		"UNTERMINATED='never closed\n" +
-		"AFTER=lost\n"
+		"AFTER=kept\n"
 	got := parseDotenv(content)
 	want := map[string]string{
 		"PLAIN":       "value",
@@ -34,6 +38,11 @@ func TestParseDotenv(t *testing.T) {
 		"HASH":        "a#b",
 		"ESCAPED_END": `ends with \`,
 		"LATER":       "second",
+		"COMMENTED":   "quoted",
+		"APOSTROPHE":  "it's",
+		"TABBED":      "yes",
+		"exported":    "no",
+		"AFTER":       "kept",
 	}
 	if len(got) != len(want) {
 		t.Fatalf("got %d entries %v, want %d", len(got), got, len(want))
@@ -47,8 +56,12 @@ func TestParseDotenv(t *testing.T) {
 
 func TestQuoteHandling(t *testing.T) {
 	// An escaped closing quote does not end a double-quoted value; it does end a single-quoted one.
-	if closesQuote(`"a\"`, '"') || !closesQuote(`'a\'`, '\'') || closesQuote(`"`, '"') {
-		t.Fatal("closesQuote")
+	if closingQuote(`"a\"`, '"') != -1 || closingQuote(`'a\'`, '\'') != 3 || closingQuote(`"`, '"') != -1 {
+		t.Fatal("closingQuote")
+	}
+	// A byte order mark at the start of the file doesn't hide the first key.
+	if got := parseDotenv("\ufeffFIRST=\"one\" # note\nSECOND=two\n"); got["FIRST"] != "one" || got["SECOND"] != "two" {
+		t.Fatalf("with a BOM: %v", got)
 	}
 	got := parseDotenv("KEY=\"line one \\\"\nline two\"\n")
 	if got["KEY"] != "line one \"\nline two" {

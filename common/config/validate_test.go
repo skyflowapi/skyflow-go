@@ -84,6 +84,13 @@ var _ = Describe("Validator", func() {
 			Entry("http IPv6 loopback", "http://[::1]:9000"),
 		)
 
+		It("should accept plain http for any host with WithInsecureVaultUrl, but still not a malformed URL", func() {
+			lenient := NewValidator(testSDKPrefix, testLogPrefix, WithInsecureVaultUrl())
+			Expect(lenient.ValidateVaultConfig(VaultConfig{VaultId: "v", BaseVaultUrl: "http://10.0.0.5"})).To(BeNil())
+			Expect(lenient.ValidateUpdateVaultConfig(VaultConfig{VaultId: "v", BaseVaultUrl: "http://vault.example.com"})).To(BeNil())
+			expectInvalid(lenient.ValidateVaultConfig(VaultConfig{VaultId: "v", BaseVaultUrl: "ftp://vault.example.com"}), errInvalidVaultUrl)
+		})
+
 		DescribeTable("should reject plain http for a non-loopback host",
 			func(u string) {
 				expectInvalid(v.ValidateVaultConfig(VaultConfig{VaultId: "v", BaseVaultUrl: u}), errInsecureVaultUrl)

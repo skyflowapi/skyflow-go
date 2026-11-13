@@ -110,7 +110,8 @@ func (s *Skyflow) updateDetect(service *detectService, updated common.VaultConfi
 	}
 	// Both URL fields are replaced together, so an update that sets only one clears the other:
 	// a stale value in the other field can't take precedence over the new URL.
-	if updated.BaseVaultUrl != "" || updated.BaseVaultURL != "" {
+	// A cluster ID without a URL clears both too: a stored URL would take precedence over it.
+	if updated.BaseVaultUrl != "" || updated.BaseVaultURL != "" || updated.ClusterId != "" {
 		config.BaseVaultUrl, config.BaseVaultURL = updated.BaseVaultUrl, updated.BaseVaultURL
 	}
 	// Env is always applied: its zero value is PROD, so an update that omits it resets it.

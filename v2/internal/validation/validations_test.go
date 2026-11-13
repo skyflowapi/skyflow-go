@@ -507,7 +507,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 				Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_VAULT_URL))
 
 			})
-			It("should reject plain http for a non-loopback host", func() {
+			It("should accept plain http for any host", func() {
 				config := common.VaultConfig{
 					VaultId:      "id",
 					ClusterId:    "cid",
@@ -515,12 +515,8 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 					Credentials:  validCredentials,
 					BaseVaultUrl: "http://example.com",
 				}
-				err := ValidateVaultConfig(config)
-				Expect(err).ToNot(BeNil())
-				Expect(err.GetMessage()).To(ContainSubstring("Insecure vault URL"))
-				err = ValidateUpdateVaultConfig(common.VaultConfig{VaultId: "id", BaseVaultUrl: "http://example.com"})
-				Expect(err).ToNot(BeNil())
-				Expect(err.GetMessage()).To(ContainSubstring("Insecure vault URL"))
+				Expect(ValidateVaultConfig(config)).To(BeNil())
+				Expect(ValidateUpdateVaultConfig(common.VaultConfig{VaultId: "id", BaseVaultUrl: "http://example.com"})).To(BeNil())
 			})
 			It("should accept plain http for localhost", func() {
 				config := common.VaultConfig{

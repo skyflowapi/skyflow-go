@@ -401,7 +401,7 @@ Methods on `*client.Skyflow`:
 | `Vault(vaultId ...string)` | The `*VaultService` for a registered vault. With no ID, or `""`, it returns the default vault, the first one added. |
 | `Detect(vaultId ...string)` | The `*DetectService` for a registered vault, or the default vault when no ID is given. See [Detect](#detect). |
 | `AddVaultConfig(config)` | Register another vault. Fails if the vault ID is already registered. |
-| `UpdateVaultConfig(config)` | Update a registered vault in place. Only the fields you set change, except `Env`, which is always applied (leaving it out moves the vault to `PROD`). |
+| `UpdateVaultConfig(config)` | Update a registered vault in place. Only the fields you set change, except `Env`, which is always applied (leaving it out moves the vault to `PROD`). Setting `ClusterId` without a URL clears a stored `BaseVaultUrl`, so the vault moves to that cluster. |
 | `RemoveVaultConfig(vaultId)` | Unregister a vault. |
 | `GetVaultConfig(vaultId)` | A copy of a registered vault's config; `""` means the default vault. |
 | `AddSkyflowCredentials(credentials)` / `UpdateSkyflowCredentials(credentials)` | Set or replace the client-wide credentials. |

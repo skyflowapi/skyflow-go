@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -98,7 +97,7 @@ type finalResponseClient struct {
 
 // It also checks 2xx bodies before the generated client parses them: a blank body becomes
 // {}, an empty response, instead of a decoding failure; a body that is not a JSON object
-// becomes an APIError that keeps the real status and (truncated) body.
+// becomes an APIError that keeps the real status but not the body, which may hold vault data.
 func (c finalResponseClient) Do(req *http.Request) (*http.Response, error) {
 	resp, err := c.client.Do(req)
 	if err != nil {
@@ -132,7 +131,7 @@ func successResponse(resp *http.Response) (*http.Response, error) {
 		var object map[string]json.RawMessage
 		if json.Unmarshal(raw, &object) != nil || object == nil {
 			body, _ := json.Marshal(map[string]interface{}{fvconsts.ERROR_KEY_ERROR: map[string]interface{}{
-				fvconsts.ERROR_KEY_MESSAGE:   fmt.Sprintf(fverrors.UNPARSEABLE_SUCCESS_RESPONSE, rawBodyMessage(string(raw))),
+				fvconsts.ERROR_KEY_MESSAGE:   fverrors.UNPARSEABLE_SUCCESS_RESPONSE,
 				fvconsts.ERROR_KEY_HTTP_CODE: resp.StatusCode,
 			}})
 			return nil, core.NewAPIError(resp.StatusCode, resp.Header, errors.New(string(body)))

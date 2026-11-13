@@ -286,6 +286,14 @@ func (s *Skyflow) UpdateVaultConfig(updatedConfig vaultutils.VaultConfig) *error
 			vaultSvc.controller.Token = ""
 			vaultSvc.controller.ApiKey = ""
 		}
+		if updatedConfig.BaseVaultUrl != "" || updatedConfig.BaseVaultURL != "" {
+			vaultSvc.controller.Config.BaseVaultUrl = updatedConfig.BaseVaultUrl
+			vaultSvc.controller.Config.BaseVaultURL = updatedConfig.BaseVaultURL
+		} else if updatedConfig.ClusterId != "" {
+			// A cluster ID without a URL moves the vault to that cluster.
+			vaultSvc.controller.Config.BaseVaultUrl = ""
+			vaultSvc.controller.Config.BaseVaultURL = ""
+		}
 		if updatedConfig.ClusterId != "" {
 			vaultSvc.controller.Config.ClusterId = updatedConfig.ClusterId
 		}
@@ -308,18 +316,20 @@ func (s *Skyflow) UpdateVaultConfig(updatedConfig vaultutils.VaultConfig) *error
 }
 
 // mergeVaultConfig returns updated, with the credentials, cluster ID and base vault URL of
-// current wherever updated leaves them unset. Env is always taken from updated.
+// current wherever updated leaves them unset. Env is always taken from updated. The stored
+// URL is kept only when updated sets neither a URL nor a cluster ID: a URL takes precedence
+// over a cluster ID, so keeping it would make an update to another cluster have no effect.
 func mergeVaultConfig(updated vaultutils.VaultConfig, current *vaultutils.VaultConfig) *vaultutils.VaultConfig {
 	if current != nil {
 		if isCredentialsEmpty(updated.Credentials) {
 			updated.Credentials = current.Credentials
 		}
-		if updated.ClusterId == "" {
-			updated.ClusterId = current.ClusterId
-		}
-		if updated.BaseVaultUrl == "" && updated.BaseVaultURL == "" {
+		if updated.BaseVaultUrl == "" && updated.BaseVaultURL == "" && updated.ClusterId == "" {
 			updated.BaseVaultUrl = current.BaseVaultUrl
 			updated.BaseVaultURL = current.BaseVaultURL
+		}
+		if updated.ClusterId == "" {
+			updated.ClusterId = current.ClusterId
 		}
 	}
 	return &updated

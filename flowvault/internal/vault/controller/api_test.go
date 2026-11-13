@@ -553,7 +553,7 @@ var _ = Describe("VaultController API calls", func() {
 		Expect(tokens.Records).To(BeEmpty())
 	})
 
-	It("reports a 2xx body that isn't a JSON object with its real status and body", func() {
+	It("reports a 2xx body that isn't a JSON object with its real status, without echoing the body", func() {
 		for _, body := range []string{"<html>gateway</html>", "[1,2]", "null"} {
 			fake.respond("/v2/files/delete", http.StatusOK, body)
 			_, err := v.DeleteFiles(ctx, fvcommon.DeleteFilesRequest{Records: []fvcommon.DeleteFilesRequestRecord{
@@ -561,12 +561,10 @@ var _ = Describe("VaultController API calls", func() {
 			}}, fvcommon.DeleteFilesOptions{})
 			Expect(err).ToNot(BeNil(), body)
 			Expect(err.GetHttpCode()).To(Equal("200"))
-			Expect(err.GetMessage()).To(ContainSubstring("isn't valid JSON. Response body: " + body))
+			Expect(err.GetMessage()).To(HaveSuffix("isn't valid JSON."))
+			Expect(err.GetMessage()).ToNot(ContainSubstring(body)) // the body may hold vault data
 			Expect(err.GetRequestId()).To(Equal("req-123"))
 		}
-		fake.respond("/v2/query", http.StatusOK, strings.Repeat("x", 2000))
-		_, err := v.Query(ctx, fvcommon.QueryRequest{Query: "SELECT 1"}, fvcommon.QueryOptions{})
-		Expect(err.GetMessage()).To(HaveSuffix("... (truncated)"))
 	})
 
 	It("fails the call with a SkyflowError when the interceptor panics", func() {

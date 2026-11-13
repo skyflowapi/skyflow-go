@@ -30,6 +30,8 @@ type Validator struct {
 	Messages Messages
 	// ErrorOptions are applied to every error the validator returns, e.g. errors.RawMessage().
 	ErrorOptions []skyflowError.ErrorOption
+	// AllowInsecureVaultUrl accepts a plain http vault URL for any host, not only loopback.
+	AllowInsecureVaultUrl bool
 }
 
 // Messages are replacement error message bodies (without the SDK prefix) for an SDK whose
@@ -52,6 +54,13 @@ func WithMessages(messages Messages) ValidatorOption {
 // WithErrorOptions sets the options applied to every error the Validator returns.
 func WithErrorOptions(opts ...skyflowError.ErrorOption) ValidatorOption {
 	return func(v *Validator) { v.ErrorOptions = opts }
+}
+
+// WithInsecureVaultUrl makes the Validator accept a plain http vault URL for any host. It is
+// for an SDK whose released versions accepted one; without it, http is allowed only for
+// loopback hosts.
+func WithInsecureVaultUrl() ValidatorOption {
+	return func(v *Validator) { v.AllowInsecureVaultUrl = true }
 }
 
 func NewValidator(sdkPrefix, logPrefix string, opts ...ValidatorOption) Validator {
@@ -145,13 +154,13 @@ func (v Validator) ValidateUpdateVaultConfig(vaultConfig VaultConfig) *skyflowEr
 
 // validateBaseVaultUrl checks that the vault URL is well formed and uses https.
 // Bearer tokens and sensitive data travel on it, so plain http is allowed only for
-// loopback hosts (local development and tests).
+// loopback hosts (local development and tests), unless AllowInsecureVaultUrl is set.
 func (v Validator) validateBaseVaultUrl(raw string) *skyflowError.SkyflowError {
 	u, err := url.Parse(raw)
 	if err != nil || (u.Scheme != httpProtocol && u.Scheme != httpsProtocol) || u.Host == "" {
 		return v.invalid(logVaultUrlIsInvalid, errInvalidVaultUrl)
 	}
-	if u.Scheme == httpProtocol && !isLoopbackHost(u.Hostname()) {
+	if u.Scheme == httpProtocol && !v.AllowInsecureVaultUrl && !isLoopbackHost(u.Hostname()) {
 		return v.invalid(logVaultUrlIsInsecure, errInsecureVaultUrl)
 	}
 	return nil
