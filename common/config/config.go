@@ -91,9 +91,4 @@ const (
 	SkyflowAccountId   CustomHeaderKey = "x-skyflow-account-id"
 	SkyflowAccountName CustomHeaderKey = "x-skyflow-account-name"
 	RequestIdHeader    CustomHeaderKey = "x-request-id"
-
-	// Deprecated: Use SkyflowAccountId instead.
-	SkyflowAccountID = SkyflowAccountId
-	// Deprecated: Use RequestIdHeader instead.
-	RequestIDHeader = RequestIdHeader
 )

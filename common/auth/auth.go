@@ -410,15 +410,8 @@ func (s *Service) GenerateBearerTokenHelper(credKeys map[string]interface{}, opt
 		GrantType: grantType,
 		Assertion: signedUserJWT,
 	}
-	roleIds := options.RoleIds
-	if len(options.RoleIDs) > 0 {
-		logger.Warn(s.logMsg(logDeprecatedFieldRoleIds))
-		if len(roleIds) == 0 {
-			roleIds = options.RoleIDs
-		}
-	}
-	if len(roleIds) > 0 {
-		scope := GetScopeUsingRoles(roleIds)
+	if len(options.RoleIds) > 0 {
+		scope := GetScopeUsingRoles(options.RoleIds)
 		body.Scope = &scope
 	}
 	return s.postAuthToken(baseURL, body)

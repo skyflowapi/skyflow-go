@@ -55,12 +55,10 @@ var _ = Describe("Config types", func() {
 	})
 
 	Context("CustomHeaderKey", func() {
-		It("should expose the header names and deprecated aliases", func() {
+		It("should expose the header names", func() {
 			Expect(string(SkyflowAccountId)).To(Equal("x-skyflow-account-id"))
 			Expect(string(SkyflowAccountName)).To(Equal("x-skyflow-account-name"))
 			Expect(string(RequestIdHeader)).To(Equal("x-request-id"))
-			Expect(SkyflowAccountID).To(Equal(SkyflowAccountId))
-			Expect(RequestIDHeader).To(Equal(RequestIdHeader))
 		})
 	})
 })
