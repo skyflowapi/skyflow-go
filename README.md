@@ -7,11 +7,7 @@
 The Skyflow Go SDK is designed to help with integrating Skyflow into a go backend.
 
 > [!NOTE]
-<<<<<<< HEAD
-> This README covers the v2 SDK (`github.com/skyflowapi/skyflow-go/v2`). For a Flow Vault, use the Flow Vault Go SDK (`github.com/skyflowapi/skyflow-go/flowvault`) and its [README](./flowvault/README.md).
-=======
 > This README covers SkyVault vaults (module `github.com/skyflowapi/skyflow-go/v2`). For FlowVault vaults, use the FlowVault SDK (module `github.com/skyflowapi/skyflow-go/flowvault`): see the **[FlowVault README](./flowvault/README.md)**.
->>>>>>> origin/himanshupal/SK-3223-flowvault-release
 
 [![CI](https://img.shields.io/static/v1?label=CI&message=passing&color=green?style=plastic&logo=github)](https://github.com/skyflowapi/skyflow-go/actions)
 [![GitHub release](https://img.shields.io/github/v/release/skyflowapi/skyflow-go.svg)](https://github.com/skyflowapi/skyflow-go/releases)
