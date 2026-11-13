@@ -13,22 +13,19 @@ import (
 )
 
 var _ = Describe("Skyflow client, edge cases", func() {
-	It("sets, updates and returns the log level", func() {
+	It("sets, changes and returns the log level", func() {
 		DeferCleanup(fvlogger.SetLogLevel, fvlogger.ERROR)
 		client := newTestClient(WithLogLevel(fvlogger.DEBUG))
-		Expect(*client.GetLoglevel()).To(Equal(fvlogger.DEBUG))
+		Expect(client.GetLogLevel()).To(Equal(fvlogger.DEBUG))
 
 		var logs bytes.Buffer
 		fvlogger.SetOutput(&logs)
 		DeferCleanup(fvlogger.SetOutput, os.Stderr)
-		client.UpdateLogLevel(fvlogger.INFO)
+		client.SetLogLevel(fvlogger.INFO)
 		Expect(logs.String()).To(ContainSubstring("Current log level is %v.", fvlogger.INFO))
 
-		client.UpdateLogLevel(fvlogger.WARN)
-		level := client.GetLoglevel()
-		Expect(*level).To(Equal(fvlogger.WARN))
-		*level = fvlogger.OFF
-		Expect(*client.GetLoglevel()).To(Equal(fvlogger.WARN))
+		client.SetLogLevel(fvlogger.WARN)
+		Expect(client.GetLogLevel()).To(Equal(fvlogger.WARN))
 	})
 
 	It("sets and returns the log level with SetLogLevel and GetLogLevel", func() {
@@ -41,7 +38,6 @@ var _ = Describe("Skyflow client, edge cases", func() {
 		Expect(logs.String()).To(ContainSubstring("Current log level is %v.", fvlogger.INFO))
 		client.SetLogLevel(fvlogger.DEBUG)
 		Expect(client.GetLogLevel()).To(Equal(fvlogger.DEBUG))
-		Expect(*client.GetLoglevel()).To(Equal(fvlogger.DEBUG))
 	})
 
 	It("uses the first vault added as the default vault", func() {
@@ -104,22 +100,21 @@ var _ = Describe("Skyflow client, edge cases", func() {
 
 	It("rejects an invalid base vault URL on update", func() {
 		client := newTestClient()
-		Expect(client.UpdateVaultConfig(fvcommon.VaultConfig{VaultId: testVaultID, BaseVaultUrl: "not a url"})).ToNot(BeNil())
+		Expect(client.UpdateVaultConfig(fvcommon.VaultConfig{VaultId: testVaultID, VaultUrl: "not a url"})).ToNot(BeNil())
 		config, _ := client.GetVaultConfig(testVaultID)
-		Expect(config.BaseVaultUrl).To(BeEmpty())
+		Expect(config.VaultUrl).To(BeEmpty())
 	})
 
-	It("applies the deprecated BaseVaultURL on update and keeps the URL when neither is set", func() {
+	It("replaces the URL on update and keeps it when the update sets none", func() {
 		client := newTestClient()
-		Expect(client.UpdateVaultConfig(fvcommon.VaultConfig{VaultId: testVaultID, BaseVaultUrl: "https://old.example.com"})).To(BeNil())
-		Expect(client.UpdateVaultConfig(fvcommon.VaultConfig{VaultId: testVaultID, BaseVaultURL: "https://new.example.com"})).To(BeNil())
+		Expect(client.UpdateVaultConfig(fvcommon.VaultConfig{VaultId: testVaultID, VaultUrl: "https://old.example.com"})).To(BeNil())
+		Expect(client.UpdateVaultConfig(fvcommon.VaultConfig{VaultId: testVaultID, VaultUrl: "https://new.example.com"})).To(BeNil())
 		config, _ := client.GetVaultConfig(testVaultID)
-		Expect(config.BaseVaultUrl).To(BeEmpty())
-		Expect(config.BaseVaultURL).To(Equal("https://new.example.com"))
+		Expect(config.VaultUrl).To(Equal("https://new.example.com"))
 
 		Expect(client.UpdateVaultConfig(fvcommon.VaultConfig{VaultId: testVaultID})).To(BeNil())
 		config, _ = client.GetVaultConfig(testVaultID)
-		Expect(config.BaseVaultURL).To(Equal("https://new.example.com"))
+		Expect(config.VaultUrl).To(Equal("https://new.example.com"))
 	})
 
 	It("updates credentials, base URL and retry delays without sharing the caller's values", func() {
@@ -128,7 +123,7 @@ var _ = Describe("Skyflow client, edge cases", func() {
 		Expect(client.UpdateVaultConfig(fvcommon.VaultConfig{
 			VaultId:           testVaultID,
 			Credentials:       fvcommon.Credentials{ApiKey: testApiKey, Roles: roles},
-			BaseVaultUrl:      "https://vault.example.com",
+			VaultUrl:          "https://vault.example.com",
 			InitialRetryDelay: 100 * time.Millisecond,
 			MaxRetryDelay:     time.Second,
 			ConnectTimeout:    3 * time.Second,
@@ -141,7 +136,7 @@ var _ = Describe("Skyflow client, edge cases", func() {
 		Expect(err).To(BeNil())
 		Expect(config.Credentials.ApiKey).To(Equal(testApiKey))
 		Expect(config.Credentials.Roles).To(Equal([]string{"r1"}))
-		Expect(config.BaseVaultUrl).To(Equal("https://vault.example.com"))
+		Expect(config.VaultUrl).To(Equal("https://vault.example.com"))
 		Expect(config.InitialRetryDelay).To(Equal(100 * time.Millisecond))
 		Expect(config.MaxRetryDelay).To(Equal(time.Second))
 		Expect(config.ConnectTimeout).To(Equal(3 * time.Second))

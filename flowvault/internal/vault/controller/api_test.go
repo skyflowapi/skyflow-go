@@ -92,7 +92,7 @@ var _ = Describe("VaultController API calls", func() {
 	BeforeEach(func() {
 		fake = newFakeFlowService()
 		DeferCleanup(fake.server.Close)
-		v = NewVaultController(fvcommon.VaultConfig{VaultId: "vault1", BaseVaultUrl: fake.server.URL}, ClientSettings{Credentials: &fvcommon.Credentials{ApiKey: testApiKey}})
+		v = NewVaultController(fvcommon.VaultConfig{VaultId: "vault1", VaultUrl: fake.server.URL}, ClientSettings{Credentials: &fvcommon.Credentials{ApiKey: testApiKey}})
 	})
 
 	It("inserts with request-level table and upsert, and parses tokens and per-record errors", func() {
@@ -224,7 +224,7 @@ var _ = Describe("VaultController API calls", func() {
 
 	It("returns a final retryable response without waiting", func() {
 		noRetries := 0
-		v = NewVaultController(fvcommon.VaultConfig{VaultId: "vault1", BaseVaultUrl: fake.server.URL, MaxRetries: &noRetries},
+		v = NewVaultController(fvcommon.VaultConfig{VaultId: "vault1", VaultUrl: fake.server.URL, MaxRetries: &noRetries},
 			ClientSettings{Credentials: &fvcommon.Credentials{ApiKey: testApiKey}})
 		fake.respond("/v2/query", http.StatusServiceUnavailable, `{"error":{"http_code":503,"message":"busy"}}`)
 		start := time.Now()
@@ -309,9 +309,19 @@ var _ = Describe("VaultController API calls", func() {
 		Expect(err).To(BeNil())
 		Expect(fake.requests["/v2/query"]["query"]).To(Equal("SELECT name FROM users"))
 		Expect(resp.Records).To(Equal([]map[string]interface{}{{"name": "j"}}))
-		Expect(resp.Fields).To(Equal(resp.Records)) //nolint:staticcheck // the deprecated alias still works
 		Expect(resp.Metadata.Columns).To(Equal([]string{"name"}))
 		Expect(resp.RequestId).To(Equal("req-123"))
+	})
+
+	It("returns an empty row, not a nil map, for a query record without data, and skips a null record", func() {
+		fake.respond("/v2/query", http.StatusOK, `{"records":[{},null,{"data":null},{"data":{"name":"j"}}]}`)
+		resp, err := v.Query(ctx, fvcommon.QueryRequest{Query: "SELECT name FROM users"}, fvcommon.QueryOptions{})
+		Expect(err).To(BeNil())
+		Expect(resp.Records).To(Equal([]map[string]interface{}{{}, {}, {"name": "j"}}))
+		Expect(resp.Records[0]).NotTo(BeNil())
+		Expect(resp.Records[1]).NotTo(BeNil())
+		encoded, _ := json.Marshal(resp.Records)
+		Expect(string(encoded)).To(Equal(`[{},{},{"name":"j"}]`))
 	})
 
 	It("uploads files to their signed URLs and reports each column", func() {
@@ -376,7 +386,7 @@ var _ = Describe("VaultController API calls", func() {
 
 	It("doesn't retry a failed file upload, even with retries on", func() {
 		retries := 3
-		v.SetConfig(fvcommon.VaultConfig{VaultId: "vault1", BaseVaultUrl: fake.server.URL, MaxRetries: &retries, InitialRetryDelay: time.Millisecond}, false)
+		v.SetConfig(fvcommon.VaultConfig{VaultId: "vault1", VaultUrl: fake.server.URL, MaxRetries: &retries, InitialRetryDelay: time.Millisecond}, false)
 		fake.respond("/v2/files/upload", http.StatusOK, `{"records":[
 			{"skyflowID":"id1","tableName":"docs","httpCode":200,"data":{"resume":"`+fake.server.URL+`/signed/unavailable"}}]}`)
 		resp, err := v.UploadFiles(ctx, fvcommon.UploadFilesRequest{Records: []fvcommon.UploadFilesRequestRecord{
@@ -445,7 +455,7 @@ var _ = Describe("VaultController API calls", func() {
 
 	It("doesn't retry uploadFiles on a 5xx, but retries other calls and 429", func() {
 		retries := 2
-		v.SetConfig(fvcommon.VaultConfig{VaultId: "vault1", BaseVaultUrl: fake.server.URL, MaxRetries: &retries, InitialRetryDelay: time.Millisecond}, false)
+		v.SetConfig(fvcommon.VaultConfig{VaultId: "vault1", VaultUrl: fake.server.URL, MaxRetries: &retries, InitialRetryDelay: time.Millisecond}, false)
 		fake.respond("/v2/files/upload", http.StatusInternalServerError, `{"error":{"message":"boom"}}`)
 		fake.respond("/v2/files/delete", http.StatusServiceUnavailable, `{"error":{"message":"boom"}}`)
 		fake.respond("/v2/records/getTokens", http.StatusServiceUnavailable, `{"error":{"message":"boom"}}`)
@@ -507,7 +517,7 @@ var _ = Describe("VaultController API calls", func() {
 			time.Sleep(500 * time.Millisecond)
 		}))
 		DeferCleanup(slow.Close)
-		timed := NewVaultController(fvcommon.VaultConfig{VaultId: "vault1", BaseVaultUrl: slow.URL, Timeout: 50 * time.Millisecond},
+		timed := NewVaultController(fvcommon.VaultConfig{VaultId: "vault1", VaultUrl: slow.URL, Timeout: 50 * time.Millisecond},
 			ClientSettings{Credentials: &fvcommon.Credentials{ApiKey: testApiKey}})
 		_, err := timed.Query(ctx, fvcommon.QueryRequest{Query: "SELECT 1"}, fvcommon.QueryOptions{})
 		Expect(err).ToNot(BeNil())

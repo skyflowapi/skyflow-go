@@ -27,7 +27,7 @@ var _ = Describe("VaultController error paths", func() {
 	BeforeEach(func() {
 		fake = newFakeFlowService()
 		DeferCleanup(fake.server.Close)
-		v = NewVaultController(fvcommon.VaultConfig{VaultId: "vault1", BaseVaultUrl: fake.server.URL}, ClientSettings{Credentials: &fvcommon.Credentials{ApiKey: testApiKey}})
+		v = NewVaultController(fvcommon.VaultConfig{VaultId: "vault1", VaultUrl: fake.server.URL}, ClientSettings{Credentials: &fvcommon.Credentials{ApiKey: testApiKey}})
 	})
 
 	data := map[string]interface{}{"a": 1}
@@ -87,7 +87,7 @@ var _ = Describe("VaultController error paths", func() {
 	})
 
 	It("fails every operation before calling the API when the call can't be set up", func() {
-		noCredentials := NewVaultController(fvcommon.VaultConfig{VaultId: "vault1", BaseVaultUrl: fake.server.URL}, ClientSettings{})
+		noCredentials := NewVaultController(fvcommon.VaultConfig{VaultId: "vault1", VaultUrl: fake.server.URL}, ClientSettings{})
 		GinkgoT().Setenv("SKYFLOW_CREDENTIALS", "")
 		for path, call := range calls {
 			err := call(noCredentials)

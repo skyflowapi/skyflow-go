@@ -180,14 +180,19 @@ func (v *VaultController) Query(ctx context.Context, request fvcommon.QueryReque
 	}
 	rows := make([]map[string]interface{}, 0, len(body.Records))
 	for _, record := range body.Records {
-		if record != nil {
-			rows = append(rows, record.Data)
+		if record == nil {
+			continue
 		}
+		row := record.Data
+		if row == nil { // a record without data is an empty row, not a nil map
+			row = map[string]interface{}{}
+		}
+		rows = append(rows, row)
 	}
 	if len(rows) >= fvconsts.QUERY_RECORD_LIMIT {
 		fvlogger.Warn(fmt.Sprintf(logs.QUERY_RECORD_LIMIT_REACHED, fvconsts.QUERY_RECORD_LIMIT))
 	}
-	response := &fvcommon.QueryResponse{Records: rows, Fields: rows, RequestId: header.Get(fvconsts.RESPONSE_HEADER_REQUEST_ID)}
+	response := &fvcommon.QueryResponse{Records: rows, RequestId: header.Get(fvconsts.RESPONSE_HEADER_REQUEST_ID)}
 	if body.Metadata != nil {
 		response.Metadata.Columns = body.Metadata.Columns
 	}

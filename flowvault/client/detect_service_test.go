@@ -36,7 +36,7 @@ var _ = Describe("Detect service", func() {
 		service, err := client.Detect(testVaultID)
 		Expect(err).To(BeNil())
 		// The service obtained before the update sees the new URL on its next call.
-		Expect(client.UpdateVaultConfig(fvcommon.VaultConfig{VaultId: testVaultID, BaseVaultUrl: server.URL})).To(BeNil())
+		Expect(client.UpdateVaultConfig(fvcommon.VaultConfig{VaultId: testVaultID, VaultUrl: server.URL})).To(BeNil())
 
 		resp, err := service.CheckGuardrails(context.Background(), fvcommon.CheckGuardrailsRequest{Text: "hi"}, fvcommon.CheckGuardrailsOptions{})
 		Expect(err).To(BeNil())
@@ -62,14 +62,14 @@ var _ = Describe("Detect service", func() {
 		}))
 		defer server.Close()
 		client := newTestClient()
-		Expect(client.UpdateVaultConfig(fvcommon.VaultConfig{VaultId: testVaultID, BaseVaultUrl: server.URL})).To(BeNil())
+		Expect(client.UpdateVaultConfig(fvcommon.VaultConfig{VaultId: testVaultID, VaultUrl: server.URL})).To(BeNil())
 		service, err := client.Detect(testVaultID)
 		Expect(err).To(BeNil())
 		ctx := context.Background()
 		levels := []fvcommon.RedactionRule{fvcommon.RedactionLevel{TokenGroupName: "group", RedactionPattern: "pattern"}}
 
 		run, err := service.DeidentifyFile(ctx, fvcommon.DeidentifyFileRequest{
-			DataSource: fvcommon.DeidentifySourceTypeBase64, Value: "aGk=", DataFormat: fvcommon.FileDataFormatTXT, ConfigurationId: "cfg",
+			DataSource: fvcommon.DeidentifySourceTypeBase64, Value: "aGk=", DataFormat: fvcommon.DeidentifyFileDataFormatTXT, ConfigurationId: "cfg",
 		}, fvcommon.DeidentifyFileOptions{})
 		Expect(err).To(BeNil())
 		Expect(run.RunId).To(Equal("run-1"))
@@ -101,7 +101,7 @@ var _ = Describe("Detect service", func() {
 		}))
 		defer server.Close()
 		client := newTestClient()
-		Expect(client.UpdateVaultConfig(fvcommon.VaultConfig{VaultId: testVaultID, BaseVaultUrl: server.URL})).To(BeNil())
+		Expect(client.UpdateVaultConfig(fvcommon.VaultConfig{VaultId: testVaultID, VaultUrl: server.URL})).To(BeNil())
 		service, err := client.Detect(testVaultID)
 		Expect(err).To(BeNil())
 		ctx := context.Background()
@@ -133,7 +133,7 @@ var _ = Describe("Detect service", func() {
 		}))
 		defer server.Close()
 		client := newTestClient()
-		Expect(client.UpdateVaultConfig(fvcommon.VaultConfig{VaultId: testVaultID, BaseVaultUrl: server.URL})).To(BeNil())
+		Expect(client.UpdateVaultConfig(fvcommon.VaultConfig{VaultId: testVaultID, VaultUrl: server.URL})).To(BeNil())
 		service, err := client.Detect(testVaultID)
 		Expect(err).To(BeNil())
 		input := filepath.Join(GinkgoT().TempDir(), "notes.txt")

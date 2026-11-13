@@ -241,8 +241,8 @@ var _ = Describe("Bearer token handling", func() {
 })
 
 var _ = Describe("SetupRequest, edge cases", func() {
-	It("uses the deprecated BaseVaultURL field", func() {
-		config := fvcommon.VaultConfig{VaultId: "v", BaseVaultURL: "https://legacy.example.com"}
+	It("uses VaultUrl instead of the cluster URL", func() {
+		config := fvcommon.VaultConfig{VaultId: "v", ClusterId: "c", VaultUrl: "https://legacy.example.com"}
 		setup, err := NewVaultController(config, ClientSettings{Credentials: &fvcommon.Credentials{ApiKey: testApiKey}}).SetupRequest(context.Background(), "GET", nil)
 		Expect(err).To(BeNil())
 		Expect(setup.BaseURL).To(Equal("https://legacy.example.com"))
@@ -264,7 +264,7 @@ var _ = Describe("SetupRequest, edge cases", func() {
 				_ = buf.Flush()
 			}))
 			defer server.Close()
-			v := NewVaultController(fvcommon.VaultConfig{VaultId: "v", BaseVaultUrl: server.URL}, ClientSettings{Credentials: &fvcommon.Credentials{ApiKey: testApiKey}})
+			v := NewVaultController(fvcommon.VaultConfig{VaultId: "v", VaultUrl: server.URL}, ClientSettings{Credentials: &fvcommon.Credentials{ApiKey: testApiKey}})
 			setup, err := v.SetupRequest(context.Background(), "QUERY", nil)
 			Expect(err).To(BeNil())
 

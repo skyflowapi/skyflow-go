@@ -359,10 +359,10 @@ vault, err := skyflowClient.Vault("<VAULT_ID>")
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `VaultId` | `string` | required | The vault's ID. |
-| `ClusterId` | `string` | required unless `BaseVaultUrl` is set | The cluster part of the vault URL: `https://{clusterId}.vault.skyflowapis.com`. |
+| `ClusterId` | `string` | required unless `VaultUrl` is set | The cluster part of the vault URL: `https://{clusterId}.vault.skyflowapis.com`. |
 | `Env` | `common.Env` | optional | `common.DEV`, `common.STAGE`, `common.SANDBOX` or `common.PROD`. The zero value is `PROD`. |
 | `Credentials` | `common.Credentials` | optional | Credentials for this vault. Falls back to client-wide credentials, then `SKYFLOW_CREDENTIALS`. |
-| `BaseVaultUrl` | `string` | optional | Full vault URL, used instead of the one built from `ClusterId` and `Env`. Must use `https` (`http` is accepted only for localhost and loopback addresses). `BaseVaultURL` is a deprecated alias. |
+| `VaultUrl` | `string` | optional | Full vault URL, used instead of the one built from `ClusterId` and `Env`. Must use `https` (`http` is accepted only for localhost and loopback addresses). |
 | `Timeout` | `time.Duration` | optional | Overall call timeout, retries included. |
 | `ConnectTimeout` | `time.Duration` | optional | Per-attempt connection timeout. |
 | `ReadTimeout` | `time.Duration` | optional | Per-attempt wait for the server to start responding. |
@@ -401,12 +401,12 @@ Methods on `*client.Skyflow`:
 | `Vault(vaultId ...string)` | The `*VaultService` for a registered vault. With no ID, or `""`, it returns the default vault, the first one added. |
 | `Detect(vaultId ...string)` | The `*DetectService` for a registered vault, or the default vault when no ID is given. See [Detect](#detect). |
 | `AddVaultConfig(config)` | Register another vault. Fails if the vault ID is already registered. |
-| `UpdateVaultConfig(config)` | Update a registered vault in place. Only the fields you set change, except `Env`, which is always applied (leaving it out moves the vault to `PROD`). Setting `ClusterId` without a URL clears a stored `BaseVaultUrl`, so the vault moves to that cluster. |
+| `UpdateVaultConfig(config)` | Update a registered vault in place. Only the fields you set change, except `Env`, which is always applied (leaving it out moves the vault to `PROD`). Setting `ClusterId` without a URL clears a stored `VaultUrl`, so the vault moves to that cluster. |
 | `RemoveVaultConfig(vaultId)` | Unregister a vault. |
 | `GetVaultConfig(vaultId)` | A copy of a registered vault's config; `""` means the default vault. |
 | `AddSkyflowCredentials(credentials)` / `UpdateSkyflowCredentials(credentials)` | Set or replace the client-wide credentials. |
 | `GetSkyflowCredentials()` | A copy of the client-wide credentials, or `nil`. |
-| `SetLogLevel(level)` / `GetLogLevel()` | Change or read the log level. `UpdateLogLevel` and `GetLoglevel` are deprecated aliases. |
+| `SetLogLevel(level)` / `GetLogLevel()` | Change or read the log level. |
 
 Each of these that can fail returns a `*SkyflowError`.
 
@@ -839,7 +839,7 @@ Sample response:
 }
 ```
 
-`common.QueryResponse` has `Records` (a `[]map[string]interface{}`, one map of column to value per row, never nil), `Metadata` (`common.QueryResponseMetadata` with `Columns`) and `RequestId`. `Fields` holds the same rows but is deprecated, because these are rows, not fields; use `Records`.
+`common.QueryResponse` has `Records` (a `[]map[string]interface{}`, one map of column to value per row, never nil), `Metadata` (`common.QueryResponseMetadata` with `Columns`) and `RequestId`.
 
 ```go
 for _, row := range response.Records {
@@ -1193,7 +1193,7 @@ Sample response (entity-counter placeholders):
 | `FileObject` | An open `*os.File`, sent the same way. The caller closes it. |
 | `DataSource` + `Value` | `DeidentifySourceTypeBase64` with base64 content, or `DeidentifySourceTypePresignedURL` with a presigned URL. |
 
-Before calling the API, the SDK checks that exactly one is set, that a `Value` has a `DataSource` and isn't blank, and that a local file exists and is a regular file. A local file is checked before the `Poll` options, and one that exists but can't be read fails with "Failed to encode the file". It sends `DataSource` as given; the server rejects one the vault doesn't accept.
+Before calling the API, the SDK checks that exactly one is set, that a `Value` has a `DataSource` and isn't blank, and that a local file exists and is a regular file. A local file is checked before the `Poll` options, and one that exists but can't be read fails with "Failed to encode the file". `DataSource` must be a `DeidentifySourceType` (`BASE64` or `PRESIGNED_URL`); any other value is rejected before the call.
 
 `ConfigurationId` and `Configuration` work as for [Deidentify String](#deidentify-string). `DataFormat` is optional: the server infers it, and for a local file the SDK infers it from the extension. Set it to override either.
 
@@ -1209,7 +1209,7 @@ Outputs are written to disk only when all three hold: the input is a local file 
 submitted, err := service.DeidentifyFile(ctx, common.DeidentifyFileRequest{
 	DataSource:      common.DeidentifySourceTypePresignedURL,
 	Value:           "<PRESIGNED_URL>",
-	DataFormat:      common.FileDataFormatPDF, // optional
+	DataFormat:      common.DeidentifyFileDataFormatPDF, // optional
 	ConfigurationId: "<CONFIGURATION_ID>",
 }, common.DeidentifyFileOptions{})
 if err != nil {
@@ -1490,7 +1490,7 @@ An inline `DetectConfiguration` (the `Configuration` field) has these parts. Opt
 | `Document.Pdf` | `ProcessingMode` (`PdfProcessingModeOCR`, `PdfProcessingModeTextLayer`, `PdfProcessingModeNone`), `Density`, `MaxResolution`. |
 | `Image` | `OutputProcessedImage *bool`, `OutputOcrText *bool`, `MaskingMethod` (`MaskingMethodBlur`, `MaskingMethodBlackbox`, `MaskingMethodNone`). |
 
-The supported file formats are the `FileDataFormat*` constants: `pdf`, `txt`, `csv`, `json`, `jsonl`, `xml`, `doc`, `docx`, `xls`, `xlsx`, `ppt`, `pptx`, `jpg`, `jpeg`, `png`, `bmp`, `gif`, `tif`, `tiff`, `dcm`, `mp3`, `wav` and `zip`.
+The supported file formats are the `DeidentifyFileDataFormat*` constants: `pdf`, `txt`, `csv`, `json`, `jsonl`, `xml`, `doc`, `docx`, `xls`, `xlsx`, `ppt`, `pptx`, `jpg`, `jpeg`, `png`, `bmp`, `gif`, `tif`, `tiff`, `dcm`, `mp3`, `wav` and `zip`.
 
 The SDK doesn't limit text or file size. Any limit is enforced by the server, and a request over it comes back as a `*SkyflowError`.
 

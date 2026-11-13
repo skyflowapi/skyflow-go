@@ -41,9 +41,9 @@ var _ = Describe("SetupRequest", func() {
 		Expect(setup.HTTPClient.Timeout).To(Equal(5 * time.Second))
 	})
 
-	It("prefers vault credentials and BaseVaultUrl", func() {
+	It("prefers vault credentials and VaultUrl", func() {
 		config := fvcommon.VaultConfig{
-			VaultId: "v", BaseVaultUrl: "https://example.com",
+			VaultId: "v", VaultUrl: "https://example.com",
 			Credentials: fvcommon.Credentials{ApiKey: vaultApiKey},
 		}
 		setup, err := NewVaultController(config, ClientSettings{Credentials: &fvcommon.Credentials{ApiKey: testApiKey}}).SetupRequest(context.Background(), "GET", nil)

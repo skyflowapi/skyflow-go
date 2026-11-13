@@ -54,7 +54,7 @@ func main() {
 	submitted, err := service.DeidentifyFile(context.Background(), common.DeidentifyFileRequest{
 		DataSource:      common.DeidentifySourceTypePresignedURL, // or DeidentifySourceTypeBase64
 		Value:           "<PRESIGNED_URL>",
-		DataFormat:      common.FileDataFormatPDF,
+		DataFormat:      common.DeidentifyFileDataFormatPDF,
 		ConfigurationId: "<CONFIGURATION_ID>",
 	}, common.DeidentifyFileOptions{})
 	if err != nil {

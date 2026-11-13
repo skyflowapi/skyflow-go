@@ -94,16 +94,15 @@ var _ = Describe("Skyflow client", func() {
 
 	It("moves a vault registered with a URL to a cluster when an update sets only ClusterId", func() {
 		client := newTestClient()
-		Expect(client.UpdateVaultConfig(fvcommon.VaultConfig{VaultId: testVaultID, BaseVaultUrl: "https://vault.example.com"})).To(BeNil())
+		Expect(client.UpdateVaultConfig(fvcommon.VaultConfig{VaultId: testVaultID, VaultUrl: "https://vault.example.com"})).To(BeNil())
 		config, _ := client.GetVaultConfig(testVaultID)
-		Expect(config.BaseVaultUrl).To(Equal("https://vault.example.com"))
+		Expect(config.VaultUrl).To(Equal("https://vault.example.com"))
 
 		// A stored URL would take precedence over the cluster ID, so it is cleared.
 		Expect(client.UpdateVaultConfig(fvcommon.VaultConfig{VaultId: testVaultID, ClusterId: "other"})).To(BeNil())
 		config, _ = client.GetVaultConfig(testVaultID)
 		Expect(config.ClusterId).To(Equal("other"))
-		Expect(config.BaseVaultUrl).To(BeEmpty())
-		Expect(config.BaseVaultURL).To(BeEmpty())
+		Expect(config.VaultUrl).To(BeEmpty())
 	})
 
 	It("applies the default Env when an update doesn't set one", func() {
@@ -168,7 +167,7 @@ var _ = Describe("Skyflow client", func() {
 			_, _ = w.Write([]byte(`{}`))
 		}))
 		defer server.Close()
-		client := newTestClient(WithVaults(fvcommon.VaultConfig{VaultId: "local", BaseVaultUrl: server.URL}))
+		client := newTestClient(WithVaults(fvcommon.VaultConfig{VaultId: "local", VaultUrl: server.URL}))
 		vault, err := client.Vault("local")
 		Expect(err).To(BeNil())
 
@@ -242,7 +241,7 @@ var _ = Describe("VaultService", func() {
 			_, _ = w.Write([]byte(`{}`))
 		}))
 		defer server.Close()
-		client := newTestClient(WithVaults(fvcommon.VaultConfig{VaultId: "local", BaseVaultUrl: server.URL}))
+		client := newTestClient(WithVaults(fvcommon.VaultConfig{VaultId: "local", VaultUrl: server.URL}))
 		vault, err := client.Vault("local")
 		Expect(err).To(BeNil())
 

@@ -22,7 +22,7 @@ var _ = Describe("VaultController, record and error handling", func() {
 	BeforeEach(func() {
 		fake = newFakeFlowService()
 		DeferCleanup(fake.server.Close)
-		v = NewVaultController(fvcommon.VaultConfig{VaultId: "vault1", BaseVaultUrl: fake.server.URL}, ClientSettings{Credentials: &fvcommon.Credentials{ApiKey: testApiKey}})
+		v = NewVaultController(fvcommon.VaultConfig{VaultId: "vault1", VaultUrl: fake.server.URL}, ClientSettings{Credentials: &fvcommon.Credentials{ApiKey: testApiKey}})
 	})
 
 	// The generated request types used to send "tableName": "" and "skyflowIDs": null. These

@@ -14,6 +14,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	sa "github.com/skyflowapi/skyflow-go/common/serviceaccount"
 	fvconsts "github.com/skyflowapi/skyflow-go/flowvault/internal/constants"
 	fvcommon "github.com/skyflowapi/skyflow-go/flowvault/utils/common"
 )
@@ -53,10 +54,10 @@ var _ = Describe("URL, metadata and shared services", func() {
 			To(Equal(fvconsts.SDK_PREFIX + " Initialization failed. Specify either 'clusterId' or 'vaultURL'."))
 		// Plain http is rejected for hosts other than localhost.
 		for _, url := range []string{"http://vault.example.com", "ftp://vault.example.com"} {
-			err := ConfigValidator().ValidateUpdateVaultConfig(fvcommon.VaultConfig{VaultId: "v", BaseVaultUrl: url})
+			err := ConfigValidator().ValidateUpdateVaultConfig(fvcommon.VaultConfig{VaultId: "v", VaultUrl: url})
 			Expect(err.GetMessage()).To(Equal(fvconsts.SDK_PREFIX + " Initialization failed. Vault URL must start with 'https://'."))
 		}
-		_, err := Auth().GenerateBearerToken("", fvcommon.BearerTokenOptions{})
+		_, err := Auth().GenerateBearerToken("", sa.BearerTokenOptions{})
 		Expect(err.GetMessage()).To(HavePrefix(fvconsts.SDK_PREFIX))
 	})
 
