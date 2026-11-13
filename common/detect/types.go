@@ -29,9 +29,9 @@ type Metrics struct {
 // FileOutput is one output of a file run: a base64 blob or a presigned URL, per the run's
 // OutputType.
 type FileOutput struct {
-	ProcessedFile          string            `json:"processedFile"`
-	ProcessedFileType      ProcessedFileType `json:"processedFileType"`
-	ProcessedFileExtension FileDataFormat    `json:"processedFileExtension"`
+	ProcessedFile          string                   `json:"processedFile"`
+	ProcessedFileType      ProcessedFileType        `json:"processedFileType"`
+	ProcessedFileExtension DeidentifyFileDataFormat `json:"processedFileExtension"`
 }
 
 // ReidentifyFileOutput is one output of ReidentifyFile, as FileOutput is of a de-identify
@@ -132,9 +132,9 @@ type DeidentifyFileRequest struct {
 	Value string `json:"value"`
 	// DataFormat is optional: the server infers it, and for a local file the SDK infers
 	// it from the extension. Set it to override either.
-	DataFormat      FileDataFormat       `json:"dataFormat,omitempty"`
-	ConfigurationId string               `json:"configurationId,omitempty"`
-	Configuration   *DetectConfiguration `json:"configuration,omitempty"`
+	DataFormat      DeidentifyFileDataFormat `json:"dataFormat,omitempty"`
+	ConfigurationId string                   `json:"configurationId,omitempty"`
+	Configuration   *DetectConfiguration     `json:"configuration,omitempty"`
 
 	// FilePath is a local file to read and send as base64.
 	FilePath string `json:"-"`

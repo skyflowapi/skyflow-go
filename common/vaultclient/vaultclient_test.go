@@ -234,18 +234,18 @@ func TestProfileLogsReplaceAndAddLines(t *testing.T) {
 	}()
 
 	profile := testProfile()
-	profile.Logs = Logs{UsingApiKey: "own: using api key", DeprecatedBaseVaultURL: "own: deprecated"}
-	b := New(profile, config.VaultConfig{VaultId: "v", BaseVaultURL: "https://x.example.com", Credentials: config.Credentials{ApiKey: testApiKey}}, ClientSettings{})
+	profile.Logs = Logs{UsingApiKey: "own: using api key"}
+	b := New(profile, config.VaultConfig{VaultId: "v", VaultUrl: "https://x.example.com", Credentials: config.Credentials{ApiKey: testApiKey}}, ClientSettings{})
 	if _, err := b.Prepare("GET", nil); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(out.String(), "own: using api key") || !strings.Contains(out.String(), "own: deprecated") {
+	if !strings.Contains(out.String(), "own: using api key") {
 		t.Fatalf("logs = %q", out.String())
 	}
 
 	// Without own lines the optional ones are not logged.
 	out.Reset()
-	b = New(testProfile(), config.VaultConfig{VaultId: "v", BaseVaultURL: "https://x.example.com", Credentials: config.Credentials{ApiKey: testApiKey}}, ClientSettings{})
+	b = New(testProfile(), config.VaultConfig{VaultId: "v", VaultUrl: "https://x.example.com", Credentials: config.Credentials{ApiKey: testApiKey}}, ClientSettings{})
 	if _, err := b.Prepare("GET", nil); err != nil {
 		t.Fatal(err)
 	}

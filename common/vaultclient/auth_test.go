@@ -196,7 +196,7 @@ func TestContextEndsWhileATokenIsGeneratedAndTheTokenIsStillCached(t *testing.T)
 	}
 }
 
-func TestValidBearerTokenEnvCredentialsAndBaseVaultUrl(t *testing.T) {
+func TestValidBearerTokenEnvCredentialsAndVaultUrl(t *testing.T) {
 	f := newFakeAuth(t, nil)
 	token, err := f.profile().GenerateToken(config.Credentials{CredentialsString: f.creds})
 	if err != nil {
@@ -204,7 +204,7 @@ func TestValidBearerTokenEnvCredentialsAndBaseVaultUrl(t *testing.T) {
 	}
 	profile := f.profile()
 	profile.Logs = Logs{UsingBearerToken: "own: using token", GenerateBearerToken: "own: generating"}
-	b := New(profile, config.VaultConfig{VaultId: "v", BaseVaultUrl: "https://vault.example.com", Credentials: config.Credentials{Token: token}}, ClientSettings{})
+	b := New(profile, config.VaultConfig{VaultId: "v", VaultUrl: "https://vault.example.com", Credentials: config.Credentials{Token: token}}, ClientSettings{})
 	call, err := b.Prepare("GET", nil)
 	if err != nil || call.AuthToken != token || call.BaseURL != "https://vault.example.com" {
 		t.Fatalf("call = %+v, err = %v", call, err)

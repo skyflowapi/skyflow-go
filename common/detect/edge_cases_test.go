@@ -275,7 +275,7 @@ func TestFileOperationsReturnResponseWhenOutputsCannotBeWritten(t *testing.T) {
 func TestWriteOutputs(t *testing.T) {
 	c, _ := newTestController(newFakeDetect(t))
 	encoded := base64.StdEncoding.EncodeToString([]byte("data"))
-	pdf := FileOutput{ProcessedFile: encoded, ProcessedFileType: ProcessedFileTypeRedactedFile, ProcessedFileExtension: FileDataFormatPDF}
+	pdf := FileOutput{ProcessedFile: encoded, ProcessedFileType: ProcessedFileTypeRedactedFile, ProcessedFileExtension: DeidentifyFileDataFormatPDF}
 
 	t.Run("nothing to write", func(t *testing.T) {
 		dir := filepath.Join(t.TempDir(), "never-created")
@@ -323,7 +323,7 @@ func TestWriteOutputs(t *testing.T) {
 	})
 
 	t.Run("invalid base64", func(t *testing.T) {
-		bad := FileOutput{ProcessedFile: "%%%", ProcessedFileExtension: FileDataFormatTXT}
+		bad := FileOutput{ProcessedFile: "%%%", ProcessedFileExtension: DeidentifyFileDataFormatTXT}
 		dir := t.TempDir()
 		target := filepath.Join(dir, "processed-a.txt")
 		err := c.writeOutputs([]FileOutput{bad}, SkyDeidentifySourceTypeBase64, "a.txt", dir)
@@ -603,8 +603,7 @@ func TestTransportErrorsKeepTheirCause(t *testing.T) {
 }
 
 // The source rules: exactly one of FilePath, FileObject and Value, each
-// counted when set; Value then needs a DataSource and must not be blank. The DataSource is
-// sent as given, so the server decides whether its vault accepts it.
+// counted when set; Value then needs one of the vault type's DataSources and must not be blank.
 func TestDeidentifyFileSourceRules(t *testing.T) {
 	f := newFakeDetect(t)
 	f.responses[pathDeidentifyFile] = []string{`{"runId":"run-1"}`}
@@ -648,12 +647,27 @@ func TestDeidentifyFileSourceRules(t *testing.T) {
 		t.Fatalf("requests sent: %v", f.requests)
 	}
 
-	// A DataSource the vault type doesn't list is sent as given.
-	if _, err := c.DeidentifyFile(ctx, DeidentifyFileRequest{Value: "sid", DataSource: FlowDeidentifySourceType("SKYFLOW_ID")}, DeidentifyFileOptions{}); err != nil {
-		t.Fatal(err)
+	// A DataSource the vault type doesn't list is rejected before the call: a forced value,
+	// another vault type's source (even with the same wire value), or a pointer to one.
+	skyflowID := SkyDeidentifySourceTypeSkyflowID
+	want := fmt.Sprintf(errUnsupportedDeidentifyDataSource, "SKYFLOW_ID", "BASE64, PRESIGNED_URL")
+	for _, source := range []DeidentifyFileSource{FlowDeidentifySourceType("SKYFLOW_ID"), SkyDeidentifySourceTypeSkyflowID, &skyflowID} {
+		_, err := c.DeidentifyFile(ctx, DeidentifyFileRequest{Value: "sid", DataSource: source}, DeidentifyFileOptions{})
+		if err == nil || err.GetHttpCode() != string(skyflowError.INVALID_INPUT_CODE) || !strings.Contains(err.GetMessage(), want) {
+			t.Fatalf("%#v: err = %v, want %q", source, err, want)
+		}
 	}
-	if got := f.last().body["dataSource"]; got != "SKYFLOW_ID" {
-		t.Fatalf("dataSource = %v", got)
+	if _, err := c.DeidentifyFile(ctx, DeidentifyFileRequest{Value: "v", DataSource: SkyDeidentifySourceTypeBase64}, DeidentifyFileOptions{}); err == nil ||
+		!strings.Contains(err.GetMessage(), fmt.Sprintf(errUnsupportedDeidentifyDataSource, "BASE64", "BASE64, PRESIGNED_URL")) {
+		t.Fatalf("SkyVault BASE64 on a FlowVault controller: err = %v", err)
+	}
+	// The DataSource is checked before Value.
+	if _, err := c.DeidentifyFile(ctx, DeidentifyFileRequest{Value: " ", DataSource: FlowDeidentifySourceType("X")}, DeidentifyFileOptions{}); err == nil ||
+		!strings.Contains(err.GetMessage(), fmt.Sprintf(errUnsupportedDeidentifyDataSource, "X", "BASE64, PRESIGNED_URL")) {
+		t.Fatalf("unknown source with a blank value: err = %v", err)
+	}
+	if len(f.requests) != 0 {
+		t.Fatalf("requests sent: %v", f.requests)
 	}
 	// A pointer to a source works too.
 	presigned := FlowDeidentifySourceTypePresignedURL
@@ -676,8 +690,9 @@ func TestDeidentifyFileSourceRules(t *testing.T) {
 	}
 }
 
-// A ReidentifyFile DataSource is sent as given, whatever its value or
-// form; a missing one, including a nil pointer or an empty value, is rejected.
+// A ReidentifyFile DataSource must be one of the vault type's re-identify sources, or a
+// pointer to one; a missing one, including a nil pointer or an empty value, is rejected, and
+// so is any other value, including another vault type's source.
 func TestReidentifyFileDataSource(t *testing.T) {
 	f := newFakeDetect(t)
 	f.responses[pathReidentifyFile] = []string{`{"status":"SUCCESS","outputType":"BASE64"}`}
@@ -685,9 +700,8 @@ func TestReidentifyFileDataSource(t *testing.T) {
 	ctx := context.Background()
 	presigned := SkyReidentifySourceTypePresignedURL
 	for source, want := range map[ReidentifyFileSource]string{
-		SkyReidentifySourceType("SKYFLOW_ID"): "SKYFLOW_ID",
-		FlowReidentifySourceTypeBase64:        "BASE64",
-		&presigned:                            "PRESIGNED_URL",
+		SkyReidentifySourceTypeBase64: "BASE64",
+		&presigned:                    "PRESIGNED_URL",
 	} {
 		if _, err := c.ReidentifyFile(ctx, ReidentifyFileRequest{DataSource: source, Value: "v"}, ReidentifyFileOptions{}); err != nil {
 			t.Fatal(err)
@@ -702,6 +716,27 @@ func TestReidentifyFileDataSource(t *testing.T) {
 		if _, err := c.ReidentifyFile(ctx, ReidentifyFileRequest{DataSource: source, Value: "v"}, ReidentifyFileOptions{}); err == nil || !strings.Contains(err.GetMessage(), errInvalidReidentifyDataSource) {
 			t.Fatalf("%#v: err = %v", source, err)
 		}
+	}
+	requests := len(f.requests)
+	flowBase64 := FlowReidentifySourceTypeBase64
+	for source, name := range map[ReidentifyFileSource]string{
+		SkyReidentifySourceType("SKYFLOW_ID"): "SKYFLOW_ID",
+		FlowReidentifySourceTypeBase64:        "BASE64",
+		&flowBase64:                           "BASE64",
+	} {
+		want := fmt.Sprintf(errUnsupportedReidentifyDataSource, name, "BASE64, PRESIGNED_URL")
+		if _, err := c.ReidentifyFile(ctx, ReidentifyFileRequest{DataSource: source, Value: "v"}, ReidentifyFileOptions{}); err == nil || !strings.Contains(err.GetMessage(), want) {
+			t.Fatalf("%#v: err = %v, want %q", source, err, want)
+		}
+	}
+	// A FlowVault controller rejects SkyVault sources the same way.
+	flow := NewController(c.base, FlowSources)
+	want := fmt.Sprintf(errUnsupportedReidentifyDataSource, "PRESIGNED_URL", "BASE64, PRESIGNED_URL")
+	if _, err := flow.ReidentifyFile(ctx, ReidentifyFileRequest{DataSource: &presigned, Value: "v"}, ReidentifyFileOptions{}); err == nil || !strings.Contains(err.GetMessage(), want) {
+		t.Fatalf("SkyVault PRESIGNED_URL on a FlowVault controller: err = %v", err)
+	}
+	if len(f.requests) != requests {
+		t.Fatalf("requests sent: %v", f.requests[requests:])
 	}
 }
 

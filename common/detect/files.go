@@ -25,7 +25,7 @@ const (
 type localFile struct {
 	name   string // base name, used to name written outputs
 	base64 string
-	format FileDataFormat // inferred from the extension; empty if unknown
+	format DeidentifyFileDataFormat // inferred from the extension; empty if unknown
 }
 
 var errNotRegularFile = errors.New(notRegularFile)
@@ -93,15 +93,15 @@ func readRegularFile(file *os.File) ([]byte, error) {
 }
 
 // knownFormats maps each format's lower-case wire value (also the file extension) to the
-// FileDataFormat constant.
-var knownFormats = func() map[string]FileDataFormat {
-	formats := map[string]FileDataFormat{}
-	for _, f := range []FileDataFormat{
-		FileDataFormatMP3, FileDataFormatWAV, FileDataFormatPDF, FileDataFormatTXT, FileDataFormatCSV,
-		FileDataFormatJSON, FileDataFormatJPG, FileDataFormatJPEG, FileDataFormatTIF, FileDataFormatTIFF,
-		FileDataFormatPNG, FileDataFormatBMP, FileDataFormatXLS, FileDataFormatXLSX, FileDataFormatDOC,
-		FileDataFormatDOCX, FileDataFormatPPT, FileDataFormatPPTX, FileDataFormatXML, FileDataFormatDCM,
-		FileDataFormatJSONL, FileDataFormatZIP, FileDataFormatGIF,
+// DeidentifyFileDataFormat constant.
+var knownFormats = func() map[string]DeidentifyFileDataFormat {
+	formats := map[string]DeidentifyFileDataFormat{}
+	for _, f := range []DeidentifyFileDataFormat{
+		DeidentifyFileDataFormatMP3, DeidentifyFileDataFormatWAV, DeidentifyFileDataFormatPDF, DeidentifyFileDataFormatTXT, DeidentifyFileDataFormatCSV,
+		DeidentifyFileDataFormatJSON, DeidentifyFileDataFormatJPG, DeidentifyFileDataFormatJPEG, DeidentifyFileDataFormatTIF, DeidentifyFileDataFormatTIFF,
+		DeidentifyFileDataFormatPNG, DeidentifyFileDataFormatBMP, DeidentifyFileDataFormatXLS, DeidentifyFileDataFormatXLSX, DeidentifyFileDataFormatDOC,
+		DeidentifyFileDataFormatDOCX, DeidentifyFileDataFormatPPT, DeidentifyFileDataFormatPPTX, DeidentifyFileDataFormatXML, DeidentifyFileDataFormatDCM,
+		DeidentifyFileDataFormatJSONL, DeidentifyFileDataFormatZIP, DeidentifyFileDataFormatGIF,
 	} {
 		formats[wireFormat(f)] = f
 	}
@@ -109,19 +109,19 @@ var knownFormats = func() map[string]FileDataFormat {
 }()
 
 // wireFormat is the API's lower-case value for f, or "" for an empty f.
-func wireFormat(f FileDataFormat) string {
+func wireFormat(f DeidentifyFileDataFormat) string {
 	return strings.ToLower(string(f))
 }
 
 // formatFromWire returns the known format for an extension or wire value in any case,
 // or "" when it is not a known format.
-func formatFromWire(value string) FileDataFormat {
+func formatFromWire(value string) DeidentifyFileDataFormat {
 	return knownFormats[strings.ToLower(value)]
 }
 
 // formatFromName infers the format from the file extension, or returns "" so the server
 // infers it.
-func formatFromName(name string) FileDataFormat {
+func formatFromName(name string) DeidentifyFileDataFormat {
 	return formatFromWire(strings.TrimPrefix(filepath.Ext(name), extensionSeparator))
 }
 
@@ -187,7 +187,7 @@ func outputFileName(stem string, output FileOutput, used map[string]bool) string
 	if extension == "" {
 		extension = binaryExtension
 		if entities {
-			extension = wireFormat(FileDataFormatJSON)
+			extension = wireFormat(DeidentifyFileDataFormatJSON)
 		}
 	}
 	prefix := processedFilePrefix

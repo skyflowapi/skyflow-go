@@ -197,35 +197,36 @@ var (
 	}
 )
 
-// FileDataFormat is a file format. The values are upper case;
+// DeidentifyFileDataFormat is the format of a file to de-identify, and of its outputs
+// (FileOutput.ProcessedFileExtension). The values are upper case;
 // the API's wire values are lower case, and the SDK converts in both directions (see
 // wireFormat). A request's DataFormat is matched without regard to case.
-type FileDataFormat string
+type DeidentifyFileDataFormat string
 
 const (
-	FileDataFormatMP3   FileDataFormat = "MP3"
-	FileDataFormatWAV   FileDataFormat = "WAV"
-	FileDataFormatPDF   FileDataFormat = "PDF"
-	FileDataFormatTXT   FileDataFormat = "TXT"
-	FileDataFormatCSV   FileDataFormat = "CSV"
-	FileDataFormatJSON  FileDataFormat = "JSON"
-	FileDataFormatJPG   FileDataFormat = "JPG"
-	FileDataFormatJPEG  FileDataFormat = "JPEG"
-	FileDataFormatTIF   FileDataFormat = "TIF"
-	FileDataFormatTIFF  FileDataFormat = "TIFF"
-	FileDataFormatPNG   FileDataFormat = "PNG"
-	FileDataFormatBMP   FileDataFormat = "BMP"
-	FileDataFormatXLS   FileDataFormat = "XLS"
-	FileDataFormatXLSX  FileDataFormat = "XLSX"
-	FileDataFormatDOC   FileDataFormat = "DOC"
-	FileDataFormatDOCX  FileDataFormat = "DOCX"
-	FileDataFormatPPT   FileDataFormat = "PPT"
-	FileDataFormatPPTX  FileDataFormat = "PPTX"
-	FileDataFormatXML   FileDataFormat = "XML"
-	FileDataFormatDCM   FileDataFormat = "DCM"
-	FileDataFormatJSONL FileDataFormat = "JSONL"
-	FileDataFormatZIP   FileDataFormat = "ZIP"
-	FileDataFormatGIF   FileDataFormat = "GIF"
+	DeidentifyFileDataFormatMP3   DeidentifyFileDataFormat = "MP3"
+	DeidentifyFileDataFormatWAV   DeidentifyFileDataFormat = "WAV"
+	DeidentifyFileDataFormatPDF   DeidentifyFileDataFormat = "PDF"
+	DeidentifyFileDataFormatTXT   DeidentifyFileDataFormat = "TXT"
+	DeidentifyFileDataFormatCSV   DeidentifyFileDataFormat = "CSV"
+	DeidentifyFileDataFormatJSON  DeidentifyFileDataFormat = "JSON"
+	DeidentifyFileDataFormatJPG   DeidentifyFileDataFormat = "JPG"
+	DeidentifyFileDataFormatJPEG  DeidentifyFileDataFormat = "JPEG"
+	DeidentifyFileDataFormatTIF   DeidentifyFileDataFormat = "TIF"
+	DeidentifyFileDataFormatTIFF  DeidentifyFileDataFormat = "TIFF"
+	DeidentifyFileDataFormatPNG   DeidentifyFileDataFormat = "PNG"
+	DeidentifyFileDataFormatBMP   DeidentifyFileDataFormat = "BMP"
+	DeidentifyFileDataFormatXLS   DeidentifyFileDataFormat = "XLS"
+	DeidentifyFileDataFormatXLSX  DeidentifyFileDataFormat = "XLSX"
+	DeidentifyFileDataFormatDOC   DeidentifyFileDataFormat = "DOC"
+	DeidentifyFileDataFormatDOCX  DeidentifyFileDataFormat = "DOCX"
+	DeidentifyFileDataFormatPPT   DeidentifyFileDataFormat = "PPT"
+	DeidentifyFileDataFormatPPTX  DeidentifyFileDataFormat = "PPTX"
+	DeidentifyFileDataFormatXML   DeidentifyFileDataFormat = "XML"
+	DeidentifyFileDataFormatDCM   DeidentifyFileDataFormat = "DCM"
+	DeidentifyFileDataFormatJSONL DeidentifyFileDataFormat = "JSONL"
+	DeidentifyFileDataFormatZIP   DeidentifyFileDataFormat = "ZIP"
+	DeidentifyFileDataFormatGIF   DeidentifyFileDataFormat = "GIF"
 )
 
 // ReidentifyFileDataFormat is the format of a file to re-identify, and of its output: the

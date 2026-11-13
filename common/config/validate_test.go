@@ -73,9 +73,9 @@ var _ = Describe("Validator", func() {
 			Expect(v.ValidateVaultConfig(VaultConfig{VaultId: "v", ClusterId: "c"})).To(BeNil())
 		})
 
-		DescribeTable("should accept valid BaseVaultUrl without a cluster ID",
+		DescribeTable("should accept valid VaultUrl without a cluster ID",
 			func(u string) {
-				Expect(v.ValidateVaultConfig(VaultConfig{VaultId: "v", BaseVaultUrl: u})).To(BeNil())
+				Expect(v.ValidateVaultConfig(VaultConfig{VaultId: "v", VaultUrl: u})).To(BeNil())
 			},
 			Entry("https", "https://example.vault.skyflowapis.com"),
 			Entry("http localhost with port and path", "http://localhost:8080/v1"),
@@ -86,14 +86,14 @@ var _ = Describe("Validator", func() {
 
 		It("should accept plain http for any host with WithInsecureVaultUrl, but still not a malformed URL", func() {
 			lenient := NewValidator(testSDKPrefix, testLogPrefix, WithInsecureVaultUrl())
-			Expect(lenient.ValidateVaultConfig(VaultConfig{VaultId: "v", BaseVaultUrl: "http://10.0.0.5"})).To(BeNil())
-			Expect(lenient.ValidateUpdateVaultConfig(VaultConfig{VaultId: "v", BaseVaultUrl: "http://vault.example.com"})).To(BeNil())
-			expectInvalid(lenient.ValidateVaultConfig(VaultConfig{VaultId: "v", BaseVaultUrl: "ftp://vault.example.com"}), errInvalidVaultUrl)
+			Expect(lenient.ValidateVaultConfig(VaultConfig{VaultId: "v", VaultUrl: "http://10.0.0.5"})).To(BeNil())
+			Expect(lenient.ValidateUpdateVaultConfig(VaultConfig{VaultId: "v", VaultUrl: "http://vault.example.com"})).To(BeNil())
+			expectInvalid(lenient.ValidateVaultConfig(VaultConfig{VaultId: "v", VaultUrl: "ftp://vault.example.com"}), errInvalidVaultUrl)
 		})
 
 		DescribeTable("should reject plain http for a non-loopback host",
 			func(u string) {
-				expectInvalid(v.ValidateVaultConfig(VaultConfig{VaultId: "v", BaseVaultUrl: u}), errInsecureVaultUrl)
+				expectInvalid(v.ValidateVaultConfig(VaultConfig{VaultId: "v", VaultUrl: u}), errInsecureVaultUrl)
 				Expect(logBuf.String()).To(ContainSubstring(logVaultUrlIsInsecure))
 			},
 			Entry("public host", "http://example.vault.skyflowapis.com"),
@@ -101,9 +101,9 @@ var _ = Describe("Validator", func() {
 			Entry("localhost lookalike", "http://localhost.example.com"),
 		)
 
-		DescribeTable("should reject an invalid BaseVaultUrl",
+		DescribeTable("should reject an invalid VaultUrl",
 			func(u string) {
-				expectInvalid(v.ValidateVaultConfig(VaultConfig{VaultId: "v", BaseVaultUrl: u}), errInvalidVaultUrl)
+				expectInvalid(v.ValidateVaultConfig(VaultConfig{VaultId: "v", VaultUrl: u}), errInvalidVaultUrl)
 				Expect(logBuf.String()).To(ContainSubstring(logVaultUrlIsInvalid))
 			},
 			Entry("unparseable", "://bad"),
@@ -112,27 +112,6 @@ var _ = Describe("Validator", func() {
 			Entry("missing host", "https://"),
 			Entry("bad escape", "http://%zz"),
 		)
-
-		It("should warn and fall back to the deprecated BaseVaultURL", func() {
-			err := v.ValidateVaultConfig(VaultConfig{VaultId: "v", BaseVaultURL: "https://example.com"})
-			Expect(err).To(BeNil())
-			Expect(logBuf.String()).To(ContainSubstring("level=warning"))
-			Expect(logBuf.String()).To(ContainSubstring(testLogPrefix + logDeprecatedFieldBaseVaultUrl))
-		})
-
-		It("should validate the deprecated BaseVaultURL when used as fallback", func() {
-			expectInvalid(v.ValidateVaultConfig(VaultConfig{VaultId: "v", BaseVaultURL: "not a url"}), errInvalidVaultUrl)
-		})
-
-		It("should prefer BaseVaultUrl over the deprecated BaseVaultURL", func() {
-			err := v.ValidateVaultConfig(VaultConfig{
-				VaultId:      "v",
-				BaseVaultUrl: "https://example.com",
-				BaseVaultURL: "not a url",
-			})
-			Expect(err).To(BeNil())
-			Expect(logBuf.String()).To(ContainSubstring(logDeprecatedFieldBaseVaultUrl))
-		})
 
 		It("should validate the vault's HTTP settings", func() {
 			expectInvalid(v.ValidateVaultConfig(VaultConfig{VaultId: "v", ClusterId: "c", Timeout: -1}), errNegativeHttpConfig)
@@ -184,19 +163,15 @@ var _ = Describe("Validator", func() {
 		})
 
 		It("should check a base vault URL only when one is set", func() {
-			Expect(v.ValidateUpdateVaultConfig(VaultConfig{VaultId: "v", BaseVaultUrl: "https://vault.example.com"})).To(BeNil())
-			expectInvalid(v.ValidateUpdateVaultConfig(VaultConfig{VaultId: "v", BaseVaultUrl: "ftp://vault.example.com"}), errInvalidVaultUrl)
+			Expect(v.ValidateUpdateVaultConfig(VaultConfig{VaultId: "v", VaultUrl: "https://vault.example.com"})).To(BeNil())
+			expectInvalid(v.ValidateUpdateVaultConfig(VaultConfig{VaultId: "v", VaultUrl: "ftp://vault.example.com"}), errInvalidVaultUrl)
 		})
 
 		It("should reject an update to a plain http vault URL", func() {
-			expectInvalid(v.ValidateUpdateVaultConfig(VaultConfig{VaultId: "v", BaseVaultUrl: "http://vault.example.com"}), errInsecureVaultUrl)
-			Expect(v.ValidateUpdateVaultConfig(VaultConfig{VaultId: "v", BaseVaultUrl: "http://127.0.0.1:8080"})).To(BeNil())
+			expectInvalid(v.ValidateUpdateVaultConfig(VaultConfig{VaultId: "v", VaultUrl: "http://vault.example.com"}), errInsecureVaultUrl)
+			Expect(v.ValidateUpdateVaultConfig(VaultConfig{VaultId: "v", VaultUrl: "http://127.0.0.1:8080"})).To(BeNil())
 		})
 
-		It("should check the deprecated base vault URL when it is the only one set", func() {
-			expectInvalid(v.ValidateUpdateVaultConfig(VaultConfig{VaultId: "v", BaseVaultURL: "not a url"}), errInvalidVaultUrl)
-			Expect(logBuf.String()).To(ContainSubstring(logDeprecatedFieldBaseVaultUrl))
-		})
 	})
 
 	Context("ValidateCredentials", func() {
@@ -286,8 +261,8 @@ var _ = Describe("Validator options", func() {
 		)
 		Expect(v.ValidateVaultConfig(VaultConfig{}).GetMessage()).To(Equal(testSDKPrefix + " vault ID must not be empty."))
 		Expect(v.ValidateVaultConfig(VaultConfig{VaultId: "v"}).GetMessage()).To(Equal(testSDKPrefix + " give a cluster ID or a vault URL."))
-		Expect(v.ValidateVaultConfig(VaultConfig{VaultId: "v", BaseVaultUrl: "ftp://x"}).GetMessage()).To(Equal(testSDKPrefix + " bad URL."))
-		Expect(v.ValidateVaultConfig(VaultConfig{VaultId: "v", BaseVaultUrl: "http://vault.example.com"}).GetMessage()).To(Equal(testSDKPrefix + " use https."))
+		Expect(v.ValidateVaultConfig(VaultConfig{VaultId: "v", VaultUrl: "ftp://x"}).GetMessage()).To(Equal(testSDKPrefix + " bad URL."))
+		Expect(v.ValidateVaultConfig(VaultConfig{VaultId: "v", VaultUrl: "http://vault.example.com"}).GetMessage()).To(Equal(testSDKPrefix + " use https."))
 		Expect(v.ValidateCredentials(Credentials{}).GetMessage()).To(Equal(testSDKPrefix + errNoTokenGenerationMeansPassed))
 		Expect(v.ValidateCredentials(Credentials{Token: "t", Roles: []string{""}}).GetMessage()).To(Equal(testSDKPrefix + errEmptyRoleInRoles))
 	})

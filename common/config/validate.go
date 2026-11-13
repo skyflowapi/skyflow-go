@@ -107,27 +107,14 @@ func (v Validator) ValidateVaultConfig(vaultConfig VaultConfig) *skyflowError.Sk
 	if vaultConfig.VaultId == "" {
 		return v.invalid(logVaultIdIsRequired, errInvalidVaultId)
 	}
-	baseVaultUrl := v.baseVaultUrl(vaultConfig)
-	if baseVaultUrl == "" {
+	if vaultConfig.VaultUrl == "" {
 		if vaultConfig.ClusterId == "" {
 			return v.invalid(logClusterIdIsRequired, errInvalidClusterId)
 		}
-	} else if err := v.validateBaseVaultUrl(baseVaultUrl); err != nil {
+	} else if err := v.validateVaultUrl(vaultConfig.VaultUrl); err != nil {
 		return err
 	}
 	return v.ValidateHttpConfig(vaultConfig.HttpConfig())
-}
-
-// baseVaultUrl returns BaseVaultUrl, falling back to the deprecated BaseVaultURL,
-// and warns when the deprecated field is set.
-func (v Validator) baseVaultUrl(vaultConfig VaultConfig) string {
-	if vaultConfig.BaseVaultURL != "" {
-		logger.Warn(v.logMsg(logDeprecatedFieldBaseVaultUrl))
-		if vaultConfig.BaseVaultUrl == "" {
-			return vaultConfig.BaseVaultURL
-		}
-	}
-	return vaultConfig.BaseVaultUrl
 }
 
 // ValidateHttpConfig checks that the timeouts, retry count and retry delays are not negative.
@@ -146,16 +133,16 @@ func (v Validator) ValidateUpdateVaultConfig(vaultConfig VaultConfig) *skyflowEr
 	if vaultConfig.VaultId == "" {
 		return v.invalid(logVaultIdIsRequired, errInvalidVaultId)
 	}
-	if baseVaultUrl := v.baseVaultUrl(vaultConfig); baseVaultUrl != "" {
-		return v.validateBaseVaultUrl(baseVaultUrl)
+	if vaultConfig.VaultUrl != "" {
+		return v.validateVaultUrl(vaultConfig.VaultUrl)
 	}
 	return nil
 }
 
-// validateBaseVaultUrl checks that the vault URL is well formed and uses https.
+// validateVaultUrl checks that the vault URL is well formed and uses https.
 // Bearer tokens and sensitive data travel on it, so plain http is allowed only for
 // loopback hosts (local development and tests), unless AllowInsecureVaultUrl is set.
-func (v Validator) validateBaseVaultUrl(raw string) *skyflowError.SkyflowError {
+func (v Validator) validateVaultUrl(raw string) *skyflowError.SkyflowError {
 	u, err := url.Parse(raw)
 	if err != nil || (u.Scheme != httpProtocol && u.Scheme != httpsProtocol) || u.Host == "" {
 		return v.invalid(logVaultUrlIsInvalid, errInvalidVaultUrl)

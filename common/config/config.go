@@ -31,13 +31,11 @@ type Credentials struct {
 type VaultConfig struct {
 	VaultId   string
 	ClusterId string
-	// BaseVaultUrl overrides the URL built from ClusterId and Env. It must use https; http
+	// VaultUrl overrides the URL built from ClusterId and Env. It must use https; http
 	// is accepted only for localhost and loopback addresses.
-	BaseVaultUrl string
-	// Deprecated: Use BaseVaultUrl instead.
-	BaseVaultURL string
-	Env          Env
-	Credentials  Credentials
+	VaultUrl    string
+	Env         Env
+	Credentials Credentials
 
 	// Optional HTTP settings for this vault. Zero values (and a nil MaxRetries)
 	// mean "not set": the client-level HttpConfig applies, then the SDK default.

@@ -82,7 +82,7 @@ func newTestController(f *fakeDetect) (*Controller, *[]time.Duration) {
 		ClusterURL:  func(config.Env, string) string { return "" },
 		SDKMetadata: func() string { return "meta" },
 	}
-	base := vaultclient.New(profile, config.VaultConfig{VaultId: "vault1", BaseVaultUrl: f.server.URL},
+	base := vaultclient.New(profile, config.VaultConfig{VaultId: "vault1", VaultUrl: f.server.URL},
 		vaultclient.ClientSettings{Credentials: &config.Credentials{ApiKey: testApiKey}})
 	c := NewController(base, SkySources)
 	var pauses []time.Duration
@@ -249,7 +249,7 @@ func TestDeidentifyFileSubmitOnly(t *testing.T) {
 	c, _ := newTestController(f)
 
 	resp, err := c.DeidentifyFile(context.Background(), DeidentifyFileRequest{
-		DataSource: SkyDeidentifySourceTypeSkyflowID, Value: "sid", DataFormat: FileDataFormatPDF, ConfigurationId: "cfg",
+		DataSource: SkyDeidentifySourceTypeSkyflowID, Value: "sid", DataFormat: DeidentifyFileDataFormatPDF, ConfigurationId: "cfg",
 	}, DeidentifyFileOptions{})
 	if err != nil {
 		t.Fatal(err)
@@ -557,9 +557,9 @@ func TestCheckGuardrailsUnknownValidation(t *testing.T) {
 func TestOutputFileNames(t *testing.T) {
 	used := map[string]bool{}
 	names := []string{
-		outputFileName("doc", FileOutput{ProcessedFileType: ProcessedFileTypeRedactedFile, ProcessedFileExtension: FileDataFormatPDF}, used),
+		outputFileName("doc", FileOutput{ProcessedFileType: ProcessedFileTypeRedactedFile, ProcessedFileExtension: DeidentifyFileDataFormatPDF}, used),
 		outputFileName("doc", FileOutput{ProcessedFileType: ProcessedFileTypeObjectEntities}, used),
-		outputFileName("doc", FileOutput{ProcessedFileType: ProcessedFileTypeRedactedText, ProcessedFileExtension: FileDataFormatPDF}, used),
+		outputFileName("doc", FileOutput{ProcessedFileType: ProcessedFileTypeRedactedText, ProcessedFileExtension: DeidentifyFileDataFormatPDF}, used),
 	}
 	want := []string{"processed-doc.pdf", "processed-object-entities-doc.json", "processed-doc.redacted_text.pdf"}
 	for i := range want {
@@ -571,8 +571,8 @@ func TestOutputFileNames(t *testing.T) {
 
 func TestOutputFileNamesStayUniqueWhenOutputsRepeat(t *testing.T) {
 	used := map[string]bool{}
-	redacted := FileOutput{ProcessedFileType: ProcessedFileTypeRedactedFile, ProcessedFileExtension: FileDataFormatPDF}
-	unknown := FileOutput{ProcessedFileType: "NEW_TYPE", ProcessedFileExtension: FileDataFormatPDF}
+	redacted := FileOutput{ProcessedFileType: ProcessedFileTypeRedactedFile, ProcessedFileExtension: DeidentifyFileDataFormatPDF}
+	unknown := FileOutput{ProcessedFileType: "NEW_TYPE", ProcessedFileExtension: DeidentifyFileDataFormatPDF}
 	var names []string
 	for _, output := range []FileOutput{redacted, redacted, redacted, unknown, unknown} {
 		names = append(names, outputFileName("doc", output, used))
@@ -590,7 +590,7 @@ func TestWriteOutputsKeepsEveryOutputOfTheSameType(t *testing.T) {
 	var outputs []FileOutput
 	for _, content := range []string{"one", "two", "three"} {
 		outputs = append(outputs, FileOutput{ProcessedFile: base64.StdEncoding.EncodeToString([]byte(content)),
-			ProcessedFileType: ProcessedFileTypeRedactedFile, ProcessedFileExtension: FileDataFormatTXT})
+			ProcessedFileType: ProcessedFileTypeRedactedFile, ProcessedFileExtension: DeidentifyFileDataFormatTXT})
 	}
 	dir := t.TempDir()
 	if err := c.writeOutputs(outputs, SkyDeidentifySourceTypeBase64, "in.txt", dir); err != nil {
@@ -665,7 +665,7 @@ func TestUnknownOutputTypeAndExtensionAreEmpty(t *testing.T) {
 	c, _ := newTestController(f)
 
 	run, err := c.GetRun(context.Background(), GetRunRequest{RunId: "run-4"}, GetRunOptions{})
-	if err != nil || run.OutputType != nil || run.Output[0].ProcessedFileExtension != FileDataFormatPDF || run.Output[1].ProcessedFileExtension != "" {
+	if err != nil || run.OutputType != nil || run.Output[0].ProcessedFileExtension != DeidentifyFileDataFormatPDF || run.Output[1].ProcessedFileExtension != "" {
 		t.Fatalf("run = %+v, err = %v", run, err)
 	}
 	resp, err := c.ReidentifyFile(context.Background(), ReidentifyFileRequest{DataSource: SkyReidentifySourceTypeBase64, Value: "aGk="}, ReidentifyFileOptions{})
@@ -726,13 +726,13 @@ func TestPollOptionsDefaultsApplyOnlyToNilFields(t *testing.T) {
 	}
 }
 
-// FileDataFormat values are upper case, while the API's wire
+// DeidentifyFileDataFormat values are upper case, while the API's wire
 // values are lower case: a request's DataFormat is sent lower case whatever its case, and a
 // response's ProcessedFileExtension comes back as the upper-case constant.
 func TestFileDataFormatIsUpperCaseAndWireIsLowerCase(t *testing.T) {
 	t.Run("constants are upper case", func(t *testing.T) {
-		if FileDataFormatTXT != "TXT" || FileDataFormatJSONL != "JSONL" {
-			t.Fatalf("constants = %q, %q", FileDataFormatTXT, FileDataFormatJSONL)
+		if DeidentifyFileDataFormatTXT != "TXT" || DeidentifyFileDataFormatJSONL != "JSONL" {
+			t.Fatalf("constants = %q, %q", DeidentifyFileDataFormatTXT, DeidentifyFileDataFormatJSONL)
 		}
 	})
 
@@ -740,7 +740,7 @@ func TestFileDataFormatIsUpperCaseAndWireIsLowerCase(t *testing.T) {
 		f := newFakeDetect(t)
 		f.responses[pathDeidentifyFile] = []string{`{"runId":"run-1"}`}
 		c, _ := newTestController(f)
-		for _, format := range []FileDataFormat{FileDataFormatCSV, "csv", "Csv"} {
+		for _, format := range []DeidentifyFileDataFormat{DeidentifyFileDataFormatCSV, "csv", "Csv"} {
 			if _, err := c.DeidentifyFile(context.Background(), DeidentifyFileRequest{
 				DataSource: SkyDeidentifySourceTypeBase64, Value: "aGk=", DataFormat: format, ConfigurationId: "cfg",
 			}, DeidentifyFileOptions{}); err != nil {
@@ -783,13 +783,13 @@ func TestFileDataFormatIsUpperCaseAndWireIsLowerCase(t *testing.T) {
 	})
 
 	t.Run("output file names keep the lower-case extension", func(t *testing.T) {
-		if got := outputFileName("notes", FileOutput{ProcessedFileType: ProcessedFileTypeRedactedFile, ProcessedFileExtension: FileDataFormatPDF}, map[string]bool{}); got != "processed-notes.pdf" {
+		if got := outputFileName("notes", FileOutput{ProcessedFileType: ProcessedFileTypeRedactedFile, ProcessedFileExtension: DeidentifyFileDataFormatPDF}, map[string]bool{}); got != "processed-notes.pdf" {
 			t.Errorf("output file name = %q", got)
 		}
 	})
 
 	t.Run("format from name ignores case", func(t *testing.T) {
-		if got := formatFromName("Scan.PNG"); got != FileDataFormatPNG {
+		if got := formatFromName("Scan.PNG"); got != DeidentifyFileDataFormatPNG {
 			t.Errorf("formatFromName = %q", got)
 		}
 	})

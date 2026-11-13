@@ -77,3 +77,24 @@ func TestMediaOptionsSendZeroValues(t *testing.T) {
 		t.Fatalf("unset options should be omitted: %s", raw)
 	}
 }
+
+// The source names are "" for nil, including a nil pointer, and a pointer gives the value
+// it points to.
+func TestSourceNames(t *testing.T) {
+	var nilFlow *FlowDeidentifySourceType
+	var nilSky *SkyDeidentifySourceType
+	skyflowID := SkyDeidentifySourceTypeSkyflowID
+	for source, want := range map[DeidentifyFileSource]string{nil: "", nilFlow: "", nilSky: "", &skyflowID: "SKYFLOW_ID", FlowDeidentifySourceTypeBase64: "BASE64"} {
+		if got := deidentifySourceName(source); got != want {
+			t.Errorf("deidentifySourceName(%#v) = %q, want %q", source, got, want)
+		}
+	}
+	var nilFlowRe *FlowReidentifySourceType
+	var nilSkyRe *SkyReidentifySourceType
+	presigned := FlowReidentifySourceTypePresignedURL
+	for source, want := range map[ReidentifyFileSource]string{nil: "", nilFlowRe: "", nilSkyRe: "", &presigned: "PRESIGNED_URL", SkyReidentifySourceTypeBase64: "BASE64"} {
+		if got := reidentifySourceName(source); got != want {
+			t.Errorf("reidentifySourceName(%#v) = %q, want %q", source, got, want)
+		}
+	}
+}

@@ -78,8 +78,10 @@ const (
 	errMissingFileSource           = " Validation error. Specify one of FilePath, FileObject or Value in deidentify file request."
 	errMultipleFileSources         = " Validation error. Specify only one of FilePath, FileObject or Value in deidentify file request."
 	errInvalidDeidentifyDataSource = " Validation error. Invalid DataSource in deidentify file request. Specify a DeidentifySourceType."
-	errInvalidDeidentifyValue      = " Validation error. Invalid Value in deidentify file request. Specify the non-empty content or reference that DataSource describes."
-	errFileNotFound                = " Validation error. The file to deidentify was not found at the specified path. Verify the file path and try again."
+	// errUnsupportedDeidentifyDataSource names the given source and the vault type's sources.
+	errUnsupportedDeidentifyDataSource = " Validation error. DataSource %s in deidentify file request is not supported for this vault. Specify one of: %s."
+	errInvalidDeidentifyValue          = " Validation error. Invalid Value in deidentify file request. Specify the non-empty content or reference that DataSource describes."
+	errFileNotFound                    = " Validation error. The file to deidentify was not found at the specified path. Verify the file path and try again."
 	// errFailedToEncodeFile is for a local file that exists but can't be read.
 	errFailedToEncodeFile          = " Validation error. Failed to encode the file. Ensure the file is in a supported format and try again."
 	errInvalidWaitTime             = " Validation error. WaitTime in Poll must be between %d and %d seconds."
@@ -87,7 +89,9 @@ const (
 	errOutputDirectoryNeedPoll     = " Validation error. OutputDirectory in deidentify file options requires Poll."
 	errEmptyRunId                  = " Validation error. Invalid RunId in get run request. Specify a non-empty run id."
 	errInvalidReidentifyDataSource = " Validation error. Invalid DataSource in reidentify file request. Specify a ReidentifySourceType."
-	errInvalidReidentifyValue      = " Validation error. Invalid Value in reidentify file request. Specify the non-empty base64 content or presigned URL of the file."
+	// errUnsupportedReidentifyDataSource names the given source and the vault type's sources.
+	errUnsupportedReidentifyDataSource = " Validation error. DataSource %s in reidentify file request is not supported for this vault. Specify one of: %s."
+	errInvalidReidentifyValue          = " Validation error. Invalid Value in reidentify file request. Specify the non-empty base64 content or presigned URL of the file."
 	// errOutputNotWritten names only the path; the cause is logged and kept on the error
 	// (Unwrap), not repeated in the message.
 	errOutputNotWritten = " Failed to write the processed output to %s."

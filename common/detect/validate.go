@@ -2,6 +2,7 @@ package detect
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -54,8 +55,8 @@ func (c *Controller) validateDeidentifyFile(request DeidentifyFileRequest, optio
 // from exactly one of FilePath, FileObject and Value, each counted when set (Value only when
 // non-empty: Go can't tell an empty string from an unset one), that Value has a DataSource
 // and is not blank, and that a local file is a regular file, before the poll options are
-// checked. DataSource is ignored for a local file, and its value is sent as given: the server
-// rejects one its vault does not accept.
+// checked. The DataSource must be one of the vault type's de-identify sources (a pointer to
+// one is accepted). It is ignored for a local file.
 func (c *Controller) validateDeidentifyFileSource(request DeidentifyFileRequest) *skyflowError.SkyflowError {
 	switch countSet(request.FilePath != "", request.FileObject != nil, request.Value != "") {
 	case 0:
@@ -67,8 +68,13 @@ func (c *Controller) validateDeidentifyFileSource(request DeidentifyFileRequest)
 	if request.Value == "" {
 		return c.checkLocalFile(request.FilePath, request.FileObject)
 	}
-	if deidentifySourceName(request.DataSource) == "" {
+	source := deidentifySourceValue(request.DataSource)
+	if source == nil || source.deidentifySource() == "" {
 		return c.invalid(errInvalidDeidentifyDataSource)
+	}
+	if !slices.Contains(c.sources.Deidentify, source) {
+		return c.invalid(fmt.Sprintf(errUnsupportedDeidentifyDataSource,
+			source.deidentifySource(), sourceList(c.sources.Deidentify, DeidentifyFileSource.deidentifySource)))
 	}
 	if blank(request.Value) {
 		return c.invalid(errInvalidDeidentifyValue)
@@ -76,14 +82,29 @@ func (c *Controller) validateDeidentifyFileSource(request DeidentifyFileRequest)
 	return nil
 }
 
-// validateReidentifyFile checks the file's DataSource and Value. The
-// DataSource is sent as given, and redaction rules are optional (nil rules are skipped).
+// validateReidentifyFile checks the file's DataSource and Value. The DataSource must be one
+// of the vault type's re-identify sources (a pointer to one is accepted). Redaction rules are
+// optional (nil rules are skipped).
 func (c *Controller) validateReidentifyFile(request ReidentifyFileRequest) *skyflowError.SkyflowError {
-	if reidentifySourceName(request.DataSource) == "" {
+	source := reidentifySourceValue(request.DataSource)
+	if source == nil || source.reidentifySource() == "" {
 		return c.invalid(errInvalidReidentifyDataSource)
+	}
+	if !slices.Contains(c.sources.Reidentify, source) {
+		return c.invalid(fmt.Sprintf(errUnsupportedReidentifyDataSource,
+			source.reidentifySource(), sourceList(c.sources.Reidentify, ReidentifyFileSource.reidentifySource)))
 	}
 	if blank(request.Value) {
 		return c.invalid(errInvalidReidentifyValue)
 	}
 	return nil
+}
+
+// sourceList joins the wire values of a vault type's sources for an error message.
+func sourceList[S any](sources []S, wire func(S) string) string {
+	names := make([]string, len(sources))
+	for i, source := range sources {
+		names[i] = wire(source)
+	}
+	return strings.Join(names, ", ")
 }

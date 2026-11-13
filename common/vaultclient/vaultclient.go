@@ -34,7 +34,7 @@ type Profile struct {
 	LogPrefix string
 	// Auth generates bearer tokens from service-account credentials.
 	Auth *auth.Service
-	// ClusterURL builds the vault base URL when the config has no BaseVaultUrl.
+	// ClusterURL builds the vault base URL when the config has no VaultUrl.
 	ClusterURL func(env config.Env, clusterId string) string
 	// SDKMetadata returns the sky-metadata header value.
 	SDKMetadata func() string
@@ -63,12 +63,11 @@ type Profile struct {
 // Logs are an SDK's own log lines, SDK log prefix included. An empty field uses the
 // default line, or logs nothing for the lines that have no default.
 type Logs struct {
-	TokenExpired           string // replaces the default
-	GenerateBearerToken    string // replaces the default
-	ReuseBearerToken       string // replaces the default
-	UsingApiKey            string // info, when a call uses an API key; no default
-	UsingBearerToken       string // info, when a call uses a token from the credentials; no default
-	DeprecatedBaseVaultURL string // warning, when the config sets BaseVaultURL; no default
+	TokenExpired        string // replaces the default
+	GenerateBearerToken string // replaces the default
+	ReuseBearerToken    string // replaces the default
+	UsingApiKey         string // info, when a call uses an API key; no default
+	UsingBearerToken    string // info, when a call uses a token from the credentials; no default
 }
 
 func (p Profile) errMsg(base string) string { return p.SDKPrefix + base }
@@ -424,16 +423,10 @@ func (b *Base) resolveCredentials(current settings) (*config.Credentials, *skyfl
 	return nil, b.profile.NewError(skyflowError.INVALID_INPUT_CODE, b.profile.emptyCredentialsMsg())
 }
 
-// baseURL picks BaseVaultUrl, then the deprecated BaseVaultURL, then the cluster URL.
+// baseURL picks VaultUrl, then the cluster URL.
 func (b *Base) baseURL(vaultConfig config.VaultConfig) string {
-	if vaultConfig.BaseVaultURL != "" { //nolint:staticcheck // the deprecated field is still honoured
-		logOptional(logger.Warn, b.profile.Logs.DeprecatedBaseVaultURL)
-	}
-	if vaultConfig.BaseVaultUrl != "" {
-		return vaultConfig.BaseVaultUrl
-	}
-	if vaultConfig.BaseVaultURL != "" { //nolint:staticcheck // the deprecated field is still honoured
-		return vaultConfig.BaseVaultURL //nolint:staticcheck // the deprecated field is still honoured
+	if vaultConfig.VaultUrl != "" {
+		return vaultConfig.VaultUrl
 	}
 	return b.profile.ClusterURL(vaultConfig.Env, vaultConfig.ClusterId)
 }

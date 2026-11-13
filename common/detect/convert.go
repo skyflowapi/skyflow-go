@@ -190,38 +190,54 @@ func (s SkyDeidentifySourceType) deidentifySource() string  { return string(s) }
 func (s FlowReidentifySourceType) reidentifySource() string { return string(s) }
 func (s SkyReidentifySourceType) reidentifySource() string  { return string(s) }
 
-// deidentifySourceName returns source's wire value, or "" for nil, including a nil
-// *FlowDeidentifySourceType or *SkyDeidentifySourceType.
-func deidentifySourceName(source DeidentifyFileSource) string {
+// deidentifySourceValue returns source with a pointer replaced by the value it points to,
+// or nil for nil, including a nil *FlowDeidentifySourceType or *SkyDeidentifySourceType.
+func deidentifySourceValue(source DeidentifyFileSource) DeidentifyFileSource {
 	switch s := source.(type) {
-	case nil:
-		return ""
 	case *FlowDeidentifySourceType:
 		if s == nil {
-			return ""
+			return nil
 		}
+		return *s
 	case *SkyDeidentifySourceType:
 		if s == nil {
-			return ""
+			return nil
 		}
+		return *s
+	}
+	return source
+}
+
+// reidentifySourceValue returns source with a pointer replaced by the value it points to,
+// or nil for nil, including a nil *FlowReidentifySourceType or *SkyReidentifySourceType.
+func reidentifySourceValue(source ReidentifyFileSource) ReidentifyFileSource {
+	switch s := source.(type) {
+	case *FlowReidentifySourceType:
+		if s == nil {
+			return nil
+		}
+		return *s
+	case *SkyReidentifySourceType:
+		if s == nil {
+			return nil
+		}
+		return *s
+	}
+	return source
+}
+
+// deidentifySourceName returns source's wire value, or "" for nil, including a nil pointer.
+func deidentifySourceName(source DeidentifyFileSource) string {
+	if source = deidentifySourceValue(source); source == nil {
+		return ""
 	}
 	return source.deidentifySource()
 }
 
-// reidentifySourceName returns source's wire value, or "" for nil, including a nil
-// *FlowReidentifySourceType or *SkyReidentifySourceType.
+// reidentifySourceName returns source's wire value, or "" for nil, including a nil pointer.
 func reidentifySourceName(source ReidentifyFileSource) string {
-	switch s := source.(type) {
-	case nil:
+	if source = reidentifySourceValue(source); source == nil {
 		return ""
-	case *FlowReidentifySourceType:
-		if s == nil {
-			return ""
-		}
-	case *SkyReidentifySourceType:
-		if s == nil {
-			return ""
-		}
 	}
 	return source.reidentifySource()
 }
