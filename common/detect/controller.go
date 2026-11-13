@@ -65,13 +65,13 @@ func (c *Controller) invalid(text string) *skyflowError.SkyflowError {
 }
 
 // prepare logs the call, validates the request and resolves auth, headers and HTTP settings.
-func (c *Controller) prepare(ctx context.Context, method, operation string, interceptor Interceptor, validate func() *skyflowError.SkyflowError) (*vaultclient.Call, *skyflowError.SkyflowError) {
+func (c *Controller) prepare(ctx context.Context, method, operation string, headers map[CustomHeaderKey]string, validate func() *skyflowError.SkyflowError) (*vaultclient.Call, *skyflowError.SkyflowError) {
 	logger.Info(fmt.Sprintf(c.logMsg(logMethodTriggered), method))
 	logger.Info(fmt.Sprintf(c.logMsg(logValidatingRequest), method))
 	if err := validate(); err != nil {
 		return nil, err
 	}
-	return c.base.PrepareContext(ctx, operation, interceptor)
+	return c.base.PrepareContext(ctx, operation, headers)
 }
 
 // finish logs how the call ended and passes its error through.
@@ -86,7 +86,7 @@ func (c *Controller) finish(method string, err *skyflowError.SkyflowError) *skyf
 
 // DeidentifyString de-identifies sensitive data in a string. Synchronous.
 func (c *Controller) DeidentifyString(ctx context.Context, request DeidentifyStringRequest, options DeidentifyStringOptions) (*DeidentifyStringResponse, *skyflowError.SkyflowError) {
-	call, err := c.prepare(ctx, methodDeidentifyString, OperationDeidentifyString, options.Interceptor, func() *skyflowError.SkyflowError {
+	call, err := c.prepare(ctx, methodDeidentifyString, OperationDeidentifyString, options.CustomHeaders, func() *skyflowError.SkyflowError {
 		return c.validateDeidentifyString(request)
 	})
 	if err != nil {
@@ -108,7 +108,7 @@ func (c *Controller) DeidentifyString(ctx context.Context, request DeidentifyStr
 // error, so the run ID (and any outputs) are not lost.
 func (c *Controller) DeidentifyFile(ctx context.Context, request DeidentifyFileRequest, options DeidentifyFileOptions) (*DeidentifyFileResponse, *skyflowError.SkyflowError) {
 	var input *localFile
-	call, err := c.prepare(ctx, methodDeidentifyFile, OperationDeidentifyFile, options.Interceptor, func() *skyflowError.SkyflowError {
+	call, err := c.prepare(ctx, methodDeidentifyFile, OperationDeidentifyFile, options.CustomHeaders, func() *skyflowError.SkyflowError {
 		if err := c.validateDeidentifyFile(request, options); err != nil {
 			return err
 		}
@@ -157,7 +157,7 @@ func (c *Controller) DeidentifyFile(ctx context.Context, request DeidentifyFileR
 
 // GetRun returns the current state of a de-identify file run.
 func (c *Controller) GetRun(ctx context.Context, request GetRunRequest, options GetRunOptions) (*GetRunResponse, *skyflowError.SkyflowError) {
-	call, err := c.prepare(ctx, methodGetRun, OperationGetRun, options.Interceptor, func() *skyflowError.SkyflowError {
+	call, err := c.prepare(ctx, methodGetRun, OperationGetRun, options.CustomHeaders, func() *skyflowError.SkyflowError {
 		if blank(request.RunId) {
 			return c.invalid(errEmptyRunId)
 		}
@@ -176,7 +176,7 @@ func (c *Controller) GetRun(ctx context.Context, request GetRunRequest, options 
 // ReidentifyString replaces tokens in a string with their original or redacted values.
 // Synchronous.
 func (c *Controller) ReidentifyString(ctx context.Context, request ReidentifyStringRequest, options ReidentifyStringOptions) (*ReidentifyStringResponse, *skyflowError.SkyflowError) {
-	call, err := c.prepare(ctx, methodReidentifyString, OperationReidentifyString, options.Interceptor, func() *skyflowError.SkyflowError {
+	call, err := c.prepare(ctx, methodReidentifyString, OperationReidentifyString, options.CustomHeaders, func() *skyflowError.SkyflowError {
 		if blank(request.Text) {
 			return c.invalid(errInvalidTextReidentifyString)
 		}
@@ -195,7 +195,7 @@ func (c *Controller) ReidentifyString(ctx context.Context, request ReidentifyStr
 // ReidentifyFile re-identifies a file. Synchronous: there is no run and no polling. The
 // output comes back in the response; the SDK writes nothing to disk.
 func (c *Controller) ReidentifyFile(ctx context.Context, request ReidentifyFileRequest, options ReidentifyFileOptions) (*ReidentifyFileResponse, *skyflowError.SkyflowError) {
-	call, err := c.prepare(ctx, methodReidentifyFile, OperationReidentifyFile, options.Interceptor, func() *skyflowError.SkyflowError {
+	call, err := c.prepare(ctx, methodReidentifyFile, OperationReidentifyFile, options.CustomHeaders, func() *skyflowError.SkyflowError {
 		return c.validateReidentifyFile(request)
 	})
 	if err != nil {
@@ -210,7 +210,7 @@ func (c *Controller) ReidentifyFile(ctx context.Context, request ReidentifyFileR
 
 // CheckGuardrails screens text for toxicity and denied topics. Synchronous.
 func (c *Controller) CheckGuardrails(ctx context.Context, request CheckGuardrailsRequest, options CheckGuardrailsOptions) (*CheckGuardrailsResponse, *skyflowError.SkyflowError) {
-	call, err := c.prepare(ctx, methodCheckGuardrails, OperationCheckGuardrails, options.Interceptor, func() *skyflowError.SkyflowError {
+	call, err := c.prepare(ctx, methodCheckGuardrails, OperationCheckGuardrails, options.CustomHeaders, func() *skyflowError.SkyflowError {
 		if blank(request.Text) {
 			return c.invalid(errInvalidTextCheckGuardrails)
 		}

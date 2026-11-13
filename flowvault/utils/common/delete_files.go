@@ -54,5 +54,5 @@ type DeleteFilesResponse struct {
 }
 
 type DeleteFilesOptions struct {
-	Interceptor Interceptor
+	CustomHeaders map[CustomHeaderKey]string
 }

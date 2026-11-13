@@ -37,5 +37,5 @@ type InsertResponse struct {
 }
 
 type InsertOptions struct {
-	Interceptor Interceptor
+	CustomHeaders map[CustomHeaderKey]string
 }

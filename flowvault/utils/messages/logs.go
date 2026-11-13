@@ -22,7 +22,6 @@ const (
 	VALIDATING_REQUEST               = SDK_LOG_PREFIX + "Validating %s request."
 	REQUEST_RESOLVED                 = SDK_LOG_PREFIX + "%s request resolved."
 	REQUEST_REJECTED                 = SDK_LOG_PREFIX + "%s request resulted in failure."
-	REQUEST_INTERCEPTOR_FAILED       = SDK_LOG_PREFIX + "Request interceptor threw an exception. The request was not sent."
 	QUERY_RECORD_LIMIT_REACHED       = SDK_LOG_PREFIX + "Query returned %d rows, the most the vault returns in one call; more rows may match. Use LIMIT and OFFSET in the query to page through them."
 	INCOMPLETE_UPLOAD_FILES_RESPONSE = SDK_LOG_PREFIX + "The upload response has a different number of records than the request, so no file was uploaded."
 	UPLOAD_FILES_RECORD_MISMATCH     = SDK_LOG_PREFIX + "Upload response record %d does not match its request record, so its files were not uploaded."

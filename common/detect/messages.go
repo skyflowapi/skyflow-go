@@ -1,6 +1,6 @@
 package detect
 
-// Method names used in logs and error messages, and operation names passed to interceptors.
+// Method names used in logs and error messages, and operation names used in header validation errors.
 const (
 	methodDeidentifyString = "DeidentifyString"
 	methodDeidentifyFile   = "DeidentifyFile"

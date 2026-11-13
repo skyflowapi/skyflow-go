@@ -477,7 +477,7 @@ The level and output are **process-wide**: they are shared by every client of th
 | `UploadFiles` | `UploadFilesRequest` | `UploadFilesOptions` | `UploadFilesResponse` | Upload files to file columns (the SDK fetches signed URLs and uploads the bytes) |
 | `DeleteFiles` | `DeleteFilesRequest` | `DeleteFilesOptions` | `DeleteFilesResponse` | Delete files from file columns by Skyflow ID or unique value |
 
-Pass the zero value of the options struct (for example `common.InsertOptions{}`) when you don't need it. Its only field is `Interceptor`; see [Custom Request Headers](#custom-request-headers).
+Pass the zero value of the options struct (for example `common.InsertOptions{}`) when you don't need it. Its only field is `CustomHeaders`; see [Custom Request Headers](#custom-request-headers).
 
 The snippets below assume `vault` from [Quickstart](#quickstart), `ctx := context.Background()`, and the `common` package imported.
 
@@ -1045,7 +1045,7 @@ for _, record := range response.Records {
 
 # Custom Request Headers
 
-To add custom HTTP headers to one call, set an `Interceptor` on that operation's options struct. The interceptor is a `func(rc *common.RequestContext)`; it runs once per call, just before the request is sent, and adds headers with `rc.AddHeader(key, value)`. `rc.Operation` names the operation (for example `"INSERT"`). `rc.BatchIndex` and `rc.TotalBatches` are `common.NotBatched` (`-1`), because every operation sends one request. The supported keys are `common.CustomHeaderKey` constants:
+To add custom HTTP headers to one call, set `CustomHeaders` on that operation's options struct. It is a `map[common.CustomHeaderKey]string`, and its keys are these constants:
 
 | `CustomHeaderKey` | HTTP header name |
 |---|---|
@@ -1053,20 +1053,20 @@ To add custom HTTP headers to one call, set an `Interceptor` on that operation's
 | `common.SkyflowAccountName` | `x-skyflow-account-name` |
 | `common.RequestIdHeader` | `x-request-id` |
 
-Any other key, or a blank value, fails the call with a `*SkyflowError` before it is sent. So does a panic in the interceptor: the call returns a `*SkyflowError` instead of crashing your program. Its message is the panic's own (an `error`'s text or a `string`), else `"Request interceptor threw an exception. The request was not sent."`, and it has no HTTP code (`GetHttpCode()` is `"0"`, with an empty status); an `error` is also kept as the cause. A `*SkyflowError` you panic with is returned as is.
+Any other key, or a blank value, fails the call with a `*SkyflowError` before it is sent. The error message names the operation, for example `INSERT`.
 
 [Example](../samples/flowvault/vaultapi/custom_header_example.go):
 
 ```go
 options := common.InsertOptions{
-	Interceptor: func(rc *common.RequestContext) {
-		rc.AddHeader(common.RequestIdHeader, "req-001")
+	CustomHeaders: map[common.CustomHeaderKey]string{
+		common.RequestIdHeader: "req-001",
 	},
 }
 response, err := vault.Insert(ctx, request, options)
 ```
 
-Headers the interceptor adds are merged with the SDK's own headers (SDK metadata and `Authorization`).
+These headers are sent along with the SDK's own headers (SDK metadata and `Authorization`).
 
 The same pattern applies to every operation, through its options struct:
 
@@ -1267,7 +1267,7 @@ Sample response (polled, successful):
 ```
 
 > [!TIP]
-> See the full examples in the samples directory: [deidentify_file.go](../samples/flowvault/detectapi/deidentify_file.go) and [deidentify_file_advanced.go](../samples/flowvault/detectapi/deidentify_file_advanced.go) (`FileObject`, media options, a per-call `Interceptor`).
+> See the full examples in the samples directory: [deidentify_file.go](../samples/flowvault/detectapi/deidentify_file.go) and [deidentify_file_advanced.go](../samples/flowvault/detectapi/deidentify_file_advanced.go) (`FileObject`, media options, per-call `CustomHeaders`).
 
 ## Get Run
 `GetRun` returns the current state of a `DeidentifyFile` run. It's how you get the result of a run you didn't poll. `Output`, `Metrics` and `OutputType` are set once the run succeeds. Each output is base64 or a presigned URL, as `OutputType` says, and the SDK writes nothing to disk. `OutputType` is a `DeidentifySourceType`; it is nil for a value the SDK doesn't know. `Metrics` and each of its counts are pointers, nil when the server leaves them out. When the run failed, `Message` says why.
@@ -1495,12 +1495,12 @@ The supported file formats are the `FileDataFormat*` constants: `pdf`, `txt`, `c
 The SDK doesn't limit text or file size. Any limit is enforced by the server, and a request over it comes back as a `*SkyflowError`.
 
 ## Detect request headers
-To add headers to a Detect call, set `Interceptor` in its options, as for the vault operations (see [Custom Request Headers](#custom-request-headers)). `rc.Operation` names the call, for example `DEIDENTIFY_FILE`.
+To add headers to a Detect call, set `CustomHeaders` in its options, as for the vault operations (see [Custom Request Headers](#custom-request-headers)).
 
 ```go
 options := common.DeidentifyStringOptions{
-	Interceptor: func(rc *common.RequestContext) {
-		rc.AddHeader(common.RequestIdHeader, "<REQUEST_ID>")
+	CustomHeaders: map[common.CustomHeaderKey]string{
+		common.RequestIdHeader: "<REQUEST_ID>",
 	},
 }
 ```
@@ -1569,7 +1569,7 @@ if err != nil {
 
 | Method | Returns | Description |
 |---|---|---|
-| `GetHttpCode()` | `string` | HTTP status code, for example `"400"`, `"404"`, `"500"`. `"499"` when the call's context was cancelled or its deadline passed. `"0"` (with an empty `GetHttpStatusCode()`) when no usable HTTP response came back: a network failure, the call ran past its `Timeout`, or the response body couldn't be read. Also `"0"` when there was no HTTP exchange at all: the request interceptor panicked, or Detect couldn't write an output file. |
+| `GetHttpCode()` | `string` | HTTP status code, for example `"400"`, `"404"`, `"500"`. `"499"` when the call's context was cancelled or its deadline passed. `"0"` (with an empty `GetHttpStatusCode()`) when no usable HTTP response came back: a network failure, the call ran past its `Timeout`, or the response body couldn't be read. Also `"0"` when there was no HTTP exchange at all, for example when Detect couldn't write an output file. |
 | `GetHttpCodeInt()` | `int` | `GetHttpCode()` as a number; `0` when there is no HTTP code. |
 | `GetMessage()` | `string` | Human-readable description of the error, as it is. For example `"Skyflow FlowVault Go SDK 1.0.0 Validation error. 'query' can't be empty. Specify a query"`. |
 | `GetGrpcCode()` | `string` | gRPC status code from the server. |

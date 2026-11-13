@@ -115,7 +115,7 @@ func (p Profile) tokenExpiredMsg() string {
 type ClientSettings struct {
 	Credentials *config.Credentials
 	HttpConfig  config.HttpConfig
-	// Headers are sent with every call, before any the call's interceptor adds.
+	// Headers are sent with every call. A call's own header of the same name replaces one.
 	Headers map[config.CustomHeaderKey]string
 }
 
@@ -264,16 +264,17 @@ func (b *Base) snapshot() settings {
 	return settings{config: b.config, client: b.client, authVersion: b.authVersion}
 }
 
-// Prepare resolves auth, headers and HTTP settings for one call. The interceptor, when set,
-// can add per-call headers; operation is passed to it.
-func (b *Base) Prepare(operation string, interceptor Interceptor) (*Call, *skyflowError.SkyflowError) {
-	return b.PrepareContext(context.Background(), operation, interceptor)
+// Prepare resolves auth, headers and HTTP settings for one call. headers are the call's own
+// custom headers, added after the client-level ones; operation names the call in a header
+// validation error.
+func (b *Base) Prepare(operation string, headers map[config.CustomHeaderKey]string) (*Call, *skyflowError.SkyflowError) {
+	return b.PrepareContext(context.Background(), operation, headers)
 }
 
 // PrepareContext is Prepare that stops waiting for a bearer token when ctx ends.
-func (b *Base) PrepareContext(ctx context.Context, operation string, interceptor Interceptor) (*Call, *skyflowError.SkyflowError) {
+func (b *Base) PrepareContext(ctx context.Context, operation string, callHeaders map[config.CustomHeaderKey]string) (*Call, *skyflowError.SkyflowError) {
 	current := b.snapshot()
-	headers, err := b.buildHeaders(operation, current.client.Headers, interceptor)
+	headers, err := b.buildHeaders(operation, current.client.Headers, callHeaders)
 	if err != nil {
 		return nil, err
 	}

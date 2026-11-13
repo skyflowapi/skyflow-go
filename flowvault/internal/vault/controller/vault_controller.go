@@ -30,13 +30,13 @@ func NewVaultController(config fvcommon.VaultConfig, client ClientSettings) *Vau
 }
 
 // prepare logs the call, validates the request and resolves auth, headers and HTTP settings.
-func (v *VaultController) prepare(ctx context.Context, method, operation string, interceptor fvcommon.Interceptor, validate func() *fverrors.SkyflowError) (*RequestSetup, *fverrors.SkyflowError) {
+func (v *VaultController) prepare(ctx context.Context, method, operation string, headers map[fvcommon.CustomHeaderKey]string, validate func() *fverrors.SkyflowError) (*RequestSetup, *fverrors.SkyflowError) {
 	fvlogger.Info(fmt.Sprintf(logs.METHOD_TRIGGERED, method))
 	fvlogger.Info(fmt.Sprintf(logs.VALIDATING_REQUEST, method))
 	if err := validate(); err != nil {
 		return nil, err
 	}
-	return v.SetupRequest(ctx, operation, interceptor)
+	return v.SetupRequest(ctx, operation, headers)
 }
 
 // finish logs how the call ended and passes its error through.
@@ -55,7 +55,7 @@ func hasRecords[T any](records func(*T) int) func(*T) bool {
 
 // Insert inserts records, optionally upserting on unique columns.
 func (v *VaultController) Insert(ctx context.Context, request fvcommon.InsertRequest, options fvcommon.InsertOptions) (*fvcommon.InsertResponse, *fverrors.SkyflowError) {
-	setup, err := v.prepare(ctx, fvconsts.METHOD_INSERT, fvconsts.OPERATION_INSERT, options.Interceptor, func() *fverrors.SkyflowError {
+	setup, err := v.prepare(ctx, fvconsts.METHOD_INSERT, fvconsts.OPERATION_INSERT, options.CustomHeaders, func() *fverrors.SkyflowError {
 		return fvvalidation.ValidateInsert(request)
 	})
 	if err != nil {
@@ -74,7 +74,7 @@ func (v *VaultController) Insert(ctx context.Context, request fvcommon.InsertReq
 
 // Update updates existing records by Skyflow ID.
 func (v *VaultController) Update(ctx context.Context, request fvcommon.UpdateRequest, options fvcommon.UpdateOptions) (*fvcommon.UpdateResponse, *fverrors.SkyflowError) {
-	setup, err := v.prepare(ctx, fvconsts.METHOD_UPDATE, fvconsts.OPERATION_UPDATE, options.Interceptor, func() *fverrors.SkyflowError {
+	setup, err := v.prepare(ctx, fvconsts.METHOD_UPDATE, fvconsts.OPERATION_UPDATE, options.CustomHeaders, func() *fverrors.SkyflowError {
 		return fvvalidation.ValidateUpdate(request)
 	})
 	if err != nil {
@@ -93,7 +93,7 @@ func (v *VaultController) Update(ctx context.Context, request fvcommon.UpdateReq
 
 // Get fetches records by Skyflow IDs or unique values, from one table or several.
 func (v *VaultController) Get(ctx context.Context, request fvcommon.GetRequest, options fvcommon.GetOptions) (*fvcommon.GetResponse, *fverrors.SkyflowError) {
-	setup, err := v.prepare(ctx, fvconsts.METHOD_GET, fvconsts.OPERATION_GET, options.Interceptor, func() *fverrors.SkyflowError {
+	setup, err := v.prepare(ctx, fvconsts.METHOD_GET, fvconsts.OPERATION_GET, options.CustomHeaders, func() *fverrors.SkyflowError {
 		return fvvalidation.ValidateGet(request)
 	})
 	if err != nil {
@@ -112,7 +112,7 @@ func (v *VaultController) Get(ctx context.Context, request fvcommon.GetRequest, 
 
 // Delete deletes records by Skyflow IDs or unique values.
 func (v *VaultController) Delete(ctx context.Context, request fvcommon.DeleteRequest, options fvcommon.DeleteOptions) (*fvcommon.DeleteResponse, *fverrors.SkyflowError) {
-	setup, err := v.prepare(ctx, fvconsts.METHOD_DELETE, fvconsts.OPERATION_DELETE, options.Interceptor, func() *fverrors.SkyflowError {
+	setup, err := v.prepare(ctx, fvconsts.METHOD_DELETE, fvconsts.OPERATION_DELETE, options.CustomHeaders, func() *fverrors.SkyflowError {
 		return fvvalidation.ValidateDelete(request)
 	})
 	if err != nil {
@@ -131,7 +131,7 @@ func (v *VaultController) Delete(ctx context.Context, request fvcommon.DeleteReq
 
 // Detokenize returns the values behind tokens, applying per-token-group redaction.
 func (v *VaultController) Detokenize(ctx context.Context, request fvcommon.DetokenizeRequest, options fvcommon.DetokenizeOptions) (*fvcommon.DetokenizeResponse, *fverrors.SkyflowError) {
-	setup, err := v.prepare(ctx, fvconsts.METHOD_DETOKENIZE, fvconsts.OPERATION_DETOKENIZE, options.Interceptor, func() *fverrors.SkyflowError {
+	setup, err := v.prepare(ctx, fvconsts.METHOD_DETOKENIZE, fvconsts.OPERATION_DETOKENIZE, options.CustomHeaders, func() *fverrors.SkyflowError {
 		return fvvalidation.ValidateDetokenize(request)
 	})
 	if err != nil {
@@ -150,7 +150,7 @@ func (v *VaultController) Detokenize(ctx context.Context, request fvcommon.Detok
 
 // GetTokens returns existing tokens for values in deterministic token groups.
 func (v *VaultController) GetTokens(ctx context.Context, request fvcommon.GetTokensRequest, options fvcommon.GetTokensOptions) (*fvcommon.GetTokensResponse, *fverrors.SkyflowError) {
-	setup, err := v.prepare(ctx, fvconsts.METHOD_GET_TOKENS, fvconsts.OPERATION_GET_TOKENS, options.Interceptor, func() *fverrors.SkyflowError {
+	setup, err := v.prepare(ctx, fvconsts.METHOD_GET_TOKENS, fvconsts.OPERATION_GET_TOKENS, options.CustomHeaders, func() *fverrors.SkyflowError {
 		return fvvalidation.ValidateGetTokens(request)
 	})
 	if err != nil {
@@ -167,7 +167,7 @@ func (v *VaultController) GetTokens(ctx context.Context, request fvcommon.GetTok
 // Query runs a SELECT query. It returns at most 25 rows per call, so page with LIMIT and
 // OFFSET in the query; a warning is logged when a call returns that many.
 func (v *VaultController) Query(ctx context.Context, request fvcommon.QueryRequest, options fvcommon.QueryOptions) (*fvcommon.QueryResponse, *fverrors.SkyflowError) {
-	setup, err := v.prepare(ctx, fvconsts.METHOD_QUERY, fvconsts.OPERATION_QUERY, options.Interceptor, func() *fverrors.SkyflowError {
+	setup, err := v.prepare(ctx, fvconsts.METHOD_QUERY, fvconsts.OPERATION_QUERY, options.CustomHeaders, func() *fverrors.SkyflowError {
 		return fvvalidation.ValidateQuery(request)
 	})
 	if err != nil {
@@ -201,7 +201,7 @@ func (v *VaultController) Query(ctx context.Context, request fvcommon.QueryReque
 // reported as FAILED or SKIPPED; the other columns are unaffected.
 func (v *VaultController) UploadFiles(ctx context.Context, request fvcommon.UploadFilesRequest, options fvcommon.UploadFilesOptions) (*fvcommon.UploadFilesResponse, *fverrors.SkyflowError) {
 	files := make([][]fvhelpers.ResolvedFile, len(request.Records))
-	setup, err := v.prepare(ctx, fvconsts.METHOD_UPLOAD_FILES, fvconsts.OPERATION_UPLOAD_FILES, options.Interceptor, func() *fverrors.SkyflowError {
+	setup, err := v.prepare(ctx, fvconsts.METHOD_UPLOAD_FILES, fvconsts.OPERATION_UPLOAD_FILES, options.CustomHeaders, func() *fverrors.SkyflowError {
 		if err := fvvalidation.ValidateUploadFiles(request); err != nil {
 			return err
 		}
@@ -354,7 +354,7 @@ func skippedUploadRecord(record fvcommon.UploadFilesRequestRecord, files []fvhel
 
 // DeleteFiles deletes files from file columns of existing records, including the stored objects.
 func (v *VaultController) DeleteFiles(ctx context.Context, request fvcommon.DeleteFilesRequest, options fvcommon.DeleteFilesOptions) (*fvcommon.DeleteFilesResponse, *fverrors.SkyflowError) {
-	setup, err := v.prepare(ctx, fvconsts.METHOD_DELETE_FILES, fvconsts.OPERATION_DELETE_FILES, options.Interceptor, func() *fverrors.SkyflowError {
+	setup, err := v.prepare(ctx, fvconsts.METHOD_DELETE_FILES, fvconsts.OPERATION_DELETE_FILES, options.CustomHeaders, func() *fverrors.SkyflowError {
 		return fvvalidation.ValidateDeleteFiles(request)
 	})
 	if err != nil {

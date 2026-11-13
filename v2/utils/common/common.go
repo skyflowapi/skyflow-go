@@ -5,7 +5,6 @@ import (
 
 	cfg "github.com/skyflowapi/skyflow-go/common/config"
 	sa "github.com/skyflowapi/skyflow-go/common/serviceaccount"
-	"github.com/skyflowapi/skyflow-go/common/vaultclient"
 )
 
 // Platform-level configuration types are defined once in
@@ -134,12 +133,6 @@ const (
 	// Deprecated: Use RequestIdHeader instead.
 	RequestIDHeader = RequestIdHeader
 )
-
-// RequestContext is passed to a Detect options Interceptor before each API call.
-type RequestContext = vaultclient.RequestContext
-
-// Interceptor customises a single Detect call, e.g. by adding headers.
-type Interceptor = vaultclient.Interceptor
 
 type InsertOptions struct {
 	ReturnTokens    bool

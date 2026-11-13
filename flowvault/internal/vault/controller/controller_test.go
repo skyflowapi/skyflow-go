@@ -24,23 +24,15 @@ var (
 )
 
 var _ = Describe("SetupRequest", func() {
-	It("uses the client API key and the interceptor's headers", func() {
+	It("uses the client API key and the call's custom headers", func() {
 		config := fvcommon.VaultConfig{VaultId: "v", ClusterId: "cluster", Env: fvcommon.DEV, Timeout: 5 * time.Second}
 		v := NewVaultController(config, ClientSettings{Credentials: &fvcommon.Credentials{ApiKey: testApiKey}})
 
-		var operation string
-		var batchIndex, totalBatches int
-		setup, err := v.SetupRequest(context.Background(), "QUERY", func(rc *fvcommon.RequestContext) {
-			operation = rc.Operation
-			batchIndex, totalBatches = rc.BatchIndex, rc.TotalBatches
-			rc.AddHeader(fvcommon.RequestIdHeader, "custom-id")
-			rc.AddHeader(fvcommon.SkyflowAccountId, "acc")
+		setup, err := v.SetupRequest(context.Background(), "QUERY", map[fvcommon.CustomHeaderKey]string{
+			fvcommon.RequestIdHeader:  "custom-id",
+			fvcommon.SkyflowAccountId: "acc",
 		})
 		Expect(err).To(BeNil())
-		Expect(operation).To(Equal("QUERY"))
-		// A single, unbatched call.
-		Expect([]int{batchIndex, totalBatches}).To(Equal([]int{fvcommon.NotBatched, fvcommon.NotBatched}))
-		Expect(fvcommon.NotBatched).To(Equal(-1))
 		Expect(setup.AuthToken).To(Equal(testApiKey))
 		Expect(setup.BaseURL).To(Equal("https://cluster.skyvault.skyflowapis.dev"))
 		Expect(setup.Headers.Get("x-skyflow-account-id")).To(Equal("acc"))

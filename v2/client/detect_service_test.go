@@ -9,7 +9,9 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	cdetect "github.com/skyflowapi/skyflow-go/common/detect"
 	"github.com/skyflowapi/skyflow-go/v2/utils/common"
+	skyflowError "github.com/skyflowapi/skyflow-go/v2/utils/error"
 )
 
 var _ = Describe("Detect", func() {
@@ -61,6 +63,34 @@ var _ = Describe("Detect", func() {
 		Expect(body["vaultId"]).To(Equal(vaultId))
 		level := body["redactionLevel"].([]interface{})[0].(map[string]interface{})
 		Expect(level).To(Equal(map[string]interface{}{"entityName": "NAME", "redactionType": "PLAIN_TEXT"}))
+	})
+
+	It("sends a call's custom headers over the client's and validates them with v2's rules", func() {
+		client := newClient(WithCustomHeaders(map[common.CustomHeaderKey]string{
+			common.SkyflowAccountId: "acc", common.RequestIdHeader: "client-req",
+		}))
+		service, err := client.Detect(vaultId)
+		Expect(err).To(BeNil())
+
+		_, err = service.ReidentifyString(context.Background(), common.ReidentifyStringRequest{Text: "x"},
+			common.ReidentifyStringOptions{CustomHeaders: map[common.CustomHeaderKey]string{common.RequestIdHeader: "call-req"}})
+		Expect(err).To(BeNil())
+		Expect(header.Get("x-skyflow-account-id")).To(Equal("acc"))
+		Expect(header.Get("x-request-id")).To(Equal("call-req"))
+
+		// An empty map is rejected, as for the v2 vault operations.
+		path = ""
+		_, err = service.ReidentifyString(context.Background(), common.ReidentifyStringRequest{Text: "x"},
+			common.ReidentifyStringOptions{CustomHeaders: map[common.CustomHeaderKey]string{}})
+		Expect(err).NotTo(BeNil())
+		Expect(err.GetMessage()).To(ContainSubstring(skyflowError.EMPTY_REQUEST_HEADER))
+		Expect(path).To(BeEmpty())
+
+		_, err = service.ReidentifyString(context.Background(), common.ReidentifyStringRequest{Text: "x"},
+			common.ReidentifyStringOptions{CustomHeaders: map[common.CustomHeaderKey]string{"x-other": "v"}})
+		Expect(err).NotTo(BeNil())
+		Expect(err.GetMessage()).To(ContainSubstring("x-other"))
+		Expect(err.GetMessage()).To(ContainSubstring(cdetect.OperationReidentifyString))
 	})
 
 	It("uses credentials set after it was obtained", func() {

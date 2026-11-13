@@ -16,8 +16,7 @@ const (
 	INVALID_INPUT_CODE ErrorCodesEnum = v2errors.INVALID_INPUT_CODE
 	// REQUEST_CANCELLED - The call's context ended before the call finished.
 	REQUEST_CANCELLED ErrorCodesEnum = v2errors.REQUEST_CANCELLED
-	// TRANSPORT_ERROR - The call got no usable HTTP response, or was not sent because the
-	// request interceptor failed (code "0", empty status).
+	// TRANSPORT_ERROR - The call got no usable HTTP response (code "0", empty status).
 	TRANSPORT_ERROR ErrorCodesEnum = v2errors.TRANSPORT_ERROR
 )
 

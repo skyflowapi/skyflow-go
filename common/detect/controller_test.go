@@ -107,9 +107,7 @@ func TestDeidentifyStringSendsInlineConfigurationWithVaultId(t *testing.T) {
 		Configuration: &DetectConfiguration{Detect: &Detect{Entities: []Entity{{
 			EntityType: EntityTypeName, DeidentificationType: DeidentificationTypeVaultToken, Destination: "persons",
 		}}}},
-	}, DeidentifyStringOptions{Interceptor: func(rc *vaultclient.RequestContext) {
-		rc.AddHeader(config.RequestIdHeader, "caller-req")
-	}})
+	}, DeidentifyStringOptions{CustomHeaders: map[CustomHeaderKey]string{config.RequestIdHeader: "caller-req"}})
 	if err != nil {
 		t.Fatal(err)
 	}

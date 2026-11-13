@@ -92,12 +92,7 @@ func TestRetryTransportResendsBody(t *testing.T) {
 
 func TestPrepareUsesApiKeyHeadersAndClusterURL(t *testing.T) {
 	b := New(testProfile(), config.VaultConfig{VaultId: "v1", ClusterId: "c1"}, ClientSettings{Credentials: &config.Credentials{ApiKey: testApiKey}})
-	call, err := b.Prepare("DEIDENTIFY_STRING", func(rc *RequestContext) {
-		if rc.Operation != "DEIDENTIFY_STRING" {
-			t.Errorf("operation = %q", rc.Operation)
-		}
-		rc.AddHeader(config.RequestIdHeader, "req-1")
-	})
+	call, err := b.Prepare("DEIDENTIFY_STRING", map[config.CustomHeaderKey]string{config.RequestIdHeader: "req-1"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,8 +106,8 @@ func TestPrepareUsesApiKeyHeadersAndClusterURL(t *testing.T) {
 
 func TestPrepareRejectsUnsupportedHeader(t *testing.T) {
 	b := New(testProfile(), config.VaultConfig{VaultId: "v1", ClusterId: "c1"}, ClientSettings{Credentials: &config.Credentials{ApiKey: testApiKey}})
-	_, err := b.Prepare("GET", func(rc *RequestContext) { rc.AddHeader("x-other", "v") })
-	if err == nil || !strings.Contains(err.GetMessage(), "is not supported") {
+	_, err := b.Prepare("GET", map[config.CustomHeaderKey]string{"x-other": "v"})
+	if err == nil || !strings.Contains(err.GetMessage(), "GET: header key \"x-other\" is not supported") {
 		t.Fatalf("err = %v", err)
 	}
 }
@@ -157,12 +152,13 @@ func TestAuthVersionChangesWithCredentials(t *testing.T) {
 	}
 }
 
-func TestClientHeadersComeBeforeInterceptorHeaders(t *testing.T) {
+// A call's header replaces the client's header of the same name; the others are kept.
+func TestCallHeadersReplaceClientHeaders(t *testing.T) {
 	b := New(testProfile(), config.VaultConfig{VaultId: "v1", ClusterId: "c1"}, ClientSettings{
 		Credentials: &config.Credentials{ApiKey: testApiKey},
 		Headers:     map[config.CustomHeaderKey]string{config.SkyflowAccountId: "acc", config.RequestIdHeader: "client"},
 	})
-	call, err := b.Prepare("GET", func(rc *RequestContext) { rc.AddHeader(config.RequestIdHeader, "call") })
+	call, err := b.Prepare("GET", map[config.CustomHeaderKey]string{config.RequestIdHeader: "call"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -191,10 +187,22 @@ func TestProfileHooksValidateClientHeadersAndReplaceTokenExpired(t *testing.T) {
 		Credentials: &config.Credentials{ApiKey: testApiKey},
 		Headers:     map[config.CustomHeaderKey]string{config.SkyflowAccountId: "acc"},
 	})
-	if _, err := b.Prepare("GET", func(rc *RequestContext) { rc.AddHeader(config.RequestIdHeader, "r") }); err != nil {
+	if _, err := b.Prepare("GET", map[config.CustomHeaderKey]string{config.RequestIdHeader: "r"}); err != nil {
 		t.Fatal(err)
 	}
 	if strings.Join(tags, ",") != "Client headers in,GET" {
+		t.Fatalf("validator tags = %v", tags)
+	}
+	// A call without headers skips the call-header check; an empty map is still checked, so
+	// an SDK's validator can reject it.
+	tags = nil
+	if _, err := b.Prepare("QUERY", nil); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := b.Prepare("QUERY", map[config.CustomHeaderKey]string{}); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Join(tags, ",") != "Client headers in,Client headers in,QUERY" {
 		t.Fatalf("validator tags = %v", tags)
 	}
 
@@ -534,41 +542,12 @@ func TestSignedURLClientDropsRetriesAndTheOverallTimeout(t *testing.T) {
 	}
 }
 
-// The interceptor sees an unbatched call, and a panic in it fails the call instead of
-// crashing the caller: with the panic's own message, else the default one, as TRANSPORT_ERROR.
-func TestInterceptorBatchFieldsAndPanics(t *testing.T) {
-	profile := testProfile()
-	profile.ErrorOptions = []skyflowError.ErrorOption{skyflowError.RawMessage()}
-	b := New(profile, config.VaultConfig{VaultId: "v1", ClusterId: "c1"}, ClientSettings{Credentials: &config.Credentials{ApiKey: testApiKey}})
-
-	var seen RequestContext
-	if _, err := b.Prepare("GET", func(rc *RequestContext) { seen = *rc }); err != nil {
-		t.Fatal(err)
-	}
-	if seen.Operation != "GET" || seen.BatchIndex != NotBatched || seen.TotalBatches != NotBatched {
-		t.Fatalf("request context = %+v", seen)
-	}
-
-	own := skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, "own")
-	cause := errors.New("boom")
-	for name, c := range map[string]struct {
-		panicWith interface{}
-		message   string
-		cause     error
-	}{
-		"error":        {cause, "boom", cause},
-		"string":       {"stop", "stop", nil},
-		"empty string": {"", "Test SDK" + errInterceptorFailed, nil},
-		"other value":  {42, "Test SDK" + errInterceptorFailed, nil},
-	} {
-		_, err := b.Prepare("GET", func(*RequestContext) { panic(c.panicWith) })
-		if err == nil || err.GetMessage() != c.message || err.GetHttpCode() != string(skyflowError.TRANSPORT_ERROR) ||
-			err.GetHttpStatusCode() != "" || err.Unwrap() != c.cause {
-			t.Errorf("%s: err = %v", name, err)
-		}
-	}
-	if _, err := b.Prepare("GET", func(*RequestContext) { panic(own) }); err != own {
-		t.Errorf("SkyflowError panic: err = %v, want it returned as is", err)
+// An empty header value is rejected with the call's operation in the message.
+func TestPrepareRejectsEmptyHeaderValue(t *testing.T) {
+	b := New(testProfile(), config.VaultConfig{VaultId: "v1", ClusterId: "c1"}, ClientSettings{Credentials: &config.Credentials{ApiKey: testApiKey}})
+	_, err := b.Prepare("INSERT", map[config.CustomHeaderKey]string{config.RequestIdHeader: "  "})
+	if err == nil || !strings.Contains(err.GetMessage(), "INSERT: header \"x-request-id\" must have a value") {
+		t.Fatalf("err = %v", err)
 	}
 }
 

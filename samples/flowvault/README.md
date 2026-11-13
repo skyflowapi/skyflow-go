@@ -61,7 +61,7 @@ go run vaultapi/insert_records.go
 |---|---|
 | [deidentify_string.go](detectapi/deidentify_string.go) | De-identify text with a stored configuration, or an inline one |
 | [deidentify_file.go](detectapi/deidentify_file.go) | Submit a file by presigned URL and keep the run ID, or send a local file and wait for the run |
-| [deidentify_file_advanced.go](detectapi/deidentify_file_advanced.go) | `FileObject`, media and object-entity options, and a per-call `Interceptor` |
+| [deidentify_file_advanced.go](detectapi/deidentify_file_advanced.go) | `FileObject`, media and object-entity options, and per-call `CustomHeaders` |
 | [get_run.go](detectapi/get_run.go) | Look up a run by ID, save its base64 outputs, read `Message` when it failed |
 | [reidentify_string.go](detectapi/reidentify_string.go) | Tokenize text into a token group, then re-identify it in full or through a redaction pattern |
 | [reidentify_file.go](detectapi/reidentify_file.go) | Re-identify a base64 file and save the output |
@@ -72,7 +72,7 @@ go run vaultapi/insert_records.go
 
 | Sample | Demonstrates |
 |---|---|
-| [custom_header_example.go](vaultapi/custom_header_example.go) | Add headers to one call with an `InsertOptions` interceptor |
+| [custom_header_example.go](vaultapi/custom_header_example.go) | Add headers to one call with `InsertOptions.CustomHeaders` |
 | [timeout_and_retry_config_example.go](vaultapi/timeout_and_retry_config_example.go) | Client-wide `WithHttpConfig` and per-vault `Timeout` / `MaxRetries` |
 
 ## Service account (token generation)

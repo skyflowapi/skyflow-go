@@ -59,14 +59,14 @@ func GenerateToken(creds fvcommon.Credentials) (*string, *fverrors.SkyflowError)
 	return &token, nil
 }
 
-// SetupRequest resolves auth, headers and HTTP settings for one call. The interceptor,
-// when set, can add per-call headers. It stops waiting for a bearer token when ctx ends.
-func (b BaseController) SetupRequest(ctx context.Context, operation string, interceptor fvcommon.Interceptor) (*RequestSetup, *fverrors.SkyflowError) {
+// SetupRequest resolves auth, headers and HTTP settings for one call. headers are the call's
+// own custom headers. It stops waiting for a bearer token when ctx ends.
+func (b BaseController) SetupRequest(ctx context.Context, operation string, headers map[fvcommon.CustomHeaderKey]string) (*RequestSetup, *fverrors.SkyflowError) {
 	if ctx == nil {
 		fvlogger.Error(logs.NIL_CONTEXT)
 		return nil, fverrors.NewSkyflowError(fverrors.INVALID_INPUT_CODE, fverrors.NIL_CONTEXT)
 	}
-	call, err := b.PrepareContext(ctx, operation, interceptor)
+	call, err := b.PrepareContext(ctx, operation, headers)
 	if err != nil {
 		return nil, err
 	}

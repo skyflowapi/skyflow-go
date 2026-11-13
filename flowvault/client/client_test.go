@@ -227,9 +227,9 @@ var _ = Describe("VaultService", func() {
 		Expect(err.GetMessage()).To(ContainSubstring(fverrors.EMPTY_QUERY))
 	})
 
-	It("rejects interceptor headers that aren't supported", func() {
+	It("rejects custom headers that aren't supported", func() {
 		_, err := vault.Query(ctx, fvcommon.QueryRequest{Query: "SELECT 1"}, fvcommon.QueryOptions{
-			Interceptor: func(rc *fvcommon.RequestContext) { rc.AddHeader("x-other", "v") },
+			CustomHeaders: map[fvcommon.CustomHeaderKey]string{"x-other": "v"},
 		})
 		Expect(err.GetMessage()).To(ContainSubstring("is not supported"))
 	})

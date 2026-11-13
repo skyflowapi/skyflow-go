@@ -248,9 +248,9 @@ var _ = Describe("SetupRequest, edge cases", func() {
 		Expect(setup.BaseURL).To(Equal("https://legacy.example.com"))
 	})
 
-	It("rejects an unsupported interceptor header before authenticating", func() {
+	It("rejects an unsupported custom header before authenticating", func() {
 		_, err := NewVaultController(fvcommon.VaultConfig{VaultId: "v", ClusterId: "c"}, ClientSettings{}).
-			SetupRequest(context.Background(), "GET", func(rc *fvcommon.RequestContext) { rc.AddHeader("x-other", "v") })
+			SetupRequest(context.Background(), "GET", map[fvcommon.CustomHeaderKey]string{"x-other": "v"})
 		Expect(err.GetMessage()).To(ContainSubstring("is not supported"))
 	})
 

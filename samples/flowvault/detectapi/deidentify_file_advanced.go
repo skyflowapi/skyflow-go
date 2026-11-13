@@ -18,14 +18,14 @@ import (
 
 /**
  * This example de-identifies an open file with the Detect API, using an inline
- * configuration with media options and a per-call interceptor.
+ * configuration with media options and per-call custom headers.
  *
  * - FileObject sends a file you already opened (you close it); its format is inferred from
  *   the name. FilePath and Value (with DataSource) are the other two sources: set exactly one.
  * - Media holds per-media-type options. Its numbers and flags are pointers (common.Ptr): nil
  *   leaves the option to the server default.
  * - ObjectEntities redact objects such as faces in images.
- * - Interceptor adds headers to this call only.
+ * - CustomHeaders adds headers to this call only.
  *
  * Steps:
  * 1. Set up credentials and the vault config.
@@ -73,14 +73,12 @@ func main() {
 			Image:    &common.Image{OutputProcessedImage: common.Ptr(true), MaskingMethod: common.MaskingMethodBlackbox},
 		},
 	}
+	requestID := makeRequestID()
+	fmt.Println("request id =>", requestID)
 	options := common.DeidentifyFileOptions{
 		Poll:            &common.PollOptions{WaitTime: common.Ptr(3 * time.Minute), MaxAttempts: common.Ptr(10)},
 		OutputDirectory: "<OUTPUT_DIRECTORY>",
-		Interceptor: func(rc *common.RequestContext) {
-			requestID := makeRequestID()
-			fmt.Println("request id =>", requestID, "for", rc.Operation)
-			rc.AddHeader(common.RequestIdHeader, requestID)
-		},
+		CustomHeaders:   map[common.CustomHeaderKey]string{common.RequestIdHeader: requestID},
 	}
 
 	// Step 4: De-identify the open file and wait for the run

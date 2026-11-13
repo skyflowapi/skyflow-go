@@ -4,12 +4,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/skyflowapi/skyflow-go/common/vaultclient"
+	"github.com/skyflowapi/skyflow-go/common/config"
 )
 
-// Interceptor customises a single call, e.g. by adding headers. It is the same type the
-// vault options use.
-type Interceptor = vaultclient.Interceptor
+// CustomHeaderKey names a custom header a call can send. It is the type the vault options use.
+type CustomHeaderKey = config.CustomHeaderKey
 
 // ---------------------------------------------------------------------------
 // Shared response types
@@ -85,7 +84,7 @@ type DeidentifyStringRequest struct {
 
 // DeidentifyStringOptions customise a DeidentifyString call.
 type DeidentifyStringOptions struct {
-	Interceptor Interceptor
+	CustomHeaders map[CustomHeaderKey]string
 }
 
 // DeidentifyStringResponse is the de-identified text and what was found in it.
@@ -145,7 +144,7 @@ type DeidentifyFileRequest struct {
 
 // DeidentifyFileOptions customise a DeidentifyFile call.
 type DeidentifyFileOptions struct {
-	Interceptor Interceptor
+	CustomHeaders map[CustomHeaderKey]string
 	// Poll, when set, waits for the run to finish (V1's behaviour). Nil, the default,
 	// returns as soon as the run is submitted, with only RunId set.
 	Poll *PollOptions
@@ -191,7 +190,7 @@ type GetRunRequest struct {
 
 // GetRunOptions customise a GetRun call.
 type GetRunOptions struct {
-	Interceptor Interceptor
+	CustomHeaders map[CustomHeaderKey]string
 }
 
 // GetRunResponse is the current state of a run. Output, Metrics and OutputType are set
@@ -218,7 +217,7 @@ type ReidentifyStringRequest struct {
 
 // ReidentifyStringOptions customise a ReidentifyString call.
 type ReidentifyStringOptions struct {
-	Interceptor Interceptor
+	CustomHeaders map[CustomHeaderKey]string
 }
 
 // ReidentifyStringResponse is the re-identified text.
@@ -243,7 +242,7 @@ type ReidentifyFileRequest struct {
 
 // ReidentifyFileOptions customise a ReidentifyFile call.
 type ReidentifyFileOptions struct {
-	Interceptor Interceptor
+	CustomHeaders map[CustomHeaderKey]string
 }
 
 // ReidentifyFileResponse is the re-identified file. The SDK writes nothing to disk: Output
@@ -271,7 +270,7 @@ type CheckGuardrailsRequest struct {
 
 // CheckGuardrailsOptions customise a CheckGuardrails call.
 type CheckGuardrailsOptions struct {
-	Interceptor Interceptor
+	CustomHeaders map[CustomHeaderKey]string
 }
 
 // CheckGuardrailsResponse is the screening result.

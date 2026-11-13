@@ -382,7 +382,7 @@ var _ = Describe("VaultController API calls", func() {
 		resp, err := v.UploadFiles(ctx, fvcommon.UploadFilesRequest{Records: []fvcommon.UploadFilesRequestRecord{
 			{TableName: "docs", Columns: []fvcommon.UploadFilesRequestColumn{{Column: "resume", Base64: "cGRm", FileName: "resume.pdf"}}},
 		}}, fvcommon.UploadFilesOptions{
-			Interceptor: func(rc *fvcommon.RequestContext) { rc.AddHeader(fvcommon.RequestIdHeader, "mine") },
+			CustomHeaders: map[fvcommon.CustomHeaderKey]string{fvcommon.RequestIdHeader: "mine"},
 		})
 		Expect(err).To(BeNil())
 		Expect(fake.putCalls["/signed/unavailable"]).To(Equal(1))
@@ -485,9 +485,9 @@ var _ = Describe("VaultController API calls", func() {
 		}))
 	})
 
-	It("sends interceptor headers", func() {
+	It("sends the call's custom headers", func() {
 		_, err := v.Query(ctx, fvcommon.QueryRequest{Query: "SELECT 1"}, fvcommon.QueryOptions{
-			Interceptor: func(rc *fvcommon.RequestContext) { rc.AddHeader(fvcommon.RequestIdHeader, "mine") },
+			CustomHeaders: map[fvcommon.CustomHeaderKey]string{fvcommon.RequestIdHeader: "mine"},
 		})
 		Expect(err).To(BeNil())
 		Expect(fake.headers["/v2/query"].Get("x-request-id")).To(Equal("mine"))
@@ -567,42 +567,13 @@ var _ = Describe("VaultController API calls", func() {
 		}
 	})
 
-	It("fails the call with a SkyflowError when the interceptor panics", func() {
+	It("rejects an empty custom header value before sending the call", func() {
 		_, err := v.Query(ctx, fvcommon.QueryRequest{Query: "SELECT 1"}, fvcommon.QueryOptions{
-			Interceptor: func(rc *fvcommon.RequestContext) { panic(errors.New("no tenant")) },
+			CustomHeaders: map[fvcommon.CustomHeaderKey]string{fvcommon.RequestIdHeader: " "},
 		})
 		Expect(err).ToNot(BeNil())
-		// There is no HTTP code ("0", empty status) and the message is the interceptor's own
-		// when it has one.
-		Expect(err.GetHttpCode()).To(Equal(string(fverrors.TRANSPORT_ERROR)))
-		Expect(err.GetHttpStatusCode()).To(BeEmpty())
-		Expect(err.GetMessage()).To(ContainSubstring("no tenant"))
-		Expect(errors.Unwrap(err)).To(MatchError("no tenant"))
-		Expect(fake.calls).To(BeEmpty())
-
-		_, err = v.Query(ctx, fvcommon.QueryRequest{Query: "SELECT 1"}, fvcommon.QueryOptions{
-			Interceptor: func(rc *fvcommon.RequestContext) { panic("missing tenant") },
-		})
-		Expect(err.GetMessage()).To(ContainSubstring("missing tenant"))
-		for _, recovered := range []interface{}{42, errors.New(""), ""} {
-			_, err = v.Query(ctx, fvcommon.QueryRequest{Query: "SELECT 1"}, fvcommon.QueryOptions{
-				Interceptor: func(rc *fvcommon.RequestContext) { panic(recovered) },
-			})
-			Expect(err.GetMessage()).To(ContainSubstring(fverrors.REQUEST_INTERCEPTOR_FAILED))
-		}
-		Expect(fake.calls).To(BeEmpty())
-
-		own := fverrors.NewSkyflowError(fverrors.INVALID_INPUT_CODE, "mine")
-		_, err = v.Query(ctx, fvcommon.QueryRequest{Query: "SELECT 1"}, fvcommon.QueryOptions{
-			Interceptor: func(rc *fvcommon.RequestContext) { panic(own) },
-		})
-		Expect(err).To(BeIdenticalTo(own))
-
-		_, err = v.Query(ctx, fvcommon.QueryRequest{Query: "SELECT 1"}, fvcommon.QueryOptions{
-			Interceptor: func(rc *fvcommon.RequestContext) { panic((*fverrors.SkyflowError)(nil)) },
-		})
-		Expect(err).ToNot(BeNil())
-		Expect(err.GetHttpCode()).To(Equal(string(fverrors.TRANSPORT_ERROR)))
+		Expect(err.GetHttpCode()).To(Equal(string(fverrors.INVALID_INPUT_CODE)))
+		Expect(err.GetMessage()).To(ContainSubstring(`header "x-request-id" must have a value`))
 		Expect(fake.calls).To(BeEmpty())
 	})
 

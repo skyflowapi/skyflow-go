@@ -60,7 +60,7 @@ const (
 	UPLOAD_RESPONSE_MISMATCH_ERROR = "Upload response did not match the request; file was not uploaded."
 )
 
-// Method names used in logs and error messages, and operation names passed to interceptors.
+// Method names used in logs and error messages, and operation names used in header validation errors.
 const (
 	METHOD_INSERT       = "Insert"
 	METHOD_UPDATE       = "Update"
