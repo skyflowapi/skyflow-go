@@ -187,7 +187,7 @@ func (v *VaultController) Query(ctx context.Context, request fvcommon.QueryReque
 	if len(rows) >= fvconsts.QUERY_RECORD_LIMIT {
 		fvlogger.Warn(fmt.Sprintf(logs.QUERY_RECORD_LIMIT_REACHED, fvconsts.QUERY_RECORD_LIMIT))
 	}
-	response := &fvcommon.QueryResponse{Records: rows, Fields: rows, RequestId: header.Get(fvconsts.RESPONSE_HEADER_REQUEST_ID)}
+	response := &fvcommon.QueryResponse{Records: rows, RequestId: header.Get(fvconsts.RESPONSE_HEADER_REQUEST_ID)}
 	if body.Metadata != nil {
 		response.Metadata.Columns = body.Metadata.Columns
 	}

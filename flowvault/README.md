@@ -362,7 +362,7 @@ vault, err := skyflowClient.Vault("<VAULT_ID>")
 | `ClusterId` | `string` | required unless `BaseVaultUrl` is set | The cluster part of the vault URL: `https://{clusterId}.vault.skyflowapis.com`. |
 | `Env` | `common.Env` | optional | `common.DEV`, `common.STAGE`, `common.SANDBOX` or `common.PROD`. The zero value is `PROD`. |
 | `Credentials` | `common.Credentials` | optional | Credentials for this vault. Falls back to client-wide credentials, then `SKYFLOW_CREDENTIALS`. |
-| `BaseVaultUrl` | `string` | optional | Full vault URL, used instead of the one built from `ClusterId` and `Env`. Must use `https` (`http` is accepted only for localhost and loopback addresses). `BaseVaultURL` is a deprecated alias. |
+| `BaseVaultUrl` | `string` | optional | Full vault URL, used instead of the one built from `ClusterId` and `Env`. Must use `https` (`http` is accepted only for localhost and loopback addresses). |
 | `Timeout` | `time.Duration` | optional | Overall call timeout, retries included. |
 | `ConnectTimeout` | `time.Duration` | optional | Per-attempt connection timeout. |
 | `ReadTimeout` | `time.Duration` | optional | Per-attempt wait for the server to start responding. |
@@ -406,7 +406,7 @@ Methods on `*client.Skyflow`:
 | `GetVaultConfig(vaultId)` | A copy of a registered vault's config; `""` means the default vault. |
 | `AddSkyflowCredentials(credentials)` / `UpdateSkyflowCredentials(credentials)` | Set or replace the client-wide credentials. |
 | `GetSkyflowCredentials()` | A copy of the client-wide credentials, or `nil`. |
-| `SetLogLevel(level)` / `GetLogLevel()` | Change or read the log level. `UpdateLogLevel` and `GetLoglevel` are deprecated aliases. |
+| `SetLogLevel(level)` / `GetLogLevel()` | Change or read the log level. |
 
 Each of these that can fail returns a `*SkyflowError`.
 
@@ -839,7 +839,7 @@ Sample response:
 }
 ```
 
-`common.QueryResponse` has `Records` (a `[]map[string]interface{}`, one map of column to value per row, never nil), `Metadata` (`common.QueryResponseMetadata` with `Columns`) and `RequestId`. `Fields` holds the same rows but is deprecated, because these are rows, not fields; use `Records`.
+`common.QueryResponse` has `Records` (a `[]map[string]interface{}`, one map of column to value per row, never nil), `Metadata` (`common.QueryResponseMetadata` with `Columns`) and `RequestId`.
 
 ```go
 for _, row := range response.Records {

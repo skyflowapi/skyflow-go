@@ -36,12 +36,11 @@ func detectProfile() vaultclient.Profile {
 	profile.ClientHeadersTag = constants.CLIENT_HEADER_MESSAGE_PREFIX
 	profile.ErrTokenExpired = skyflowError.TOKEN_EXPIRED
 	profile.Logs = vaultclient.Logs{
-		TokenExpired:           logs.BEARER_TOKEN_EXPIRED,
-		GenerateBearerToken:    logs.GENERATE_BEARER_TOKEN_TRIGGERED,
-		ReuseBearerToken:       logs.REUSE_BEARER_TOKEN,
-		UsingApiKey:            logs.USING_API_KEY,
-		UsingBearerToken:       logs.USING_BEARER_TOKEN,
-		DeprecatedBaseVaultURL: logs.DEPRECATED_FIELD_BASE_VAULT_URL,
+		TokenExpired:        logs.BEARER_TOKEN_EXPIRED,
+		GenerateBearerToken: logs.GENERATE_BEARER_TOKEN_TRIGGERED,
+		ReuseBearerToken:    logs.REUSE_BEARER_TOKEN,
+		UsingApiKey:         logs.USING_API_KEY,
+		UsingBearerToken:    logs.USING_BEARER_TOKEN,
 	}
 	return profile
 }
@@ -108,11 +107,10 @@ func (s *Skyflow) updateDetect(service *detectService, updated common.VaultConfi
 	if updated.ClusterId != "" {
 		config.ClusterId = updated.ClusterId
 	}
-	// Both URL fields are replaced together, so an update that sets only one clears the other:
-	// a stale value in the other field can't take precedence over the new URL.
-	// A cluster ID without a URL clears both too: a stored URL would take precedence over it.
+	// A URL set through either v2 field replaces the stored one. A cluster ID without a URL
+	// clears it too: a stored URL would take precedence over the cluster ID.
 	if updated.BaseVaultUrl != "" || updated.BaseVaultURL != "" || updated.ClusterId != "" {
-		config.BaseVaultUrl, config.BaseVaultURL = updated.BaseVaultUrl, updated.BaseVaultURL
+		config.BaseVaultUrl = helpers.BaseVaultUrl(updated)
 	}
 	// Env is always applied: its zero value is PROD, so an update that omits it resets it.
 	config.Env = updated.Env

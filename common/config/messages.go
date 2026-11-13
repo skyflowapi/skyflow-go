@@ -21,7 +21,6 @@ const (
 	logVaultUrlIsInvalid                  = "Invalid vault config. Vault URL is not a valid URL."
 	logVaultUrlIsInsecure                 = "Invalid vault config. Vault URL must use https unless the host is localhost."
 	logClusterIdIsRequired                = "Invalid vault config. Cluster ID is required."
-	logDeprecatedFieldBaseVaultUrl        = "Deprecated: VaultConfig.BaseVaultURL is deprecated and will be removed in a future version. Use BaseVaultUrl instead."
 	logMultipleTokenGenerationMeansPassed = "Invalid credentials. Only one of 'path', 'credentialsString', 'token' or 'apiKey' is allowed."
 	logNoTokenGenerationMeansPassed       = "Invalid credentials. Any one of 'path', 'credentialsString', 'token' or 'apiKey' is required."
 	logInvalidApiKey                      = "Invalid credentials. Api key is invalid."

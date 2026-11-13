@@ -36,7 +36,6 @@ const (
 	logGenerateBearerTokenSuccess        = "BearerToken is generated"
 	logGenerateSignedDataTokenSuccess    = "Signed Data tokens are generated"
 	logGenerateSignedDataTokensTriggered = "generateSignedDataTokens is triggered"
-	logDeprecatedFieldRoleIds            = "Deprecated: BearerTokenOptions.RoleIDs is deprecated and will be removed in a future version. Use RoleIds instead."
 	logClientIdNotFound                  = "Invalid credentials. Client ID cannot be empty."
 	logTokenUriNotFound                  = "Invalid credentials. Token URI cannot be empty."
 	logKeyIdNotFound                     = "Invalid credentials. Key ID cannot be empty."

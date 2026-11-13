@@ -103,7 +103,6 @@ var _ = Describe("Skyflow client", func() {
 		config, _ = client.GetVaultConfig(testVaultID)
 		Expect(config.ClusterId).To(Equal("other"))
 		Expect(config.BaseVaultUrl).To(BeEmpty())
-		Expect(config.BaseVaultURL).To(BeEmpty())
 	})
 
 	It("applies the default Env when an update doesn't set one", func() {

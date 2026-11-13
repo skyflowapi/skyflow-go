@@ -241,13 +241,6 @@ var _ = Describe("Bearer token handling", func() {
 })
 
 var _ = Describe("SetupRequest, edge cases", func() {
-	It("uses the deprecated BaseVaultURL field", func() {
-		config := fvcommon.VaultConfig{VaultId: "v", BaseVaultURL: "https://legacy.example.com"}
-		setup, err := NewVaultController(config, ClientSettings{Credentials: &fvcommon.Credentials{ApiKey: testApiKey}}).SetupRequest(context.Background(), "GET", nil)
-		Expect(err).To(BeNil())
-		Expect(setup.BaseURL).To(Equal("https://legacy.example.com"))
-	})
-
 	It("rejects an unsupported custom header before authenticating", func() {
 		_, err := NewVaultController(fvcommon.VaultConfig{VaultId: "v", ClusterId: "c"}, ClientSettings{}).
 			SetupRequest(context.Background(), "GET", map[fvcommon.CustomHeaderKey]string{"x-other": "v"})

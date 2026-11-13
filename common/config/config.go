@@ -34,8 +34,6 @@ type VaultConfig struct {
 	// BaseVaultUrl overrides the URL built from ClusterId and Env. It must use https; http
 	// is accepted only for localhost and loopback addresses.
 	BaseVaultUrl string
-	// Deprecated: Use BaseVaultUrl instead.
-	BaseVaultURL string
 	Env          Env
 	Credentials  Credentials
 

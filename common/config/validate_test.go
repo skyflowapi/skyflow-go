@@ -113,27 +113,6 @@ var _ = Describe("Validator", func() {
 			Entry("bad escape", "http://%zz"),
 		)
 
-		It("should warn and fall back to the deprecated BaseVaultURL", func() {
-			err := v.ValidateVaultConfig(VaultConfig{VaultId: "v", BaseVaultURL: "https://example.com"})
-			Expect(err).To(BeNil())
-			Expect(logBuf.String()).To(ContainSubstring("level=warning"))
-			Expect(logBuf.String()).To(ContainSubstring(testLogPrefix + logDeprecatedFieldBaseVaultUrl))
-		})
-
-		It("should validate the deprecated BaseVaultURL when used as fallback", func() {
-			expectInvalid(v.ValidateVaultConfig(VaultConfig{VaultId: "v", BaseVaultURL: "not a url"}), errInvalidVaultUrl)
-		})
-
-		It("should prefer BaseVaultUrl over the deprecated BaseVaultURL", func() {
-			err := v.ValidateVaultConfig(VaultConfig{
-				VaultId:      "v",
-				BaseVaultUrl: "https://example.com",
-				BaseVaultURL: "not a url",
-			})
-			Expect(err).To(BeNil())
-			Expect(logBuf.String()).To(ContainSubstring(logDeprecatedFieldBaseVaultUrl))
-		})
-
 		It("should validate the vault's HTTP settings", func() {
 			expectInvalid(v.ValidateVaultConfig(VaultConfig{VaultId: "v", ClusterId: "c", Timeout: -1}), errNegativeHttpConfig)
 		})
@@ -191,11 +170,6 @@ var _ = Describe("Validator", func() {
 		It("should reject an update to a plain http vault URL", func() {
 			expectInvalid(v.ValidateUpdateVaultConfig(VaultConfig{VaultId: "v", BaseVaultUrl: "http://vault.example.com"}), errInsecureVaultUrl)
 			Expect(v.ValidateUpdateVaultConfig(VaultConfig{VaultId: "v", BaseVaultUrl: "http://127.0.0.1:8080"})).To(BeNil())
-		})
-
-		It("should check the deprecated base vault URL when it is the only one set", func() {
-			expectInvalid(v.ValidateUpdateVaultConfig(VaultConfig{VaultId: "v", BaseVaultURL: "not a url"}), errInvalidVaultUrl)
-			Expect(logBuf.String()).To(ContainSubstring(logDeprecatedFieldBaseVaultUrl))
 		})
 	})
 

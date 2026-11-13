@@ -155,8 +155,8 @@ var _ = Describe("Detect", func() {
 		})
 		got := service.base.Config()
 		Expect(got.ClusterId).To(Equal("new-cluster"))
-		Expect(got.BaseVaultUrl).To(BeEmpty()) // replaced together with BaseVaultURL
-		Expect(got.BaseVaultURL).To(Equal("https://legacy.example.com"))
+		// The deprecated v2 field is folded into the shared config's only URL field.
+		Expect(got.BaseVaultUrl).To(Equal("https://legacy.example.com"))
 		Expect(got.Env).To(Equal(common.SANDBOX))
 		// No HTTP settings reach the Detect config, so the SDK's defaults apply.
 		Expect(got.Timeout).To(BeZero())
@@ -166,7 +166,7 @@ var _ = Describe("Detect", func() {
 		client.updateDetect(service, common.VaultConfig{VaultId: vaultId})
 		kept := service.base.Config()
 		Expect(kept.ClusterId).To(Equal("new-cluster"))
-		Expect(kept.BaseVaultURL).To(Equal("https://legacy.example.com"))
+		Expect(kept.BaseVaultUrl).To(Equal("https://legacy.example.com"))
 		Expect(kept.Env).To(Equal(common.PROD))
 	})
 

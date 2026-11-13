@@ -107,27 +107,14 @@ func (v Validator) ValidateVaultConfig(vaultConfig VaultConfig) *skyflowError.Sk
 	if vaultConfig.VaultId == "" {
 		return v.invalid(logVaultIdIsRequired, errInvalidVaultId)
 	}
-	baseVaultUrl := v.baseVaultUrl(vaultConfig)
-	if baseVaultUrl == "" {
+	if vaultConfig.BaseVaultUrl == "" {
 		if vaultConfig.ClusterId == "" {
 			return v.invalid(logClusterIdIsRequired, errInvalidClusterId)
 		}
-	} else if err := v.validateBaseVaultUrl(baseVaultUrl); err != nil {
+	} else if err := v.validateBaseVaultUrl(vaultConfig.BaseVaultUrl); err != nil {
 		return err
 	}
 	return v.ValidateHttpConfig(vaultConfig.HttpConfig())
-}
-
-// baseVaultUrl returns BaseVaultUrl, falling back to the deprecated BaseVaultURL,
-// and warns when the deprecated field is set.
-func (v Validator) baseVaultUrl(vaultConfig VaultConfig) string {
-	if vaultConfig.BaseVaultURL != "" {
-		logger.Warn(v.logMsg(logDeprecatedFieldBaseVaultUrl))
-		if vaultConfig.BaseVaultUrl == "" {
-			return vaultConfig.BaseVaultURL
-		}
-	}
-	return vaultConfig.BaseVaultUrl
 }
 
 // ValidateHttpConfig checks that the timeouts, retry count and retry delays are not negative.
@@ -146,8 +133,8 @@ func (v Validator) ValidateUpdateVaultConfig(vaultConfig VaultConfig) *skyflowEr
 	if vaultConfig.VaultId == "" {
 		return v.invalid(logVaultIdIsRequired, errInvalidVaultId)
 	}
-	if baseVaultUrl := v.baseVaultUrl(vaultConfig); baseVaultUrl != "" {
-		return v.validateBaseVaultUrl(baseVaultUrl)
+	if vaultConfig.BaseVaultUrl != "" {
+		return v.validateBaseVaultUrl(vaultConfig.BaseVaultUrl)
 	}
 	return nil
 }

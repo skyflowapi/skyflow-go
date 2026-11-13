@@ -491,19 +491,13 @@ var _ = Describe("Auth Service", func() {
 		Context("GenerateBearerTokenHelper", func() {
 			It("should return the raw token and send roleIds as scope", func() {
 				newService(http.StatusOK, `{"accessToken":"at","tokenType":"Bearer"}`)
-				res, err := svc.GenerateBearerTokenHelper(credsMap(pkcs8PEM(key), srv.URL+tokenPath), sa.BearerTokenOptions{RoleIds: []string{"r1"}, RoleIDs: []string{"ignored"}})
+				res, err := svc.GenerateBearerTokenHelper(credsMap(pkcs8PEM(key), srv.URL+tokenPath), sa.BearerTokenOptions{RoleIds: []string{"r1"}})
 				Expect(err).To(BeNil())
 				Expect(*res.AccessToken).To(Equal("at"))
 				Expect(*res.TokenType).To(Equal("Bearer"))
 				Expect(lastBody).To(HaveKeyWithValue("grant_type", grantType))
 				Expect(lastBody).To(HaveKeyWithValue("scope", " role:r1"))
 				Expect(lastBody).To(HaveKey("assertion"))
-			})
-			It("should fall back to deprecated RoleIDs", func() {
-				newService(http.StatusOK, `{"accessToken":"at","tokenType":"Bearer"}`)
-				_, err := svc.GenerateBearerTokenHelper(credsMap(pkcs1PEM(key), srv.URL), sa.BearerTokenOptions{RoleIDs: []string{"old"}})
-				Expect(err).To(BeNil())
-				Expect(lastBody).To(HaveKeyWithValue("scope", " role:old"))
 			})
 			It("should omit scope when no roles are given", func() {
 				newService(http.StatusOK, `{"accessToken":"at","tokenType":"Bearer"}`)

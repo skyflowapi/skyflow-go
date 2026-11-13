@@ -309,7 +309,6 @@ var _ = Describe("VaultController API calls", func() {
 		Expect(err).To(BeNil())
 		Expect(fake.requests["/v2/query"]["query"]).To(Equal("SELECT name FROM users"))
 		Expect(resp.Records).To(Equal([]map[string]interface{}{{"name": "j"}}))
-		Expect(resp.Fields).To(Equal(resp.Records)) //nolint:staticcheck // the deprecated alias still works
 		Expect(resp.Metadata.Columns).To(Equal([]string{"name"}))
 		Expect(resp.RequestId).To(Equal("req-123"))
 	})
