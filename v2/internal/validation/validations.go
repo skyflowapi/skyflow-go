@@ -162,11 +162,20 @@ func validateTokenForStrict(tokens map[string]interface{}, values map[string]int
 var configValidator = cfg.NewValidator(constants.SDK_PREFIX, constants.SDK_LOG_PREFIX, cfg.WithInsecureVaultUrl())
 
 func ValidateVaultConfig(vaultConfig common.VaultConfig) *skyflowError.SkyflowError {
+	warnDeprecatedBaseVaultURL(vaultConfig)
 	return configValidator.ValidateVaultConfig(helpers.CommonVaultConfig(vaultConfig))
 }
 
 func ValidateUpdateVaultConfig(vaultConfig common.VaultConfig) *skyflowError.SkyflowError {
+	warnDeprecatedBaseVaultURL(vaultConfig)
 	return configValidator.ValidateUpdateVaultConfig(helpers.CommonVaultConfig(vaultConfig))
+}
+
+// warnDeprecatedBaseVaultURL warns when the config sets the deprecated BaseVaultURL.
+func warnDeprecatedBaseVaultURL(vaultConfig common.VaultConfig) {
+	if vaultConfig.BaseVaultURL != "" { //nolint:staticcheck // the deprecated field is still honoured
+		logger.Warn(logs.DEPRECATED_FIELD_BASE_VAULT_URL)
+	}
 }
 
 // ValidateConnectionConfig validates the ConnectionConfig struct

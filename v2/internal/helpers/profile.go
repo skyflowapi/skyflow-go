@@ -30,15 +30,19 @@ var profile = vaultclient.Profile{
 func Profile() vaultclient.Profile { return profile }
 
 // CommonVaultConfig is v2's vault config as the shared common/config type, which the shared
-// validator and common/vaultclient take. Its timeout and retry fields stay unset, so the
-// profile's defaults apply.
+// validator and common/vaultclient take. Its VaultUrl is BaseVaultUrl, falling back to the
+// deprecated BaseVaultURL. Its timeout and retry fields stay unset, so the profile's
+// defaults apply.
 func CommonVaultConfig(c common.VaultConfig) cfg.VaultConfig {
+	vaultUrl := c.BaseVaultUrl
+	if vaultUrl == "" {
+		vaultUrl = c.BaseVaultURL //nolint:staticcheck // the deprecated field is still honoured
+	}
 	return cfg.VaultConfig{
-		VaultId:      c.VaultId,
-		ClusterId:    c.ClusterId,
-		BaseVaultUrl: c.BaseVaultUrl,
-		BaseVaultURL: c.BaseVaultURL,
-		Env:          c.Env,
-		Credentials:  c.Credentials,
+		VaultId:     c.VaultId,
+		ClusterId:   c.ClusterId,
+		VaultUrl:    vaultUrl,
+		Env:         c.Env,
+		Credentials: c.Credentials,
 	}
 }

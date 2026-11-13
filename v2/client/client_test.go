@@ -371,7 +371,7 @@ var _ = Describe("Skyflow Client", func() {
 			Expect(held.controller.Config.BaseVaultUrl).To(BeEmpty())
 			detect, _ := client.Detect("moved-vault")
 			Expect(detect.base.Config().ClusterId).To(Equal("newcluster"))
-			Expect(detect.base.Config().BaseVaultUrl).To(BeEmpty())
+			Expect(detect.base.Config().VaultUrl).To(BeEmpty())
 		})
 
 		It("should return an error when trying to update a non-existing vault configuration", func() {

@@ -35,10 +35,12 @@ var _ = Describe("CommonVaultConfig", func() {
 		got := CommonVaultConfig(v2)
 		Expect(got.VaultId).To(Equal("v"))
 		Expect(got.ClusterId).To(Equal("c"))
-		Expect(got.BaseVaultUrl).To(Equal("https://a.example.com"))
-		Expect(got.BaseVaultURL).To(Equal("https://b.example.com"))
+		Expect(got.VaultUrl).To(Equal("https://a.example.com")) // BaseVaultUrl wins over BaseVaultURL
 		Expect(got.Env).To(Equal(common.SANDBOX))
 		Expect(got.Credentials.ApiKey).To(Equal("k"))
 		Expect(got.HttpConfig()).To(BeZero())
+
+		// The deprecated BaseVaultURL is the fallback when BaseVaultUrl is unset.
+		Expect(CommonVaultConfig(common.VaultConfig{BaseVaultURL: "https://b.example.com"}).VaultUrl).To(Equal("https://b.example.com"))
 	})
 })

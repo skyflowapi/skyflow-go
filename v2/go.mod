@@ -7,7 +7,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.38.0
-	github.com/skyflowapi/skyflow-go/common v0.0.0-20261113070849-0996d11f4ee2
+	github.com/skyflowapi/skyflow-go/common v0.0.0-20261113093015-6019086c3111
 	github.com/stretchr/testify v1.8.4
 )
 
