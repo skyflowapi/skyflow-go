@@ -5,331 +5,16 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
 
+	cfg "github.com/skyflowapi/skyflow-go/common/config"
 	constants "github.com/skyflowapi/skyflow-go/v2/internal/constants"
-	vaultapis "github.com/skyflowapi/skyflow-go/v2/internal/generated"
 	"github.com/skyflowapi/skyflow-go/v2/internal/helpers"
 	"github.com/skyflowapi/skyflow-go/v2/utils/common"
 	skyflowError "github.com/skyflowapi/skyflow-go/v2/utils/error"
 	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
 	logs "github.com/skyflowapi/skyflow-go/v2/utils/messages"
 )
-
-// ValidateDeidentifyTextRequest validates the required fields of DeidentifyTextRequest.
-func ValidateDeidentifyTextRequest(req common.DeidentifyTextRequest) *skyflowError.SkyflowError {
-	if strings.TrimSpace(req.Text) == "" {
-		logger.Error(fmt.Sprintf(logs.INVALID_TEXT_IN_DEIDENTIFY, constants.REQUEST_DEIDENTIFY_TEXT))
-		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_TEXT_IN_DEIDENTIFY)
-	}
-
-	// Validate entities
-	if len(req.Entities) > 0 {
-		if err := validateEntities(req.Entities, constants.ENTITY_TYPE_TEXT); err != nil {
-			return err
-		}
-	}
-
-	// Validate token format
-	if req.TokenFormat.DefaultType != "" {
-		if _, err := vaultapis.NewTokenTypeMappingDefaultFromString(string(req.TokenFormat.DefaultType)); err != nil {
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_TOKEN_FORMAT)
-		}
-	}
-
-	// Validate EntityOnly tokens
-	if len(req.TokenFormat.EntityOnly) > 0 {
-		if err := validateEntities(req.TokenFormat.EntityOnly, constants.ENTITY_TYPE_ENTITY_ONLY); err != nil {
-			return err
-		}
-	}
-
-	// Validate VaultToken entities
-	if len(req.TokenFormat.VaultToken) > 0 {
-		if err := validateEntities(req.TokenFormat.VaultToken, constants.ENTITY_TYPE_VAULT_TOKEN); err != nil {
-			return err
-		}
-	}
-
-	if err := validateTransformations(req.Transformations); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// ValidateReidentifyTextRequest validates the required fields of ReidentifyTextRequest.
-func ValidateReidentifyTextRequest(req common.ReidentifyTextRequest) *skyflowError.SkyflowError {
-	if strings.TrimSpace(req.Text) == "" {
-		logger.Error(fmt.Sprintf(logs.INVALID_TEXT_IN_REIDENTIFY, constants.REQUEST_REIDENTIFY_TEXT))
-		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_TEXT_IN_REIDENTIFY)
-	}
-
-	// Validate RedactedEntities
-	if len(req.RedactedEntities) > 0 {
-		if err := validateEntities(req.RedactedEntities, constants.ENTITY_TYPE_REDACTED); err != nil {
-			return err
-		}
-	}
-
-	// Validate MaskedEntities
-	if len(req.MaskedEntities) > 0 {
-		if err := validateEntities(req.MaskedEntities, constants.ENTITY_TYPE_MASKED); err != nil {
-			return err
-		}
-	}
-
-	// Validate PlainTextEntities
-	if len(req.PlainTextEntities) > 0 {
-		if err := validateEntities(req.PlainTextEntities, constants.ENTITY_TYPE_PLAIN_TEXT); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func validateEntities(entities []common.DetectEntities, entityType string) *skyflowError.SkyflowError {
-	for _, entity := range entities {
-		// add entity type validation
-		if entityType == constants.ENTITY_TYPE_REDACTED {
-			if _, err := vaultapis.NewFormatRedactedItemFromString(string(entity)); err != nil {
-				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.INVALID_ENTITY_TYPE, entity))
-			}
-		} else if entityType == constants.ENTITY_TYPE_MASKED {
-			if _, err := vaultapis.NewFormatMaskedItemFromString(string(entity)); err != nil {
-				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.INVALID_ENTITY_TYPE, entity))
-			}
-		} else if entityType == constants.ENTITY_TYPE_PLAIN_TEXT {
-			if _, err := vaultapis.NewFormatPlaintextItemFromString(string(entity)); err != nil {
-				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.INVALID_ENTITY_TYPE, entity))
-			}
-		} else if entityType == constants.ENTITY_TYPE_TEXT {
-			if _, err := vaultapis.NewDeidentifyStringRequestEntityTypesItemFromString(string(entity)); err != nil {
-				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.INVALID_ENTITY_TYPE, entity))
-			}
-		} else if entityType == constants.ENTITY_TYPE_ENTITY_ONLY {
-			if _, err := vaultapis.NewTokenTypeMappingEntityOnlyItemFromString(string(entity)); err != nil {
-				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.INVALID_ENTITY_TYPE, entity))
-			}
-		} else if entityType == constants.ENTITY_TYPE_VAULT_TOKEN {
-			if _, err := vaultapis.NewTokenTypeMappingVaultTokenItemFromString(string(entity)); err != nil {
-				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.INVALID_ENTITY_TYPE, entity))
-			}
-		} else if entityType == constants.ENTITY_TYPE_ENTITY_UNIQUE_CTR {
-			if _, err := vaultapis.NewTokenTypeMappingEntityUnqCounterItemFromString(string(entity)); err != nil {
-				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.INVALID_ENTITY_TYPE, entity))
-			}
-		}
-	}
-	return nil
-}
-
-func validateTransformations(transformations common.Transformations) *skyflowError.SkyflowError {
-	shift := transformations.ShiftDates
-	if shift.MinDays > 0 || shift.MaxDays > 0 || len(shift.Entities) > 0 {
-		// Days must be strictly positive
-		if shift.MinDays <= 0 || shift.MaxDays <= 0 {
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_SHIFT_DATES)
-		}
-		// Range validation
-		if shift.MaxDays < shift.MinDays {
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_DATE_TRANSFORMATION_RANGE)
-		}
-	}
-	return nil
-}
-
-// ValidateGetDetectRunRequest validates the required fields of GetDetectRunRequest.
-func ValidateGetDetectRunRequest(req common.GetDetectRunRequest) *skyflowError.SkyflowError {
-	if strings.TrimSpace(req.RunId) == "" {
-		logger.Error(fmt.Sprintf(logs.EMPTY_RUN_ID, constants.REQUEST_GET_DETECT_RUN))
-		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_RUN_ID)
-	}
-	return nil
-}
-
-// ValidateDeidentifyFileRequest validates the required fields of DeidentifyFileRequest.
-func ValidateDeidentifyFileRequest(req common.DeidentifyFileRequest) *skyflowError.SkyflowError {
-		tag := constants.REQUEST_DEIDENTIFY_FILE
-	// Validate if file or filepath is provided
-	if req.File.File == nil && req.File.FilePath == "" {
-		logger.Error(fmt.Sprintf(logs.EMPTY_FILE_AND_FILE_PATH_IN_DEIDENTIFY_FILE, tag))
-		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_FILE_AND_FILE_PATH_IN_DEIDENTIFY_FILE)
-	}
-
-	// Check if both file and filepath are provided
-	if req.File.File != nil && req.File.FilePath != "" {
-		logger.Error(fmt.Sprintf(logs.BOTH_FILE_AND_FILE_PATH_PROVIDED, tag))
-		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.BOTH_FILE_AND_FILE_PATH_PROVIDED)
-	}
-
-	// Validate filepath if provided
-	if req.File.FilePath != "" && strings.TrimSpace(req.File.FilePath) == "" {
-		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_FILE_PATH)
-	}
-
-	if err := ValidateFilePermissions(req.File.FilePath, req.File.File); err != nil {
-		return err
-	}
-
-	// Optional fields validation
-	// Validate pixel density
-	if req.PixelDensity < 0 {
-		logger.Error(fmt.Sprintf(logs.INVALID_PIXEL_DENSITY_TO_DEIDENTIFY_FILE, tag))
-		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_PIXEL_DENSITY)
-	}
-
-	if req.MaskingMethod != "" {
-		switch req.MaskingMethod {
-		case common.BLACKBOX, common.BLUR:
-		default:
-			logger.Error(fmt.Sprintf(logs.INVALID_MASKING_METHOD, tag))
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_MASKING_METHOD)
-		}
-	}
-
-	if req.OutputTranscription != "" {
-		switch req.OutputTranscription {
-		case common.DIARIZED_TRANSCRIPTION, common.MEDICAL_DIARIZED_TRANSCRIPTION, common.MEDICAL_TRANSCRIPTION, common.PLAINTEXT_TRANSCRIPTION, common.TRANSCRIPTION:
-		default:
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_OUTPUT_TRANSCRIPTION)
-		}
-	}
-
-	// Validate max resolution
-	if req.MaxResolution < 0 {
-		logger.Error(fmt.Sprintf(logs.INVALID_MAX_RESOLUTION, tag))
-		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_MAX_RESOLUTION)
-	}
-
-	// Validate entities
-	if len(req.Entities) > 0 {
-		if err := validateEntities(req.Entities, constants.ENTITY_TYPE_ENTITIES); err != nil {
-			return err
-		}
-	}
-
-	if err := validateTransformations(req.Transformations); err != nil {
-		return err
-	}
-
-	// Validate token format
-	tokenFormat := req.TokenFormat
-	if len(tokenFormat.VaultToken) > 0 {
-		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.VAULT_TOKEN_FORMAT_IS_NOT_ALLOWED_FOR_DEIDENTIFY_FILES)
-	}
-
-	if req.TokenFormat.DefaultType != "" {
-		if _, err := vaultapis.NewTokenTypeMappingDefaultFromString(string(req.TokenFormat.DefaultType)); err != nil {
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_TOKEN_FORMAT)
-		}
-	}
-
-	if len(req.TokenFormat.EntityOnly) > 0 {
-		if err := validateEntities(req.TokenFormat.EntityOnly, constants.REQUEST_ENTITY_ONLY); err != nil {
-			return err
-		}
-	}
-
-	if len(req.TokenFormat.EntityUniqueCounter) > 0 {
-		if err := validateEntities(req.TokenFormat.EntityUniqueCounter, constants.ENTITY_TYPE_ENTITY_UNIQUE_CTR); err != nil {
-			return err
-		}
-	}
-
-	// Validate output directory if provided
-	if req.OutputDirectory != "" {
-		fileInfo, err := os.Stat(req.OutputDirectory)
-		if os.IsNotExist(err) || !fileInfo.IsDir() {
-			logger.Error(fmt.Sprintf(logs.OUTPUT_DIRECTORY_NOT_FOUND, tag))
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.OUTPUT_DIRECTORY_NOT_FOUND)
-		}
-
-		// Check directory permissions
-		if err := checkDirWritePermission(req.OutputDirectory); err != nil {
-			logger.Error(fmt.Sprintf(logs.INVALID_PERMISSIONS_FOR_OUTPUT_DIRECTORY, tag))
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_PERMISSION)
-		}
-	}
-
-	// Validate wait time
-	if req.WaitTime < 0 {
-		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_WAIT_TIME)
-	}
-	if req.WaitTime > 64 {
-		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.WAIT_TIME_EXCEEDS_LIMIT)
-	}
-
-	return nil
-}
-
-// Helper function to check directory write permission
-func checkDirWritePermission(dir string) error {
-	// Try to create a temporary file
-	tempFile := filepath.Join(dir, constants.PERMISSION_CHECK_FILE)
-	file, err := os.Create(tempFile)
-	if err != nil {
-		return err
-	}
-	file.Close()
-	os.Remove(tempFile)
-	return nil
-}
-
-func ValidateFilePermissions(filePath string, file *os.File) *skyflowError.SkyflowError {
-	var info os.FileInfo
-	var err error
-
-	if filePath != "" {
-		// Path-based check
-		info, err = os.Stat(filePath)
-		if os.IsNotExist(err) {
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.FILE_NOT_FOUND_TO_DEIDENTIFY, filePath))
-		}
-		if err != nil {
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.UNABLE_TO_STAT_FILE_TO_DEIDENTIFY, filePath))
-		}
-
-		// Ensure it's a regular file
-		if !info.Mode().IsRegular() {
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.NOT_REGULAR_FILE_TO_DEIDENTIFY, filePath))
-		}
-
-		// Ensure file is not empty
-		if info.Size() == 0 {
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.EMPTY_FILE_TO_DEIDENTIFY, filePath))
-		}
-
-		// Try to open file
-		f, err := os.Open(filePath)
-		if err != nil {
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.FILE_NOT_READABLE_TO_DEIDENTIFY, filePath))
-		}
-		defer f.Close()
-
-		return nil
-	}
-
-	if file != nil {
-		// File-based check
-		info, err = file.Stat()
-		if err != nil {
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.UNABLE_TO_STAT_FILE_TO_DEIDENTIFY, file.Name()))
-		}
-		if !info.Mode().IsRegular() {
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.NOT_REGULAR_FILE_TO_DEIDENTIFY, file.Name()))
-		}
-		if info.Size() == 0 {
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, fmt.Sprintf(skyflowError.EMPTY_FILE_TO_DEIDENTIFY, file.Name()))
-		}
-		return nil
-	}
-
-	return nil
-
-}
 
 func ValidateInsertRequest(request common.InsertRequest, options common.InsertOptions) *skyflowError.SkyflowError {
 	// Validate table
@@ -471,41 +156,26 @@ func validateTokenForStrict(tokens map[string]interface{}, values map[string]int
 }
 
 // validateVaultConfig function
+// configValidator is the shared implementation (skyflow-go/common/config) of the
+// vault-config and credential checks, configured with v2's SDK prefix.
+// The validator accepts a plain http vault URL for any host, as v2 always has.
+var configValidator = cfg.NewValidator(constants.SDK_PREFIX, constants.SDK_LOG_PREFIX, cfg.WithInsecureVaultUrl())
+
 func ValidateVaultConfig(vaultConfig common.VaultConfig) *skyflowError.SkyflowError {
-	// Validate VaultId
-	if vaultConfig.VaultId == "" {
-		logger.Error(logs.VAULT_ID_IS_REQUIRED)
-		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_VAULT_ID)
-	}
-	baseVaultUrl := vaultConfig.BaseVaultUrl
-	if vaultConfig.BaseVaultURL != "" {
-		if baseVaultUrl != "" {
-			logger.Warn(logs.DEPRECATED_FIELD_BASE_VAULT_URL)
-		} else {
-			logger.Warn(logs.DEPRECATED_FIELD_BASE_VAULT_URL)
-			baseVaultUrl = vaultConfig.BaseVaultURL
-		}
-	}
-	if baseVaultUrl == "" {
-		if vaultConfig.ClusterId == "" {
-			logger.Error(logs.CLUSTER_ID_IS_REQUIRED)
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_CLUSTER_ID)
-		}
-	} else {
-		if !isValidHTTPURL(baseVaultUrl) {
-			logger.Error(logs.VAULT_URL_IS_INVALID)
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_VAULT_URL)
-		}
-	}
-	return nil
+	warnDeprecatedBaseVaultURL(vaultConfig)
+	return configValidator.ValidateVaultConfig(helpers.CommonVaultConfig(vaultConfig))
 }
+
 func ValidateUpdateVaultConfig(vaultConfig common.VaultConfig) *skyflowError.SkyflowError {
-	// Validate VaultId
-	if vaultConfig.VaultId == "" {
-		logger.Error(logs.VAULT_ID_IS_REQUIRED)
-		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_VAULT_ID)
+	warnDeprecatedBaseVaultURL(vaultConfig)
+	return configValidator.ValidateUpdateVaultConfig(helpers.CommonVaultConfig(vaultConfig))
+}
+
+// warnDeprecatedBaseVaultURL warns when the config sets the deprecated BaseVaultURL.
+func warnDeprecatedBaseVaultURL(vaultConfig common.VaultConfig) {
+	if vaultConfig.BaseVaultURL != "" { //nolint:staticcheck // the deprecated field is still honoured
+		logger.Warn(logs.DEPRECATED_FIELD_BASE_VAULT_URL)
 	}
-	return nil
 }
 
 // ValidateConnectionConfig validates the ConnectionConfig struct
@@ -547,56 +217,7 @@ func ValidateUpdateConnectionConfig(config common.ConnectionConfig) *skyflowErro
 
 // ValidateCredentials validates the credentials object
 func ValidateCredentials(credentials common.Credentials) *skyflowError.SkyflowError {
-	credPresent := 0
-
-	// Count non-null members
-	if credentials.Path != "" {
-		credPresent++
-	}
-	if credentials.CredentialsString != "" {
-		credPresent++
-	}
-	if credentials.Token != "" {
-		credPresent++
-	}
-	if credentials.ApiKey != "" {
-		credPresent++
-	}
-
-	// Validation logic
-	if credPresent > 1 {
-		logger.Error(logs.MULTIPLE_TOKEN_GENERATION_MEANS_PASSED)
-		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.MULTIPLE_TOKEN_GENERATION_MEANS_PASSED)
-	} else if credPresent < 1 {
-		logger.Error(logs.NO_TOKEN_GENERATION_MEANS_PASSED)
-		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.NO_TOKEN_GENERATION_MEANS_PASSED)
-	}
-
-	// API key validation
-	if credentials.ApiKey != "" {
-		// Validate API key format
-		if len(credentials.ApiKey) != constants.API_KEY_LENGTH || !strings.Contains(credentials.ApiKey, constants.API_KEY_PREFIX) {
-			logger.Error(logs.INVALID_API_KEY)
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_API_KEY)
-
-		}
-	}
-
-	// Roles validation
-	if credentials.Roles != nil {
-		if len(credentials.Roles) == 0 {
-			logger.Error(logs.EMPTY_ROLES)
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_ROLES)
-		}
-		for index, role := range credentials.Roles {
-			if role == "" {
-				logger.Error(fmt.Sprintf(logs.EMPTY_OR_NULL_ROLE_IN_ROLES, index))
-				return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_ROLE_IN_ROLES)
-			}
-		}
-	}
-
-	return nil
+	return configValidator.ValidateCredentials(credentials)
 }
 
 // ValidateInvokeConnectionRequest validates the fields of InvokeConnectionRequest
@@ -667,7 +288,7 @@ func ValidateInvokeConnectionRequest(request common.InvokeConnectionRequest) *sk
 }
 
 func ValidateDetokenizeRequest(request common.DetokenizeRequest) *skyflowError.SkyflowError {
-		tag := constants.REQUEST_DETOKENIZE
+	tag := constants.REQUEST_DETOKENIZE
 	if request.DetokenizeData == nil {
 		logger.Error(fmt.Sprintf(logs.DETOKENIZE_DATA_REQUIRED, tag))
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_DETOKENIZE_DATA)
@@ -866,7 +487,7 @@ func ValidateUpdateRequest(request common.UpdateRequest, options common.UpdateOp
 
 // ValidateFileUploadRequest validates the required fields of FileUploadRequest.
 func ValidateFileUploadRequest(req common.FileUploadRequest) *skyflowError.SkyflowError {
-tag := constants.REQUEST_UPLOAD_FILE
+	tag := constants.REQUEST_UPLOAD_FILE
 
 	if strings.TrimSpace(req.Table) == "" {
 		logger.Error(fmt.Sprintf(logs.EMPTY_TABLE, tag))
@@ -946,17 +567,4 @@ func ValidateCustomHeaders(headers map[common.CustomHeaderKey]string, tag string
 		}
 	}
 	return nil
-}
-
-func isValidHTTPURL(raw string) bool {
-	u, err := url.Parse(raw)
-	if err != nil {
-		return false
-	}
-
-	if u.Scheme != constants.HTTP_PROTOCOL && u.Scheme != constants.HTTPS_PROTOCOL {
-		return false
-	}
-
-	return u.Host != ""
 }

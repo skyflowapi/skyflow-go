@@ -1,2 +1,5 @@
 # Don't track content of these folders
 vendor/
+
+# Local environment files with credentials
+.env

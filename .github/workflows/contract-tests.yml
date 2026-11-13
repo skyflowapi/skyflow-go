@@ -1,0 +1,84 @@
+name: Contract Tests
+
+# Public API compatibility check.
+# scripts/apidiff/apidiff.sh compares the public API of each module at the PR's base
+# commit with the PR, using golang.org/x/exp/cmd/apidiff pinned in scripts/apidiff/go.mod.
+# An incompatible change fails the job unless an SDK code owner adds the
+# api-break-approved label (see CONTRIBUTING.md). Compatible changes are reported only.
+# An internal type reachable from the public API always fails: the label can't approve it.
+
+on:
+  pull_request:
+    # skyvault (v2) releases: release/x.x.x (e.g. release/26.6.25); flowvault: flowvault-release/x.x.x.
+    branches: [ "main", "release/**", "flowvault-release/**" ]
+    # labeled/unlabeled re-run the check when api-break-approved is added or removed.
+    types: [ opened, synchronize, reopened, labeled, unlabeled ]
+    # No paths filter: the job runs on every pull request so it can be a required check
+    # (a required check that is skipped by a paths filter never reports and blocks merge).
+
+permissions:
+  contents: read
+
+concurrency:
+  group: contract-tests-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  api-compatibility:
+    # One job per module, so the PR's checks list shows which module broke
+    # ("Contract Tests (<module>)"). A module that isn't on the target
+    # branch passes as skipped, so the same list works on main and the release branches.
+    name: Contract Tests (${{ matrix.module }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        # Keep in sync with DEFAULT_MODULES in scripts/apidiff/apidiff.sh.
+        module: [ v2, common, flowvault ]
+    steps:
+      - name: Check out the PR
+        uses: actions/checkout@v4
+        with:
+          # Full history, so the base commit can be checked out next to the PR.
+          fetch-depth: 0
+          persist-credentials: false
+
+      # The Go version comes from the apidiff tool module. It must be at least the
+      # highest `go` line of the modules under contract.
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: scripts/apidiff/go.mod
+          cache-dependency-path: "**/go.sum"
+
+      # The script annotates each change on the PR's Checks tab under
+      # "Breaking API change in <module>" (a warning once the break is approved).
+      - name: Compare the base API with the PR API
+        env:
+          # The PR is checked out as its merge commit, so base..merge is exactly this PR's change.
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          MODULE: ${{ matrix.module }}
+          BREAK_APPROVED: ${{ contains(github.event.pull_request.labels.*.name, 'api-break-approved') }}
+        run: |
+          level=error
+          [ "$BREAK_APPROVED" = "true" ] && level=warning
+          set +e
+          scripts/apidiff/apidiff.sh -r "$BASE_SHA" -a "$level" "$MODULE"
+          rc=$?
+          set -e
+          case "$rc" in
+            0) ;;
+            1)
+              if [ "$BREAK_APPROVED" = "true" ]; then
+                echo "Breaking API change in $MODULE, approved with the api-break-approved label."
+              else
+                echo "::error title=Breaking API change in $MODULE::Restore the API, or get an SDK code owner to approve the break with the api-break-approved label (see CONTRIBUTING.md)."
+                exit 1
+              fi
+              ;;
+            3)
+              echo "::error title=Internal types in the public API of $MODULE::Move them to a public package. The api-break-approved label doesn't apply to this."
+              exit 1
+              ;;
+            *) exit "$rc" ;;
+          esac
