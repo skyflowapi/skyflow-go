@@ -73,7 +73,7 @@ All mutating methods return `*SkyflowError` (nil on success) unless the table no
 |--------|---------|-------------|
 | `AddVaultConfig(VaultConfig)` | `*SkyflowError` | Add a vault after initialization. |
 | `GetVaultConfig(vaultId string)` | `(*VaultConfig, *SkyflowError)` | Retrieve a vault configuration by ID. |
-| `UpdateVaultConfig(VaultConfig)` | `*SkyflowError` | Replace an existing vault configuration (matched by `VaultId`). |
+| `UpdateVaultConfig(VaultConfig)` | `*SkyflowError` | Update an existing vault configuration (matched by `VaultId`). Unset `ClusterId`, `BaseVaultUrl`, and `Credentials` keep their current values. `Env` is always applied, so an unset `Env` sets the vault to `PROD`. |
 | `RemoveVaultConfig(vaultId string)` | `*SkyflowError` | Remove a vault configuration. |
 | `AddConnectionConfig(ConnectionConfig)` | `*SkyflowError` | Add a connection after initialization. |
 | `GetConnectionConfig(connId string)` | `(*ConnectionConfig, *SkyflowError)` | Retrieve a connection configuration by ID. |
@@ -82,8 +82,8 @@ All mutating methods return `*SkyflowError` (nil on success) unless the table no
 | `AddSkyflowCredentials(Credentials)` | `*SkyflowError` | Set client-level credentials. |
 | `UpdateSkyflowCredentials(Credentials)` | `*SkyflowError` | Replace client-level credentials. |
 | `GetSkyflowCredentials()` | `*Credentials` | Get the current client-level credentials. |
-| `GetLoglevel()` | `*LogLevel` | Get the current log level. |
-| `UpdateLogLevel(LogLevel)` | — | Change the log level at runtime. |
+| `GetLoglevel()` | `*LogLevel` | Get the log level last set on this client. Another client may have changed the process-wide level since. |
+| `UpdateLogLevel(LogLevel)` | — | Change the log level at runtime. The level is process-wide and shared by every v2 and Flow Vault client. |
 
 ```go
 // Manage configuration after the client is built
