@@ -1,8 +1,7 @@
 name: Shared FlowVault Checks
 
 # Build, vet, lint and test the flowvault module and the common module it depends
-# on, and type-check every flowvault sample. Called by the PR, internal-release and
-# public-release workflows so all three gate on the same checks.
+# on, and type-check every flowvault sample. Called by the flowvault PR workflow.
 
 on:
   workflow_call:
