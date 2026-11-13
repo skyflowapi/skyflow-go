@@ -9,11 +9,18 @@ type QueryResponseMetadata struct {
 }
 
 type QueryResponse struct {
-	Fields    []map[string]interface{} `json:"fields"` // one map per row
+	// Records holds the rows the query returned, one map of column name to value per row.
+	// Never nil. The vault returns at most 25 rows per call, so page with LIMIT and OFFSET in
+	// the query.
+	Records []map[string]interface{} `json:"records"`
+	// Fields holds the same rows as Records.
+	//
+	// Deprecated: the name is misleading, these are rows, not fields. Use Records.
+	Fields    []map[string]interface{} `json:"-"`
 	Metadata  QueryResponseMetadata    `json:"metadata"`
 	RequestId string                   `json:"requestId"` // call-level, always populated
 }
 
 type QueryOptions struct {
-	Interceptor Interceptor
+	CustomHeaders map[CustomHeaderKey]string
 }

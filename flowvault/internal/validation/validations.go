@@ -2,9 +2,10 @@ package validation
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
-	fvconsts "github.com/skyflowapi/skyflow-go/flowvault/internal/constants"
+	fvhelpers "github.com/skyflowapi/skyflow-go/flowvault/internal/helpers"
 	fvcommon "github.com/skyflowapi/skyflow-go/flowvault/utils/common"
 	fverrors "github.com/skyflowapi/skyflow-go/flowvault/utils/error"
 )
@@ -22,21 +23,20 @@ func blank(value string) bool {
 }
 
 func ValidateInsert(req fvcommon.InsertRequest) *fverrors.SkyflowError {
-	name := fvconsts.METHOD_INSERT
 	if len(req.Records) == 0 {
-		return invalid(fverrors.EMPTY_RECORDS, name)
+		return invalid(fverrors.EMPTY_RECORDS)
 	}
 	tableAtRequest := !blank(req.TableName)
-	for i, record := range req.Records {
-		if err := validateData(name, i, record.Data); err != nil {
+	for _, record := range req.Records {
+		if err := validateData(record.Data, record.Tokens); err != nil {
 			return err
 		}
 		tableAtRecord := !blank(record.TableName)
 		if tableAtRequest && tableAtRecord {
-			return invalid(fverrors.TABLE_IN_BOTH_PLACES, name)
+			return invalid(fverrors.TABLE_IN_BOTH_PLACES)
 		}
 		if !tableAtRequest && !tableAtRecord {
-			return invalid(fverrors.TABLE_MISSING, name)
+			return invalid(fverrors.TABLE_MISSING)
 		}
 		if tableAtRequest && record.Upsert != nil {
 			return invalid(fverrors.RECORD_UPSERT_NOT_ALLOWED)
@@ -63,118 +63,162 @@ func validateUpsert(upsert *fvcommon.UpsertOptions) *fverrors.SkyflowError {
 			return invalid(fverrors.EMPTY_UNIQUE_COLUMNS)
 		}
 	}
-	return validateUpdateType(fvconsts.METHOD_INSERT, upsert.UpdateType)
+	return validateUpdateType(upsert.UpdateType)
 }
 
-func validateUpdateType(name string, updateType fvcommon.UpdateType) *fverrors.SkyflowError {
-	switch updateType {
+// validateUpdateType accepts UPDATE or REPLACE in any letter case.
+func validateUpdateType(updateType fvcommon.UpdateType) *fverrors.SkyflowError {
+	switch fvcommon.UpdateType(strings.ToUpper(string(updateType))) {
 	case "", fvcommon.UpdateTypeUpdate, fvcommon.UpdateTypeReplace:
 		return nil
 	}
-	return invalid(fverrors.INVALID_UPDATE_TYPE, name, string(updateType))
+	return invalid(fverrors.INVALID_UPDATE_TYPE)
 }
 
-func validateData(name string, index int, data map[string]interface{}) *fverrors.SkyflowError {
+// validateData checks a record's data and tokens. No column name or
+// value may be empty (nil or blank), and Tokens, when set, must not be empty.
+func validateData(data, tokens map[string]interface{}) *fverrors.SkyflowError {
 	if len(data) == 0 {
-		return invalid(fverrors.EMPTY_DATA, name, index)
+		return invalid(fverrors.EMPTY_DATA)
 	}
-	for key := range data {
+	for key, value := range data {
 		if blank(key) {
-			return invalid(fverrors.EMPTY_KEY_IN_DATA, name, index)
+			return invalid(fverrors.EMPTY_KEY_IN_DATA)
+		}
+		if emptyValue(value) {
+			return invalid(fverrors.EMPTY_VALUE_IN_DATA)
+		}
+	}
+	if tokens == nil {
+		return nil
+	}
+	if len(tokens) == 0 {
+		return invalid(fverrors.EMPTY_RECORD_TOKENS)
+	}
+	for key, value := range tokens {
+		if blank(key) {
+			return invalid(fverrors.EMPTY_KEY_IN_TOKENS)
+		}
+		if emptyValue(value) {
+			return invalid(fverrors.EMPTY_VALUE_IN_TOKENS)
 		}
 	}
 	return nil
 }
 
-func ValidateUpdate(req fvcommon.UpdateRequest) *fverrors.SkyflowError {
-	name := fvconsts.METHOD_UPDATE
-	if len(req.Records) == 0 {
-		return invalid(fverrors.EMPTY_RECORDS, name)
+// emptyValue reports whether a data or token value is nil or a blank string.
+func emptyValue(value interface{}) bool {
+	if value == nil {
+		return true
 	}
-	if err := validateUpdateType(name, req.UpdateType); err != nil {
+	text, isString := value.(string)
+	return isString && blank(text)
+}
+
+func ValidateUpdate(req fvcommon.UpdateRequest) *fverrors.SkyflowError {
+	if len(req.Records) == 0 {
+		return invalid(fverrors.EMPTY_RECORDS)
+	}
+	if err := validateUpdateType(req.UpdateType); err != nil {
 		return err
 	}
 	tableAtRequest := !blank(req.TableName)
-	for i, record := range req.Records {
+	for _, record := range req.Records {
 		if blank(record.SkyflowId) {
-			return invalid(fverrors.MISSING_SKYFLOW_ID, i)
+			return invalid(fverrors.MISSING_SKYFLOW_ID)
 		}
-		if err := validateData(name, i, record.Data); err != nil {
+		if err := validateData(record.Data, record.Tokens); err != nil {
 			return err
 		}
 		tableAtRecord := !blank(record.TableName)
 		if tableAtRequest && tableAtRecord {
-			return invalid(fverrors.TABLE_IN_BOTH_PLACES, name)
+			return invalid(fverrors.TABLE_IN_BOTH_PLACES)
 		}
 		if !tableAtRequest && !tableAtRecord {
-			return invalid(fverrors.TABLE_MISSING, name)
+			return invalid(fverrors.TABLE_MISSING)
 		}
 	}
 	return nil
 }
 
 func ValidateGet(req fvcommon.GetRequest) *fverrors.SkyflowError {
-	name := fvconsts.METHOD_GET
-	if req.Limit < 0 || req.Offset < 0 {
+	if (req.Limit != nil && *req.Limit < 0) || (req.Offset != nil && *req.Offset < 0) {
 		return invalid(fverrors.NEGATIVE_LIMIT_OFFSET)
 	}
-	if req.Records != nil {
-		if req.TableName != "" || req.SkyflowIds != nil || req.UniqueValues != nil || req.Columns != nil ||
-			req.ColumnRedactions != nil || req.Limit != 0 || req.Offset != 0 {
+	// An empty Records slice counts as unset: the request is then a
+	// single-table get. Limit and Offset aren't sent with Records, so setting them is refused
+	// rather than silently ignored.
+	if len(req.Records) > 0 {
+		if req.TableName != "" || len(req.SkyflowIds) > 0 || len(req.UniqueValues) > 0 || len(req.Columns) > 0 ||
+			len(req.ColumnRedactions) > 0 || req.Limit != nil || req.Offset != nil {
 			return invalid(fverrors.GET_MODE_CONFLICT)
 		}
-		if len(req.Records) == 0 {
-			return invalid(fverrors.EMPTY_RECORDS, name)
-		}
 		for _, record := range req.Records {
-			if err := validateTableTarget(name, record.TableName, record.SkyflowIds, record.UniqueValues); err != nil {
-				return err
-			}
-			if err := validateColumnRedactions(name, record.ColumnRedactions); err != nil {
+			if err := validateGetTarget(record.TableName, record.SkyflowIds, record.UniqueValues, record.Columns, record.ColumnRedactions); err != nil {
 				return err
 			}
 		}
 		return nil
 	}
-	if err := validateTableTarget(name, req.TableName, req.SkyflowIds, req.UniqueValues); err != nil {
+	return validateGetTarget(req.TableName, req.SkyflowIds, req.UniqueValues, req.Columns, req.ColumnRedactions)
+}
+
+// validateGetTarget checks one table's lookup: the table and IDs or unique values, then the
+// columns to return and the column redactions.
+func validateGetTarget(table string, ids []string, uniqueValues []map[string]interface{}, columns []string,
+	redactions []fvcommon.ColumnRedactions) *fverrors.SkyflowError {
+	if err := validateTableTarget(table, ids, uniqueValues); err != nil {
 		return err
 	}
-	return validateColumnRedactions(name, req.ColumnRedactions)
+	// A blank column name is refused. An empty Columns slice is the same
+	// as an unset one: every column is returned.
+	for _, column := range columns {
+		if blank(column) {
+			return invalid(fverrors.EMPTY_COLUMN_IN_COLUMNS)
+		}
+	}
+	return validateColumnRedactions(redactions)
 }
 
 func ValidateDelete(req fvcommon.DeleteRequest) *fverrors.SkyflowError {
-	return validateTableTarget(fvconsts.METHOD_DELETE, req.TableName, req.SkyflowIds, req.UniqueValues)
+	return validateTableTarget(req.TableName, req.SkyflowIds, req.UniqueValues)
 }
 
 // validateTableTarget checks a table name plus exactly one of IDs / unique values.
-func validateTableTarget(name, table string, ids []string, uniqueValues []map[string]interface{}) *fverrors.SkyflowError {
+func validateTableTarget(table string, ids []string, uniqueValues []map[string]interface{}) *fverrors.SkyflowError {
 	if blank(table) {
-		return invalid(fverrors.EMPTY_TABLE_NAME, name)
+		return invalid(fverrors.EMPTY_TABLE_NAME)
 	}
-	if (len(ids) > 0) == (len(uniqueValues) > 0) {
-		return invalid(fverrors.IDS_OR_UNIQUE_VALUES, name)
+	switch hasIds, hasUniqueValues := len(ids) > 0, len(uniqueValues) > 0; {
+	case hasIds && hasUniqueValues:
+		return invalid(fverrors.BOTH_IDS_AND_UNIQUE_VALUES)
+	case !hasIds && !hasUniqueValues:
+		return invalid(fverrors.IDS_OR_UNIQUE_VALUES)
 	}
 	for _, id := range ids {
 		if blank(id) {
-			return invalid(fverrors.EMPTY_ID, name)
+			return invalid(fverrors.EMPTY_ID)
 		}
 	}
-	return validateUniqueValues(name, uniqueValues)
+	return validateUniqueValues(uniqueValues)
 }
 
-func validateUniqueValues(name string, uniqueValues []map[string]interface{}) *fverrors.SkyflowError {
+func validateUniqueValues(uniqueValues []map[string]interface{}) *fverrors.SkyflowError {
 	for _, value := range uniqueValues {
 		if len(value) == 0 {
-			return invalid(fverrors.EMPTY_UNIQUE_VALUE, name)
+			return invalid(fverrors.EMPTY_UNIQUE_VALUE)
 		}
 	}
 	return nil
 }
 
-func validateColumnRedactions(name string, redactions []fvcommon.ColumnRedaction) *fverrors.SkyflowError {
+func validateColumnRedactions(redactions []fvcommon.ColumnRedactions) *fverrors.SkyflowError {
 	for _, redaction := range redactions {
-		if blank(redaction.ColumnName) || blank(redaction.Redaction) {
-			return invalid(fverrors.INVALID_COLUMN_REDACTION, name)
+		if blank(redaction.ColumnName) {
+			return invalid(fverrors.EMPTY_COLUMN_NAME_IN_COLUMN_REDACTION)
+		}
+		if blank(redaction.Redaction) {
+			return invalid(fverrors.EMPTY_REDACTION_IN_COLUMN_REDACTION)
 		}
 	}
 	return nil
@@ -190,8 +234,11 @@ func ValidateDetokenize(req fvcommon.DetokenizeRequest) *fverrors.SkyflowError {
 		}
 	}
 	for _, redaction := range req.TokenGroupRedactions {
-		if blank(redaction.TokenGroupName) || blank(redaction.Redaction) {
-			return invalid(fverrors.INVALID_TOKEN_GROUP_REDACTION)
+		if blank(redaction.TokenGroupName) {
+			return invalid(fverrors.EMPTY_TOKEN_GROUP_NAME_IN_TOKEN_GROUP)
+		}
+		if blank(redaction.Redaction) {
+			return invalid(fverrors.EMPTY_REDACTION_IN_TOKEN_GROUP)
 		}
 	}
 	return nil
@@ -199,14 +246,14 @@ func ValidateDetokenize(req fvcommon.DetokenizeRequest) *fverrors.SkyflowError {
 
 func ValidateGetTokens(req fvcommon.GetTokensRequest) *fverrors.SkyflowError {
 	if len(req.Records) == 0 {
-		return invalid(fverrors.EMPTY_RECORDS, fvconsts.METHOD_GET_TOKENS)
+		return invalid(fverrors.EMPTY_GET_TOKENS_RECORDS)
 	}
-	for i, record := range req.Records {
+	for _, record := range req.Records {
 		if text, isString := record.Value.(string); record.Value == nil || isString && blank(text) {
-			return invalid(fverrors.MISSING_VALUE, i)
+			return invalid(fverrors.MISSING_VALUE)
 		}
 		if blank(record.TokenGroupName) {
-			return invalid(fverrors.MISSING_TOKEN_GROUP_NAME, i)
+			return invalid(fverrors.MISSING_TOKEN_GROUP_NAME)
 		}
 	}
 	return nil
@@ -219,25 +266,33 @@ func ValidateQuery(req fvcommon.QueryRequest) *fverrors.SkyflowError {
 	return nil
 }
 
+// presentButBlank reports a value that was set but holds only whitespace.
+// Such a SkyflowId is an error rather than being taken as "not set".
+func presentButBlank(value string) bool {
+	return value != "" && blank(value)
+}
+
 func ValidateUploadFiles(req fvcommon.UploadFilesRequest) *fverrors.SkyflowError {
-	name := fvconsts.METHOD_UPLOAD_FILES
 	if len(req.Records) == 0 {
-		return invalid(fverrors.EMPTY_RECORDS, name)
+		return invalid(fverrors.EMPTY_UPLOAD_FILES_RECORDS)
 	}
-	for i, record := range req.Records {
+	for _, record := range req.Records {
 		if blank(record.TableName) {
-			return invalid(fverrors.EMPTY_TABLE_NAME, name)
+			return invalid(fverrors.EMPTY_UPLOAD_FILES_TABLE_NAME)
+		}
+		if presentButBlank(record.SkyflowId) {
+			return invalid(fverrors.EMPTY_UPLOAD_FILES_SKYFLOW_ID)
 		}
 		if len(record.Columns) == 0 {
-			return invalid(fverrors.EMPTY_COLUMNS, name, i)
+			return invalid(fverrors.EMPTY_UPLOAD_FILES_COLUMNS)
 		}
 		seen := make(map[string]bool, len(record.Columns))
 		for _, column := range record.Columns {
 			if blank(column.Column) {
-				return invalid(fverrors.EMPTY_COLUMN_NAME, name, i)
+				return invalid(fverrors.EMPTY_UPLOAD_FILES_COLUMN_NAME)
 			}
 			if seen[column.Column] {
-				return invalid(fverrors.DUPLICATE_COLUMN, name, column.Column, i)
+				return invalid(fverrors.DUPLICATE_UPLOAD_FILES_COLUMN)
 			}
 			seen[column.Column] = true
 			sources := 0
@@ -250,11 +305,14 @@ func ValidateUploadFiles(req fvcommon.UploadFilesRequest) *fverrors.SkyflowError
 			if column.FileObject != nil {
 				sources++
 			}
-			if sources != 1 {
-				return invalid(fverrors.FILE_SOURCE_COUNT, column.Column)
+			switch {
+			case sources == 0:
+				return invalid(fverrors.MISSING_FILE_SOURCE)
+			case sources > 1:
+				return invalid(fverrors.MULTIPLE_FILE_SOURCES)
 			}
 			if column.Base64 != "" && blank(column.FileName) {
-				return invalid(fverrors.BASE64_NEEDS_FILE_NAME, column.Column)
+				return invalid(fverrors.BASE64_NEEDS_FILE_NAME)
 			}
 		}
 	}
@@ -262,34 +320,33 @@ func ValidateUploadFiles(req fvcommon.UploadFilesRequest) *fverrors.SkyflowError
 }
 
 func ValidateDeleteFiles(req fvcommon.DeleteFilesRequest) *fverrors.SkyflowError {
-	name := fvconsts.METHOD_DELETE_FILES
 	if len(req.Records) == 0 {
-		return invalid(fverrors.EMPTY_RECORDS, name)
+		return invalid(fverrors.EMPTY_DELETE_FILES_RECORDS)
 	}
-	if len(req.Records) > fvconsts.MAX_DELETE_FILES_RECORDS {
-		return invalid(fverrors.DELETE_FILES_LIMIT, fvconsts.MAX_DELETE_FILES_RECORDS)
-	}
-	for i, record := range req.Records {
+	for _, record := range req.Records {
 		if blank(record.TableName) {
-			return invalid(fverrors.EMPTY_TABLE_NAME, name)
+			return invalid(fverrors.EMPTY_DELETE_FILES_TABLE_NAME)
 		}
 		if len(record.Columns) == 0 {
-			return invalid(fverrors.EMPTY_COLUMNS, name, i)
+			return invalid(fverrors.EMPTY_DELETE_FILES_COLUMNS)
 		}
 		seen := make(map[string]bool, len(record.Columns))
 		for _, column := range record.Columns {
 			if blank(column) {
-				return invalid(fverrors.EMPTY_COLUMN_NAME, name, i)
+				return invalid(fverrors.EMPTY_DELETE_FILES_COLUMN_NAME)
 			}
 			if seen[column] {
-				return invalid(fverrors.DUPLICATE_COLUMN, name, column, i)
+				return invalid(fverrors.DUPLICATE_DELETE_FILES_COLUMN)
 			}
 			seen[column] = true
 		}
-		if blank(record.SkyflowId) == (len(record.UniqueValues) == 0) {
-			return invalid(fverrors.DELETE_FILES_TARGET, i)
+		if presentButBlank(record.SkyflowId) {
+			return invalid(fverrors.EMPTY_DELETE_FILES_SKYFLOW_ID)
 		}
-		if err := validateUniqueValues(name, record.UniqueValues); err != nil {
+		if (record.SkyflowId != "") == (len(record.UniqueValues) > 0) {
+			return invalid(fverrors.DELETE_FILES_TARGET)
+		}
+		if err := validateUniqueValues(record.UniqueValues); err != nil {
 			return err
 		}
 	}
@@ -298,15 +355,70 @@ func ValidateDeleteFiles(req fvcommon.DeleteFilesRequest) *fverrors.SkyflowError
 
 // ValidateCustomHeaders checks that only supported header keys are set, each with a value.
 func ValidateCustomHeaders(headers map[fvcommon.CustomHeaderKey]string, tag string) *fverrors.SkyflowError {
-	for key, value := range headers {
-		switch key {
-		case fvcommon.SkyflowAccountId, fvcommon.SkyflowAccountName, fvcommon.RequestIdHeader:
-		default:
-			return invalid(fverrors.INVALID_HEADER_KEY, tag, string(key))
-		}
-		if blank(value) {
-			return invalid(fverrors.EMPTY_HEADER_VALUE, tag, string(key))
+	return fvhelpers.Profile().ValidateCustomHeaders(headers, tag)
+}
+
+var (
+	// apiKeyPattern is the API key format.
+	apiKeyPattern = regexp.MustCompile(`^sky-[a-zA-Z0-9]{5}-[a-fA-F0-9]{32}$`)
+	// contextKeyPattern is the rule for a key in a context map.
+	contextKeyPattern = regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
+)
+
+// ValidateCredentials checks credentials when they are added: exactly
+// one source, which must not be blank; an API key in the sky-xxxxx-<32 hex> format; roles; and
+// a Context that is a non-blank string or a non-empty map with valid keys. The checks shared
+// with the v2 SDK (one source, roles) come from the common validator; the stricter ones are
+// flowvault's, so v2's released behaviour is unchanged.
+func ValidateCredentials(credentials fvcommon.Credentials) *fverrors.SkyflowError {
+	sources := 0
+	for _, value := range []string{credentials.Path, credentials.CredentialsString, credentials.Token, credentials.ApiKey} {
+		if value != "" {
+			sources++
 		}
 	}
-	return nil
+	if sources == 1 {
+		switch {
+		case credentials.Path != "" && blank(credentials.Path):
+			return invalid(fverrors.EMPTY_CREDENTIAL_FILE_PATH)
+		case credentials.CredentialsString != "" && blank(credentials.CredentialsString):
+			return invalid(fverrors.EMPTY_CREDENTIALS_STRING)
+		case credentials.Token != "" && blank(credentials.Token):
+			return invalid(fverrors.EMPTY_TOKEN_CREDENTIAL)
+		case credentials.ApiKey != "" && blank(credentials.ApiKey):
+			return invalid(fverrors.EMPTY_API_KEY)
+		case credentials.ApiKey != "" && !apiKeyPattern.MatchString(credentials.ApiKey):
+			return invalid(fverrors.INVALID_API_KEY)
+		}
+	}
+	if err := fvhelpers.ConfigValidator().ValidateCredentials(credentials); err != nil {
+		return err
+	}
+	return validateContext(credentials.Context)
+}
+
+// validateContext checks a credentials Context: unset, a non-blank string, or a non-empty
+// map[string]interface{} whose keys are letters, digits and underscores.
+func validateContext(context interface{}) *fverrors.SkyflowError {
+	switch value := context.(type) {
+	case nil:
+		return nil
+	case string:
+		if blank(value) {
+			return invalid(fverrors.EMPTY_CONTEXT)
+		}
+		return nil
+	case map[string]interface{}:
+		if len(value) == 0 {
+			return invalid(fverrors.EMPTY_CONTEXT)
+		}
+		for key := range value {
+			if !contextKeyPattern.MatchString(key) {
+				return invalid(fverrors.INVALID_CONTEXT_MAP_KEY, key)
+			}
+		}
+		return nil
+	default:
+		return invalid(fverrors.INVALID_CONTEXT_TYPE)
+	}
 }

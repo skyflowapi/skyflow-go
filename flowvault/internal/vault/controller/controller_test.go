@@ -24,18 +24,15 @@ var (
 )
 
 var _ = Describe("SetupRequest", func() {
-	It("uses the client API key and the interceptor's headers", func() {
+	It("uses the client API key and the call's custom headers", func() {
 		config := fvcommon.VaultConfig{VaultId: "v", ClusterId: "cluster", Env: fvcommon.DEV, Timeout: 5 * time.Second}
 		v := NewVaultController(config, ClientSettings{Credentials: &fvcommon.Credentials{ApiKey: testApiKey}})
 
-		var operation string
-		setup, err := v.SetupRequest(context.Background(), "QUERY", func(rc *fvcommon.RequestContext) {
-			operation = rc.Operation
-			rc.AddHeader(fvcommon.RequestIdHeader, "custom-id")
-			rc.AddHeader(fvcommon.SkyflowAccountId, "acc")
+		setup, err := v.SetupRequest(context.Background(), "QUERY", map[fvcommon.CustomHeaderKey]string{
+			fvcommon.RequestIdHeader:  "custom-id",
+			fvcommon.SkyflowAccountId: "acc",
 		})
 		Expect(err).To(BeNil())
-		Expect(operation).To(Equal("QUERY"))
 		Expect(setup.AuthToken).To(Equal(testApiKey))
 		Expect(setup.BaseURL).To(Equal("https://cluster.skyvault.skyflowapis.dev"))
 		Expect(setup.Headers.Get("x-skyflow-account-id")).To(Equal("acc"))
@@ -59,19 +56,6 @@ var _ = Describe("SetupRequest", func() {
 		setup, err := NewVaultController(fvcommon.VaultConfig{VaultId: "v", ClusterId: "cluster"}, ClientSettings{Credentials: &fvcommon.Credentials{ApiKey: testApiKey}}).SetupRequest(context.Background(), "GET", nil)
 		Expect(err).To(BeNil())
 		Expect(setup.BaseURL).To(Equal("https://cluster.skyvault.skyflowapis.com"))
-	})
-
-	It("drops the cached token when credentials change", func() {
-		v := NewVaultController(fvcommon.VaultConfig{VaultId: "v"}, ClientSettings{})
-		version := v.snapshot().authVersion
-		v.SetClientSettings(ClientSettings{Credentials: &fvcommon.Credentials{ApiKey: testApiKey}})
-		Expect(v.snapshot().authVersion).To(Equal(version + 1))
-		v.SetClientSettings(ClientSettings{Credentials: v.ClientSettings().Credentials, HttpConfig: fvcommon.HttpConfig{Timeout: time.Second}})
-		Expect(v.snapshot().authVersion).To(Equal(version + 1))
-		v.SetConfig(v.Config(), true)
-		Expect(v.snapshot().authVersion).To(Equal(version + 2))
-		v.ResetAuth()
-		Expect(v.snapshot().authVersion).To(Equal(version + 3))
 	})
 
 	It("fails when no credentials are available", func() {

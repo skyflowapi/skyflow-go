@@ -23,5 +23,5 @@ type GetTokensResponse struct {
 }
 
 type GetTokensOptions struct {
-	Interceptor Interceptor
+	CustomHeaders map[CustomHeaderKey]string
 }

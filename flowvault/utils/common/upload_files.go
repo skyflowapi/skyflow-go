@@ -51,5 +51,5 @@ type UploadFilesResponse struct {
 }
 
 type UploadFilesOptions struct {
-	Interceptor Interceptor
+	CustomHeaders map[CustomHeaderKey]string
 }

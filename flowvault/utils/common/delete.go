@@ -18,5 +18,5 @@ type DeleteResponse struct {
 }
 
 type DeleteOptions struct {
-	Interceptor Interceptor
+	CustomHeaders map[CustomHeaderKey]string
 }

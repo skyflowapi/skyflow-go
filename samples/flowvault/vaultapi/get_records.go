@@ -48,8 +48,8 @@ func main() {
 		TableName:  "<SENSITIVE_DATA_TABLE>",
 		SkyflowIds: []string{"<SKYFLOW_ID1>", "<SKYFLOW_ID2>"},
 		// Columns:          []string{"name", "email"},                                        // return only these columns
-		// ColumnRedactions: []common.ColumnRedaction{{ColumnName: "email", Redaction: "<REDACTION>"}},
-		// Limit: 25, Offset: 0,
+		// ColumnRedactions: []common.ColumnRedactions{{ColumnName: "email", Redaction: "<REDACTION>"}},
+		// Limit: &limit, Offset: &offset, // with limit, offset := 25, 0; *int: nil is not sent, 0 is sent
 	}
 	// To look records up by a unique column instead of by Skyflow ID:
 	// request := common.GetRequest{TableName: "<SENSITIVE_DATA_TABLE>", UniqueValues: []map[string]interface{}{{"email": "john@example.com"}}}

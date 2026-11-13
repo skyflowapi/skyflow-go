@@ -153,9 +153,6 @@ const (
 	// Request validation
 	REQUEST_INVOKE_CONNECTION = "InvokeConnectionRequest"
 	REQUEST_ENTITY_ONLY = "entity_only"
-	REQUEST_DEIDENTIFY_TEXT = "DeidentifyTextRequest"
-	REQUEST_REIDENTIFY_TEXT = "ReidentifyTextRequest"
-	REQUEST_GET_DETECT_RUN = "GetDetectRunRequest"
 	REQUEST_TOKENIZE = "Tokenize"
 	
 	// JSON keys for request/response bodies

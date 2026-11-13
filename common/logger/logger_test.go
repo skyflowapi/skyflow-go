@@ -38,6 +38,17 @@ var _ = Describe("Logger", func() {
 		SetLogLevel(ERROR)
 	})
 
+	Context("LogLevel.String", func() {
+		It("returns the level's name", func() {
+			Expect(ERROR.String()).To(Equal("ERROR"))
+			Expect(INFO.String()).To(Equal("INFO"))
+			Expect(DEBUG.String()).To(Equal("DEBUG"))
+			Expect(WARN.String()).To(Equal("WARN"))
+			Expect(OFF.String()).To(Equal("OFF"))
+			Expect(LogLevel(42).String()).To(Equal("LogLevel(42)"))
+		})
+	})
+
 	Context("default state", func() {
 		It("should log at ERROR level by default", func() {
 			Expect(levelVar.Level()).To(Equal(slog.LevelError))

@@ -20,11 +20,10 @@ const (
 )
 
 type (
-	Credentials      = cfg.Credentials
-	VaultConfig      = cfg.VaultConfig
-	HttpConfig       = cfg.HttpConfig
-	ConnectionConfig = cfg.ConnectionConfig
-	CustomHeaderKey  = cfg.CustomHeaderKey
+	Credentials     = cfg.Credentials
+	VaultConfig     = cfg.VaultConfig
+	HttpConfig      = cfg.HttpConfig
+	CustomHeaderKey = cfg.CustomHeaderKey
 )
 
 const (

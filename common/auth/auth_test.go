@@ -325,6 +325,13 @@ var _ = Describe("Auth Service", func() {
 			own := &http.Client{Timeout: time.Second}
 			Expect(New(Config{HTTPClient: own}).cfg.HTTPClient).To(BeIdenticalTo(own))
 		})
+		It("should apply its ErrorOptions to every error it returns", func() {
+			raw := New(Config{SDKPrefix: testSDKPrefix, ErrorOptions: []skyflowError.ErrorOption{skyflowError.RawMessage()}})
+			_, err := raw.GenerateBearerToken("", sa.BearerTokenOptions{})
+			Expect(err.GetMessage()).To(Equal(testSDKPrefix + errEmptyCredentialFilePath))
+			_, err = svc.GenerateBearerToken("", sa.BearerTokenOptions{})
+			Expect(err.GetMessage()).To(Equal("Message: " + testSDKPrefix + errEmptyCredentialFilePath))
+		})
 		It("should treat a token without exp as expired", func() {
 			Expect(svc.IsExpired(signedJWT(jwt.MapClaims{"sub": "x"}))).To(BeTrue())
 		})
@@ -616,6 +623,7 @@ var _ = Describe("Auth Service", func() {
 				},
 				Entry("no access token", `{"tokenType":"Bearer"}`),
 				Entry("no token type", `{"accessToken":"at"}`),
+				Entry("a null body", `null`),
 			)
 		})
 	})

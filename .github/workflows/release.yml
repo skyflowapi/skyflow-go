@@ -108,15 +108,16 @@ jobs:
           fi
 
           if [ "$MODULE" = "flowvault" ]; then
-            # The SDK reports SDK_VERSION in its metrics header; it must match the tag.
+            # The SDK reports SDK_VERSION in its metrics header and messages; it must match the
+            # tag without its "v" (flowvault/v1.0.0 -> 1.0.0).
             CONSTANTS=flowvault/internal/constants/constants.go
             SDK_VERSION=$(sed -nE 's/^[[:space:]]*SDK_VERSION[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' "$CONSTANTS")
             if [ -z "$SDK_VERSION" ]; then
               echo "::error file=$CONSTANTS::Could not find the SDK_VERSION constant; update this check if it moved."
               exit 1
             fi
-            if [ "$SDK_VERSION" != "$VERSION" ]; then
-              echo "::error file=$CONSTANTS::SDK_VERSION is '$SDK_VERSION' but the tag is '$VERSION'." \
+            if [ "$SDK_VERSION" != "${VERSION#v}" ]; then
+              echo "::error file=$CONSTANTS::SDK_VERSION is '$SDK_VERSION' but the tag is '$VERSION' (expected '${VERSION#v}')." \
                    "Bump it on $BRANCH, then re-tag."
               exit 1
             fi

@@ -14,6 +14,7 @@ import (
 
 	"github.com/skyflowapi/skyflow-go/flowvault/internal/testutil"
 	fvcommon "github.com/skyflowapi/skyflow-go/flowvault/utils/common"
+	fverrors "github.com/skyflowapi/skyflow-go/flowvault/utils/error"
 )
 
 func TestClient(t *testing.T) {
@@ -42,7 +43,7 @@ var _ = Describe("Skyflow client", func() {
 
 		config := fvcommon.VaultConfig{VaultId: testVaultID, ClusterId: "cluster"}
 		_, err = NewSkyflow(WithVaults(config, config))
-		Expect(err.GetMessage()).To(ContainSubstring("already exists"))
+		Expect(err.GetMessage()).To(ContainSubstring(fverrors.VAULT_ID_ALREADY_IN_CONFIG_LIST))
 	})
 
 	It("rejects negative HTTP settings on the client and on a vault", func() {
@@ -70,7 +71,42 @@ var _ = Describe("Skyflow client", func() {
 		Expect(*other.controller.ClientSettings().HttpConfig.MaxRetries).To(Equal(2))
 	})
 
-	It("applies the default Env when an update doesn't set one, as Java does", func() {
+	It("returns the first registered vault when no vault ID is given", func() {
+		client := newTestClient()
+		Expect(client.AddVaultConfig(fvcommon.VaultConfig{VaultId: "second", ClusterId: "cluster"})).To(BeNil())
+		first, err := client.Vault()
+		Expect(err).To(BeNil())
+		Expect(first.controller.Config().VaultId).To(Equal(testVaultID))
+		detect, err := client.Detect()
+		Expect(err).To(BeNil())
+		Expect(detect).ToNot(BeNil())
+
+		Expect(client.RemoveVaultConfig(testVaultID)).To(BeNil())
+		next, _ := client.Vault()
+		Expect(next.controller.Config().VaultId).To(Equal("second"))
+
+		Expect(client.RemoveVaultConfig("second")).To(BeNil())
+		_, err = client.Vault()
+		Expect(err.GetMessage()).To(ContainSubstring("VaultId is missing"))
+		_, err = client.Detect()
+		Expect(err).ToNot(BeNil())
+	})
+
+	It("moves a vault registered with a URL to a cluster when an update sets only ClusterId", func() {
+		client := newTestClient()
+		Expect(client.UpdateVaultConfig(fvcommon.VaultConfig{VaultId: testVaultID, BaseVaultUrl: "https://vault.example.com"})).To(BeNil())
+		config, _ := client.GetVaultConfig(testVaultID)
+		Expect(config.BaseVaultUrl).To(Equal("https://vault.example.com"))
+
+		// A stored URL would take precedence over the cluster ID, so it is cleared.
+		Expect(client.UpdateVaultConfig(fvcommon.VaultConfig{VaultId: testVaultID, ClusterId: "other"})).To(BeNil())
+		config, _ = client.GetVaultConfig(testVaultID)
+		Expect(config.ClusterId).To(Equal("other"))
+		Expect(config.BaseVaultUrl).To(BeEmpty())
+		Expect(config.BaseVaultURL).To(BeEmpty())
+	})
+
+	It("applies the default Env when an update doesn't set one", func() {
 		client := newTestClient()
 		Expect(client.UpdateVaultConfig(fvcommon.VaultConfig{VaultId: testVaultID, ClusterId: "other"})).To(BeNil())
 		config, _ := client.GetVaultConfig(testVaultID)
@@ -186,14 +222,14 @@ var _ = Describe("VaultService", func() {
 
 	It("validates before anything else", func() {
 		_, err := vault.Insert(ctx, fvcommon.InsertRequest{}, fvcommon.InsertOptions{})
-		Expect(err.GetMessage()).To(ContainSubstring("Records must not be empty"))
+		Expect(err.GetMessage()).To(ContainSubstring(fverrors.EMPTY_RECORDS))
 		_, err = vault.Query(ctx, fvcommon.QueryRequest{}, fvcommon.QueryOptions{})
-		Expect(err.GetMessage()).To(ContainSubstring("Query must not be empty"))
+		Expect(err.GetMessage()).To(ContainSubstring(fverrors.EMPTY_QUERY))
 	})
 
-	It("rejects interceptor headers that aren't supported", func() {
+	It("rejects custom headers that aren't supported", func() {
 		_, err := vault.Query(ctx, fvcommon.QueryRequest{Query: "SELECT 1"}, fvcommon.QueryOptions{
-			Interceptor: func(rc *fvcommon.RequestContext) { rc.AddHeader("x-other", "v") },
+			CustomHeaders: map[fvcommon.CustomHeaderKey]string{"x-other": "v"},
 		})
 		Expect(err.GetMessage()).To(ContainSubstring("is not supported"))
 	})

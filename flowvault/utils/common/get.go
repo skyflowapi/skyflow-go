@@ -5,8 +5,8 @@ type GetRequest struct {
 	SkyflowIds       []string
 	UniqueValues     []map[string]interface{}
 	Columns          []string
-	ColumnRedactions []ColumnRedaction
-	Limit, Offset    int                // 0 = not sent
+	ColumnRedactions []ColumnRedactions
+	Limit, Offset    *int               // nil = not sent; 0 is sent
 	Records          []GetRequestRecord // multi-table mode; excludes the fields above
 }
 
@@ -15,7 +15,7 @@ type GetRequestRecord struct {
 	SkyflowIds       []string
 	UniqueValues     []map[string]interface{}
 	Columns          []string
-	ColumnRedactions []ColumnRedaction
+	ColumnRedactions []ColumnRedactions
 }
 
 type GetResponseRecord = InsertResponseRecord
@@ -25,5 +25,5 @@ type GetResponse struct {
 }
 
 type GetOptions struct {
-	Interceptor Interceptor
+	CustomHeaders map[CustomHeaderKey]string
 }

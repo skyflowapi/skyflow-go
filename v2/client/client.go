@@ -68,10 +68,7 @@ func WithVaults(config ...vaultutils.VaultConfig) Option {
 				logLevel: &s.logLevel,
 			}
 
-			s.detectServices[vaultConfig.VaultId] = &detectService{
-				config:   &vaultConfig,
-				logLevel: &s.logLevel,
-			}
+			s.detectServices[vaultConfig.VaultId] = newDetectService(vaultConfig, s.detectSettings(), &s.logLevel)
 		}
 		return nil
 	}
@@ -118,6 +115,7 @@ func WithCredentials(credentials vaultutils.Credentials) Option {
 			return err
 		}
 		s.credentials = &credentials
+		s.syncDetect()
 		return nil
 	}
 }
@@ -136,6 +134,7 @@ func WithLogLevel(logLevel logger.LogLevel) Option {
 func WithCustomHeaders(headers map[vaultutils.CustomHeaderKey]string) Option {
 	return func(s *Skyflow) *error.SkyflowError {
 		s.customHeaders = headers
+		s.syncDetect()
 		return nil
 	}
 }
@@ -186,29 +185,15 @@ func (s *Skyflow) Connection(connectionId ...string) (*connectionService, *error
 	return connectionService, nil
 }
 
+// Detect returns the Detect service of a vault: the vault with vaultID, or the first
+// configured vault when none is given. Its methods call the Detect APIs.
 func (s *Skyflow) Detect(vaultID ...string) (*detectService, *error.SkyflowError) {
-	// get vaultapi config if available in vaultapi configs, skyflow or env
 	config, err := getDetectConfig(s.detectServices, vaultID...)
 	if err != nil {
 		return nil, err
 	}
-
-	detectService := &detectService{}
-	// Get the VaultController from the builder's vaultServices map
-	detectService, exists := s.detectServices[config.VaultId]
-	if !exists {
-		detectService.config = config
-		detectService.logLevel = &s.logLevel
-	}
-	// Update the config in the vaultapi service
-	detectService.controller = &controller.DetectController{
-		Config:        config,
-		Loglevel:      &s.logLevel,
-		CommonCreds:   s.credentials,
-		CustomHeaders: s.customHeaders,
-	}
-	detectService.config = config
-	return detectService, nil
+	// getDetectConfig returns the config of a registered service, so the lookup always hits.
+	return s.detectServices[config.VaultId], nil
 }
 
 // GetVaultConfig returns the VaultConfig registered under vaultId, or an error if it is not found.
@@ -266,15 +251,7 @@ func (s *Skyflow) UpdateSkyflowCredentials(credentials vaultutils.Credentials) *
 			}
 		}
 	}
-	if (s.detectServices != nil) && (len(s.detectServices) > 0) {
-		for _, dService := range s.detectServices {
-			if dService.controller != nil {
-				dService.controller.CommonCreds = &credentials
-				dService.controller.Token = ""
-				dService.controller.ApiKey = ""
-			}
-		}
-	}
+	s.syncDetect()
 	if (s.connectionServices != nil) && (len(s.connectionServices) > 0) {
 		for _, cService := range s.connectionServices {
 			if cService.controller != nil {
@@ -309,22 +286,22 @@ func (s *Skyflow) UpdateVaultConfig(updatedConfig vaultutils.VaultConfig) *error
 			vaultSvc.controller.Token = ""
 			vaultSvc.controller.ApiKey = ""
 		}
+		if updatedConfig.BaseVaultUrl != "" || updatedConfig.BaseVaultURL != "" {
+			vaultSvc.controller.Config.BaseVaultUrl = updatedConfig.BaseVaultUrl
+			vaultSvc.controller.Config.BaseVaultURL = updatedConfig.BaseVaultURL
+		} else if updatedConfig.ClusterId != "" {
+			// A cluster ID without a URL moves the vault to that cluster.
+			vaultSvc.controller.Config.BaseVaultUrl = ""
+			vaultSvc.controller.Config.BaseVaultURL = ""
+		}
 		if updatedConfig.ClusterId != "" {
 			vaultSvc.controller.Config.ClusterId = updatedConfig.ClusterId
 		}
 		vaultSvc.controller.Config.Env = updatedConfig.Env
 	}
-	// Update the credentials in the detect controller if provided
-	if detectExists && detectSvc.controller != nil {
-		if !isCredentialsEmpty(updatedConfig.Credentials) {
-			detectSvc.controller.Config.Credentials = updatedConfig.Credentials
-			detectSvc.controller.Token = ""
-			detectSvc.controller.ApiKey = ""
-		}
-		if updatedConfig.ClusterId != "" {
-			detectSvc.controller.Config.ClusterId = updatedConfig.ClusterId
-		}
-		detectSvc.controller.Config.Env = updatedConfig.Env
+	// Merge the update into the detect service's config
+	if detectExists {
+		s.updateDetect(detectSvc, updatedConfig)
 	}
 
 	// Update the config in the vaultapi service, keeping the stored values of the fields the
@@ -339,18 +316,20 @@ func (s *Skyflow) UpdateVaultConfig(updatedConfig vaultutils.VaultConfig) *error
 }
 
 // mergeVaultConfig returns updated, with the credentials, cluster ID and base vault URL of
-// current wherever updated leaves them unset. Env is always taken from updated.
+// current wherever updated leaves them unset. Env is always taken from updated. The stored
+// URL is kept only when updated sets neither a URL nor a cluster ID: a URL takes precedence
+// over a cluster ID, so keeping it would make an update to another cluster have no effect.
 func mergeVaultConfig(updated vaultutils.VaultConfig, current *vaultutils.VaultConfig) *vaultutils.VaultConfig {
 	if current != nil {
 		if isCredentialsEmpty(updated.Credentials) {
 			updated.Credentials = current.Credentials
 		}
-		if updated.ClusterId == "" {
-			updated.ClusterId = current.ClusterId
-		}
-		if updated.BaseVaultUrl == "" && updated.BaseVaultURL == "" {
+		if updated.BaseVaultUrl == "" && updated.BaseVaultURL == "" && updated.ClusterId == "" {
 			updated.BaseVaultUrl = current.BaseVaultUrl
 			updated.BaseVaultURL = current.BaseVaultURL
+		}
+		if updated.ClusterId == "" {
+			updated.ClusterId = current.ClusterId
 		}
 	}
 	return &updated
@@ -418,10 +397,7 @@ func (s *Skyflow) AddVaultConfig(config vaultutils.VaultConfig) *error.SkyflowEr
 		config:   &config,
 		logLevel: &s.logLevel,
 	}
-	s.detectServices[config.VaultId] = &detectService{
-		config:   &config,
-		logLevel: &s.logLevel,
-	}
+	s.detectServices[config.VaultId] = newDetectService(config, s.detectSettings(), &s.logLevel)
 	logger.Info(fmt.Sprintf(logs.VAULT_CONTROLLER_INITIALIZED, config.VaultId))
 	return nil
 }
@@ -443,15 +419,7 @@ func (s *Skyflow) AddSkyflowCredentials(config vaultutils.Credentials) *error.Sk
 			}
 		}
 	}
-	if (s.detectServices != nil) && (len(s.detectServices) > 0) {
-		for _, dService := range s.detectServices {
-			if dService.controller != nil {
-				dService.controller.CommonCreds = &config
-				dService.controller.Token = ""
-				dService.controller.ApiKey = ""
-			}
-		}
-	}
+	s.syncDetect()
 	if (s.connectionServices != nil) && (len(s.connectionServices) > 0) {
 		for _, cService := range s.connectionServices {
 			if cService.controller != nil {

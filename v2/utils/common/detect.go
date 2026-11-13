@@ -1,0 +1,240 @@
+package common
+
+// Detect types, shared with the other Skyflow Go SDKs through type aliases of
+// skyflow-go/common/detect. Use them with the client's detect service:
+//
+//	service, err := skyflowClient.Detect("<VAULT_ID>")
+//	resp, err := service.DeidentifyString(ctx, common.DeidentifyStringRequest{
+//		Text:            "My name is John Doe.",
+//		ConfigurationId: "<CONFIGURATION_ID>",
+//	}, common.DeidentifyStringOptions{})
+
+import cdetect "github.com/skyflowapi/skyflow-go/common/detect"
+
+type (
+	DetectConfiguration        = cdetect.DetectConfiguration
+	Detect                     = cdetect.Detect
+	Entity                     = cdetect.Entity
+	Transformation             = cdetect.Transformation
+	ShiftDates                 = cdetect.ShiftDates
+	CustomType                 = cdetect.CustomType
+	ObjectEntity               = cdetect.ObjectEntity
+	FileMapping                = cdetect.FileMapping
+	Media                      = cdetect.Media
+	Audio                      = cdetect.Audio
+	Bleep                      = cdetect.Bleep
+	Document                   = cdetect.Document
+	Pdf                        = cdetect.Pdf
+	Image                      = cdetect.Image
+	EntityType                 = cdetect.EntityType
+	DeidentificationType       = cdetect.DeidentificationType
+	IncludePrefix              = cdetect.IncludePrefix
+	ReturnEntitiesType         = cdetect.ReturnEntitiesType
+	RedactionType              = cdetect.RedactionType
+	DeidentifyFileSource       = cdetect.DeidentifyFileSource
+	DeidentifySourceType       = cdetect.SkyDeidentifySourceType
+	ReidentifyFileSource       = cdetect.ReidentifyFileSource
+	ReidentifySourceType       = cdetect.SkyReidentifySourceType
+	FileDataFormat             = cdetect.FileDataFormat
+	DetectRunStatus            = cdetect.DetectRunStatus
+	ProcessedFileType          = cdetect.ProcessedFileType
+	ObjectEntityType           = cdetect.ObjectEntityType
+	ObjectDeidentificationType = cdetect.ObjectDeidentificationType
+	OutputTranscriptionType    = cdetect.OutputTranscriptionType
+	PdfProcessingMode          = cdetect.PdfProcessingMode
+	MaskingMethod              = cdetect.MaskingMethod
+	GuardrailsValidation       = cdetect.GuardrailsValidation
+	Metrics                    = cdetect.Metrics
+	FileOutput                 = cdetect.FileOutput
+	RedactionRule              = cdetect.RedactionRule
+	RedactionLevel             = cdetect.SkyRedactionLevel
+	DeidentifyStringRequest    = cdetect.DeidentifyStringRequest
+	DeidentifyStringOptions    = cdetect.DeidentifyStringOptions
+	DeidentifyStringResponse   = cdetect.DeidentifyStringResponse
+	DetectedEntity             = cdetect.DetectedEntity
+	EntityLocation             = cdetect.EntityLocation
+	DeidentifyFileRequest      = cdetect.DeidentifyFileRequest
+	DeidentifyFileOptions      = cdetect.DeidentifyFileOptions
+	PollOptions                = cdetect.PollOptions
+	DeidentifyFileResponse     = cdetect.DeidentifyFileResponse
+	GetRunRequest              = cdetect.GetRunRequest
+	GetRunOptions              = cdetect.GetRunOptions
+	GetRunResponse             = cdetect.GetRunResponse
+	ReidentifyStringRequest    = cdetect.ReidentifyStringRequest
+	ReidentifyStringOptions    = cdetect.ReidentifyStringOptions
+	ReidentifyStringResponse   = cdetect.ReidentifyStringResponse
+	ReidentifyFileRequest      = cdetect.ReidentifyFileRequest
+	ReidentifyFileOptions      = cdetect.ReidentifyFileOptions
+	ReidentifyFileResponse     = cdetect.ReidentifyFileResponse
+	CheckGuardrailsRequest     = cdetect.CheckGuardrailsRequest
+	CheckGuardrailsOptions     = cdetect.CheckGuardrailsOptions
+	CheckGuardrailsResponse    = cdetect.CheckGuardrailsResponse
+)
+
+const (
+	EntityTypeNone                                            = cdetect.EntityTypeNone
+	EntityTypeBankAccount                                     = cdetect.EntityTypeBankAccount
+	EntityTypeCreditCard                                      = cdetect.EntityTypeCreditCard
+	EntityTypeCreditCardExpiration                            = cdetect.EntityTypeCreditCardExpiration
+	EntityTypeCVV                                             = cdetect.EntityTypeCVV
+	EntityTypeDate                                            = cdetect.EntityTypeDate
+	EntityTypeDateInterval                                    = cdetect.EntityTypeDateInterval
+	EntityTypeDOB                                             = cdetect.EntityTypeDOB
+	EntityTypeDriverLicense                                   = cdetect.EntityTypeDriverLicense
+	EntityTypeEmailAddress                                    = cdetect.EntityTypeEmailAddress
+	EntityTypeHealthcareNumber                                = cdetect.EntityTypeHealthcareNumber
+	EntityTypeIPAddress                                       = cdetect.EntityTypeIPAddress
+	EntityTypeLocation                                        = cdetect.EntityTypeLocation
+	EntityTypeName                                            = cdetect.EntityTypeName
+	EntityTypeNumericalPII                                    = cdetect.EntityTypeNumericalPII
+	EntityTypePhoneNumber                                     = cdetect.EntityTypePhoneNumber
+	EntityTypeSSN                                             = cdetect.EntityTypeSSN
+	EntityTypeURL                                             = cdetect.EntityTypeURL
+	EntityTypeVehicleID                                       = cdetect.EntityTypeVehicleID
+	EntityTypeMedicalCode                                     = cdetect.EntityTypeMedicalCode
+	EntityTypeNameFamily                                      = cdetect.EntityTypeNameFamily
+	EntityTypeNameGiven                                       = cdetect.EntityTypeNameGiven
+	EntityTypeAccountNumber                                   = cdetect.EntityTypeAccountNumber
+	EntityTypeEvent                                           = cdetect.EntityTypeEvent
+	EntityTypeFilename                                        = cdetect.EntityTypeFilename
+	EntityTypeGender                                          = cdetect.EntityTypeGender
+	EntityTypeLanguage                                        = cdetect.EntityTypeLanguage
+	EntityTypeLocationAddress                                 = cdetect.EntityTypeLocationAddress
+	EntityTypeLocationCity                                    = cdetect.EntityTypeLocationCity
+	EntityTypeLocationCoordinate                              = cdetect.EntityTypeLocationCoordinate
+	EntityTypeLocationCountry                                 = cdetect.EntityTypeLocationCountry
+	EntityTypeLocationState                                   = cdetect.EntityTypeLocationState
+	EntityTypeLocationZIP                                     = cdetect.EntityTypeLocationZIP
+	EntityTypeMaritalStatus                                   = cdetect.EntityTypeMaritalStatus
+	EntityTypeMoney                                           = cdetect.EntityTypeMoney
+	EntityTypeNameMedicalProfessional                         = cdetect.EntityTypeNameMedicalProfessional
+	EntityTypeOccupation                                      = cdetect.EntityTypeOccupation
+	EntityTypeOrganization                                    = cdetect.EntityTypeOrganization
+	EntityTypeOrganizationMedicalFacility                     = cdetect.EntityTypeOrganizationMedicalFacility
+	EntityTypeOrigin                                          = cdetect.EntityTypeOrigin
+	EntityTypePassportNumber                                  = cdetect.EntityTypePassportNumber
+	EntityTypePassword                                        = cdetect.EntityTypePassword
+	EntityTypePhysicalAttribute                               = cdetect.EntityTypePhysicalAttribute
+	EntityTypePoliticalAffiliation                            = cdetect.EntityTypePoliticalAffiliation
+	EntityTypeReligion                                        = cdetect.EntityTypeReligion
+	EntityTypeTime                                            = cdetect.EntityTypeTime
+	EntityTypeUsername                                        = cdetect.EntityTypeUsername
+	EntityTypeZodiacSign                                      = cdetect.EntityTypeZodiacSign
+	EntityTypeBloodType                                       = cdetect.EntityTypeBloodType
+	EntityTypeCondition                                       = cdetect.EntityTypeCondition
+	EntityTypeDose                                            = cdetect.EntityTypeDose
+	EntityTypeDrug                                            = cdetect.EntityTypeDrug
+	EntityTypeInjury                                          = cdetect.EntityTypeInjury
+	EntityTypeMedicalProcess                                  = cdetect.EntityTypeMedicalProcess
+	EntityTypeStatistics                                      = cdetect.EntityTypeStatistics
+	EntityTypeRoutingNumber                                   = cdetect.EntityTypeRoutingNumber
+	EntityTypeCorporateAction                                 = cdetect.EntityTypeCorporateAction
+	EntityTypeFinancialMetric                                 = cdetect.EntityTypeFinancialMetric
+	EntityTypeProduct                                         = cdetect.EntityTypeProduct
+	EntityTypeTrend                                           = cdetect.EntityTypeTrend
+	EntityTypeDuration                                        = cdetect.EntityTypeDuration
+	EntityTypeLocationAddressStreet                           = cdetect.EntityTypeLocationAddressStreet
+	EntityTypeAge                                             = cdetect.EntityTypeAge
+	EntityTypeSexuality                                       = cdetect.EntityTypeSexuality
+	EntityTypeEffect                                          = cdetect.EntityTypeEffect
+	EntityTypeProject                                         = cdetect.EntityTypeProject
+	EntityTypeOrganizationID                                  = cdetect.EntityTypeOrganizationID
+	EntityTypeDay                                             = cdetect.EntityTypeDay
+	EntityTypeMonth                                           = cdetect.EntityTypeMonth
+	EntityTypeYear                                            = cdetect.EntityTypeYear
+	EntityTypeAll                                             = cdetect.EntityTypeAll
+	DeidentificationTypeUnknown                               = cdetect.DeidentificationTypeUnknown
+	DeidentificationTypeEntityUniqueCounter                   = cdetect.DeidentificationTypeEntityUniqueCounter
+	DeidentificationTypeEntityOnly                            = cdetect.DeidentificationTypeEntityOnly
+	DeidentificationTypeVaultToken                            = cdetect.DeidentificationTypeVaultToken
+	DeidentificationTypeMask                                  = cdetect.DeidentificationTypeMask
+	IncludePrefixYes                                          = cdetect.IncludePrefixYes
+	IncludePrefixNo                                           = cdetect.IncludePrefixNo
+	ReturnEntitiesTypeExcludeSensitiveData                    = cdetect.ReturnEntitiesTypeExcludeSensitiveData
+	ReturnEntitiesTypeAll                                     = cdetect.ReturnEntitiesTypeAll
+	ReturnEntitiesTypeNone                                    = cdetect.ReturnEntitiesTypeNone
+	RedactionTypeRedacted                                     = cdetect.RedactionTypeRedacted
+	RedactionTypeMasked                                       = cdetect.RedactionTypeMasked
+	RedactionTypePlainText                                    = cdetect.RedactionTypePlainText
+	DeidentifySourceTypeBase64                                = cdetect.SkyDeidentifySourceTypeBase64
+	DeidentifySourceTypeSkyflowID                             = cdetect.SkyDeidentifySourceTypeSkyflowID
+	DeidentifySourceTypePresignedURL                          = cdetect.SkyDeidentifySourceTypePresignedURL
+	ReidentifySourceTypeBase64                                = cdetect.SkyReidentifySourceTypeBase64
+	ReidentifySourceTypePresignedURL                          = cdetect.SkyReidentifySourceTypePresignedURL
+	FileDataFormatMP3                                         = cdetect.FileDataFormatMP3
+	FileDataFormatWAV                                         = cdetect.FileDataFormatWAV
+	FileDataFormatPDF                                         = cdetect.FileDataFormatPDF
+	FileDataFormatTXT                                         = cdetect.FileDataFormatTXT
+	FileDataFormatCSV                                         = cdetect.FileDataFormatCSV
+	FileDataFormatJSON                                        = cdetect.FileDataFormatJSON
+	FileDataFormatJPG                                         = cdetect.FileDataFormatJPG
+	FileDataFormatJPEG                                        = cdetect.FileDataFormatJPEG
+	FileDataFormatTIF                                         = cdetect.FileDataFormatTIF
+	FileDataFormatTIFF                                        = cdetect.FileDataFormatTIFF
+	FileDataFormatPNG                                         = cdetect.FileDataFormatPNG
+	FileDataFormatBMP                                         = cdetect.FileDataFormatBMP
+	FileDataFormatXLS                                         = cdetect.FileDataFormatXLS
+	FileDataFormatXLSX                                        = cdetect.FileDataFormatXLSX
+	FileDataFormatDOC                                         = cdetect.FileDataFormatDOC
+	FileDataFormatDOCX                                        = cdetect.FileDataFormatDOCX
+	FileDataFormatPPT                                         = cdetect.FileDataFormatPPT
+	FileDataFormatPPTX                                        = cdetect.FileDataFormatPPTX
+	FileDataFormatXML                                         = cdetect.FileDataFormatXML
+	FileDataFormatDCM                                         = cdetect.FileDataFormatDCM
+	FileDataFormatJSONL                                       = cdetect.FileDataFormatJSONL
+	FileDataFormatZIP                                         = cdetect.FileDataFormatZIP
+	FileDataFormatGIF                                         = cdetect.FileDataFormatGIF
+	DetectRunStatusUnknown                                    = cdetect.DetectRunStatusUnknown
+	DetectRunStatusFailed                                     = cdetect.DetectRunStatusFailed
+	DetectRunStatusSuccess                                    = cdetect.DetectRunStatusSuccess
+	DetectRunStatusInProgress                                 = cdetect.DetectRunStatusInProgress
+	DetectRunStatusQueued                                     = cdetect.DetectRunStatusQueued
+	ProcessedFileTypeNone                                     = cdetect.ProcessedFileTypeNone
+	ProcessedFileTypeRedactedFile                             = cdetect.ProcessedFileTypeRedactedFile
+	ProcessedFileTypeRedactedText                             = cdetect.ProcessedFileTypeRedactedText
+	ProcessedFileTypeEntities                                 = cdetect.ProcessedFileTypeEntities
+	ProcessedFileTypeReidentifiedFile                         = cdetect.ProcessedFileTypeReidentifiedFile
+	ProcessedFileTypeRedactedTranscription                    = cdetect.ProcessedFileTypeRedactedTranscription
+	ProcessedFileTypeRedactedDeepgramTranscriptionDiarizeJSON = cdetect.ProcessedFileTypeRedactedDeepgramTranscriptionDiarizeJSON
+	ProcessedFileTypeObjectEntities                           = cdetect.ProcessedFileTypeObjectEntities
+	ObjectEntityTypeNone                                      = cdetect.ObjectEntityTypeNone
+	ObjectEntityTypeFace                                      = cdetect.ObjectEntityTypeFace
+	ObjectEntityTypeLicensePlate                              = cdetect.ObjectEntityTypeLicensePlate
+	ObjectEntityTypeLogo                                      = cdetect.ObjectEntityTypeLogo
+	ObjectEntityTypeSignature                                 = cdetect.ObjectEntityTypeSignature
+	ObjectEntityTypeAll                                       = cdetect.ObjectEntityTypeAll
+	ObjectDeidentificationTypeUnknown                         = cdetect.ObjectDeidentificationTypeUnknown
+	ObjectDeidentificationTypeRedact                          = cdetect.ObjectDeidentificationTypeRedact
+	ObjectDeidentificationTypeUnredact                        = cdetect.ObjectDeidentificationTypeUnredact
+	OutputTranscriptionTypeNone                               = cdetect.OutputTranscriptionTypeNone
+	OutputTranscriptionTypeTranscription                      = cdetect.OutputTranscriptionTypeTranscription
+	OutputTranscriptionTypeMedicalTranscription               = cdetect.OutputTranscriptionTypeMedicalTranscription
+	OutputTranscriptionTypeDiarizedTranscription              = cdetect.OutputTranscriptionTypeDiarizedTranscription
+	OutputTranscriptionTypeMedicalDiarizedTranscription       = cdetect.OutputTranscriptionTypeMedicalDiarizedTranscription
+	PdfProcessingModeNone                                     = cdetect.PdfProcessingModeNone
+	PdfProcessingModeOCR                                      = cdetect.PdfProcessingModeOCR
+	PdfProcessingModeTextLayer                                = cdetect.PdfProcessingModeTextLayer
+	MaskingMethodNone                                         = cdetect.MaskingMethodNone
+	MaskingMethodBlur                                         = cdetect.MaskingMethodBlur
+	MaskingMethodBlackbox                                     = cdetect.MaskingMethodBlackbox
+	GuardrailsValidationFailed                                = cdetect.GuardrailsValidationFailed
+	GuardrailsValidationPassed                                = cdetect.GuardrailsValidationPassed
+	GuardrailsValidationUnknown                               = cdetect.GuardrailsValidationUnknown
+	OperationDeidentifyString                                 = cdetect.OperationDeidentifyString
+	OperationDeidentifyFile                                   = cdetect.OperationDeidentifyFile
+	OperationGetRun                                           = cdetect.OperationGetRun
+	OperationReidentifyString                                 = cdetect.OperationReidentifyString
+	OperationReidentifyFile                                   = cdetect.OperationReidentifyFile
+	OperationCheckGuardrails                                  = cdetect.OperationCheckGuardrails
+)
+
+// Deprecated: the server rejects DEFAULT in a redaction level. Use REDACTED, MASKED or PLAIN_TEXT.
+const RedactionTypeDefault = cdetect.RedactionTypeDefault
+
+// Ptr returns a pointer to v, for the optional pointer fields in Detect requests and
+// options. A nil *bool, *int or *float32 request option leaves the value to the server; a
+// nil PollOptions field (*time.Duration, *int) takes the SDK default:
+//
+//	common.CheckGuardrailsRequest{Text: text, CheckToxicity: common.Ptr(true)}
+//	common.PollOptions{WaitTime: common.Ptr(2 * time.Minute)}
+func Ptr[T any](v T) *T { return &v }

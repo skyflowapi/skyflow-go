@@ -50,7 +50,7 @@ var _ = Describe("Validator", func() {
 	})
 
 	It("should sanity check the test api key length", func() {
-		Expect(validApiKey).To(HaveLen(apiKeyLength))
+		Expect(apiKeyPattern.MatchString(validApiKey)).To(BeTrue())
 	})
 
 	Context("ValidateVaultConfig", func() {
@@ -83,6 +83,13 @@ var _ = Describe("Validator", func() {
 			Entry("http IPv4 loopback", "http://127.0.0.1:9000"),
 			Entry("http IPv6 loopback", "http://[::1]:9000"),
 		)
+
+		It("should accept plain http for any host with WithInsecureVaultUrl, but still not a malformed URL", func() {
+			lenient := NewValidator(testSDKPrefix, testLogPrefix, WithInsecureVaultUrl())
+			Expect(lenient.ValidateVaultConfig(VaultConfig{VaultId: "v", BaseVaultUrl: "http://10.0.0.5"})).To(BeNil())
+			Expect(lenient.ValidateUpdateVaultConfig(VaultConfig{VaultId: "v", BaseVaultUrl: "http://vault.example.com"})).To(BeNil())
+			expectInvalid(lenient.ValidateVaultConfig(VaultConfig{VaultId: "v", BaseVaultUrl: "ftp://vault.example.com"}), errInvalidVaultUrl)
+		})
 
 		DescribeTable("should reject plain http for a non-loopback host",
 			func(u string) {
@@ -144,6 +151,7 @@ var _ = Describe("Validator", func() {
 		It("should accept positive and zero settings", func() {
 			Expect(v.ValidateHttpConfig(HttpConfig{
 				Timeout: time.Second, MaxRetries: &pos, InitialRetryDelay: time.Millisecond, MaxRetryDelay: time.Second,
+				ConnectTimeout: time.Second, ReadTimeout: time.Second, WriteTimeout: time.Second,
 			})).To(BeNil())
 			Expect(v.ValidateHttpConfig(HttpConfig{MaxRetries: &zero})).To(BeNil())
 		})
@@ -154,9 +162,15 @@ var _ = Describe("Validator", func() {
 				Expect(logBuf.String()).To(ContainSubstring(logNegativeHttpConfig))
 			},
 			Entry("timeout", HttpConfig{Timeout: -time.Second}),
+			Entry("connect timeout", HttpConfig{ConnectTimeout: -time.Second}),
+			Entry("read timeout", HttpConfig{ReadTimeout: -time.Second}),
+			Entry("write timeout", HttpConfig{WriteTimeout: -time.Second}),
 			Entry("initial retry delay", HttpConfig{InitialRetryDelay: -time.Millisecond}),
 			Entry("max retry delay", HttpConfig{MaxRetryDelay: -time.Second}),
 			Entry("max retries", HttpConfig{MaxRetries: &neg}),
+			Entry("connect timeout", HttpConfig{ConnectTimeout: -time.Second}),
+			Entry("read timeout", HttpConfig{ReadTimeout: -time.Second}),
+			Entry("write timeout", HttpConfig{WriteTimeout: -time.Second}),
 		)
 	})
 
@@ -223,7 +237,11 @@ var _ = Describe("Validator", func() {
 			},
 			Entry("too short", "sky-short"),
 			Entry("too long", validApiKey+"x"),
-			Entry("right length, no prefix", strings.Repeat("a", apiKeyLength)),
+			Entry("right length, no prefix", strings.Repeat("a", len(validApiKey))),
+			// Checked against the full key format, not just length and prefix.
+			Entry("prefix not at the start", "x"+validApiKey[:len(validApiKey)-1]),
+			Entry("non-hex secret", validApiKey[:len(validApiKey)-1]+"z"),
+			Entry("short account part", "sky-abcd-"+validApiKey[10:]+"0"),
 		)
 
 		It("should reject an empty roles slice", func() {
@@ -252,5 +270,30 @@ var _ = Describe("Validator", func() {
 			Entry("token", Credentials{Token: "t"}),
 			Entry("apiKey", Credentials{ApiKey: "k"}),
 		)
+	})
+})
+
+var _ = Describe("Validator options", func() {
+	It("uses an SDK's own messages and error options, keeping the defaults for the rest", func() {
+		v := NewValidator(testSDKPrefix, testLogPrefix,
+			WithMessages(Messages{
+				InvalidVaultId:    " vault ID must not be empty.",
+				ClusterIdRequired: " give a cluster ID or a vault URL.",
+				InvalidVaultUrl:   " bad URL.",
+				InsecureVaultUrl:  " use https.",
+			}),
+			WithErrorOptions(skyflowError.RawMessage()),
+		)
+		Expect(v.ValidateVaultConfig(VaultConfig{}).GetMessage()).To(Equal(testSDKPrefix + " vault ID must not be empty."))
+		Expect(v.ValidateVaultConfig(VaultConfig{VaultId: "v"}).GetMessage()).To(Equal(testSDKPrefix + " give a cluster ID or a vault URL."))
+		Expect(v.ValidateVaultConfig(VaultConfig{VaultId: "v", BaseVaultUrl: "ftp://x"}).GetMessage()).To(Equal(testSDKPrefix + " bad URL."))
+		Expect(v.ValidateVaultConfig(VaultConfig{VaultId: "v", BaseVaultUrl: "http://vault.example.com"}).GetMessage()).To(Equal(testSDKPrefix + " use https."))
+		Expect(v.ValidateCredentials(Credentials{}).GetMessage()).To(Equal(testSDKPrefix + errNoTokenGenerationMeansPassed))
+		Expect(v.ValidateCredentials(Credentials{Token: "t", Roles: []string{""}}).GetMessage()).To(Equal(testSDKPrefix + errEmptyRoleInRoles))
+	})
+
+	It("keeps the default message where an SDK sets none", func() {
+		v := NewValidator(testSDKPrefix, testLogPrefix, WithMessages(Messages{InvalidVaultId: " custom."}))
+		expectInvalid(v.ValidateVaultConfig(VaultConfig{VaultId: "v"}), errInvalidClusterId)
 	})
 })

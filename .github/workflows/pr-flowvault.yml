@@ -1,13 +1,13 @@
 name: PR CI Checks (flowvault)
 
 # flowvault is a module under main, next to v2 - not a branch. This workflow runs
-# for PRs into main or a flowvault-release/* branch that touch flowvault, its common
-# dependency or its samples, and checks only those modules. v2 and v1 are covered by
-# ci.yml.
+# for PRs into any branch that touch flowvault, its common dependency or its samples,
+# and checks only those modules. v2 and v1 are covered by ci.yml. It isn't limited to
+# PRs into main and flowvault-release/*: a PR into a feature branch would then upload
+# no common or flowvault coverage, and codecov/project would fail on the missing lines.
 
 on:
   pull_request:
-    branches: [ "main", "flowvault-release/**" ]
     paths:
       - "flowvault/**"
       - "common/**"

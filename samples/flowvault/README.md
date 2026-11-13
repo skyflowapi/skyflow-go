@@ -17,7 +17,7 @@ In Skyflow Studio, open the vault, click the gear icon and select **Edit Vault D
 ### Create a service account
 
 1. In Skyflow Studio, in the side navigation: **IAM** > **Service Accounts** > **New Service Account**.
-2. Name it, and for **Roles** choose **Vault Editor**.
+2. Name it and choose its **Roles**: **Vault Editor** for the vault samples, plus **Detect Invoker** for the Detect samples. Re-identifying vault tokens also needs a policy that grants the Detokenization action.
 3. Click **Create**. Your browser downloads a `credentials.json`. Keep it secure: most samples need its path or contents.
 
 ## Configure
@@ -57,11 +57,24 @@ go run vaultapi/insert_records.go
 | [upload_files.go](vaultapi/upload_files.go) | Upload files to file columns (`FilePath` / `Base64` / `FileObject`) |
 | [delete_files.go](vaultapi/delete_files.go) | Delete files from file columns (by `SkyflowId` or `UniqueValues`) |
 
+## Detect
+
+| Sample | Demonstrates |
+|---|---|
+| [deidentify_string.go](detectapi/deidentify_string.go) | De-identify text with a stored configuration, or an inline one |
+| [deidentify_file.go](detectapi/deidentify_file.go) | Submit a file by presigned URL and keep the run ID, or send a local file and wait for the run |
+| [deidentify_file_advanced.go](detectapi/deidentify_file_advanced.go) | `FileObject`, media and object-entity options, and per-call `CustomHeaders` |
+| [get_run.go](detectapi/get_run.go) | Look up a run by ID, save its base64 outputs, read `Message` when it failed |
+| [reidentify_string.go](detectapi/reidentify_string.go) | Tokenize text into a token group, then re-identify it in full or through a redaction pattern |
+| [reidentify_file.go](detectapi/reidentify_file.go) | Re-identify a base64 file and save the output |
+| [round_trip.go](detectapi/round_trip.go) | De-identify a local file into vault tokens, then re-identify its redacted output |
+| [check_guardrails.go](detectapi/check_guardrails.go) | Screen text for toxicity and denied topics |
+
 ## Custom headers and HTTP config
 
 | Sample | Demonstrates |
 |---|---|
-| [custom_header_example.go](vaultapi/custom_header_example.go) | Add headers to one call with an `InsertOptions` interceptor |
+| [custom_header_example.go](vaultapi/custom_header_example.go) | Add headers to one call with `InsertOptions.CustomHeaders` |
 | [timeout_and_retry_config_example.go](vaultapi/timeout_and_retry_config_example.go) | Client-wide `WithHttpConfig` and per-vault `Timeout` / `MaxRetries` |
 
 ## Service account (token generation)

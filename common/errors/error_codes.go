@@ -14,4 +14,8 @@ const (
 	// REQUEST_CANCELLED - The call's context was cancelled or its deadline passed before the
 	// call finished ("client closed request").
 	REQUEST_CANCELLED ErrorCodesEnum = "499"
+	// TRANSPORT_ERROR - The call got no usable HTTP response: a network failure, a timeout,
+	// or an empty or unreadable body. No HTTP status applies, so the code is "0" and the
+	// status text is empty.
+	TRANSPORT_ERROR ErrorCodesEnum = "0"
 )

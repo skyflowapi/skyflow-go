@@ -10,13 +10,11 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
-	"sync/atomic"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	fvconsts "github.com/skyflowapi/skyflow-go/flowvault/internal/constants"
 	fvcommon "github.com/skyflowapi/skyflow-go/flowvault/utils/common"
 )
 
@@ -31,101 +29,52 @@ var _ = Describe("URL, metadata and shared services", func() {
 		Entry("prod", fvcommon.PROD, "https://cluster.skyvault.skyflowapis.com"),
 	)
 
-	It("describes the SDK and runtime in the metadata header", func() {
+	It("describes the SDK and runtime in the metadata header, with the shared Skyflow SDK keys", func() {
 		var metadata map[string]string
 		Expect(json.Unmarshal([]byte(CreateSDKMetadata()), &metadata)).To(Succeed())
+		Expect(metadata).To(HaveLen(4))
 		Expect(metadata["sdk_name_version"]).To(HavePrefix("skyflow-flowvault-go@"))
-		Expect(metadata["device_model"]).To(Equal(runtime.GOOS))
-		Expect(metadata["os_details"]).To(Equal(runtime.GOOS + " " + runtime.GOARCH))
-		Expect(metadata["runtime_details"]).To(Equal(runtime.Version()))
+		Expect(metadata["sdk_client_device_model"]).To(Equal(runtime.GOOS))
+		Expect(metadata["sdk_client_os_details"]).To(Equal(runtime.GOOS + " " + runtime.GOARCH))
+		Expect(metadata["sdk_runtime_details"]).To(Equal(runtime.Version()))
 	})
 
 	It("shares one authenticator and one config validator", func() {
 		Expect(Auth()).ToNot(BeNil())
 		Expect(Auth()).To(BeIdenticalTo(Auth()))
+		Expect(Profile().Auth).To(BeIdenticalTo(Auth())) // the vault plumbing reuses the authenticator
 		Expect(Auth().IsExpired("")).To(BeTrue())
 
-		Expect(ConfigValidator().ValidateUpdateVaultConfig(fvcommon.VaultConfig{})).ToNot(BeNil())
+		// The messages are raw (no "Message: " prefix), like every flowvault error.
+		Expect(ConfigValidator().ValidateUpdateVaultConfig(fvcommon.VaultConfig{}).GetMessage()).
+			To(Equal(fvconsts.SDK_PREFIX + " Initialization failed. Invalid vault ID. Vault ID must not be empty."))
 		Expect(ConfigValidator().ValidateUpdateVaultConfig(fvcommon.VaultConfig{VaultId: "v"})).To(BeNil())
+		Expect(ConfigValidator().ValidateVaultConfig(fvcommon.VaultConfig{VaultId: "v"}).GetMessage()).
+			To(Equal(fvconsts.SDK_PREFIX + " Initialization failed. Specify either 'clusterId' or 'vaultURL'."))
 		// Plain http is rejected for hosts other than localhost.
-		err := ConfigValidator().ValidateUpdateVaultConfig(fvcommon.VaultConfig{VaultId: "v", BaseVaultUrl: "http://vault.example.com"})
-		Expect(err).NotTo(BeNil())
-		Expect(err.GetMessage()).To(ContainSubstring("Insecure vault URL"))
+		for _, url := range []string{"http://vault.example.com", "ftp://vault.example.com"} {
+			err := ConfigValidator().ValidateUpdateVaultConfig(fvcommon.VaultConfig{VaultId: "v", BaseVaultUrl: url})
+			Expect(err.GetMessage()).To(Equal(fvconsts.SDK_PREFIX + " Initialization failed. Vault URL must start with 'https://'."))
+		}
+		_, err := Auth().GenerateBearerToken("", fvcommon.BearerTokenOptions{})
+		Expect(err.GetMessage()).To(HavePrefix(fvconsts.SDK_PREFIX))
+	})
+
+	It("names the SDK as Skyflow FlowVault Go SDK with the version without its v", func() {
+		Expect(fvconsts.SDK_PREFIX).To(Equal("Skyflow FlowVault Go SDK 1.0.0"))
+		Expect(fvconsts.SDK_LOG_PREFIX).To(Equal("[Skyflow FlowVault Go SDK 1.0.0] "))
+		var metadata map[string]string
+		Expect(json.Unmarshal([]byte(CreateSDKMetadata()), &metadata)).To(Succeed())
+		Expect(metadata["sdk_name_version"]).To(Equal("skyflow-flowvault-go@1.0.0"))
 	})
 })
 
-var _ = Describe("HTTP config and retries, edge cases", func() {
-	It("falls back to the client's retries and returns zero when no duration is set", func() {
+// The retry transport itself is tested in common/vaultclient.
+var _ = Describe("HTTP config, edge cases", func() {
+	It("falls back to the client's retries", func() {
 		clientRetries := 4
 		resolved := ResolveHttpConfig(fvcommon.HttpConfig{}, fvcommon.HttpConfig{MaxRetries: &clientRetries})
 		Expect(resolved.MaxRetries).To(Equal(4))
-		Expect(firstDuration()).To(BeZero())
-		Expect(firstDuration(0, -time.Second)).To(BeZero())
-	})
-
-	It("caps the delay at max and skips jitter when it rounds to zero", func() {
-		delay := backoff(1, 10*time.Second, time.Second)
-		Expect(delay).To(BeNumerically(">=", 800*time.Millisecond))
-		Expect(delay).To(BeNumerically("<=", 1200*time.Millisecond))
-		Expect(backoff(3, 0, 0)).To(BeZero())
-		Expect(backoff(1, time.Nanosecond, time.Nanosecond)).To(Equal(time.Nanosecond))
-	})
-
-	newRetryServer := func(calls *int32) *httptest.Server {
-		return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			atomic.AddInt32(calls, 1)
-			_, _ = io.Copy(io.Discard, r.Body)
-			w.WriteHeader(http.StatusServiceUnavailable)
-		}))
-	}
-
-	It("doesn't retry a body it can't send again", func() {
-		var calls int32
-		server := newRetryServer(&calls)
-		defer server.Close()
-		transport := &retryTransport{base: http.DefaultTransport, config: ResolvedHttpConfig{MaxRetries: 3}, sleep: func(time.Duration) {}}
-
-		// A body that isn't a bytes/strings reader gets no GetBody.
-		req, _ := http.NewRequest(http.MethodPost, server.URL, io.NopCloser(strings.NewReader("payload")))
-		Expect(req.GetBody).To(BeNil())
-		resp, err := transport.RoundTrip(req)
-		Expect(err).To(BeNil())
-		_ = resp.Body.Close()
-		Expect(resp.StatusCode).To(Equal(http.StatusServiceUnavailable))
-		Expect(atomic.LoadInt32(&calls)).To(Equal(int32(1)))
-
-		// GetBody that fails stops the retries too.
-		req, _ = http.NewRequest(http.MethodPost, server.URL, strings.NewReader("payload"))
-		req.GetBody = func() (io.ReadCloser, error) { return nil, errors.New("no body") }
-		resp, err = transport.RoundTrip(req)
-		Expect(err).To(BeNil())
-		_ = resp.Body.Close()
-		Expect(atomic.LoadInt32(&calls)).To(Equal(int32(2)))
-	})
-
-	It("waits with a real timer and stops waiting when the request is cancelled", func() {
-		var calls int32
-		server := newRetryServer(&calls)
-		defer server.Close()
-
-		transport := &retryTransport{base: http.DefaultTransport, config: ResolvedHttpConfig{MaxRetries: 1, InitialRetryDelay: time.Millisecond, MaxRetryDelay: time.Millisecond}}
-		req, _ := http.NewRequest(http.MethodGet, server.URL, nil)
-		resp, err := transport.RoundTrip(req)
-		Expect(err).To(BeNil())
-		_ = resp.Body.Close()
-		Expect(atomic.LoadInt32(&calls)).To(Equal(int32(2)))
-
-		ctx, cancel := context.WithCancel(context.Background())
-		transport.config = ResolvedHttpConfig{MaxRetries: 1, InitialRetryDelay: time.Hour, MaxRetryDelay: time.Hour}
-		req, _ = http.NewRequestWithContext(ctx, http.MethodGet, server.URL, nil)
-		done := make(chan error, 1)
-		go func() {
-			_, err := transport.RoundTrip(req)
-			done <- err
-		}()
-		Eventually(func() int32 { return atomic.LoadInt32(&calls) }).Should(Equal(int32(3)))
-		cancel()
-		Eventually(done).Should(Receive(MatchError(context.Canceled)))
 	})
 })
 
@@ -135,7 +84,7 @@ var _ = Describe("Files, edge cases", func() {
 		Expect(status).To(Equal(fvcommon.UploadStatusFailed))
 		Expect(msg).To(HavePrefix("PUT failed: open "))
 
-		status, msg = PutFile(context.Background(), http.DefaultClient, "://bad-url?signature=secret", ResolvedFile{Content: []byte("a")})
+		status, msg = PutFile(context.Background(), http.DefaultClient, "://bad-url?signature=secret", ResolvedFile{Base64: "YQ==", DecodedSize: 1})
 		Expect(status).To(Equal(fvcommon.UploadStatusFailed))
 		Expect(msg).To(Equal("PUT failed: missing protocol scheme"))
 		Expect(msg).NotTo(ContainSubstring("signature"))
@@ -154,12 +103,12 @@ var _ = Describe("Files, edge cases", func() {
 		reader, writer, err := os.Pipe()
 		Expect(err).To(BeNil())
 		defer reader.Close()
-		Expect(remaining(reader)).To(Equal(int64(-1)))
+		Expect(fileSize(reader)).To(Equal(int64(-1)))
 		// A seekable file that isn't a regular file has no known length either.
 		devNull, err := os.Open(os.DevNull)
 		Expect(err).To(BeNil())
 		defer devNull.Close()
-		Expect(remaining(devNull)).To(Equal(int64(-1)))
+		Expect(fileSize(devNull)).To(Equal(int64(-1)))
 		go func() {
 			_, _ = writer.WriteString("piped")
 			_ = writer.Close()
@@ -189,19 +138,20 @@ var _ = Describe("Parsing, edge cases", func() {
 			"c": {{Token: "7"}},
 		}))
 
-		Expect(ParseHashedData(nil)).To(BeNil())
-		hashes := ParseHashedData(map[string]interface{}{
-			"a": []interface{}{"h1", nil, map[string]interface{}{"data": 3.5}},
-			"b": nil,
-		})
-		Expect(hashes).To(Equal(map[string][]fvcommon.HashedValue{
-			"a": {{Data: "h1"}, {Data: "3.5"}},
-		}))
 	})
 
-	It("leaves the status empty for an unexpected delete-files value", func() {
+	It("keeps a column whose token list is empty", func() {
+		tokens := ParseTokens(map[string]interface{}{"email": []interface{}{}, "ssn": []interface{}{nil}, "gone": nil})
+		Expect(tokens).To(HaveLen(2))
+		Expect(tokens).To(HaveKeyWithValue("email", []fvcommon.Token{}))
+		Expect(tokens["email"]).ToNot(BeNil())
+		Expect(tokens).To(HaveKeyWithValue("ssn", []fvcommon.Token{}))
+		Expect(tokens).ToNot(HaveKey("gone"))
+	})
+
+	It("reports an unexpected delete-files value as UNKNOWN with no raw status", func() {
 		Expect(ParseDeleteFilesColumns(map[string]interface{}{"c": 1})).
-			To(Equal([]fvcommon.DeleteFilesColumnResult{{Column: "c"}}))
+			To(Equal([]fvcommon.DeleteFilesColumnResult{{Column: "c", Status: fvcommon.DeleteFilesStatusUnknown}}))
 		Expect(RequestIdFor(nil, "boom")).To(BeEmpty())
 	})
 })
