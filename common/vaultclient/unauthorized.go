@@ -12,7 +12,7 @@ import (
 )
 
 // unauthorizedRetryWindow is how close to expiry a bearer token the vault rejected with 401
-// must be for the SDK to replace it and resend, as in the Java SDK. A 401 for a token with
+// must be for the SDK to replace it and resend. A 401 for a token with
 // longer left was not caused by expiry, so a new token would not help.
 const unauthorizedRetryWindow = 60 * time.Second
 
@@ -23,7 +23,7 @@ const (
 
 // unauthorizedTransport resends a request once with a new bearer token when the vault
 // answers 401 and refresh supplies one. It runs inside retryTransport, so each attempt gets
-// the chance, as in the Java SDK.
+// the chance.
 type unauthorizedTransport struct {
 	base http.RoundTripper
 	// refresh returns the token to resend with, or "" to return the 401 as it is.
@@ -115,7 +115,7 @@ func (b *Base) storeToken(token string, version uint64) {
 }
 
 // expiringWithin reports whether a JWT expires within window. A token with no readable
-// expiry is not, as in the Java SDK, so its 401 is not retried.
+// expiry is not, so its 401 is not retried.
 func expiringWithin(token string, window time.Duration) bool {
 	claims := jwt.MapClaims{}
 	if _, _, err := new(jwt.Parser).ParseUnverified(token, claims); err != nil {

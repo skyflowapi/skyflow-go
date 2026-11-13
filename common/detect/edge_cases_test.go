@@ -97,9 +97,8 @@ func TestApiErrorWithoutApiDetails(t *testing.T) {
 	}
 }
 
-// A call that got no usable response is TRANSPORT_ERROR ("0", no status), as in the Java and
-// Python SDKs, unless the caller's context ended: then it is REQUEST_CANCELLED ("499"). The
-// error doesn't decide: net/http's own timeout error matches context.DeadlineExceeded.
+// A call that got no usable response is TRANSPORT_ERROR ("0", no status), unless the caller's
+// context ended: then it is REQUEST_CANCELLED ("499"). The error doesn't decide: net/http's own timeout error matches context.DeadlineExceeded.
 func TestApiErrorWithoutAResponse(t *testing.T) {
 	c, _ := newTestController(newFakeDetect(t))
 	reset := errors.New("connection reset")
@@ -119,8 +118,7 @@ func TestApiErrorWithoutAResponse(t *testing.T) {
 	}
 }
 
-// An error response has the response's HTTP status as its code, as in the Java and Python
-// SDKs, and a message even when the body isn't a Skyflow error object.
+// An error response has the response's HTTP status as its code, and a message even when the body isn't a Skyflow error object.
 func TestApiErrorFromAnErrorResponse(t *testing.T) {
 	c, _ := newTestController(newFakeDetect(t))
 	header := http.Header{}
@@ -161,8 +159,8 @@ func TestApiErrorFromAnErrorResponse(t *testing.T) {
 		t.Errorf("non-JSON response body = %v, want nil", body)
 	}
 
-	// grpcCode and httpStatus are read when the snake_case keys are missing (Python SDK), and
-	// an error-from-client header is added to the details (Java SDK).
+	// grpcCode and httpStatus are read when the snake_case keys are missing, and an
+	// error-from-client header is added to the details.
 	fromClient := http.Header{}
 	fromClient.Set("error-from-client", "true")
 	err = c.apiError(context.Background(), core.NewAPIError(http.StatusBadRequest, fromClient,
@@ -311,7 +309,7 @@ func TestWriteOutputs(t *testing.T) {
 		if err != nil || string(got) != "data" {
 			t.Fatalf("output = %q, err = %v", got, err)
 		}
-		// As in the Java and Python SDKs, a dotfile keeps its whole name as the stem.
+		// A dotfile keeps its whole name as the stem.
 		if err := c.writeOutputs([]FileOutput{pdf}, SkyDeidentifySourceTypeBase64, ".env", ""); err != nil {
 			t.Fatal(err)
 		}
@@ -332,7 +330,7 @@ func TestWriteOutputs(t *testing.T) {
 		if err == nil || !strings.Contains(err.GetMessage(), outputNotWritten(target)) {
 			t.Fatalf("err = %v", err)
 		}
-		// A write failure is local, so, as in the Java SDK, it has no HTTP status.
+		// A write failure is local, so it has no HTTP status.
 		if err.GetHttpCode() != string(skyflowError.TRANSPORT_ERROR) || err.GetHttpStatusCode() != "" || err.Unwrap() == nil {
 			t.Fatalf("http code = %q, status = %q, cause = %v", err.GetHttpCode(), err.GetHttpStatusCode(), err.Unwrap())
 		}
@@ -436,8 +434,7 @@ func TestReadLocalFileRefusesNonRegularFiles(t *testing.T) {
 	}
 }
 
-// outputNotWritten is the write-failure message for path. As in the Java and Python SDKs it
-// has no cause; the cause is the error's Unwrap.
+// outputNotWritten is the write-failure message for path. It has no cause; the cause is the error's Unwrap.
 func outputNotWritten(path string) string {
 	return fmt.Sprintf(errOutputNotWritten, path)
 }
@@ -597,7 +594,7 @@ func TestTransportErrorsKeepTheirCause(t *testing.T) {
 	}
 
 	// A failure that is not the context's, such as a refused connection, is TRANSPORT_ERROR:
-	// code "0" and no status, as in the Java and Python SDKs.
+	// code "0" and no status.
 	f.server.Close()
 	_, err = c.GetRun(context.Background(), GetRunRequest{RunId: "run-1"}, GetRunOptions{})
 	if err == nil || err.GetHttpCode() != string(skyflowError.TRANSPORT_ERROR) || err.GetHttpStatusCode() != "" || err.Unwrap() == nil {
@@ -605,7 +602,7 @@ func TestTransportErrorsKeepTheirCause(t *testing.T) {
 	}
 }
 
-// The source rules are the Java SDK's: exactly one of FilePath, FileObject and Value, each
+// The source rules: exactly one of FilePath, FileObject and Value, each
 // counted when set; Value then needs a DataSource and must not be blank. The DataSource is
 // sent as given, so the server decides whether its vault accepts it.
 func TestDeidentifyFileSourceRules(t *testing.T) {
@@ -666,7 +663,7 @@ func TestDeidentifyFileSourceRules(t *testing.T) {
 	if got := f.last().body["dataSource"]; got != "PRESIGNED_URL" {
 		t.Fatalf("dataSource = %v", got)
 	}
-	// A blank OutputDirectory counts as unset, so it needs no Poll, as in the Java SDK.
+	// A blank OutputDirectory counts as unset, so it needs no Poll.
 	if _, err := c.DeidentifyFile(ctx, DeidentifyFileRequest{Value: "v", DataSource: FlowDeidentifySourceTypeBase64}, DeidentifyFileOptions{OutputDirectory: " "}); err != nil {
 		t.Fatal(err)
 	}
@@ -679,7 +676,7 @@ func TestDeidentifyFileSourceRules(t *testing.T) {
 	}
 }
 
-// A ReidentifyFile DataSource is sent as given, as in the Java SDK, whatever its value or
+// A ReidentifyFile DataSource is sent as given, whatever its value or
 // form; a missing one, including a nil pointer or an empty value, is rejected.
 func TestReidentifyFileDataSource(t *testing.T) {
 	f := newFakeDetect(t)
@@ -708,7 +705,7 @@ func TestReidentifyFileDataSource(t *testing.T) {
 	}
 }
 
-// As in the Java and Python SDKs, a missing local file is reported before the poll options are
+// A missing local file is reported before the poll options are
 // checked, and a file that exists but can't be read fails to encode.
 func TestDeidentifyFileLocalFileChecks(t *testing.T) {
 	c, _ := newTestController(newFakeDetect(t))

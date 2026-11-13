@@ -17,8 +17,7 @@ import (
 )
 
 // VaultController is flowvault's vault controller.
-// Embeds BaseController for shared auth/HTTP logic — same as Java's
-// VaultController extends AbstractBaseVaultController.
+// Embeds BaseController for shared auth/HTTP logic.
 //
 // Every operation validates its request, prepares auth, headers and the HTTP client, then
 // calls the FlowService /v2 API through the generated client in flowvault/internal/generated.
@@ -224,10 +223,10 @@ func (v *VaultController) UploadFiles(ctx context.Context, request fvcommon.Uplo
 		return nil, err
 	}
 	// The vault creates a record for every entry without a SkyflowId, so the call is not
-	// retried on a 5xx, which could create duplicates (as in the Java SDK); 408 and 429 are.
+	// retried on a 5xx, which could create duplicates; 408 and 429 are.
 	resp, callErr := setup.API.Files.WithRawResponse.UploadFiles(vaultclient.WithoutServerErrorRetry(ctx), toWireUploadFiles(setup.VaultID, request, files))
 	// Unlike getTokens and deleteFiles, an error status fails the whole call even when the
-	// body carries records, as in the Java SDK, so no file is uploaded for a failed call.
+	// body carries records, so no file is uploaded for a failed call.
 	body, header, err := result(ctx, resp, callErr, nil, "")
 	if err != nil {
 		err = uploadFilesCallError(callErr, err)
@@ -240,7 +239,7 @@ func (v *VaultController) UploadFiles(ctx context.Context, request fvcommon.Uplo
 }
 
 // uploadToSignedURLs PUTs each file to the signed URL the vault returned for its column and
-// builds one result per requested record, as the Java SDK does:
+// builds one result per requested record:
 //   - Returned records are matched to requested ones by position. If the counts differ, no
 //     position can be trusted, so nothing is uploaded rather than risk sending a file to
 //     another record. A returned record whose table (or skyflowId, when one was requested)

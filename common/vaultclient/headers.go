@@ -14,7 +14,7 @@ import (
 const MetricsHeader = "sky-metadata"
 
 // NotBatched is RequestContext's BatchIndex and TotalBatches for an operation that was not
-// split into batches, as in the Java and Python SDKs. Every call made through Base sends a
+// split into batches. Every call made through Base sends a
 // single request, so it is the only value today.
 const NotBatched = -1
 
@@ -81,8 +81,7 @@ func (b *Base) buildHeaders(operation string, clientHeaders map[config.CustomHea
 }
 
 // runInterceptor calls the caller's interceptor. A panic in it fails the call with a
-// SkyflowError instead of crashing the caller, as the Java SDK wraps an interceptor's
-// exception; a non-nil *SkyflowError panic value is returned as is. The message is the
+// SkyflowError instead of crashing the caller; a non-nil *SkyflowError panic value is returned as is. The message is the
 // interceptor's own (a panic with an error or a string), else errInterceptorFailed. No HTTP
 // status applies, so the code is TRANSPORT_ERROR ("0", empty status).
 func (b *Base) runInterceptor(operation string, interceptor Interceptor) (rc *RequestContext, err *skyflowError.SkyflowError) {

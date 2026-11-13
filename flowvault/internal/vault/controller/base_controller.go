@@ -23,7 +23,6 @@ import (
 
 // BaseController holds one vault's settings and cached bearer token. flowvault's
 // VaultController and DetectController share one per vault, so both reuse the same token.
-// Equivalent to Java's AbstractBaseVaultController.
 //
 // The credential, token and HTTP logic is the shared skyflow-go/common/vaultclient Base;
 // this type adds the generated FlowService client. It is safe for concurrent use.
@@ -97,9 +96,9 @@ type finalResponseClient struct {
 	client *http.Client
 }
 
-// It also checks 2xx bodies before the generated client parses them, as the Java SDK does: a
-// blank body becomes {}, an empty response, instead of a decoding failure; a body that is not
-// a JSON object becomes an APIError that keeps the real status and (truncated) body.
+// It also checks 2xx bodies before the generated client parses them: a blank body becomes
+// {}, an empty response, instead of a decoding failure; a body that is not a JSON object
+// becomes an APIError that keeps the real status and (truncated) body.
 func (c finalResponseClient) Do(req *http.Request) (*http.Response, error) {
 	resp, err := c.client.Do(req)
 	if err != nil {

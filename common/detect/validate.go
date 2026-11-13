@@ -23,7 +23,7 @@ func countSet(values ...bool) int {
 }
 
 // validateDeidentifyString checks Text. ConfigurationId and Configuration are optional and
-// sent as given, as in the Java SDK.
+// sent as given.
 func (c *Controller) validateDeidentifyString(request DeidentifyStringRequest) *skyflowError.SkyflowError {
 	if blank(request.Text) {
 		return c.invalid(errInvalidTextDeidentifyString)
@@ -50,7 +50,7 @@ func (c *Controller) validateDeidentifyFile(request DeidentifyFileRequest, optio
 	return nil
 }
 
-// validateDeidentifyFileSource checks, as the Java and Python SDKs do, that the file comes
+// validateDeidentifyFileSource checks that the file comes
 // from exactly one of FilePath, FileObject and Value, each counted when set (Value only when
 // non-empty: Go can't tell an empty string from an unset one), that Value has a DataSource
 // and is not blank, and that a local file is a regular file, before the poll options are
@@ -76,7 +76,7 @@ func (c *Controller) validateDeidentifyFileSource(request DeidentifyFileRequest)
 	return nil
 }
 
-// validateReidentifyFile checks the file's DataSource and Value, as the Java SDK does. The
+// validateReidentifyFile checks the file's DataSource and Value. The
 // DataSource is sent as given, and redaction rules are optional (nil rules are skipped).
 func (c *Controller) validateReidentifyFile(request ReidentifyFileRequest) *skyflowError.SkyflowError {
 	if reidentifySourceName(request.DataSource) == "" {

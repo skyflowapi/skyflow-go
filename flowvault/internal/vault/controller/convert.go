@@ -26,7 +26,7 @@ import (
 // rawKey is set ("records", or "response" for detokenize) by an operation that reads a failed
 // call's records from the raw body (failedRecordMaps) rather than from the returned body.
 // For it, a record field of an unexpected type, such as an error object or a numeric-text
-// httpCode, doesn't hide the records, as in the Java SDK: the call still returns them, with
+// httpCode, doesn't hide the records: the call still returns them, with
 // an empty body. The generated types reject such a body as a whole, so without rawKey the
 // call fails instead, rather than return records with fields missing.
 func result[T any](ctx context.Context, resp *core.Response[*T], err error, hasRecords func(*T) bool, rawKey string) (*T, http.Header, *fverrors.SkyflowError) {
@@ -69,8 +69,8 @@ func result[T any](ctx context.Context, resp *core.Response[*T], err error, hasR
 
 // transportError converts a call that got no usable HTTP response. If the caller's context
 // ended, it's REQUEST_CANCELLED ("499"). Anything else (network failure, the client's
-// Timeout, an empty or unreadable body) is TRANSPORT_ERROR: code "0" and no status, as in
-// the Java SDK. The cause is kept, so errors.Is and errors.As work on the result.
+// Timeout, an empty or unreadable body) is TRANSPORT_ERROR: code "0" and no status. The
+// cause is kept, so errors.Is and errors.As work on the result.
 func transportError(ctx context.Context, err error) *fverrors.SkyflowError {
 	code := fverrors.TRANSPORT_ERROR
 	if ctx.Err() != nil {
@@ -93,11 +93,11 @@ func rawBodyMessage(body string) string {
 }
 
 // apiError converts a failed call. The status code and request ID are kept even when the
-// body isn't a Skyflow error object. The message is then, as in the Java SDK, the first of:
+// body isn't a Skyflow error object. The message is then the first of:
 // an "error" string, a top-level "message", the raw body (truncated by rawBodyMessage), or
 // "Error with status code N" for an empty body. The error's httpCode is always the response's
-// HTTP status, as in the Java and Python SDKs, even when the body carries an http_code, and its
-// response body is the server's own JSON body (nil when it isn't a JSON object), as in Java.
+// HTTP status, even when the body carries an http_code, and its response body is the server's
+// own JSON body (nil when it isn't a JSON object).
 func apiError(apiErr *core.APIError, header http.Header) *fverrors.SkyflowError {
 	raw := ""
 	if apiErr.Unwrap() != nil {
@@ -126,8 +126,8 @@ func rawBody(raw string) map[string]interface{} {
 // apiErrorFrom builds the error from a normalized {"error": {...}} body, keeping the server's
 // own body as the error's response body.
 func apiErrorFrom(status int, normalized []byte, header http.Header, serverBody map[string]interface{}) *fverrors.SkyflowError {
-	return commonerrors.SkyflowErrorApi(fmt.Errorf(fvconsts.API_ERROR_FORMAT, status, normalized), header,
-		commonerrors.RawMessage(), commonerrors.WithResponseBody(serverBody))
+	opts := append(fverrors.Options(), commonerrors.WithResponseBody(serverBody))
+	return commonerrors.SkyflowErrorApi(fmt.Errorf(fvconsts.API_ERROR_FORMAT, status, normalized), header, opts...)
 }
 
 // fallbackMessage is the message for an error body without a Skyflow error object.
@@ -145,7 +145,7 @@ func fallbackMessage(body map[string]interface{}, raw string, statusCode int) st
 
 // uploadFilesCallError returns the error of a failed uploadFiles call. When the body is a
 // {"records": [...]} list with record errors, the message is the distinct record errors
-// joined, as in the Java SDK, and capped like a raw error body; otherwise it is err unchanged.
+// joined and capped like a raw error body; otherwise it is err unchanged.
 func uploadFilesCallError(callErr error, err *fverrors.SkyflowError) *fverrors.SkyflowError {
 	var apiErr *core.APIError
 	if !errors.As(callErr, &apiErr) || apiErr.Unwrap() == nil {
@@ -190,7 +190,7 @@ func failedCallStatus(callErr error) int {
 }
 
 // recordHTTPCode is a record's httpCode in a successful call. When the vault leaves it out,
-// it is 500 for a record with an error and 200 otherwise, as in the Java SDK.
+// it is 500 for a record with an error and 200 otherwise.
 func recordHTTPCode(httpCode int, recordErr string) int {
 	if httpCode != 0 {
 		return httpCode
@@ -203,8 +203,8 @@ func recordHTTPCode(httpCode int, recordErr string) int {
 
 // recordOutcome returns a getTokens or deleteFiles record's httpCode and error. In a
 // successful call (failedStatus 0) they are the record's own, with recordHTTPCode filling in a
-// missing httpCode. In a failed call they are read from the record's raw map, as in the Java
-// SDK: see failedRecordHTTPCode and failedRecordErrorOrSuccess.
+// missing httpCode. In a failed call they are read from the record's raw map: see
+// failedRecordHTTPCode and failedRecordErrorOrSuccess.
 func recordOutcome(httpCode int, recordErr string, failedStatus int, raw map[string]interface{}) (int, string) {
 	if failedStatus == 0 {
 		return recordHTTPCode(httpCode, recordErr), recordErr
@@ -212,13 +212,13 @@ func recordOutcome(httpCode int, recordErr string, failedStatus int, raw map[str
 	return failedRecordHTTPCode(raw, failedStatus), failedRecordErrorOrSuccess(raw)
 }
 
-// httpCodeKeys are the spellings of a record's HTTP status that the Java SDK reads in a failed
-// call's body, in order.
+// httpCodeKeys are the spellings of a record's HTTP status that are read in a failed call's
+// body, in order.
 var httpCodeKeys = []string{fvconsts.ERROR_KEY_HTTP_CODE, "httpCode", "statusCode"}
 
 // failedRecordMaps returns the records under key ("records", or "response" for detokenize) in
-// a failed call's body, as raw maps, so the fields the vault may use there can be read as the
-// Java SDK reads them. A record that isn't an object is returned as nil.
+// a failed call's body, as raw maps, so every field the vault may use there can be read. A
+// record that isn't an object is returned as nil.
 func failedRecordMaps(callErr error, key string) []map[string]interface{} {
 	var apiErr *core.APIError
 	if !errors.As(callErr, &apiErr) || apiErr.Unwrap() == nil {
@@ -248,7 +248,7 @@ func rawAt(raw []map[string]interface{}, i int) map[string]interface{} {
 }
 
 // readString is a raw record field as text: a string as it is, another value as JSON (an
-// error object reads {"code":7}, as the Java SDK's toString of it does), and a missing or
+// error object reads {"code":7}), and a missing or
 // null one as "".
 func readString(record map[string]interface{}, key string) string {
 	switch value := record[key].(type) {
@@ -279,7 +279,7 @@ func failedRecordHTTPCode(record map[string]interface{}, callStatus int) int {
 }
 
 // failedRecordError is the error of a record in a failed insert, update, get, delete or
-// detokenize call. As in the Java SDK, every such record counts as failed: its error is
+// detokenize call. Every such record counts as failed: its error is
 // "error", else "message", else UNKNOWN_RECORD_ERROR, so it is never empty.
 func failedRecordError(record map[string]interface{}) string {
 	for _, key := range []string{fvconsts.ERROR_KEY_ERROR, fvconsts.ERROR_KEY_MESSAGE} {
@@ -291,7 +291,7 @@ func failedRecordError(record map[string]interface{}) string {
 }
 
 // failedRecordErrorOrSuccess is the error of a record in a failed getTokens or deleteFiles
-// call, or "" for a record that succeeded. As in the Java SDK, a record counts as a success
+// call, or "" for a record that succeeded. A record counts as a success
 // only when it says so itself: no error and a 2xx status of its own.
 func failedRecordErrorOrSuccess(record map[string]interface{}) string {
 	if text := readString(record, fvconsts.ERROR_KEY_ERROR); text != "" {
@@ -303,8 +303,8 @@ func failedRecordErrorOrSuccess(record map[string]interface{}) string {
 	return failedRecordError(record)
 }
 
-// failedRecordResults converts the records of a failed insert, update or get call, as the
-// Java SDK does: each one failed, with its table and skyflowID, its own httpCode or the call's
+// failedRecordResults converts the records of a failed insert, update or get call: each one
+// failed, with its table and skyflowID, its own httpCode or the call's
 // status, and the call's request ID. Its tokens and data aren't returned.
 func failedRecordResults(raw []map[string]interface{}, callStatus int, header http.Header) []fvcommon.InsertResponseRecord {
 	results := make([]fvcommon.InsertResponseRecord, 0, len(raw))

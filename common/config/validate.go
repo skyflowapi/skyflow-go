@@ -11,7 +11,7 @@ import (
 	"github.com/skyflowapi/skyflow-go/common/logger"
 )
 
-// apiKeyPattern is the API key format the Java and Python SDKs check.
+// apiKeyPattern is the format a Skyflow API key must have.
 var apiKeyPattern = regexp.MustCompile(`^sky-[a-zA-Z0-9]{5}-[a-fA-F0-9]{32}$`)
 
 const (
@@ -33,8 +33,7 @@ type Validator struct {
 }
 
 // Messages are replacement error message bodies (without the SDK prefix) for an SDK whose
-// wording differs, e.g. flowvault's, which follows the Java SDK. An empty field keeps the
-// default message.
+// wording differs, e.g. flowvault's. An empty field keeps the default message.
 type Messages struct {
 	InvalidVaultId    string // the vault ID is empty
 	ClusterIdRequired string // neither a cluster ID nor a vault URL is set

@@ -5,8 +5,7 @@ import (
 	"strings"
 )
 
-// dotenvFile is read for SKYFLOW_CREDENTIALS when the environment does not set it, as the
-// Java and Python SDKs do.
+// dotenvFile is read for SKYFLOW_CREDENTIALS when the environment does not set it.
 const dotenvFile = ".env"
 
 // newline is the line separator parseDotenv splits on and joins multi-line values with.

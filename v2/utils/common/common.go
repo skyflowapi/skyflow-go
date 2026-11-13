@@ -30,7 +30,17 @@ type SignedDataTokensOptions = sa.SignedDataTokensOptions
 
 type SignedDataTokensResponse = sa.SignedDataTokensResponse
 
-type VaultConfig = cfg.VaultConfig
+// VaultConfig identifies a vault and how to reach and authenticate to it. It has no timeout or
+// retry settings: calls use the SDK's defaults.
+type VaultConfig struct {
+	VaultId      string
+	ClusterId    string
+	BaseVaultUrl string
+	// Deprecated: Use BaseVaultUrl instead.
+	BaseVaultURL string
+	Env          Env
+	Credentials  Credentials
+}
 
 type Credentials = cfg.Credentials
 type ConnectionConfig = cfg.ConnectionConfig

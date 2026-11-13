@@ -31,7 +31,7 @@ var _ = Describe("Skyflow client, edge cases", func() {
 		Expect(*client.GetLoglevel()).To(Equal(fvlogger.WARN))
 	})
 
-	It("sets and returns the log level with SetLogLevel and GetLogLevel, as in Java and Python", func() {
+	It("sets and returns the log level with SetLogLevel and GetLogLevel", func() {
 		DeferCleanup(fvlogger.SetLogLevel, fvlogger.ERROR)
 		var logs bytes.Buffer
 		fvlogger.SetOutput(&logs)
@@ -44,7 +44,7 @@ var _ = Describe("Skyflow client, edge cases", func() {
 		Expect(*client.GetLoglevel()).To(Equal(fvlogger.DEBUG))
 	})
 
-	It("uses the first vault added as the default vault, as vault() does in Java and Python", func() {
+	It("uses the first vault added as the default vault", func() {
 		client := newTestClient(WithVaults(fvcommon.VaultConfig{VaultId: "second", ClusterId: "c2"}))
 		Expect(client.AddVaultConfig(fvcommon.VaultConfig{VaultId: "third", ClusterId: "c3"})).To(BeNil())
 		first, err := client.Vault(testVaultID)

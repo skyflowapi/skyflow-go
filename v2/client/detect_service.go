@@ -47,7 +47,7 @@ func detectProfile() vaultclient.Profile {
 }
 
 func newDetectService(config common.VaultConfig, settings vaultclient.ClientSettings, logLevel *logger.LogLevel) *detectService {
-	base := vaultclient.New(detectProfile(), config, settings)
+	base := vaultclient.New(detectProfile(), helpers.CommonVaultConfig(config), settings)
 	return &detectService{config: &config, logLevel: logLevel, base: base, controller: cdetect.NewController(base, cdetect.SkySources)}
 }
 
@@ -115,26 +115,5 @@ func (s *Skyflow) updateDetect(service *detectService, updated common.VaultConfi
 	}
 	// Env is always applied: its zero value is PROD, so an update that omits it resets it.
 	config.Env = updated.Env
-	if updated.Timeout != 0 {
-		config.Timeout = updated.Timeout
-	}
-	if updated.ConnectTimeout != 0 {
-		config.ConnectTimeout = updated.ConnectTimeout
-	}
-	if updated.ReadTimeout != 0 {
-		config.ReadTimeout = updated.ReadTimeout
-	}
-	if updated.WriteTimeout != 0 {
-		config.WriteTimeout = updated.WriteTimeout
-	}
-	if updated.MaxRetries != nil {
-		config.MaxRetries = updated.MaxRetries // SetConfig stores a copy
-	}
-	if updated.InitialRetryDelay != 0 {
-		config.InitialRetryDelay = updated.InitialRetryDelay
-	}
-	if updated.MaxRetryDelay != 0 {
-		config.MaxRetryDelay = updated.MaxRetryDelay
-	}
 	service.base.SetConfig(config, credentialsChanged)
 }

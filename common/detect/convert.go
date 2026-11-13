@@ -55,7 +55,7 @@ func derefEnum[G ~string](p *G) string {
 
 // toGenConfiguration adds the vault ID the API requires on an inline configuration. It returns
 // nil without one: the request then names a stored configuration by ConfigurationId instead.
-// requestConfiguration is the configuration a request sends, as in the Java SDK. An inline
+// requestConfiguration is the configuration a request sends. An inline
 // configuration is always sent; with neither it nor a ConfigurationId, a configuration
 // holding only the vault ID is sent and the server decides whether that is enough. With only
 // a ConfigurationId, none is sent.
@@ -227,7 +227,7 @@ func reidentifySourceName(source ReidentifyFileSource) string {
 }
 
 // resolveSource maps a wire value to the vault's source, whose wire value wire returns; one
-// the vault does not know is nil, as in the Java SDK.
+// the vault does not know is nil.
 func resolveSource[S comparable](value string, known []S, wire func(S) string) S {
 	for _, source := range known {
 		if wire(source) == value {
@@ -255,7 +255,7 @@ func (l SkyRedactionLevel) apiFields() (string, string, EntityType, RedactionTyp
 }
 
 // toGenRedactionLevels sends each rule's fields as given. Nil rules, including nil
-// *FlowRedactionLevel and *SkyRedactionLevel pointers, are skipped, as in the other SDKs.
+// *FlowRedactionLevel and *SkyRedactionLevel pointers, are skipped.
 func toGenRedactionLevels(levels []RedactionRule) []*gen.RedactionLevel {
 	var out []*gen.RedactionLevel
 	for _, l := range levels {
@@ -285,7 +285,7 @@ func fromGenDeidentifyString(r *gen.DeidentifyStringResponseV2) *DeidentifyStrin
 		}
 		entity := DetectedEntity{Token: deref(e.Token), Value: deref(e.Value), EntityType: deref(e.EntityType), EntityScores: e.EntityScores}
 		if entity.EntityScores == nil {
-			entity.EntityScores = map[string]float64{} // as in the other SDKs
+			entity.EntityScores = map[string]float64{}
 		}
 		if l := e.Location; l != nil {
 			entity.Location = &EntityLocation{
@@ -318,8 +318,7 @@ func runStatus(value string) DetectRunStatus {
 }
 
 // fromGenRun fills in the run ID, which the API does not echo. A missing or unknown status
-// is UNKNOWN; an output type that isn't one of sources (the SDK's accepted types) is empty,
-// as in the other SDKs.
+// is UNKNOWN; an output type that isn't one of sources (the SDK's accepted types) is empty.
 func fromGenRun(runId string, r *gen.DetectRunsResponseV2, sources []DeidentifyFileSource) *GetRunResponse {
 	return &GetRunResponse{
 		RunId:      runId,
@@ -377,7 +376,7 @@ var reidentifyFormats = func() map[string]ReidentifyFileDataFormat {
 }()
 
 // reidentifyFormatFromWire returns the re-identify format for a wire value or extension in
-// any case, or "" for one re-identification doesn't work with, as in the Java and Python SDKs.
+// any case, or "" for one re-identification doesn't work with.
 func reidentifyFormatFromWire(value string) ReidentifyFileDataFormat {
 	return reidentifyFormats[strings.ToLower(value)]
 }

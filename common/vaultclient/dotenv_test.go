@@ -56,7 +56,7 @@ func TestQuoteHandling(t *testing.T) {
 	}
 }
 
-// SKYFLOW_CREDENTIALS comes from the environment first, then ./.env, as in Java and Python.
+// SKYFLOW_CREDENTIALS comes from the environment first, then ./.env.
 func TestEnvCredentialsReadsTheDotenvFile(t *testing.T) {
 	dir, err := os.Getwd()
 	if err != nil {

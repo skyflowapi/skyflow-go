@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -83,12 +82,13 @@ var _ = Describe("Detect", func() {
 		Expect(path).To(Equal("/v2/detect/reidentify/string")) // BaseVaultUrl kept by the update
 	})
 
-	It("uses the base vault URL and HTTP settings of UpdateVaultConfig", func() {
+	// The vault config has no HTTP settings: Detect retries with the SDK's defaults (2 retries).
+	It("uses the base vault URL of UpdateVaultConfig and the default retries", func() {
 		var calls int
 		updated := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			calls++
 			if calls == 1 {
-				w.WriteHeader(http.StatusServiceUnavailable) // retried only with the updated MaxRetries
+				w.WriteHeader(http.StatusServiceUnavailable) // retried by default
 				return
 			}
 			w.Header().Set("Content-Type", "application/json")
@@ -99,16 +99,14 @@ var _ = Describe("Detect", func() {
 		service, err := client.Detect(vaultId)
 		Expect(err).To(BeNil())
 
-		retries := 1
-		Expect(client.UpdateVaultConfig(common.VaultConfig{VaultId: vaultId, BaseVaultUrl: updated.URL,
-			MaxRetries: &retries, InitialRetryDelay: time.Millisecond})).To(BeNil())
+		Expect(client.UpdateVaultConfig(common.VaultConfig{VaultId: vaultId, BaseVaultUrl: updated.URL})).To(BeNil())
 		resp, err := service.ReidentifyString(context.Background(), common.ReidentifyStringRequest{Text: "x"}, common.ReidentifyStringOptions{})
 		Expect(err).To(BeNil())
 		Expect(resp.ProcessedText).To(Equal("updated"))
 		Expect(calls).To(Equal(2))
 		Expect(path).To(BeEmpty()) // the original server was not called
 
-		// An update that sets neither keeps them.
+		// An update that doesn't set the URL keeps it.
 		Expect(client.UpdateVaultConfig(common.VaultConfig{VaultId: vaultId, ClusterId: "other"})).To(BeNil())
 		_, err = service.ReidentifyString(context.Background(), common.ReidentifyStringRequest{Text: "x"}, common.ReidentifyStringOptions{})
 		Expect(err).To(BeNil())
@@ -119,40 +117,25 @@ var _ = Describe("Detect", func() {
 	It("merges every field UpdateVaultConfig sets into the Detect config", func() {
 		client := newClient()
 		service := client.detectServices[vaultId]
-		retries := 3
 		client.updateDetect(service, common.VaultConfig{
-			VaultId:           vaultId,
-			ClusterId:         "new-cluster",
-			BaseVaultURL:      "https://legacy.example.com",
-			Env:               common.SANDBOX,
-			Timeout:           7 * time.Second,
-			MaxRetries:        &retries,
-			InitialRetryDelay: 2 * time.Millisecond,
-			MaxRetryDelay:     9 * time.Millisecond,
-			ConnectTimeout:    3 * time.Second,
-			ReadTimeout:       4 * time.Second,
-			WriteTimeout:      5 * time.Second,
+			VaultId:      vaultId,
+			ClusterId:    "new-cluster",
+			BaseVaultURL: "https://legacy.example.com",
+			Env:          common.SANDBOX,
 		})
-		retries = 8 // the stored config keeps its own copy
 		got := service.base.Config()
 		Expect(got.ClusterId).To(Equal("new-cluster"))
 		Expect(got.BaseVaultUrl).To(BeEmpty()) // replaced together with BaseVaultURL
 		Expect(got.BaseVaultURL).To(Equal("https://legacy.example.com"))
 		Expect(got.Env).To(Equal(common.SANDBOX))
-		Expect(got.Timeout).To(Equal(7 * time.Second))
-		Expect(*got.MaxRetries).To(Equal(3))
-		Expect(got.InitialRetryDelay).To(Equal(2 * time.Millisecond))
-		Expect(got.MaxRetryDelay).To(Equal(9 * time.Millisecond))
-		Expect(got.ConnectTimeout).To(Equal(3 * time.Second))
-		Expect(got.ReadTimeout).To(Equal(4 * time.Second))
-		Expect(got.WriteTimeout).To(Equal(5 * time.Second))
+		// No HTTP settings reach the Detect config, so the SDK's defaults apply.
+		Expect(got.Timeout).To(BeZero())
+		Expect(got.MaxRetries).To(BeNil())
 
 		// Unset fields keep their values; Env is always applied.
 		client.updateDetect(service, common.VaultConfig{VaultId: vaultId})
 		kept := service.base.Config()
-		Expect(kept.Timeout).To(Equal(7 * time.Second))
-		Expect(kept.MaxRetryDelay).To(Equal(9 * time.Millisecond))
-		Expect(kept.ReadTimeout).To(Equal(4 * time.Second))
+		Expect(kept.ClusterId).To(Equal("new-cluster"))
 		Expect(kept.BaseVaultURL).To(Equal("https://legacy.example.com"))
 		Expect(kept.Env).To(Equal(common.PROD))
 	})

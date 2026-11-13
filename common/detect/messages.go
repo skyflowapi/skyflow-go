@@ -21,11 +21,11 @@ const (
 const (
 	// apiErrorFormat is "<status>: <JSON error body>", the error text SkyflowErrorApi parses.
 	apiErrorFormat = "%d: %s"
-	// errorWithStatusCode is the message for an error response with an empty body, as in the
-	// Java SDK and flowvault's vault operations. It has no SDK prefix: it stands for the
+	// errorWithStatusCode is the message for an error response with an empty body, as in
+	// flowvault's vault operations. It has no SDK prefix: it stands for the
 	// server's own message.
 	errorWithStatusCode = "Error with status code %d"
-	// The camelCase spellings of grpc_code and http_status that the Python SDK also accepts.
+	// The camelCase spellings of grpc_code and http_status, also accepted.
 	errorKeyGrpcCodeCamel   = "grpcCode"
 	errorKeyHttpStatusCamel = "httpStatus"
 )
@@ -70,8 +70,7 @@ const (
 // (same pattern as auth, config and vaultclient). Messages containing %s / %d are
 // formatted with fmt.Sprintf.
 
-// Error messages: prefixed with the SDK prefix. The wording is the Java SDK's, with Go's
-// field names.
+// Error messages: prefixed with the SDK prefix, and naming Go's field names.
 const (
 	errInvalidTextDeidentifyString = " Validation error. Invalid text in deidentify string request. Specify a non-empty text."
 	errInvalidTextReidentifyString = " Validation error. Invalid text in reidentify string request. Specify a non-empty text."
@@ -81,8 +80,7 @@ const (
 	errInvalidDeidentifyDataSource = " Validation error. Invalid DataSource in deidentify file request. Specify a DeidentifySourceType."
 	errInvalidDeidentifyValue      = " Validation error. Invalid Value in deidentify file request. Specify the non-empty content or reference that DataSource describes."
 	errFileNotFound                = " Validation error. The file to deidentify was not found at the specified path. Verify the file path and try again."
-	// errFailedToEncodeFile is for a local file that exists but can't be read, as in the Java
-	// and Python SDKs.
+	// errFailedToEncodeFile is for a local file that exists but can't be read.
 	errFailedToEncodeFile          = " Validation error. Failed to encode the file. Ensure the file is in a supported format and try again."
 	errInvalidWaitTime             = " Validation error. WaitTime in Poll must be between %d and %d seconds."
 	errInvalidMaxAttempts          = " Validation error. MaxAttempts in Poll must be between %d and %d."
@@ -90,7 +88,7 @@ const (
 	errEmptyRunId                  = " Validation error. Invalid RunId in get run request. Specify a non-empty run id."
 	errInvalidReidentifyDataSource = " Validation error. Invalid DataSource in reidentify file request. Specify a ReidentifySourceType."
 	errInvalidReidentifyValue      = " Validation error. Invalid Value in reidentify file request. Specify the non-empty base64 content or presigned URL of the file."
-	// errOutputNotWritten is the Java and Python text; the cause is logged and kept on the error
+	// errOutputNotWritten names only the path; the cause is logged and kept on the error
 	// (Unwrap), not repeated in the message.
 	errOutputNotWritten = " Failed to write the processed output to %s."
 	errEmptyResponse    = " API error. %s returned an empty response."

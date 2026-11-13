@@ -29,7 +29,7 @@ var _ = Describe("URL, metadata and shared services", func() {
 		Entry("prod", fvcommon.PROD, "https://cluster.skyvault.skyflowapis.com"),
 	)
 
-	It("describes the SDK and runtime in the metadata header, with the v2, Java and Python keys", func() {
+	It("describes the SDK and runtime in the metadata header, with the shared Skyflow SDK keys", func() {
 		var metadata map[string]string
 		Expect(json.Unmarshal([]byte(CreateSDKMetadata()), &metadata)).To(Succeed())
 		Expect(metadata).To(HaveLen(4))
@@ -45,7 +45,7 @@ var _ = Describe("URL, metadata and shared services", func() {
 		Expect(Profile().Auth).To(BeIdenticalTo(Auth())) // the vault plumbing reuses the authenticator
 		Expect(Auth().IsExpired("")).To(BeTrue())
 
-		// The Java SDK's messages, raw (no "Message: " prefix), like every flowvault error.
+		// The messages are raw (no "Message: " prefix), like every flowvault error.
 		Expect(ConfigValidator().ValidateUpdateVaultConfig(fvcommon.VaultConfig{}).GetMessage()).
 			To(Equal(fvconsts.SDK_PREFIX + " Initialization failed. Invalid vault ID. Vault ID must not be empty."))
 		Expect(ConfigValidator().ValidateUpdateVaultConfig(fvcommon.VaultConfig{VaultId: "v"})).To(BeNil())
@@ -140,7 +140,7 @@ var _ = Describe("Parsing, edge cases", func() {
 
 	})
 
-	It("keeps a column whose token list is empty, as the Java and Python SDKs do", func() {
+	It("keeps a column whose token list is empty", func() {
 		tokens := ParseTokens(map[string]interface{}{"email": []interface{}{}, "ssn": []interface{}{nil}, "gone": nil})
 		Expect(tokens).To(HaveLen(2))
 		Expect(tokens).To(HaveKeyWithValue("email", []fvcommon.Token{}))

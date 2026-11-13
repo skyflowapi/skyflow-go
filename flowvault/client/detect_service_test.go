@@ -109,7 +109,7 @@ var _ = Describe("Detect service", func() {
 		run, err := service.GetRun(ctx, fvcommon.GetRunRequest{RunId: "presigned"}, fvcommon.GetRunOptions{})
 		Expect(err).To(BeNil())
 		Expect(run.OutputType).To(Equal(fvcommon.DeidentifyFileSource(fvcommon.DeidentifySourceTypePresignedURL)))
-		// A value FlowVault does not offer is nil, as in the Java SDK.
+		// A value FlowVault does not offer is nil.
 		run, err = service.GetRun(ctx, fvcommon.GetRunRequest{RunId: "sky"}, fvcommon.GetRunOptions{})
 		Expect(err).To(BeNil())
 		Expect(run.OutputType).To(BeNil())

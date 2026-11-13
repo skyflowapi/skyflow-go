@@ -55,8 +55,8 @@ func (c finalResponseClient) Do(req *http.Request) (*http.Response, error) {
 	return nil, core.NewAPIError(resp.StatusCode, resp.Header, errors.New(string(raw)))
 }
 
-// apiError turns a generated-client error into a SkyflowError, as the Java and Python SDKs
-// (and flowvault's vault operations) do:
+// apiError turns a generated-client error into a SkyflowError, as flowvault's vault
+// operations do:
 //   - An API error (the server answered) has the response's HTTP status as its code, even
 //     when the body carries its own http_code, and keeps the request ID and the server's body
 //     (GetResponseBody). See responseError for the message.
@@ -97,14 +97,13 @@ func (c *Controller) responseError(apiErr *core.APIError) *skyflowError.SkyflowE
 		for key, value := range serverError {
 			errorBody[key] = value
 		}
-		// As in the Python SDK, grpcCode and httpStatus are read when the snake_case keys are
-		// missing.
+		// grpcCode and httpStatus are read when the snake_case keys are missing.
 		for snake, camel := range map[string]string{constants.ERROR_KEY_GRPC_CODE: errorKeyGrpcCodeCamel, constants.ERROR_KEY_HTTP_STATUS: errorKeyHttpStatusCamel} {
 			if _, present := errorBody[snake]; !present && errorBody[camel] != nil {
 				errorBody[snake] = errorBody[camel]
 			}
 		}
-		// As in the Java SDK, an error-from-client header is added to the details.
+		// An error-from-client header is added to the details.
 		if fromClient := header.Get(constants.ERROR_FROM_CLIENT); fromClient != "" {
 			details, _ := errorBody[constants.ERROR_KEY_DETAILS].([]interface{})
 			errorBody[constants.ERROR_KEY_DETAILS] = append(slices.Clone(details), map[string]interface{}{constants.ERROR_KEY_FROM_CLIENT: fromClient})

@@ -9,8 +9,7 @@ const (
 	EMPTY_VAULT_ID                  string = internal.SDK_PREFIX + " Initialization failed. Invalid vault ID. Vault ID must not be empty."
 )
 
-// Request validation messages, worded as in the Java SDK (flowvault ErrorMessage and common
-// BaseErrorMessage). Messages containing %s / %d are formatted with fmt.Sprintf.
+// Request validation messages. Messages containing %s / %d are formatted with fmt.Sprintf.
 const (
 	// Insert / update
 	EMPTY_RECORDS              string = internal.SDK_PREFIX + " Validation error. 'records' can't be empty. Specify records."
@@ -23,7 +22,7 @@ const (
 	EMPTY_DATA                 string = internal.SDK_PREFIX + " Validation error. 'data' can't be empty. Specify data."
 	EMPTY_KEY_IN_DATA          string = internal.SDK_PREFIX + " Validation error. Invalid key in data in records. Specify a valid key."
 	MISSING_SKYFLOW_ID         string = internal.SDK_PREFIX + " Validation error. 'skyflowId' can't be empty in the record. Specify a valid skyflow ID."
-	// As in the Java SDK, a data value can't be nil or blank, and Tokens, when set, can't be
+	// A data value can't be nil or blank, and Tokens, when set, can't be
 	// empty or hold a blank column name or value.
 	EMPTY_VALUE_IN_DATA   string = internal.SDK_PREFIX + " Validation error. Invalid value in values. Specify a valid value."
 	EMPTY_RECORD_TOKENS   string = internal.SDK_PREFIX + " Validation error. The 'tokens' field is empty. Specify tokens for one or more fields."
@@ -79,8 +78,7 @@ const (
 	EMPTY_DELETE_FILES_SKYFLOW_ID  string = internal.SDK_PREFIX + " Validation error. 'skyflowId' in DeleteFilesRequestRecord is empty. Specify a valid skyflow ID, or use 'uniqueValues' instead."
 	DELETE_FILES_TARGET            string = internal.SDK_PREFIX + " Validation error. DeleteFilesRequestRecord must set exactly one of 'skyflowId' or 'uniqueValues'. Specify one of them."
 
-	// Credentials, as in the Java SDK (BaseErrorMessage). The type names in INVALID_CONTEXT_TYPE
-	// are Go's.
+	// Credentials. The type names in INVALID_CONTEXT_TYPE are Go's.
 	EMPTY_CREDENTIAL_FILE_PATH string = internal.SDK_PREFIX + " Initialization failed. Invalid credentials. Credentials file path must not be empty."
 	EMPTY_CREDENTIALS_STRING   string = internal.SDK_PREFIX + " Initialization failed. Invalid credentials. Credentials string must not be empty."
 	EMPTY_TOKEN_CREDENTIAL     string = internal.SDK_PREFIX + " Initialization failed. Invalid credentials. Token must not be empty."

@@ -24,6 +24,9 @@ type SkyflowError struct {
 	originalError  error
 	// rawMessage is set by RawMessage: Error and GetMessage return the message as it is.
 	rawMessage bool
+	// emptyValidationDetails is set by EmptyValidationDetails: NewSkyflowError gives the error
+	// empty, non-nil details.
+	emptyValidationDetails bool
 }
 
 // causeSeparator joins a raw message and its cause in Error(), the Go way: "message: cause".
@@ -34,14 +37,21 @@ const causeSeparator = ": "
 type ErrorOption func(*SkyflowError)
 
 // RawMessage makes GetMessage return the message as it is, without the "Message: " prefix,
-// and Error return it followed by its cause, as the Java SDK's getMessage() and the Python
-// SDK's str(e) do. The flowvault SDK builds every error with it; v2's errors keep the prefix.
+// and Error return it followed by its cause. The flowvault SDK builds every error with it; v2's errors keep the prefix.
 func RawMessage() ErrorOption {
 	return func(se *SkyflowError) { se.rawMessage = true }
 }
 
+// EmptyValidationDetails makes an error built by NewSkyflowError, one the SDK raises itself for
+// invalid input, report empty, non-nil details. Errors with a cause (transport, cancellation,
+// local failures) and API errors keep the details they have, nil when there are none.
+// The flowvault SDK builds every error with it; v2's errors keep nil details.
+func EmptyValidationDetails() ErrorOption {
+	return func(se *SkyflowError) { se.emptyValidationDetails = true }
+}
+
 // WithResponseBody makes GetResponseBody return body: the server's error body as it was sent,
-// as in the Java SDK, rather than the body the error was built from.
+// rather than the body the error was built from.
 func WithResponseBody(body map[string]interface{}) ErrorOption {
 	return func(se *SkyflowError) { se.responseBody = body }
 }
@@ -93,13 +103,13 @@ func (se *SkyflowError) GetHttpCode() string {
 	return se.httpCode
 }
 
-// GetHttpCodeInt is GetHttpCode as a number, as the Java SDK's getHttpCode() returns it, or 0
+// GetHttpCodeInt is GetHttpCode as a number, or 0
 // when the error has no HTTP code (for example a network failure).
 func (se *SkyflowError) GetHttpCodeInt() int {
 	return codeInt(se.GetHttpCode())
 }
 
-// GetGrpcCodeInt is GetGrpcCode as a number, as the Java SDK's getGrpcCode() returns it, or 0
+// GetGrpcCodeInt is GetGrpcCode as a number, or 0
 // when the server sent none.
 func (se *SkyflowError) GetGrpcCodeInt() int {
 	return codeInt(se.GetGrpcCode())
@@ -152,7 +162,11 @@ func NewSkyflowError(code ErrorCodesEnum, message string, opts ...ErrorOption) *
 		message:        message,
 		httpStatusCode: constants.HTTP_STATUS_BAD_REQUEST,
 	}
-	return skyflowError.apply(opts)
+	skyflowError.apply(opts)
+	if skyflowError.emptyValidationDetails && skyflowError.details == nil {
+		skyflowError.details = []interface{}{}
+	}
+	return skyflowError
 }
 
 // NewSkyflowErrorWithCause is NewSkyflowError keeping the error that caused it, so callers
@@ -319,7 +333,9 @@ func SkyflowErrorApi(error error, header http.Header, opts ...ErrorOption) *Skyf
 	status, hasStatus := parseStatusPrefix(prefix)
 	if !found || json.Unmarshal([]byte(body), &apiError) != nil {
 		if !hasStatus {
-			return NewSkyflowError(INVALID_INPUT_CODE, rawBodyMessage(raw), opts...)
+			apiErr := NewSkyflowError(INVALID_INPUT_CODE, rawBodyMessage(raw), opts...)
+			apiErr.details = nil // an API error: no details unless the server sent some
+			return apiErr
 		}
 		skyflowError.message = rawBodyMessage(raw)
 		skyflowError.fillMissingStatus(status)

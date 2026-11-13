@@ -161,11 +161,11 @@ func validateTokenForStrict(tokens map[string]interface{}, values map[string]int
 var configValidator = cfg.NewValidator(constants.SDK_PREFIX, constants.SDK_LOG_PREFIX)
 
 func ValidateVaultConfig(vaultConfig common.VaultConfig) *skyflowError.SkyflowError {
-	return configValidator.ValidateVaultConfig(vaultConfig)
+	return configValidator.ValidateVaultConfig(helpers.CommonVaultConfig(vaultConfig))
 }
 
 func ValidateUpdateVaultConfig(vaultConfig common.VaultConfig) *skyflowError.SkyflowError {
-	return configValidator.ValidateUpdateVaultConfig(vaultConfig)
+	return configValidator.ValidateUpdateVaultConfig(helpers.CommonVaultConfig(vaultConfig))
 }
 
 // ValidateConnectionConfig validates the ConnectionConfig struct

@@ -153,7 +153,7 @@ Requests are authorized with Skyflow credentials, set as a `common.Credentials` 
 
 ## Credential types
 
-Set **exactly one** of the following fields. Setting more than one, or none, fails validation with a `*SkyflowError`, and so does a field that holds only spaces. Credentials are checked when you add them, as in the Java SDK.
+Set **exactly one** of the following fields. Setting more than one, or none, fails validation with a `*SkyflowError`, and so does a field that holds only spaces. Credentials are checked when you add them.
 
 | Field | What it is |
 |---|---|
@@ -398,7 +398,7 @@ Methods on `*client.Skyflow`:
 
 | Method | Description |
 |---|---|
-| `Vault(vaultId ...string)` | The `*VaultService` for a registered vault. With no ID, or `""`, it returns the default vault, the first one added, as `vault()` does in the Java and Python SDKs. |
+| `Vault(vaultId ...string)` | The `*VaultService` for a registered vault. With no ID, or `""`, it returns the default vault, the first one added. |
 | `Detect(vaultId ...string)` | The `*DetectService` for a registered vault, or the default vault when no ID is given. See [Detect](#detect). |
 | `AddVaultConfig(config)` | Register another vault. Fails if the vault ID is already registered. |
 | `UpdateVaultConfig(config)` | Update a registered vault in place. Only the fields you set change, except `Env`, which is always applied (leaving it out moves the vault to `PROD`). |
@@ -421,7 +421,7 @@ Each HTTP setting resolves **most specific first**: the value on the `VaultConfi
 | `MaxRetries` | `0`: retries are **opt-in**, so non-idempotent writes are never replayed silently |
 | `InitialRetryDelay` | 500 ms |
 | `MaxRetryDelay` | 2000 ms |
-| `ConnectTimeout`, `ReadTimeout`, `WriteTimeout` (each attempt, as `connectTimeout`, `readTimeout` and `writeTimeout` in the Java and Python SDKs) | 10 s each |
+| `ConnectTimeout`, `ReadTimeout`, `WriteTimeout` (each attempt) | 10 s each |
 
 The per-attempt timeouts also apply to the file uploads `UploadFiles` sends to signed URLs, which have no overall timeout.
 
@@ -447,7 +447,7 @@ skyflowClient, err := client.NewSkyflow(
 )
 ```
 
-When retries are enabled, retryable responses (HTTP `408`, `429` and `5xx`) are retried with exponential backoff and jitter, bounded by `InitialRetryDelay`/`MaxRetryDelay` and the overall `Timeout`. `UploadFiles` is the exception, as in the Java SDK: it is not retried on a `5xx`, because the vault may already have created the records before failing. It is still retried on `408` and `429`. A deadline on the `context.Context` you pass to a call also applies when it is shorter. The file uploads in [Upload Files](#upload-files) are not retried and have no overall timeout, so large files aren't cut off.
+When retries are enabled, retryable responses (HTTP `408`, `429` and `5xx`) are retried with exponential backoff and jitter, bounded by `InitialRetryDelay`/`MaxRetryDelay` and the overall `Timeout`. `UploadFiles` is the exception: it is not retried on a `5xx`, because the vault may already have created the records before failing. It is still retried on `408` and `429`. A deadline on the `context.Context` you pass to a call also applies when it is shorter. The file uploads in [Upload Files](#upload-files) are not retried and have no overall timeout, so large files aren't cut off.
 
 ## Logging
 
@@ -552,7 +552,7 @@ Sample response:
 }
 ```
 
-Records come back in the order you submitted them. `RequestId` is empty on success and the failing call's `x-request-id` on error. `Tokens` maps each column to a **slice** of `common.Token`, one entry per token group configured on that column, each with `Token`, `TokenGroupName` and `Path` (the location within a structured column's value the token came from, for example `"phone_numbers[0].type"`; empty for a flat column). `HashedData` is the vault's `hashedData` passed through as returned, as in the Java SDK: a `map[string]interface{}` from column name to that column's hashes (typically a list of `{"data", "hashName"}` objects).
+Records come back in the order you submitted them. `RequestId` is empty on success and the failing call's `x-request-id` on error. `Tokens` maps each column to a **slice** of `common.Token`, one entry per token group configured on that column, each with `Token`, `TokenGroupName` and `Path` (the location within a structured column's value the token came from, for example `"phone_numbers[0].type"`; empty for a flat column). `HashedData` is the vault's `hashedData` passed through as returned: a `map[string]interface{}` from column name to that column's hashes (typically a list of `{"data", "hashName"}` objects).
 
 ```go
 for _, record := range response.Records {
@@ -640,7 +640,7 @@ Read records back from a table by Skyflow ID or by unique value, optionally over
 
 **Note:**
 
-- A `common.GetRequest` works in one of two modes, which are mutually exclusive: **single-table** (`TableName`, `SkyflowIds`/`UniqueValues`, `Columns`, `ColumnRedactions`, `Limit`, `Offset`) or **multi-table** (`Records`, a slice of `common.GetRequestRecord`). Setting fields from both fails validation. As in the Java SDK, an empty slice counts as not set, so an empty `Records` makes the request single-table. `Limit` and `Offset` aren't sent in multi-table mode, so setting them with `Records` fails validation rather than being ignored.
+- A `common.GetRequest` works in one of two modes, which are mutually exclusive: **single-table** (`TableName`, `SkyflowIds`/`UniqueValues`, `Columns`, `ColumnRedactions`, `Limit`, `Offset`) or **multi-table** (`Records`, a slice of `common.GetRequestRecord`). Setting fields from both fails validation. An empty slice counts as not set, so an empty `Records` makes the request single-table. `Limit` and `Offset` aren't sent in multi-table mode, so setting them with `Records` fails validation rather than being ignored.
 - `TableName` is required, and exactly one of `SkyflowIds` or `UniqueValues` must be set; both, or neither, fails validation. This holds per record in multi-table mode.
 - `UniqueValues` is a `[]map[string]interface{}`: one map per record, holding the unique column-name/value pairs that identify it.
 - `Columns` selects the columns to return; leave it nil or empty for all of them.
@@ -905,12 +905,12 @@ The signed URL is a credential that expires after about 15 minutes. The SDK uses
 **Note:**
 
 - `Records` is required and must be a non-empty slice of `common.UploadFilesRequestRecord`; each needs a `TableName` and a non-empty `Columns` slice, with no column repeated.
-- Each `common.UploadFilesRequestColumn` needs a `Column` name and **exactly one** file source: `FilePath`, `Base64` or `FileObject` (an `*os.File`, which you close). `Base64` also requires `FileName`. The content type comes from the file name's extension, using the same list as the Java SDK, so a file gets the same type on every OS. An unknown or missing extension is sent as `application/octet-stream`.
+- Each `common.UploadFilesRequestColumn` needs a `Column` name and **exactly one** file source: `FilePath`, `Base64` or `FileObject` (an `*os.File`, which you close). `Base64` also requires `FileName`. The content type comes from the file name's extension, using the SDK's own list, so a file gets the same type on every OS. An unknown or missing extension is sent as `application/octet-stream`.
 - Leave `SkyflowId` empty to create a new record (CREATE permission); set it to upload into an existing record (UPDATE permission). A `SkyflowId` of only spaces fails validation rather than creating a new record.
 - `FileName` is derived from `FilePath`/`FileObject` when empty; if it is still unset, the server generates one.
 - Every file is checked before anything is uploaded, so a missing or unreadable file, or invalid base64, fails the whole call. Files are then uploaded **concurrently** (at most 5 at once) and streamed: nothing is read into memory up front, and base64 content is decoded while it is uploaded. A `FileObject` is uploaded whole, from its start, whatever its current offset, and its offset is left unchanged, so one `*os.File` can back several columns. The uploads to the signed URLs are not retried and have no overall timeout. The final virus-scan status is asynchronous; read it later with `Get`.
 - Errors:
-  - An error status from the first step (requesting the signed URLs) fails the whole call with a `*SkyflowError`, and nothing is uploaded, even when the response lists records. When those records carry errors, the message is the distinct record errors joined with `; `, as in the Java SDK.
+  - An error status from the first step (requesting the signed URLs) fails the whole call with a `*SkyflowError`, and nothing is uploaded, even when the response lists records. When those records carry errors, the message is the distinct record errors joined with `; `.
   - A record that fails in the first step comes back with its `Error` set, and every one of its columns is `SKIPPED` with that error.
   - A column the vault returned no signed URL for is `SKIPPED`, with the error `"No signed URL was returned for this column; file was not uploaded."`.
   - A column whose upload fails is `FAILED`, with an error such as `"PUT failed: 403"`. Other columns and records are unaffected.
@@ -1045,7 +1045,7 @@ for _, record := range response.Records {
 
 # Custom Request Headers
 
-To add custom HTTP headers to one call, set an `Interceptor` on that operation's options struct. The interceptor is a `func(rc *common.RequestContext)`; it runs once per call, just before the request is sent, and adds headers with `rc.AddHeader(key, value)`. `rc.Operation` names the operation (for example `"INSERT"`). `rc.BatchIndex` and `rc.TotalBatches` are `common.NotBatched` (`-1`), as in the Java and Python SDKs, because every operation sends one request. The supported keys are `common.CustomHeaderKey` constants:
+To add custom HTTP headers to one call, set an `Interceptor` on that operation's options struct. The interceptor is a `func(rc *common.RequestContext)`; it runs once per call, just before the request is sent, and adds headers with `rc.AddHeader(key, value)`. `rc.Operation` names the operation (for example `"INSERT"`). `rc.BatchIndex` and `rc.TotalBatches` are `common.NotBatched` (`-1`), because every operation sends one request. The supported keys are `common.CustomHeaderKey` constants:
 
 | `CustomHeaderKey` | HTTP header name |
 |---|---|
@@ -1053,7 +1053,7 @@ To add custom HTTP headers to one call, set an `Interceptor` on that operation's
 | `common.SkyflowAccountName` | `x-skyflow-account-name` |
 | `common.RequestIdHeader` | `x-request-id` |
 
-Any other key, or a blank value, fails the call with a `*SkyflowError` before it is sent. So does a panic in the interceptor: the call returns a `*SkyflowError` instead of crashing your program. As in the Java SDK, its message is the panic's own (an `error`'s text or a `string`), else `"Request interceptor threw an exception. The request was not sent."`, and it has no HTTP code (`GetHttpCode()` is `"0"`, with an empty status); an `error` is also kept as the cause. A `*SkyflowError` you panic with is returned as is.
+Any other key, or a blank value, fails the call with a `*SkyflowError` before it is sent. So does a panic in the interceptor: the call returns a `*SkyflowError` instead of crashing your program. Its message is the panic's own (an `error`'s text or a `string`), else `"Request interceptor threw an exception. The request was not sent."`, and it has no HTTP code (`GetHttpCode()` is `"0"`, with an empty status); an `error` is also kept as the cause. A `*SkyflowError` you panic with is returned as is.
 
 [Example](../samples/flowvault/vaultapi/custom_header_example.go):
 
@@ -1120,7 +1120,7 @@ All types are in `github.com/skyflowapi/skyflow-go/flowvault/utils/common`.
 - `ConfigurationId`: a stored configuration, created in Studio or with the [Management API](https://docs.skyflow.com/management/).
 - `Configuration`: an inline `DetectConfiguration` (see the [Detect configuration reference](#detect-configuration-reference)).
 
-Both are optional and sent as given, as in the other Skyflow SDKs. With neither, the SDK sends only the vault ID and the run uses the vault's default Detect settings. Set only one: the API rejects a request with both (HTTP 400).
+Both are optional and sent as given. With neither, the SDK sends only the vault ID and the run uses the vault's default Detect settings. Set only one: the API rejects a request with both (HTTP 400).
 
 ```go
 // With a stored configuration
@@ -1179,7 +1179,7 @@ Sample response (entity-counter placeholders):
 }
 ```
 
-`Value` is set only when the configuration's `ReturnEntities` is `ReturnEntitiesTypeAll`. `Location` is a `*common.EntityLocation`: nil when the server sends no location, as in the Java and Python SDKs.
+`Value` is set only when the configuration's `ReturnEntities` is `ReturnEntitiesTypeAll`. `Location` is a `*common.EntityLocation`: nil when the server sends no location.
 
 > [!TIP]
 > See the full example in the samples directory: [deidentify_string.go](../samples/flowvault/detectapi/deidentify_string.go)
@@ -1193,14 +1193,14 @@ Sample response (entity-counter placeholders):
 | `FileObject` | An open `*os.File`, sent the same way. The caller closes it. |
 | `DataSource` + `Value` | `DeidentifySourceTypeBase64` with base64 content, or `DeidentifySourceTypePresignedURL` with a presigned URL. |
 
-Before calling the API, the SDK checks that exactly one is set, that a `Value` has a `DataSource` and isn't blank, and that a local file exists and is a regular file. A local file is checked before the `Poll` options, as in the Java and Python SDKs, and one that exists but can't be read fails with "Failed to encode the file". It sends `DataSource` as given; the server rejects one the vault doesn't accept.
+Before calling the API, the SDK checks that exactly one is set, that a `Value` has a `DataSource` and isn't blank, and that a local file exists and is a regular file. A local file is checked before the `Poll` options, and one that exists but can't be read fails with "Failed to encode the file". It sends `DataSource` as given; the server rejects one the vault doesn't accept.
 
 `ConfigurationId` and `Configuration` work as for [Deidentify String](#deidentify-string). `DataFormat` is optional: the server infers it, and for a local file the SDK infers it from the extension. Set it to override either.
 
 > [!WARNING]
 > **`DeidentifyFile` doesn't wait for the result by default.** It returns as soon as the file is submitted, with only `RunId` set: `Status` is empty and there is no `Output`. Get the result later with [GetRun](#get-run), or set `Poll` to wait for the run.
 
-Outputs are written to disk only when all three hold: the input is a local file (`FilePath` or `FileObject`), the polled run reached `SUCCESS`, and its outputs are base64. They are named `processed-<name>.<ext>`, `processed-entities-<name>.json` and `processed-object-entities-<name>.json`, where `<name>` is the input's name without its extension (a dotfile such as `.env` keeps its whole name, as in the Java and Python SDKs). A file that can't be written fails the call with "Failed to write the processed output to <path>." and code `"0"`; the underlying error is `Unwrap()`. `OutputDirectory` requires `Poll`. It is created if missing and defaults to the current directory (an empty or blank value means the current directory). Each output goes to a hidden temporary file first and is then renamed into place, so a process that dies mid-write can leave a `.processed-*.tmp` file behind. Presigned-URL outputs are not fetched: read them from `Output`.
+Outputs are written to disk only when all three hold: the input is a local file (`FilePath` or `FileObject`), the polled run reached `SUCCESS`, and its outputs are base64. They are named `processed-<name>.<ext>`, `processed-entities-<name>.json` and `processed-object-entities-<name>.json`, where `<name>` is the input's name without its extension (a dotfile such as `.env` keeps its whole name). A file that can't be written fails the call with "Failed to write the processed output to <path>." and code `"0"`; the underlying error is `Unwrap()`. `OutputDirectory` requires `Poll`. It is created if missing and defaults to the current directory (an empty or blank value means the current directory). Each output goes to a hidden temporary file first and is then renamed into place, so a process that dies mid-write can leave a `.processed-*.tmp` file behind. Presigned-URL outputs are not fetched: read them from `Output`.
 
 `DeidentificationTypeVaultToken` is supported only for `txt`, `csv`, `json`, `jsonl`, `xml`, `docx`, `xlsx` and `pptx` files.
 
@@ -1381,7 +1381,7 @@ Sample response, with a redaction pattern that masks the middle of the name:
 > See the full example in the samples directory: [reidentify_string.go](../samples/flowvault/detectapi/reidentify_string.go)
 
 ## Reidentify File
-`ReidentifyFile` is synchronous: there's no run to poll. `DataSource` and `Value` are required: either `ReidentifySourceTypeBase64` with base64 content, or `ReidentifySourceTypePresignedURL` with a URL. There's no `FilePath` or `FileObject`, so encode a local file into `Value` yourself. `DataFormat` is optional: a `ReidentifyFileDataFormat*` constant (`CSV`, `DOCX`, `JSON`, `JSONL`, `PPTX`, `TXT`, `XLSX`, `XML`), the formats re-identification works with, as in the Java and Python SDKs. Each output is a `common.ReidentifyFileOutput`, whose `ProcessedFileExtension` is the same type: empty for any other format. `RedactionLevel` works as in [Reidentify String](#reidentify-string). The response's `OutputType` is a `ReidentifySourceType`, or nil for a value the SDK doesn't know.
+`ReidentifyFile` is synchronous: there's no run to poll. `DataSource` and `Value` are required: either `ReidentifySourceTypeBase64` with base64 content, or `ReidentifySourceTypePresignedURL` with a URL. There's no `FilePath` or `FileObject`, so encode a local file into `Value` yourself. `DataFormat` is optional: a `ReidentifyFileDataFormat*` constant (`CSV`, `DOCX`, `JSON`, `JSONL`, `PPTX`, `TXT`, `XLSX`, `XML`), the formats re-identification works with. Each output is a `common.ReidentifyFileOutput`, whose `ProcessedFileExtension` is the same type: empty for any other format. `RedactionLevel` works as in [Reidentify String](#reidentify-string). The response's `OutputType` is a `ReidentifySourceType`, or nil for a value the SDK doesn't know.
 
 The SDK writes nothing to disk: the re-identified output is in `response.Output` for you to handle.
 
@@ -1524,7 +1524,7 @@ Every response (except `Query`) has `Records`, with one entry per submitted item
 
 | Field | Meaning |
 |---|---|
-| `HttpCode` | Per-item status (`int`). `2xx` for success; `4xx`/`5xx` for failure. When the vault leaves it out, it is `200`, or `500` for an item with an error, as in the Java SDK. |
+| `HttpCode` | Per-item status (`int`). `2xx` for success; `4xx`/`5xx` for failure. When the vault leaves it out, it is `200`, or `500` for an item with an error. |
 | `Error` | Error message for this item. Empty means this item succeeded. |
 | `RequestId` | The `x-request-id` of the call this item was part of, set only on failure. Quote it in support requests. |
 
@@ -1569,9 +1569,9 @@ if err != nil {
 
 | Method | Returns | Description |
 |---|---|---|
-| `GetHttpCode()` | `string` | HTTP status code, for example `"400"`, `"404"`, `"500"`. `"499"` when the call's context was cancelled or its deadline passed. `"0"` (with an empty `GetHttpStatusCode()`, as in the Java SDK) when no usable HTTP response came back: a network failure, the call ran past its `Timeout`, or the response body couldn't be read. Also `"0"` when there was no HTTP exchange at all: the request interceptor panicked, or Detect couldn't write an output file. |
-| `GetHttpCodeInt()` | `int` | `GetHttpCode()` as a number, as the Java SDK's `getHttpCode()` returns it; `0` when there is no HTTP code. |
-| `GetMessage()` | `string` | Human-readable description of the error, as it is (as the Java SDK's `getMessage()` returns it). For example `"Skyflow FlowVault Go SDK 1.0.0 Validation error. 'query' can't be empty. Specify a query"`. |
+| `GetHttpCode()` | `string` | HTTP status code, for example `"400"`, `"404"`, `"500"`. `"499"` when the call's context was cancelled or its deadline passed. `"0"` (with an empty `GetHttpStatusCode()`) when no usable HTTP response came back: a network failure, the call ran past its `Timeout`, or the response body couldn't be read. Also `"0"` when there was no HTTP exchange at all: the request interceptor panicked, or Detect couldn't write an output file. |
+| `GetHttpCodeInt()` | `int` | `GetHttpCode()` as a number; `0` when there is no HTTP code. |
+| `GetMessage()` | `string` | Human-readable description of the error, as it is. For example `"Skyflow FlowVault Go SDK 1.0.0 Validation error. 'query' can't be empty. Specify a query"`. |
 | `GetGrpcCode()` | `string` | gRPC status code from the server. |
 | `GetGrpcCodeInt()` | `int` | `GetGrpcCode()` as a number; `0` when the server sent none. |
 | `GetHttpStatusCode()` | `string` | HTTP status text from the server. |
@@ -1581,9 +1581,9 @@ if err != nil {
 | `Error()` | `string` | Implements `error`: the message, followed by `": "` and the cause when the SDK kept one. |
 | `Unwrap()` | `error` | The underlying error when the SDK kept one (the context's error for a `"499"`, the network or timeout error for a `"0"`), so `errors.Is` / `errors.As` work. |
 
-**Validation errors** (table name on both levels, empty token list and similar) are returned before any network call, with HTTP code `"400"`. **API errors** come from the Skyflow server, with the fields filled in from the response body and headers; `GetHttpCode()` is always the response's HTTP status, as in the Java and Python SDKs. When the body isn't a Skyflow JSON error, the message is, in order: an `error` string in the body, a top-level `message`, the body itself (for example an HTML page from a proxy; only its first 512 bytes are kept), or `"Error with status code <N>"` for an empty body.
+**Validation errors** (table name on both levels, empty token list and similar) are returned before any network call, with HTTP code `"400"`. **API errors** come from the Skyflow server, with the fields filled in from the response body and headers; `GetHttpCode()` is always the response's HTTP status. When the body isn't a Skyflow JSON error, the message is, in order: an `error` string in the body, a top-level `message`, the body itself (for example an HTML page from a proxy; only its first 512 bytes are kept), or `"Error with status code <N>"` for an empty body.
 
-When a call fails (a non-`2xx` status) but its body still lists per-record results, `Insert`, `Update`, `Get`, `Delete`, `Detokenize`, `GetTokens` and `DeleteFiles` return those records instead of an error, as the Java SDK does. For `Insert`, `Update`, `Get`, `Delete` and `Detokenize` every such record is failed: its `HttpCode` is its own status or else the call's, its `Error` is its own error or message or else `"Unknown error"`, every record carries the request ID, and no data, tokens or detokenized values are returned. For `GetTokens` and `DeleteFiles` a record counts as a success only when it reports no error and a `2xx` status of its own. `UploadFiles` instead fails the whole call, so no file is uploaded.
+When a call fails (a non-`2xx` status) but its body still lists per-record results, `Insert`, `Update`, `Get`, `Delete`, `Detokenize`, `GetTokens` and `DeleteFiles` return those records instead of an error. For `Insert`, `Update`, `Get`, `Delete` and `Detokenize` every such record is failed: its `HttpCode` is its own status or else the call's, its `Error` is its own error or message or else `"Unknown error"`, every record carries the request ID, and no data, tokens or detokenized values are returned. For `GetTokens` and `DeleteFiles` a record counts as a success only when it reports no error and a `2xx` status of its own. `UploadFiles` instead fails the whole call, so no file is uploaded.
 
 A successful (`2xx`) response with an empty body is treated as an empty result. One whose body isn't a JSON object fails the call with its real status code (for example `"200"`) and a message that includes the first 512 bytes of the body.
 

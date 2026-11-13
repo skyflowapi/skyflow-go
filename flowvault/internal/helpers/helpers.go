@@ -7,7 +7,6 @@ import (
 
 	"github.com/skyflowapi/skyflow-go/common/auth"
 	"github.com/skyflowapi/skyflow-go/common/config"
-	commonerrors "github.com/skyflowapi/skyflow-go/common/errors"
 	"github.com/skyflowapi/skyflow-go/common/vaultclient"
 	fvconsts "github.com/skyflowapi/skyflow-go/flowvault/internal/constants"
 	fvcommon "github.com/skyflowapi/skyflow-go/flowvault/utils/common"
@@ -44,18 +43,18 @@ func CreateSDKMetadata() string {
 }
 
 // authSvc is the shared service-account authenticator configured for flowvault. Its token
-// requests time out after auth.DefaultTimeout, like Java's.
+// requests time out after auth.DefaultTimeout.
 var authSvc = auth.New(auth.Config{
 	SDKPrefix:    fvconsts.SDK_PREFIX,
 	LogPrefix:    fvconsts.SDK_LOG_PREFIX,
-	ErrorOptions: []commonerrors.ErrorOption{commonerrors.RawMessage()},
+	ErrorOptions: fverrors.Options(),
 })
 
 // Auth returns the shared service-account authenticator configured for flowvault.
 func Auth() *auth.Service { return authSvc }
 
 // profile describes flowvault to the shared per-vault request plumbing: its errors carry the
-// raw message and the Java SDK's wording, as every other flowvault error does.
+// raw message, as every other flowvault error does.
 var profile = vaultclient.Profile{
 	SDKPrefix:           fvconsts.SDK_PREFIX,
 	LogPrefix:           fvconsts.SDK_LOG_PREFIX,
@@ -70,30 +69,30 @@ var profile = vaultclient.Profile{
 		GenerateBearerToken: logs.GENERATE_BEARER_TOKEN_TRIGGERED,
 		ReuseBearerToken:    logs.REUSE_BEARER_TOKEN,
 	},
-	ErrorOptions: []commonerrors.ErrorOption{commonerrors.RawMessage()},
+	ErrorOptions: fverrors.Options(),
 }
 
 // Profile returns flowvault's settings for the shared common/vaultclient plumbing.
 func Profile() vaultclient.Profile { return profile }
 
-// Vault-config messages in the Java SDK's wording, which the shared validator uses for flowvault
+// Flowvault's vault-config messages, which the shared validator uses for flowvault
 // instead of its defaults (the v2 SDK keeps those).
 const (
-	javaEmptyVaultId          = " Initialization failed. Invalid vault ID. Vault ID must not be empty."
-	javaClusterIdOrVaultUrl   = " Initialization failed. Specify either 'clusterId' or 'vaultURL'."
-	javaInvalidVaultUrlFormat = " Initialization failed. Vault URL must start with 'https://'."
+	msgEmptyVaultId          = " Initialization failed. Invalid vault ID. Vault ID must not be empty."
+	msgClusterIdOrVaultUrl   = " Initialization failed. Specify either 'clusterId' or 'vaultURL'."
+	msgInvalidVaultUrlFormat = " Initialization failed. Vault URL must start with 'https://'."
 )
 
 // configValidator is the shared vault-config/credential validator configured for flowvault:
-// Java's messages, and raw-message errors like every other flowvault error.
+// flowvault's messages, and raw-message errors like every other flowvault error.
 var configValidator = config.NewValidator(fvconsts.SDK_PREFIX, fvconsts.SDK_LOG_PREFIX,
 	config.WithMessages(config.Messages{
-		InvalidVaultId:    javaEmptyVaultId,
-		ClusterIdRequired: javaClusterIdOrVaultUrl,
-		InvalidVaultUrl:   javaInvalidVaultUrlFormat,
-		InsecureVaultUrl:  javaInvalidVaultUrlFormat,
+		InvalidVaultId:    msgEmptyVaultId,
+		ClusterIdRequired: msgClusterIdOrVaultUrl,
+		InvalidVaultUrl:   msgInvalidVaultUrlFormat,
+		InsecureVaultUrl:  msgInvalidVaultUrlFormat,
 	}),
-	config.WithErrorOptions(commonerrors.RawMessage()),
+	config.WithErrorOptions(fverrors.Options()...),
 )
 
 // ConfigValidator returns the shared validator configured for flowvault.

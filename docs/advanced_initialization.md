@@ -1,6 +1,6 @@
 # Advanced Skyflow Client Initialization
 
-This guide demonstrates advanced initialization patterns for the Skyflow Python SDK, including multiple vault configurations and different credential types.
+This guide demonstrates advanced initialization patterns for the Skyflow Go SDK, including multiple vault configurations and different credential types.
 
 Use multiple vault configurations when your application needs to access data across different Skyflow vaults, such as managing data across different geographic regions or distinct environments.
 

@@ -29,7 +29,7 @@ const (
 )
 
 // ResolvedFile is a file column's source plus the name and content type to upload it with.
-// Like Java, nothing is held in memory: a FilePath or FileObject is streamed when it is
+// Nothing is held in memory: a FilePath or FileObject is streamed when it is
 // uploaded, and base64 content is checked up front but decoded only while it is uploaded.
 type ResolvedFile struct {
 	Name        string
@@ -38,8 +38,8 @@ type ResolvedFile struct {
 	DecodedSize int64    // length of the decoded base64 content
 	Path        string   // FilePath, opened for the upload
 	Object      *os.File // FileObject; the caller closes it
-	// objectSize is the FileObject's size, or -1 when it is not a regular file. As in the Java
-	// and Python SDKs, a regular file is uploaded whole, from its start, whatever its current
+	// objectSize is the FileObject's size, or -1 when it is not a regular file. A regular
+	// file is uploaded whole, from its start, whatever its current
 	// offset. It is read by position, not through the shared offset, so the offset is left
 	// as it was and the same *os.File can back several columns that upload at the same time.
 	objectSize int64
@@ -60,8 +60,8 @@ func ResolveFile(column fvcommon.UploadFilesRequestColumn) (ResolvedFile, *fverr
 			file.Name = filepath.Base(column.FilePath)
 		}
 	case column.Base64 != "":
-		// Decoding into io.Discard checks the content without keeping a decoded copy. As in the
-		// Java and Python SDKs, the content must be strict base64: line breaks, which Go's
+		// Decoding into io.Discard checks the content without keeping a decoded copy. The
+		// content must be strict base64: line breaks, which Go's
 		// decoder would skip, are refused too.
 		size, err := io.Copy(io.Discard, base64Reader(column.Base64))
 		if err == nil && strings.ContainsAny(column.Base64, "\r\n") {
@@ -85,7 +85,7 @@ func ResolveFile(column fvcommon.UploadFilesRequestColumn) (ResolvedFile, *fverr
 	return file, nil
 }
 
-// UploadContentType is the Content-Type an uploaded file is sent with, as in the Java SDK:
+// UploadContentType is the Content-Type an uploaded file is sent with:
 // the SDK's own type for the name's extension (case-insensitive), else Go's, else
 // application/octet-stream.
 func UploadContentType(name string) string {

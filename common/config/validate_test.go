@@ -231,7 +231,7 @@ var _ = Describe("Validator", func() {
 			Entry("too short", "sky-short"),
 			Entry("too long", validApiKey+"x"),
 			Entry("right length, no prefix", strings.Repeat("a", len(validApiKey))),
-			// Checked against the Java and Python format, not just length and prefix.
+			// Checked against the full key format, not just length and prefix.
 			Entry("prefix not at the start", "x"+validApiKey[:len(validApiKey)-1]),
 			Entry("non-hex secret", validApiKey[:len(validApiKey)-1]+"z"),
 			Entry("short account part", "sky-abcd-"+validApiKey[10:]+"0"),

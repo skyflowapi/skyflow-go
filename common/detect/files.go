@@ -51,8 +51,7 @@ func (c *Controller) readLocalFile(filePath string, fileObject *os.File) (*local
 	return &localFile{name: name, base64: base64.StdEncoding.EncodeToString(content), format: formatFromName(name)}, nil
 }
 
-// unreadable is the error for a local file that could not be read, with the Java and Python
-// SDKs' texts: one that does not exist or is not a regular file was not found; any other
+// unreadable is the error for a local file that could not be read: one that does not exist or is not a regular file was not found; any other
 // failure (permissions, I/O) failed to encode.
 func (c *Controller) unreadable(err error) *skyflowError.SkyflowError {
 	if errors.Is(err, fs.ErrNotExist) || errors.Is(err, errNotRegularFile) {
@@ -62,7 +61,7 @@ func (c *Controller) unreadable(err error) *skyflowError.SkyflowError {
 }
 
 // checkLocalFile reports, before anything is read, whether the local input is a regular file,
-// as the Java and Python SDKs check it during validation. A file that can't be read is
+// as part of validation. A file that can't be read is
 // reported later, when it is read (unreadable).
 func (c *Controller) checkLocalFile(filePath string, fileObject *os.File) *skyflowError.SkyflowError {
 	var info os.FileInfo
@@ -143,11 +142,11 @@ func (c *Controller) writeOutputs(outputs []FileOutput, outputType DeidentifyFil
 		return nil
 	}
 	if blank(dir) {
-		dir = "" // a blank directory is the current one, as in the Java SDK
+		dir = "" // a blank directory is the current one
 	} else if err := os.MkdirAll(dir, outputDirMode); err != nil {
 		return c.writeFailure(dir, err)
 	}
-	// As in the Java and Python SDKs, only an extension after the first character is dropped,
+	// Only an extension after the first character is dropped,
 	// so a dotfile such as ".env" keeps its whole name.
 	stem := inputName
 	if dot := strings.LastIndex(inputName, extensionSeparator); dot > 0 {
@@ -253,7 +252,7 @@ func writeOutputFile(target string, content []byte, rename func(oldpath, newpath
 }
 
 // writeFailure is the error for an output file that could not be written. The failure is
-// local, with no HTTP exchange behind it, so, as in the Java SDK, it has no HTTP status: the
+// local, with no HTTP exchange behind it, so it has no HTTP status: the
 // code is TRANSPORT_ERROR ("0") with an empty status. err is kept as the cause, so
 // errors.Is(result, fs.ErrPermission) works.
 func (c *Controller) writeFailure(path string, err error) *skyflowError.SkyflowError {

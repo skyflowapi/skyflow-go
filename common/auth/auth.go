@@ -51,8 +51,7 @@ type Config struct {
 }
 
 // DefaultTimeout bounds a token request when Config sets no HTTPClient or one without a
-// timeout, so a token endpoint that stops answering can't block calls. It matches the Java
-// SDK's token client.
+// timeout, so a token endpoint that stops answering can't block calls.
 const DefaultTimeout = 60 * time.Second
 
 // Service performs service-account authentication for one SDK.

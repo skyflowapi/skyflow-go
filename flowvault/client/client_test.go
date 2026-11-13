@@ -71,7 +71,7 @@ var _ = Describe("Skyflow client", func() {
 		Expect(*other.controller.ClientSettings().HttpConfig.MaxRetries).To(Equal(2))
 	})
 
-	It("returns the first registered vault when no vault ID is given, as Java and Python do", func() {
+	It("returns the first registered vault when no vault ID is given", func() {
 		client := newTestClient()
 		Expect(client.AddVaultConfig(fvcommon.VaultConfig{VaultId: "second", ClusterId: "cluster"})).To(BeNil())
 		first, err := client.Vault()
@@ -92,7 +92,7 @@ var _ = Describe("Skyflow client", func() {
 		Expect(err).ToNot(BeNil())
 	})
 
-	It("applies the default Env when an update doesn't set one, as Java does", func() {
+	It("applies the default Env when an update doesn't set one", func() {
 		client := newTestClient()
 		Expect(client.UpdateVaultConfig(fvcommon.VaultConfig{VaultId: testVaultID, ClusterId: "other"})).To(BeNil())
 		config, _ := client.GetVaultConfig(testVaultID)

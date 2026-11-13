@@ -16,7 +16,7 @@ type Interceptor = vaultclient.Interceptor
 // ---------------------------------------------------------------------------
 
 // Metrics describe the processed input. Every field is optional in the API, so each is nil
-// when the server leaves it out, as in the Java SDK. At most one of Slides, Pages and
+// when the server leaves it out. At most one of Slides, Pages and
 // Duration is set.
 type Metrics struct {
 	Size           *float64 `json:"size,omitempty"` // kilobytes
@@ -100,7 +100,7 @@ type DetectedEntity struct {
 	Token string `json:"token"` // e.g. "NAME_1"
 	// Value is empty unless the configuration returns entities (ReturnEntitiesTypeAll).
 	Value string `json:"value"`
-	// Location is nil when the server doesn't send one, as in the Java and Python SDKs.
+	// Location is nil when the server doesn't send one.
 	Location *EntityLocation `json:"location"`
 	// EntityType is a string, not an EntityType, because it also carries custom-type labels.
 	EntityType   string             `json:"entityType"`
@@ -157,7 +157,7 @@ type DeidentifyFileOptions struct {
 }
 
 // PollOptions bound how long DeidentifyFile waits for a run. A nil field uses its default;
-// a set field must be in range, as in the Java SDK, so a zero is rejected rather than taken
+// a set field must be in range, so a zero is rejected rather than taken
 // as the default. &PollOptions{} polls with both defaults.
 type PollOptions struct {
 	// WaitTime caps the total pause between run lookups: 1s to 300s, default 60s. The

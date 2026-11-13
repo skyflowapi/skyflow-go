@@ -248,7 +248,7 @@ var _ = Describe("Response conversion", func() {
 		Expect(tokens[1].RequestId).To(Equal("req-9"))
 		Expect(tokens[2].Error).To(Equal(fvconsts.UNKNOWN_RECORD_ERROR))
 		Expect(tokens[2].HttpCode).To(Equal(404))
-		// As in the Java SDK, "message" and the http_code / statusCode spellings are read too.
+		// "message" and the http_code / statusCode spellings are read too.
 		Expect(tokens[3].Error).To(Equal("not found"))
 		Expect(tokens[3].HttpCode).To(Equal(404))
 		Expect(tokens[4].Error).To(BeEmpty())
@@ -266,7 +266,7 @@ var _ = Describe("Response conversion", func() {
 		Expect(files[0].HttpCode).To(Equal(500))
 	})
 
-	It("fills in a record's missing httpCode in a successful call, as in Java: 500 with an error, else 200", func() {
+	It("fills in a record's missing httpCode in a successful call: 500 with an error, else 200", func() {
 		header := http.Header{}
 		failed := "boom"
 		records := toRecordResults([]*api.RecordResponseObject{{}, {Error: &failed}, {HTTPCode: 207}}, header)

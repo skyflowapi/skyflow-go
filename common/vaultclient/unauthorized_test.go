@@ -72,7 +72,7 @@ func post(t *testing.T, client *http.Client, url, token string) *http.Response {
 	return resp
 }
 
-// As in Java: a 401 for a token at or near expiry is resent once, body included, with a new
+// A 401 for a token at or near expiry is resent once, body included, with a new
 // token, which is then cached for later calls.
 func TestUnauthorizedIsResentWithANewTokenWhenTheTokenExpired(t *testing.T) {
 	f := newFakeAuth(t, nil)

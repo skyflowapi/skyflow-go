@@ -16,6 +16,6 @@ const (
 	REQUEST_CANCELLED ErrorCodesEnum = "499"
 	// TRANSPORT_ERROR - The call got no usable HTTP response: a network failure, a timeout,
 	// or an empty or unreadable body. No HTTP status applies, so the code is "0" and the
-	// status text is empty, as in the Java SDK.
+	// status text is empty.
 	TRANSPORT_ERROR ErrorCodesEnum = "0"
 )

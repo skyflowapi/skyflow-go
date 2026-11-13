@@ -53,7 +53,7 @@ var _ = Describe("HTTP config", func() {
 
 		defaults := ResolveHttpConfig(fvcommon.HttpConfig{}, fvcommon.HttpConfig{})
 		Expect(defaults.Timeout).To(Equal(60 * time.Second))
-		// Per-attempt timeouts default to 10s, as in Java (OkHttp) and Python.
+		// Per-attempt timeouts default to 10s.
 		Expect(defaults.ConnectTimeout).To(Equal(10 * time.Second))
 		Expect(defaults.ReadTimeout).To(Equal(10 * time.Second))
 		Expect(defaults.WriteTimeout).To(Equal(10 * time.Second))
@@ -76,7 +76,7 @@ var _ = Describe("HTTP config", func() {
 })
 
 var _ = Describe("Files", func() {
-	It("picks the upload Content-Type as the Java SDK does", func() {
+	It("picks the upload Content-Type from the SDK's own list, then Go's", func() {
 		Expect(UploadContentType("Report.DOCX")).To(Equal("application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
 		Expect(UploadContentType("page.html")).To(Equal("text/html"))
 		Expect(UploadContentType("site.css")).To(HavePrefix("text/css"))
@@ -110,7 +110,7 @@ var _ = Describe("Files", func() {
 	})
 
 	It("rejects an unreadable path, a directory, a closed file and invalid base64", func() {
-		// The messages are the Java SDK's; the reason is kept as the error's cause.
+		// The reason is kept as the error's cause.
 		_, err := ResolveFile(fvcommon.UploadFilesRequestColumn{Column: "c", FilePath: "/does/not/exist"})
 		Expect(err.GetMessage()).To(ContainSubstring(fverrors.INVALID_FILE_PATH))
 		Expect(errors.Is(err, os.ErrNotExist)).To(BeTrue())
@@ -123,7 +123,7 @@ var _ = Describe("Files", func() {
 		Expect(err.GetMessage()).To(ContainSubstring(fverrors.INVALID_FILE_OBJECT))
 		_, err = ResolveFile(fvcommon.UploadFilesRequestColumn{Column: "c", Base64: "%%%", FileName: "a.txt"})
 		Expect(err.GetMessage()).To(ContainSubstring(fverrors.INVALID_BASE64))
-		// Strict base64, as in the Java and Python SDKs: Go's decoder would skip line breaks.
+		// Strict base64: Go's decoder would skip line breaks.
 		for _, content := range []string{"cGRm\ncGRm", "cGRm\r\n", "cGRm cGRm"} {
 			_, err = ResolveFile(fvcommon.UploadFilesRequestColumn{Column: "c", Base64: content, FileName: "a.txt"})
 			Expect(err).ToNot(BeNil(), content)
@@ -196,8 +196,8 @@ var _ = Describe("Files", func() {
 		Expect(length).To(Equal(int64(14)))
 		Expect(body).To(Equal("header:content"))
 
-		// A FileObject is uploaded whole, from its start, whatever its offset (as in the Java
-		// and Python SDKs), and its offset is left where it was.
+		// A FileObject is uploaded whole, from its start, whatever its offset, and its
+		// offset is left where it was.
 		handle, _ := os.Open(path)
 		defer handle.Close()
 		_, _ = handle.Seek(7, io.SeekStart)

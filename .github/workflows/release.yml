@@ -109,7 +109,7 @@ jobs:
 
           if [ "$MODULE" = "flowvault" ]; then
             # The SDK reports SDK_VERSION in its metrics header and messages; it must match the
-            # tag without its "v" (flowvault/v1.0.0 -> 1.0.0), as the Java and Python SDKs report it.
+            # tag without its "v" (flowvault/v1.0.0 -> 1.0.0).
             CONSTANTS=flowvault/internal/constants/constants.go
             SDK_VERSION=$(sed -nE 's/^[[:space:]]*SDK_VERSION[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' "$CONSTANTS")
             if [ -z "$SDK_VERSION" ]; then

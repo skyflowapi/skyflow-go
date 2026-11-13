@@ -23,7 +23,7 @@ const (
 	OFF
 )
 
-// Level names, as the Java and Python SDKs print them.
+// Level names, as log lines print them.
 const (
 	levelNameError = "ERROR"
 	levelNameInfo  = "INFO"
@@ -32,8 +32,7 @@ const (
 	levelNameOff   = "OFF"
 )
 
-// String returns the level's name (ERROR, INFO, DEBUG, WARN or OFF), as the Java and Python
-// SDKs print it, so a level formats as its name in log lines rather than as a number.
+// String returns the level's name (ERROR, INFO, DEBUG, WARN or OFF), so a level formats as its name in log lines rather than as a number.
 func (l LogLevel) String() string {
 	switch l {
 	case ERROR:

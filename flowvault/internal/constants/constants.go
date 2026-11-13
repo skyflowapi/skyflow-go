@@ -10,12 +10,12 @@ const (
 	SANDBOX_DOMAIN         = ".skyvault.skyflowapis-preview.com"
 	PROD_DOMAIN            = ".skyvault.skyflowapis.com"
 	SDK_NAME               = "Skyflow FlowVault Go SDK "
-	SDK_VERSION            = "1.0.0" // flowvault module version without the "v", as Java and Python report it; bump with each flowvault/vX.Y.Z tag
+	SDK_VERSION            = "1.0.0" // flowvault module version without the "v"; bump with each flowvault/vX.Y.Z tag
 	METRICS_SDK_NAME       = "skyflow-flowvault-go"
 	SDK_PREFIX             = SDK_NAME + SDK_VERSION
-	SDK_LOG_PREFIX         = "[" + SDK_PREFIX + "] " // as the Java and Python SDKs format it
+	SDK_LOG_PREFIX         = "[" + SDK_PREFIX + "] " // e.g. "[Skyflow FlowVault Go SDK 1.0.0] "
 
-	// sky-metadata header keys, the same in the v2, Java and Python SDKs.
+	// sky-metadata header keys, the same in every Skyflow SDK.
 	SDK_METADATA_KEY_NAME_VERSION    = "sdk_name_version"
 	SDK_METADATA_KEY_DEVICE_MODEL    = "sdk_client_device_model"
 	SDK_METADATA_KEY_OS_DETAILS      = "sdk_client_os_details"
@@ -53,7 +53,7 @@ const (
 	UNKNOWN_RECORD_ERROR = "Unknown error"
 )
 
-// Per-column and per-record upload errors, matching the Java SDK.
+// Per-column and per-record upload errors.
 const (
 	NO_SIGNED_URL_ERROR            = "No signed URL was returned for this column; file was not uploaded."
 	UPLOAD_COLUMNS_FAILED_ERROR    = "%d of %d files were not uploaded. See each column for details."
@@ -91,9 +91,9 @@ const (
 // HTTP defaults, used when neither the vault nor the client sets a value.
 const (
 	DEFAULT_TIMEOUT_SECONDS            = 60
-	DEFAULT_CONNECT_TIMEOUT_SECONDS    = 10 // per attempt, as in Java and Python
-	DEFAULT_READ_TIMEOUT_SECONDS       = 10 // per attempt, as in Java and Python
-	DEFAULT_WRITE_TIMEOUT_SECONDS      = 10 // per attempt, as in Java and Python
+	DEFAULT_CONNECT_TIMEOUT_SECONDS    = 10 // per attempt
+	DEFAULT_READ_TIMEOUT_SECONDS       = 10 // per attempt
+	DEFAULT_WRITE_TIMEOUT_SECONDS      = 10 // per attempt
 	DEFAULT_MAX_RETRIES                = 0
 	DEFAULT_INITIAL_RETRY_DELAY_MILLIS = 500
 	DEFAULT_MAX_RETRY_DELAY_MILLIS     = 2000
@@ -104,7 +104,7 @@ const (
 const DEFAULT_UPLOAD_CONTENT_TYPE = "application/octet-stream"
 
 // UploadContentTypes maps a lowercase file extension to the Content-Type of an uploaded file.
-// It is the Java SDK's list, so a file gets the same type in both SDKs and on every OS (Go's
+// It is the SDK's own list, so a file gets the same type on every OS (Go's
 // mime table depends on the system's). Other extensions fall back to Go's table, then to
 // DEFAULT_UPLOAD_CONTENT_TYPE.
 var UploadContentTypes = map[string]string{

@@ -156,8 +156,7 @@ func copyValue(value interface{}) interface{} {
 }
 
 // Vault returns the vault service registered under vaultId. With no vaultId, or an empty
-// one, it returns the default vault, the first one added, as vault() with no ID does in the
-// Java and Python SDKs; only the first vaultId is used.
+// one, it returns the default vault, the first one added; only the first vaultId is used.
 func (s *Skyflow) Vault(vaultId ...string) (*VaultService, *fverrors.SkyflowError) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -267,7 +266,7 @@ func (s *Skyflow) UpdateVaultConfig(updatedConfig fvcommon.VaultConfig) *fverror
 		config.BaseVaultUrl = updatedConfig.BaseVaultUrl
 		config.BaseVaultURL = updatedConfig.BaseVaultURL
 	}
-	// As in Java, Env is always applied: it defaults to PROD, so an update that omits it
+	// Env is always applied: it defaults to PROD, so an update that omits it
 	// moves the vault to PROD.
 	config.Env = updatedConfig.Env
 	if updatedConfig.Timeout != 0 {
@@ -320,8 +319,8 @@ func (s *Skyflow) RemoveVaultConfig(vaultId string) *fverrors.SkyflowError {
 }
 
 // GetVaultConfig returns a copy of the VaultConfig registered under vaultId, or an error if
-// it is not found. An empty vaultId means the default vault, the first one added, as in the
-// Java and Python SDKs. Use UpdateVaultConfig to change it.
+// it is not found. An empty vaultId means the default vault, the first one added. Use
+// UpdateVaultConfig to change it.
 func (s *Skyflow) GetVaultConfig(vaultId string) (*fvcommon.VaultConfig, *fverrors.SkyflowError) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -372,9 +371,8 @@ func (s *Skyflow) GetSkyflowCredentials() *fvcommon.Credentials {
 // Logging
 // ---------------------------------------------------------------------------
 
-// SetLogLevel changes the log level for the client, as setLogLevel / set_log_level do in the
-// Java and Python SDKs. The level is process-wide: it is shared by every client of the v2 and
-// flowvault SDKs.
+// SetLogLevel changes the log level for the client. The level is process-wide: it is shared by
+// every client of the v2 and flowvault SDKs.
 func (s *Skyflow) SetLogLevel(logLevel fvlogger.LogLevel) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -393,7 +391,7 @@ func (s *Skyflow) GetLogLevel() fvlogger.LogLevel {
 
 // UpdateLogLevel changes the log level for the client.
 //
-// Deprecated: Use SetLogLevel instead, as in the Java and Python SDKs.
+// Deprecated: Use SetLogLevel instead.
 func (s *Skyflow) UpdateLogLevel(logLevel fvlogger.LogLevel) {
 	s.SetLogLevel(logLevel)
 }

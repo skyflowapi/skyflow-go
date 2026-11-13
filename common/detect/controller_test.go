@@ -184,7 +184,7 @@ func TestDeidentifyStringValidation(t *testing.T) {
 	}
 }
 
-// Configuration sources match the Java SDK: both are optional and sent as given.
+// Both configuration sources are optional and sent as given.
 func TestConfigurationSourceIsSent(t *testing.T) {
 	f := newFakeDetect(t)
 	f.responses[pathDeidentifyString] = []string{`{"processedText":"x"}`, `{"processedText":"x"}`}
@@ -216,7 +216,7 @@ func TestConfigurationSourceIsSent(t *testing.T) {
 	}
 }
 
-// As in the Java SDK, neither configuration source is required: with neither, a configuration
+// Neither configuration source is required: with neither, a configuration
 // holding only the vault ID is sent; with both, both are sent.
 func TestConfigurationSourceIsOptional(t *testing.T) {
 	f := newFakeDetect(t)
@@ -364,7 +364,7 @@ func TestDeidentifyFileValidation(t *testing.T) {
 		{errInvalidDeidentifyDataSource, DeidentifyFileRequest{Value: "v", ConfigurationId: "c"}, DeidentifyFileOptions{}},
 		{errOutputDirectoryNeedPoll, base64Request, DeidentifyFileOptions{OutputDirectory: "out"}},
 		{invalidWait, base64Request, waitTime(301 * time.Second)},
-		// A set zero is out of range, as in the Java SDK; only a nil field takes the default.
+		// A set zero is out of range; only a nil field takes the default.
 		{invalidWait, base64Request, waitTime(0)},
 		{invalidWait, base64Request, waitTime(500 * time.Millisecond)},
 		{invalidWait, base64Request, waitTime(-time.Second)},
@@ -423,7 +423,7 @@ func TestReidentifyStringSendsVaultIdAndRedactionLevels(t *testing.T) {
 		t.Fatalf("body = %v", body)
 	}
 
-	// Rules are sent as given, as in the other SDKs: partial or empty rules are not rejected.
+	// Rules are sent as given: partial or empty rules are not rejected.
 	for _, levels := range [][]RedactionRule{
 		{FlowRedactionLevel{RedactionPattern: "p"}},
 		{FlowRedactionLevel{}},
@@ -435,7 +435,7 @@ func TestReidentifyStringSendsVaultIdAndRedactionLevels(t *testing.T) {
 		}
 	}
 
-	// Nil rules, including nil pointers to the rule types, are skipped as in the other SDKs.
+	// Nil rules, including nil pointers to the rule types, are skipped.
 	var nilFlow *FlowRedactionLevel
 	var nilSky *SkyRedactionLevel
 	f.responses[pathReidentifyString] = []string{`{"processedText":"x"}`}
@@ -536,7 +536,7 @@ func TestCheckGuardrails(t *testing.T) {
 	if _, sent := f.last().body["checkToxicity"]; sent {
 		t.Fatal("an unset checkToxicity should be omitted")
 	}
-	// DenyTopics are sent as given, as in the other SDKs.
+	// DenyTopics are sent as given.
 	f.responses[pathGuardrails] = []string{`{"validation":"PASSED"}`}
 	if _, err := c.CheckGuardrails(context.Background(), CheckGuardrailsRequest{Text: "hi", DenyTopics: []string{" "}}, CheckGuardrailsOptions{}); err != nil {
 		t.Fatalf("blank deny topic: err = %v", err)
@@ -633,7 +633,7 @@ func TestFileObjectIsSentInFullWhateverItsOffset(t *testing.T) {
 	}
 }
 
-// As in the other SDKs, a status this SDK does not know is UNKNOWN, which ends polling, and
+// A status this SDK does not know is UNKNOWN, which ends polling, and
 // the run ID is trimmed before the lookup.
 func TestUnknownRunStatusIsTerminal(t *testing.T) {
 	f := newFakeDetect(t)
@@ -658,8 +658,8 @@ func TestUnknownRunStatusIsTerminal(t *testing.T) {
 	}
 }
 
-// As in the other SDKs, an output type or file extension this SDK doesn't know is empty.
-// A file extension is matched case-insensitively, as Java does.
+// An output type or file extension this SDK doesn't know is empty. A file extension is
+// matched case-insensitively.
 func TestUnknownOutputTypeAndExtensionAreEmpty(t *testing.T) {
 	f := newFakeDetect(t)
 	f.responses[pathRuns+"run-4"] = []string{`{"status":"SUCCESS","outputType":"SOMETHING","output":[{"processedFileExtension":"PDF"},{"processedFileExtension":"xyz"}]}`}
@@ -704,7 +704,7 @@ func TestUnknownOutputTypeAndExtensionAreEmpty(t *testing.T) {
 }
 
 // Every metric is optional in the API: a count the server leaves out is nil, unlike a
-// count of zero, as in the Java SDK.
+// count of zero.
 func TestMissingMetricsAreNil(t *testing.T) {
 	f := newFakeDetect(t)
 	f.responses[pathDeidentifyString] = []string{`{"processedText":"x","metrics":{"wordCount":0}}`}
@@ -728,7 +728,7 @@ func TestPollOptionsDefaultsApplyOnlyToNilFields(t *testing.T) {
 	}
 }
 
-// FileDataFormat values are upper case, as in the Java SDK, while the API's wire
+// FileDataFormat values are upper case, while the API's wire
 // values are lower case: a request's DataFormat is sent lower case whatever its case, and a
 // response's ProcessedFileExtension comes back as the upper-case constant.
 func TestFileDataFormatIsUpperCaseAndWireIsLowerCase(t *testing.T) {
@@ -772,7 +772,7 @@ func TestFileDataFormatIsUpperCaseAndWireIsLowerCase(t *testing.T) {
 		}
 	})
 
-	// As in the Java and Python SDKs, an output extension re-identification doesn't work with
+	// An output extension re-identification doesn't work with
 	// (here pdf) maps to an empty format, and a null output is skipped.
 	t.Run("reidentify maps an unsupported output extension to empty", func(t *testing.T) {
 		f := newFakeDetect(t)

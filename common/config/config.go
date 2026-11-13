@@ -9,8 +9,7 @@ package config
 
 import "time"
 
-// Env is the Skyflow environment a vault runs in. The zero value is PROD, matching
-// the Java SDK's default.
+// Env is the Skyflow environment a vault runs in. The zero value is PROD, the default.
 type Env int
 
 const (

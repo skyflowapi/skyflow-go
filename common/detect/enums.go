@@ -197,7 +197,7 @@ var (
 	}
 )
 
-// FileDataFormat is a file format. The values are upper case, as in the Java SDK;
+// FileDataFormat is a file format. The values are upper case;
 // the API's wire values are lower case, and the SDK converts in both directions (see
 // wireFormat). A request's DataFormat is matched without regard to case.
 type FileDataFormat string
@@ -229,7 +229,7 @@ const (
 )
 
 // ReidentifyFileDataFormat is the format of a file to re-identify, and of its output: the
-// formats re-identification works with, as in the Java and Python SDKs.
+// formats re-identification works with.
 type ReidentifyFileDataFormat string
 
 const (

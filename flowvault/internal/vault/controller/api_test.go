@@ -146,10 +146,10 @@ var _ = Describe("VaultController API calls", func() {
 		Expect(resp.Records[0].RequestId).To(Equal("req-123"))
 	})
 
-	// Java's response filling, for a non-2xx response that still lists records: the status
+	// Response filling for a non-2xx response that still lists records: the status
 	// comes from the record (any of its spellings) or the call, the error from "error",
 	// "message" or "Unknown error", every record gets the request ID, and data is dropped.
-	It("fills in failed records from a non-2xx response as Java does", func() {
+	It("fills in failed records from a non-2xx response", func() {
 		fake.respond("/v2/records/insert", http.StatusBadRequest, `{"records":[
 			{"skyflowID":"id1","tableName":"users","http_code":409,"error":"duplicate","data":{"a":1}},
 			{"statusCode":"422","message":"bad column"},
@@ -180,9 +180,9 @@ var _ = Describe("VaultController API calls", func() {
 		Expect(detok.Records[0].Error).To(Equal("Unknown error"))
 	})
 
-	// Java's response filling on a 2xx response: a record's missing httpCode (0) is 500 when
+	// Response filling on a 2xx response: a record's missing httpCode (0) is 500 when
 	// the record has an error and 200 when it doesn't.
-	It("fills in a missing record httpCode on a 2xx response as Java does", func() {
+	It("fills in a missing record httpCode on a 2xx response", func() {
 		fake.respond("/v2/records/delete", http.StatusOK, `{"records":[{"skyflowID":"id1"},{"skyflowID":"id2","error":"not found"},{"skyflowID":"id3","httpCode":207}]}`)
 		resp, err := v.Delete(ctx, fvcommon.DeleteRequest{TableName: "t", SkyflowIds: []string{"id1", "id2", "id3"}}, fvcommon.DeleteOptions{})
 		Expect(err).To(BeNil())
@@ -411,7 +411,7 @@ var _ = Describe("VaultController API calls", func() {
 		Expect(fake.puts["/signed/b"]).To(Equal(fake.puts["/signed/a"]))
 	})
 
-	It("fails an uploadFiles call with an error status even when the body has records, as in Java", func() {
+	It("fails an uploadFiles call with an error status even when the body has records", func() {
 		request := fvcommon.UploadFilesRequest{Records: []fvcommon.UploadFilesRequestRecord{
 			{TableName: "docs", Columns: []fvcommon.UploadFilesRequestColumn{{Column: "a", Base64: "cGRm", FileName: "a.pdf"}}},
 			{TableName: "docs", Columns: []fvcommon.UploadFilesRequestColumn{{Column: "a", Base64: "cGRm", FileName: "a.pdf"}}},
@@ -443,7 +443,7 @@ var _ = Describe("VaultController API calls", func() {
 		Expect(err.GetMessage()).To(ContainSubstring("not a list"))
 	})
 
-	It("doesn't retry uploadFiles on a 5xx, as in Java, but retries other calls and 429", func() {
+	It("doesn't retry uploadFiles on a 5xx, but retries other calls and 429", func() {
 		retries := 2
 		v.SetConfig(fvcommon.VaultConfig{VaultId: "vault1", BaseVaultUrl: fake.server.URL, MaxRetries: &retries, InitialRetryDelay: time.Millisecond}, false)
 		fake.respond("/v2/files/upload", http.StatusInternalServerError, `{"error":{"message":"boom"}}`)
@@ -493,7 +493,7 @@ var _ = Describe("VaultController API calls", func() {
 		Expect(fake.headers["/v2/query"].Get("x-request-id")).To(Equal("mine"))
 	})
 
-	It("reports a network failure with HTTP code 0 and no status, as in Java", func() {
+	It("reports a network failure with HTTP code 0 and no status", func() {
 		fake.server.Close()
 		_, err := v.Query(ctx, fvcommon.QueryRequest{Query: "SELECT 1"}, fvcommon.QueryOptions{})
 		Expect(err).ToNot(BeNil())
@@ -540,7 +540,7 @@ var _ = Describe("VaultController API calls", func() {
 		Expect(resp.Records[2].Error).To(Equal(fvconsts.UNKNOWN_RECORD_ERROR))
 	})
 
-	It("treats a blank 2xx body as an empty response, as in Java", func() {
+	It("treats a blank 2xx body as an empty response", func() {
 		fake.respond("/v2/query", http.StatusOK, "")
 		resp, err := v.Query(ctx, fvcommon.QueryRequest{Query: "SELECT 1"}, fvcommon.QueryOptions{})
 		Expect(err).To(BeNil())
@@ -574,8 +574,8 @@ var _ = Describe("VaultController API calls", func() {
 			Interceptor: func(rc *fvcommon.RequestContext) { panic(errors.New("no tenant")) },
 		})
 		Expect(err).ToNot(BeNil())
-		// As in the Java SDK, there is no HTTP code ("0", empty status) and the message is the
-		// interceptor's own when it has one.
+		// There is no HTTP code ("0", empty status) and the message is the interceptor's own
+		// when it has one.
 		Expect(err.GetHttpCode()).To(Equal(string(fverrors.TRANSPORT_ERROR)))
 		Expect(err.GetHttpStatusCode()).To(BeEmpty())
 		Expect(err.GetMessage()).To(ContainSubstring("no tenant"))

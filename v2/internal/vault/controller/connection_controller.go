@@ -67,7 +67,7 @@ func setConnectionCredentials(config *common.ConnectionConfig, builderCreds *com
 		if builderCreds != nil && !isCredentialsEmpty(*builderCreds) {
 			creds = *builderCreds
 		} else if envCreds := vaultclient.EnvCredentials(); envCreds != "" {
-			// SKYFLOW_CREDENTIALS from the environment, else from ./.env (as in Java and Python).
+			// SKYFLOW_CREDENTIALS from the environment, else from ./.env.
 			creds.CredentialsString = envCreds
 		} else {
 			return nil, errors.NewSkyflowError(errors.ErrorCodesEnum(errors.INVALID_INPUT_CODE), errors.EMPTY_CREDENTIALS)

@@ -38,7 +38,7 @@ var _ = Describe("SetupRequest", func() {
 		})
 		Expect(err).To(BeNil())
 		Expect(operation).To(Equal("QUERY"))
-		// A single, unbatched call, as the Java and Python SDKs report it.
+		// A single, unbatched call.
 		Expect([]int{batchIndex, totalBatches}).To(Equal([]int{fvcommon.NotBatched, fvcommon.NotBatched}))
 		Expect(fvcommon.NotBatched).To(Equal(-1))
 		Expect(setup.AuthToken).To(Equal(testApiKey))

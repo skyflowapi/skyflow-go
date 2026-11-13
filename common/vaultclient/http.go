@@ -100,8 +100,7 @@ func (b *Base) newCallClient(resolved ResolvedHttpConfig) *http.Client {
 	}
 }
 
-// SignedURLClient returns the client for uploads straight to signed URLs, as the Java and
-// Python SDKs do: it shares api's connections and per-attempt connect, read and write
+// SignedURLClient returns the client for uploads straight to signed URLs: it shares api's connections and per-attempt connect, read and write
 // timeouts, but makes a single attempt and has no overall timeout, because a large file can
 // take longer than one API call's timeout while still uploading. The caller's context can
 // cancel an upload at any time.
@@ -233,7 +232,7 @@ type noServerErrorRetryKey struct{}
 
 // WithoutServerErrorRetry returns a context whose requests are retried on 408 and 429 but
 // not on a 5xx, for a call that isn't safe to repeat once the server may have acted on it.
-// For example, the Java SDK doesn't retry FlowVault's uploadFiles on a 5xx: it creates a
+// For example, FlowVault's uploadFiles isn't retried on a 5xx: it creates a
 // record for every entry without a SkyflowId, so a retry could create duplicates. 408 and
 // 429 mean the request was not processed, so those are still retried.
 func WithoutServerErrorRetry(ctx context.Context) context.Context {

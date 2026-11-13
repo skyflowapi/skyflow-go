@@ -26,7 +26,7 @@ const (
 	logBearerTokenCancelled         = "The context ended before a bearer token was available."
 	logInterceptorFailed            = "Request interceptor threw an exception. The request was not sent."
 
-	// The 401 retry; the same lines as the Java SDK.
+	// The 401 retry.
 	logUnauthorizedRegenerating       = "Bearer token rejected with 401 and is past expiry; regenerating once and resending the request."
 	logUnauthorizedReusing            = "Bearer token rejected with 401; reusing the token another request already regenerated."
 	logUnauthorizedNotDue             = "Bearer token rejected with 401 but is not near expiry; not retrying."

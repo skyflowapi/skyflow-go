@@ -3,14 +3,15 @@ package helpers
 import (
 	"time"
 
+	cfg "github.com/skyflowapi/skyflow-go/common/config"
 	"github.com/skyflowapi/skyflow-go/common/vaultclient"
 	constants "github.com/skyflowapi/skyflow-go/v2/internal/constants"
+	common "github.com/skyflowapi/skyflow-go/v2/utils/common"
 )
 
 // profile describes v2 to the shared per-vault request plumbing used by the Detect
-// operations. The HTTP defaults match the Java and Python SkyVault SDKs' Detect clients: a
-// 60s overall timeout, 2 retries and no per-attempt connect, read or write limit, unless the
-// vault config sets them.
+// operations. The HTTP defaults are a 60s overall timeout, 2 retries and no per-attempt
+// connect, read or write limit. A SkyVault vault config can't change them.
 var profile = vaultclient.Profile{
 	SDKPrefix:   constants.SDK_PREFIX,
 	LogPrefix:   constants.SDK_LOG_PREFIX,
@@ -27,3 +28,17 @@ var profile = vaultclient.Profile{
 
 // Profile returns v2's settings for the shared common/vaultclient plumbing.
 func Profile() vaultclient.Profile { return profile }
+
+// CommonVaultConfig is v2's vault config as the shared common/config type, which the shared
+// validator and common/vaultclient take. Its timeout and retry fields stay unset, so the
+// profile's defaults apply.
+func CommonVaultConfig(c common.VaultConfig) cfg.VaultConfig {
+	return cfg.VaultConfig{
+		VaultId:      c.VaultId,
+		ClusterId:    c.ClusterId,
+		BaseVaultUrl: c.BaseVaultUrl,
+		BaseVaultURL: c.BaseVaultURL,
+		Env:          c.Env,
+		Credentials:  c.Credentials,
+	}
+}

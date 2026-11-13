@@ -88,7 +88,7 @@ var _ = Describe("Skyflow Error", func() {
 			Expect(len(skyflowError.GetResponseBody())).To(Equal(0))
 		})
 
-		// Matches the Java and Python SDKs: errors the SDK creates always report Bad Request.
+		// Errors the SDK creates always report Bad Request.
 		It("should report Bad Request for a SERVER error", func() {
 			serverError := NewSkyflowError(SERVER, "Server error")
 			Expect(serverError.GetHttpCode()).To(Equal("500"))
@@ -803,7 +803,7 @@ var _ = Describe("error options", func() {
 		Expect(err.Error()).To(Equal("Message: bad input"))
 	})
 
-	It("returns the raw message with RawMessage, as the Java and Python SDKs do", func() {
+	It("returns the raw message with RawMessage", func() {
 		err := NewSkyflowError(INVALID_INPUT_CODE, "bad input", RawMessage())
 		Expect(err.GetMessage()).To(Equal("bad input"))
 		Expect(err.Error()).To(Equal("bad input"))
@@ -815,6 +815,23 @@ var _ = Describe("error options", func() {
 		Expect(errors.Is(withCause, cause)).To(BeTrue())
 		same := NewSkyflowErrorWithCause(TRANSPORT_ERROR, "same", errors.New("same"), RawMessage())
 		Expect(same.Error()).To(Equal("same"))
+	})
+
+	It("gives only validation errors empty details with EmptyValidationDetails", func() {
+		Expect(NewSkyflowError(INVALID_INPUT_CODE, "bad input").GetDetails()).To(BeNil())
+
+		validation := NewSkyflowError(INVALID_INPUT_CODE, "bad input", EmptyValidationDetails())
+		Expect(validation.GetDetails()).NotTo(BeNil())
+		Expect(validation.GetDetails()).To(BeEmpty())
+
+		withCause := NewSkyflowErrorWithCause(TRANSPORT_ERROR, "write failed", errors.New("not a directory"), EmptyValidationDetails())
+		Expect(withCause.GetDetails()).To(BeNil())
+
+		noDetails := SkyflowErrorApi(errors.New(`400: {"error":{"message":"m","http_code":400}}`), http.Header{}, EmptyValidationDetails())
+		Expect(noDetails.GetDetails()).To(BeNil())
+		withDetails := SkyflowErrorApi(errors.New(`400: {"error":{"message":"m","http_code":400,"details":[{"k":"v"}]}}`), http.Header{}, EmptyValidationDetails())
+		Expect(withDetails.GetDetails()).To(HaveLen(1))
+		Expect(SkyflowErrorApi(errors.New("no separator"), http.Header{}, EmptyValidationDetails()).GetDetails()).To(BeNil())
 	})
 
 	It("applies the options to an API error, including one whose body isn't JSON", func() {
