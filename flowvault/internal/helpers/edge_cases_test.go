@@ -14,7 +14,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	sa "github.com/skyflowapi/skyflow-go/common/serviceaccount"
 	fvconsts "github.com/skyflowapi/skyflow-go/flowvault/internal/constants"
 	fvcommon "github.com/skyflowapi/skyflow-go/flowvault/utils/common"
 )
@@ -57,7 +56,7 @@ var _ = Describe("URL, metadata and shared services", func() {
 			err := ConfigValidator().ValidateUpdateVaultConfig(fvcommon.VaultConfig{VaultId: "v", VaultUrl: url})
 			Expect(err.GetMessage()).To(Equal(fvconsts.SDK_PREFIX + " Initialization failed. Vault URL must start with 'https://'."))
 		}
-		_, err := Auth().GenerateBearerToken("", sa.BearerTokenOptions{})
+		_, err := Auth().GenerateBearerToken("", fvcommon.BearerTokenOptions{})
 		Expect(err.GetMessage()).To(HavePrefix(fvconsts.SDK_PREFIX))
 	})
 

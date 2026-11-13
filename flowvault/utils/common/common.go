@@ -2,7 +2,6 @@ package common
 
 import (
 	cfg "github.com/skyflowapi/skyflow-go/common/config"
-	"github.com/skyflowapi/skyflow-go/common/logger"
 	sa "github.com/skyflowapi/skyflow-go/common/serviceaccount"
 )
 
@@ -35,18 +34,10 @@ const (
 
 type (
 	TokenResponse            = sa.TokenResponse
+	BearerTokenOptions       = sa.BearerTokenOptions
 	SignedDataTokensOptions  = sa.SignedDataTokensOptions
 	SignedDataTokensResponse = sa.SignedDataTokensResponse
 )
-
-// BearerTokenOptions customise bearer token generation.
-type BearerTokenOptions struct {
-	// Ctx is the context to embed in the token: a string, or a map for a context object.
-	Ctx interface{}
-	// RoleIds scopes the token to these roles.
-	RoleIds  []string
-	LogLevel logger.LogLevel
-}
 
 // IsCredentialsEmpty reports whether no credential source is set.
 func IsCredentialsEmpty(c Credentials) bool { return cfg.IsCredentialsEmpty(c) }

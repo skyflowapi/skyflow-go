@@ -17,7 +17,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	fvcommon "github.com/skyflowapi/skyflow-go/flowvault/utils/common"
-	fvlogger "github.com/skyflowapi/skyflow-go/flowvault/utils/logger"
 )
 
 func TestServiceAccount(t *testing.T) {
@@ -94,16 +93,5 @@ var _ = Describe("Service account", func() {
 		Expect(IsExpired("not-a-jwt")).To(BeTrue())
 		Expect(IsExpired(jwtWithExp(time.Now().Add(-time.Minute)))).To(BeTrue())
 		Expect(IsExpired(jwtWithExp(time.Now().Add(time.Hour)))).To(BeFalse())
-	})
-})
-
-var _ = Describe("sharedBearerTokenOptions", func() {
-	It("carries every option to the shared type", func() {
-		ctx := map[string]interface{}{"user": "u1"}
-		shared := sharedBearerTokenOptions(fvcommon.BearerTokenOptions{Ctx: ctx, RoleIds: []string{"r1", "r2"}, LogLevel: fvlogger.DEBUG})
-		Expect(shared.Ctx).To(Equal(ctx))
-		Expect(shared.RoleIds).To(Equal([]string{"r1", "r2"}))
-		Expect(shared.LogLevel).To(Equal(fvlogger.DEBUG))
-		Expect(shared.RoleIDs).To(BeNil()) //nolint:staticcheck // FlowVault never sets the deprecated field
 	})
 })
