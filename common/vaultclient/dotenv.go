@@ -8,6 +8,9 @@ import (
 // dotenvFile is read for SKYFLOW_CREDENTIALS when the environment does not set it.
 const dotenvFile = ".env"
 
+// commentMarker starts a comment line, or a comment after a value.
+const commentMarker = "#"
+
 // newline is the line separator parseDotenv splits on and joins multi-line values with.
 const newline = "\n"
 
@@ -45,7 +48,7 @@ func parseDotenv(content string) map[string]string {
 	lines := strings.Split(strings.ReplaceAll(content, "\r\n", newline), newline)
 	for i := 0; i < len(lines); i++ {
 		line := strings.TrimSpace(lines[i])
-		if line == "" || strings.HasPrefix(line, "#") {
+		if line == "" || strings.HasPrefix(line, commentMarker) {
 			continue
 		}
 		if rest, ok := strings.CutPrefix(line, "export"); ok && rest != "" && (rest[0] == ' ' || rest[0] == '\t') {
@@ -58,7 +61,7 @@ func parseDotenv(content string) map[string]string {
 		}
 		value = strings.TrimSpace(value)
 		if value == "" || (value[0] != '"' && value[0] != '\'') {
-			if comment := strings.Index(value, " #"); comment >= 0 {
+			if comment := strings.Index(value, " "+commentMarker); comment >= 0 {
 				value = strings.TrimSpace(value[:comment])
 			}
 			values[key] = value
@@ -96,7 +99,7 @@ func closingQuote(value string, quote byte) int {
 			continue
 		}
 		rest, _, _ := strings.Cut(value[i+1:], newline)
-		if rest = strings.TrimSpace(rest); rest == "" || strings.HasPrefix(rest, "#") {
+		if rest = strings.TrimSpace(rest); rest == "" || strings.HasPrefix(rest, commentMarker) {
 			return i
 		}
 	}
