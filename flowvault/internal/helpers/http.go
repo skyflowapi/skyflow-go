@@ -1,216 +1,36 @@
 package helpers
 
 import (
-	"context"
-	"io"
-	"math/rand"
-	"net"
 	"net/http"
-	"strings"
-	"sync"
 	"time"
 
+	"github.com/skyflowapi/skyflow-go/common/vaultclient"
 	fvconsts "github.com/skyflowapi/skyflow-go/flowvault/internal/constants"
 	fvcommon "github.com/skyflowapi/skyflow-go/flowvault/utils/common"
 )
 
 // ResolvedHttpConfig is the effective timeout and retry policy for a call.
-type ResolvedHttpConfig struct {
-	Timeout           time.Duration
-	MaxRetries        int
-	InitialRetryDelay time.Duration
-	MaxRetryDelay     time.Duration
-	ConnectTimeout    time.Duration
-	ReadTimeout       time.Duration
-	WriteTimeout      time.Duration
+type ResolvedHttpConfig = vaultclient.ResolvedHttpConfig
+
+// httpDefaults apply when neither the vault nor the client sets a value.
+var httpDefaults = vaultclient.HttpDefaults{
+	Timeout:           fvconsts.DEFAULT_TIMEOUT_SECONDS * time.Second,
+	ConnectTimeout:    fvconsts.DEFAULT_CONNECT_TIMEOUT_SECONDS * time.Second,
+	ReadTimeout:       fvconsts.DEFAULT_READ_TIMEOUT_SECONDS * time.Second,
+	WriteTimeout:      fvconsts.DEFAULT_WRITE_TIMEOUT_SECONDS * time.Second,
+	MaxRetries:        fvconsts.DEFAULT_MAX_RETRIES,
+	InitialRetryDelay: fvconsts.DEFAULT_INITIAL_RETRY_DELAY_MILLIS * time.Millisecond,
+	MaxRetryDelay:     fvconsts.DEFAULT_MAX_RETRY_DELAY_MILLIS * time.Millisecond,
 }
 
 // ResolveHttpConfig picks each setting from the vault config, then the client config,
 // then the SDK default.
 func ResolveHttpConfig(vault, client fvcommon.HttpConfig) ResolvedHttpConfig {
-	resolved := ResolvedHttpConfig{
-		Timeout:           firstDuration(vault.Timeout, client.Timeout, fvconsts.DEFAULT_TIMEOUT_SECONDS*time.Second),
-		MaxRetries:        fvconsts.DEFAULT_MAX_RETRIES,
-		InitialRetryDelay: firstDuration(vault.InitialRetryDelay, client.InitialRetryDelay, fvconsts.DEFAULT_INITIAL_RETRY_DELAY_MILLIS*time.Millisecond),
-		MaxRetryDelay:     firstDuration(vault.MaxRetryDelay, client.MaxRetryDelay, fvconsts.DEFAULT_MAX_RETRY_DELAY_MILLIS*time.Millisecond),
-		ConnectTimeout:    firstDuration(vault.ConnectTimeout, client.ConnectTimeout, fvconsts.DEFAULT_CONNECT_TIMEOUT_SECONDS*time.Second),
-		ReadTimeout:       firstDuration(vault.ReadTimeout, client.ReadTimeout, fvconsts.DEFAULT_READ_TIMEOUT_SECONDS*time.Second),
-		WriteTimeout:      firstDuration(vault.WriteTimeout, client.WriteTimeout, fvconsts.DEFAULT_WRITE_TIMEOUT_SECONDS*time.Second),
-	}
-	if vault.MaxRetries != nil {
-		resolved.MaxRetries = *vault.MaxRetries
-	} else if client.MaxRetries != nil {
-		resolved.MaxRetries = *client.MaxRetries
-	}
-	return resolved
-}
-
-func firstDuration(values ...time.Duration) time.Duration {
-	for _, value := range values {
-		if value > 0 {
-			return value
-		}
-	}
-	return 0
+	return vaultclient.ResolveHttpConfig(vault, client, httpDefaults)
 }
 
 // NewHTTPClient builds the client used for API calls. Timeout covers the whole call,
-// including retries; ConnectTimeout, ReadTimeout and WriteTimeout bound each attempt.
+// including retries.
 func NewHTTPClient(config ResolvedHttpConfig) *http.Client {
-	return &http.Client{
-		Timeout: config.Timeout,
-		Transport: &retryTransport{
-			base:   transportFor(config),
-			config: config,
-		},
-	}
-}
-
-// UploadHTTPClient returns the client that PUTs files to signed URLs. Like the Java and
-// Python SDKs, it doesn't retry and has no overall timeout, because a large file can take
-// longer than one API call's timeout while still uploading. The vault's ConnectTimeout,
-// ReadTimeout and WriteTimeout still apply, so a stalled connection fails, and the caller's
-// context can cancel an upload at any time.
-func UploadHTTPClient(config ResolvedHttpConfig) *http.Client {
-	return &http.Client{Transport: transportFor(config)}
-}
-
-// transportKey identifies the transports that can share a connection pool.
-type transportKey struct {
-	connect, read, write time.Duration
-}
-
-var (
-	transportsMu sync.Mutex
-	transports   = map[transportKey]*http.Transport{}
-)
-
-// transportFor returns the shared transport for config's per-attempt timeouts, creating it
-// the first time, so calls with the same settings reuse one connection pool:
-//   - ConnectTimeout bounds dialing and the TLS handshake (connectTimeout);
-//   - ReadTimeout bounds the wait for the response once the request is sent (readTimeout);
-//   - WriteTimeout bounds each write of the request to the connection (writeTimeout).
-func transportFor(config ResolvedHttpConfig) *http.Transport {
-	key := transportKey{connect: config.ConnectTimeout, read: config.ReadTimeout, write: config.WriteTimeout}
-	transportsMu.Lock()
-	defer transportsMu.Unlock()
-	if transport, ok := transports[key]; ok {
-		return transport
-	}
-	transport := http.DefaultTransport.(*http.Transport).Clone()
-	dialer := &net.Dialer{Timeout: key.connect, KeepAlive: fvconsts.KEEP_ALIVE_SECONDS * time.Second}
-	transport.DialContext = func(ctx context.Context, network, address string) (net.Conn, error) {
-		conn, err := dialer.DialContext(ctx, network, address)
-		if err != nil || key.write <= 0 {
-			return conn, err
-		}
-		return &writeDeadlineConn{Conn: conn, timeout: key.write}, nil
-	}
-	transport.TLSHandshakeTimeout = key.connect
-	transport.ResponseHeaderTimeout = key.read
-	transports[key] = transport
-	return transport
-}
-
-// writeDeadlineConn fails a write that makes no progress for timeout. The deadline is set
-// per write and cleared after it, so it never limits reads or an idle pooled connection.
-type writeDeadlineConn struct {
-	net.Conn
-	timeout time.Duration
-}
-
-func (c *writeDeadlineConn) Write(p []byte) (int, error) {
-	if err := c.SetWriteDeadline(time.Now().Add(c.timeout)); err != nil {
-		return 0, err
-	}
-	n, err := c.Conn.Write(p)
-	_ = c.SetWriteDeadline(time.Time{})
-	return n, err
-}
-
-// retryTransport retries 408, 429 and 5xx responses with exponential backoff and jitter.
-// The uploadFiles request is not retried on a 5xx (see ShouldRetryRequest).
-type retryTransport struct {
-	base   http.RoundTripper
-	config ResolvedHttpConfig
-	sleep  func(time.Duration) // overridden in tests
-}
-
-func (t *retryTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	resp, err := t.base.RoundTrip(req)
-	for retry := 0; err == nil && ShouldRetryRequest(req, resp.StatusCode) && retry < t.config.MaxRetries; retry++ {
-		if req.Body != nil && req.GetBody == nil {
-			break
-		}
-		retryReq := req.Clone(req.Context())
-		if req.GetBody != nil {
-			body, bodyErr := req.GetBody()
-			if bodyErr != nil {
-				break
-			}
-			retryReq.Body = body
-		}
-		_, _ = io.Copy(io.Discard, resp.Body)
-		_ = resp.Body.Close()
-		if waitErr := t.wait(req, backoff(retry+1, t.config.InitialRetryDelay, t.config.MaxRetryDelay)); waitErr != nil {
-			return nil, waitErr
-		}
-		resp, err = t.base.RoundTrip(retryReq)
-	}
-	return resp, err
-}
-
-func (t *retryTransport) wait(req *http.Request, delay time.Duration) error {
-	if t.sleep != nil {
-		t.sleep(delay)
-		return nil
-	}
-	timer := time.NewTimer(delay)
-	defer timer.Stop()
-	select {
-	case <-req.Context().Done():
-		return req.Context().Err()
-	case <-timer.C:
-		return nil
-	}
-}
-
-// ShouldRetry reports whether a response with this status is retried: 408, 429 and 5xx.
-func ShouldRetry(status int) bool {
-	return status == http.StatusRequestTimeout || status == http.StatusTooManyRequests || status >= http.StatusInternalServerError
-}
-
-// ShouldRetryRequest is ShouldRetry, except that the uploadFiles signed-URL request is not
-// retried on a 5xx, as in the Java SDK: it creates a record for every entry without a
-// SkyflowId, so the vault may already have created them before failing and a retry would
-// create duplicates. 408 and 429 mean the request was not processed, so those are still
-// retried.
-func ShouldRetryRequest(req *http.Request, status int) bool {
-	if status >= http.StatusInternalServerError && notReplayableOnServerError(req) {
-		return false
-	}
-	return ShouldRetry(status)
-}
-
-func notReplayableOnServerError(req *http.Request) bool {
-	if req == nil || req.URL == nil {
-		return false
-	}
-	return strings.HasSuffix(req.URL.Path, fvconsts.UPLOAD_FILES_PATH)
-}
-
-// backoff doubles the delay per attempt up to max, then applies +/-20% jitter.
-func backoff(attempt int, initial, max time.Duration) time.Duration {
-	delay := initial
-	for step := 1; step < attempt && delay < max; step++ {
-		delay *= 2
-	}
-	if delay > max {
-		delay = max
-	}
-	jitter := time.Duration(float64(delay) * fvconsts.RETRY_JITTER_FACTOR)
-	if jitter <= 0 {
-		return delay
-	}
-	return delay - jitter + time.Duration(rand.Int63n(int64(2*jitter)+1)) //nolint:gosec // jitter, not security
+	return vaultclient.NewHTTPClient(config)
 }

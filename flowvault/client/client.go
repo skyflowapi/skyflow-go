@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"slices"
 	"sync"
 
 	fvhelpers "github.com/skyflowapi/skyflow-go/flowvault/internal/helpers"
@@ -18,10 +19,12 @@ import (
 type Skyflow struct {
 	mu            sync.RWMutex
 	vaultServices map[string]*VaultService
-	vaultOrder    []string // vault IDs in the order they were added; the first is the default
-	credentials   *fvcommon.Credentials
-	logLevel      fvlogger.LogLevel
-	httpConfig    fvcommon.HttpConfig
+	// vaultOrder holds the registered vault IDs in the order they were added; Vault() with
+	// no ID returns the first.
+	vaultOrder  []string
+	credentials *fvcommon.Credentials
+	logLevel    fvlogger.LogLevel
+	httpConfig  fvcommon.HttpConfig
 }
 
 type Option func(*Skyflow) *fverrors.SkyflowError
@@ -152,17 +155,32 @@ func copyValue(value interface{}) interface{} {
 	return value
 }
 
-// Vault returns the vault service registered under vaultId. An empty vaultId means the
-// default vault, the first one added, as vault() with no ID in the Java and Python SDKs.
-func (s *Skyflow) Vault(vaultId string) (*VaultService, *fverrors.SkyflowError) {
+// Vault returns the vault service registered under vaultId. With no vaultId, or an empty
+// one, it returns the default vault, the first one added; only the first vaultId is used.
+func (s *Skyflow) Vault(vaultId ...string) (*VaultService, *fverrors.SkyflowError) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	svc, ok := s.lookup(vaultId)
+	id := ""
+	if len(vaultId) > 0 {
+		id = vaultId[0]
+	}
+	svc, ok := s.lookup(id)
 	if !ok {
-		fvlogger.Error(fmt.Sprintf(logs.VAULT_CONFIG_DOES_NOT_EXIST, vaultIdForLog(vaultId)))
+		fvlogger.Error(fmt.Sprintf(logs.VAULT_CONFIG_DOES_NOT_EXIST, vaultIdForLog(id)))
 		return nil, fverrors.NewSkyflowError(fverrors.INVALID_INPUT_CODE, fverrors.VAULT_ID_NOT_IN_CONFIG_LIST)
 	}
 	return svc, nil
+}
+
+// Detect returns the Detect service of the vault registered under vaultId, or of the
+// default vault when vaultId is omitted or empty. It uses the same vault config,
+// credentials and bearer token as Vault(vaultId).
+func (s *Skyflow) Detect(vaultId ...string) (*DetectService, *fverrors.SkyflowError) {
+	svc, err := s.Vault(vaultId...)
+	if err != nil {
+		return nil, err
+	}
+	return svc.detect, nil
 }
 
 // lookup finds the vault registered under vaultId, or the default vault when vaultId is
@@ -243,16 +261,26 @@ func (s *Skyflow) UpdateVaultConfig(updatedConfig fvcommon.VaultConfig) *fverror
 		config.ClusterId = updatedConfig.ClusterId
 	}
 	// A URL set through either field replaces both, so the deprecated BaseVaultURL is
-	// honored and an older BaseVaultUrl can't take precedence over it (as in v2).
-	if updatedConfig.BaseVaultUrl != "" || updatedConfig.BaseVaultURL != "" {
+	// honored and an older BaseVaultUrl can't take precedence over it (as in v2). A cluster
+	// ID without a URL clears both too: a stored URL would take precedence over it.
+	if updatedConfig.BaseVaultUrl != "" || updatedConfig.BaseVaultURL != "" || updatedConfig.ClusterId != "" {
 		config.BaseVaultUrl = updatedConfig.BaseVaultUrl
 		config.BaseVaultURL = updatedConfig.BaseVaultURL
 	}
-	// As in Java, Env is always applied: it defaults to PROD, so an update that omits it
+	// Env is always applied: it defaults to PROD, so an update that omits it
 	// moves the vault to PROD.
 	config.Env = updatedConfig.Env
 	if updatedConfig.Timeout != 0 {
 		config.Timeout = updatedConfig.Timeout
+	}
+	if updatedConfig.ConnectTimeout != 0 {
+		config.ConnectTimeout = updatedConfig.ConnectTimeout
+	}
+	if updatedConfig.ReadTimeout != 0 {
+		config.ReadTimeout = updatedConfig.ReadTimeout
+	}
+	if updatedConfig.WriteTimeout != 0 {
+		config.WriteTimeout = updatedConfig.WriteTimeout
 	}
 	if updatedConfig.MaxRetries != nil {
 		retries := *updatedConfig.MaxRetries
@@ -263,15 +291,6 @@ func (s *Skyflow) UpdateVaultConfig(updatedConfig fvcommon.VaultConfig) *fverror
 	}
 	if updatedConfig.MaxRetryDelay != 0 {
 		config.MaxRetryDelay = updatedConfig.MaxRetryDelay
-	}
-	if updatedConfig.ConnectTimeout != 0 {
-		config.ConnectTimeout = updatedConfig.ConnectTimeout
-	}
-	if updatedConfig.ReadTimeout != 0 {
-		config.ReadTimeout = updatedConfig.ReadTimeout
-	}
-	if updatedConfig.WriteTimeout != 0 {
-		config.WriteTimeout = updatedConfig.WriteTimeout
 	}
 	svc.controller.SetConfig(config, credentialsChanged)
 	return nil
@@ -296,18 +315,13 @@ func (s *Skyflow) RemoveVaultConfig(vaultId string) *fverrors.SkyflowError {
 		return fverrors.NewSkyflowError(fverrors.INVALID_INPUT_CODE, fverrors.VAULT_ID_NOT_IN_CONFIG_LIST)
 	}
 	delete(s.vaultServices, vaultId)
-	for i, id := range s.vaultOrder {
-		if id == vaultId {
-			s.vaultOrder = append(s.vaultOrder[:i:i], s.vaultOrder[i+1:]...)
-			break
-		}
-	}
+	s.vaultOrder = slices.DeleteFunc(s.vaultOrder, func(id string) bool { return id == vaultId })
 	return nil
 }
 
 // GetVaultConfig returns a copy of the VaultConfig registered under vaultId, or an error if
-// it is not found. An empty vaultId means the default vault, the first one added, as in the
-// Java and Python SDKs. Use UpdateVaultConfig to change it.
+// it is not found. An empty vaultId means the default vault, the first one added. Use
+// UpdateVaultConfig to change it.
 func (s *Skyflow) GetVaultConfig(vaultId string) (*fvcommon.VaultConfig, *fverrors.SkyflowError) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -358,9 +372,8 @@ func (s *Skyflow) GetSkyflowCredentials() *fvcommon.Credentials {
 // Logging
 // ---------------------------------------------------------------------------
 
-// SetLogLevel changes the log level for the client, as setLogLevel / set_log_level do in the
-// Java and Python SDKs. The level is process-wide: it is shared by every client of the v2 and
-// flowvault SDKs.
+// SetLogLevel changes the log level for the client. The level is process-wide: it is shared by
+// every client of the v2 and flowvault SDKs.
 func (s *Skyflow) SetLogLevel(logLevel fvlogger.LogLevel) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -379,7 +392,7 @@ func (s *Skyflow) GetLogLevel() fvlogger.LogLevel {
 
 // UpdateLogLevel changes the log level for the client.
 //
-// Deprecated: Use SetLogLevel instead, as in the Java and Python SDKs.
+// Deprecated: Use SetLogLevel instead.
 func (s *Skyflow) UpdateLogLevel(logLevel fvlogger.LogLevel) {
 	s.SetLogLevel(logLevel)
 }

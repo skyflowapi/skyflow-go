@@ -10,23 +10,27 @@ const (
 	SANDBOX_DOMAIN         = ".skyvault.skyflowapis-preview.com"
 	PROD_DOMAIN            = ".skyvault.skyflowapis.com"
 	SDK_NAME               = "Skyflow FlowVault Go SDK "
-	SDK_VERSION            = "1.0.0" // flowvault module version without the "v", as Java and Python report it; bump with each flowvault/vX.Y.Z tag
+	SDK_VERSION            = "1.0.0" // flowvault module version without the "v"; bump with each flowvault/vX.Y.Z tag
 	METRICS_SDK_NAME       = "skyflow-flowvault-go"
 	SDK_PREFIX             = SDK_NAME + SDK_VERSION
-	SDK_LOG_PREFIX         = "[" + SDK_PREFIX + "] " // as the Java and Python SDKs format it
+	SDK_LOG_PREFIX         = "[" + SDK_PREFIX + "] " // e.g. "[Skyflow FlowVault Go SDK 1.0.0] "
 
-	// sky-metadata header keys, the same in the v2, Java and Python SDKs.
+	// sky-metadata header keys, the same in every Skyflow SDK.
 	SDK_METADATA_KEY_NAME_VERSION    = "sdk_name_version"
 	SDK_METADATA_KEY_DEVICE_MODEL    = "sdk_client_device_model"
 	SDK_METADATA_KEY_OS_DETAILS      = "sdk_client_os_details"
 	SDK_METADATA_KEY_RUNTIME_DETAILS = "sdk_runtime_details"
 
 	// Error response keys
-	ERROR_KEY_ERROR     = "error"
-	ERROR_KEY_HTTP_CODE = "http_code"
-	ERROR_KEY_MESSAGE   = "message"
-	ERROR_KEY_RECORDS   = "records"
-	ERROR_KEY_RESPONSE  = "response" // the records key of a detokenize body
+	ERROR_KEY_ERROR       = "error"
+	ERROR_KEY_HTTP_CODE   = "http_code"
+	ERROR_KEY_MESSAGE     = "message"
+	ERROR_KEY_GRPC_CODE   = "grpc_code"
+	ERROR_KEY_HTTP_STATUS = "http_status"
+	ERROR_KEY_DETAILS     = "details"
+	ERROR_KEY_FROM_CLIENT = "from_client"
+	ERROR_KEY_RECORDS     = "records"  // records-shaped error body: {"records":[{"error":"..."}]}
+	ERROR_KEY_RESPONSE    = "response" // the records key of a detokenize body
 
 	// RECORD_ERRORS_SEPARATOR joins the distinct record errors of a failed uploadFiles call.
 	RECORD_ERRORS_SEPARATOR = "; "
@@ -49,14 +53,14 @@ const (
 	UNKNOWN_RECORD_ERROR = "Unknown error"
 )
 
-// Per-column and per-record upload errors, matching the Java SDK.
+// Per-column and per-record upload errors.
 const (
 	NO_SIGNED_URL_ERROR            = "No signed URL was returned for this column; file was not uploaded."
 	UPLOAD_COLUMNS_FAILED_ERROR    = "%d of %d files were not uploaded. See each column for details."
 	UPLOAD_RESPONSE_MISMATCH_ERROR = "Upload response did not match the request; file was not uploaded."
 )
 
-// Method names used in logs and error messages, and operation names passed to interceptors.
+// Method names used in logs and error messages, and operation names used in header validation errors.
 const (
 	METHOD_INSERT       = "Insert"
 	METHOD_UPDATE       = "Update"
@@ -87,28 +91,20 @@ const (
 // HTTP defaults, used when neither the vault nor the client sets a value.
 const (
 	DEFAULT_TIMEOUT_SECONDS            = 60
+	DEFAULT_CONNECT_TIMEOUT_SECONDS    = 10 // per attempt
+	DEFAULT_READ_TIMEOUT_SECONDS       = 10 // per attempt
+	DEFAULT_WRITE_TIMEOUT_SECONDS      = 10 // per attempt
 	DEFAULT_MAX_RETRIES                = 0
 	DEFAULT_INITIAL_RETRY_DELAY_MILLIS = 500
 	DEFAULT_MAX_RETRY_DELAY_MILLIS     = 2000
 	RETRY_JITTER_FACTOR                = 0.2
-
-	// UPLOAD_FILES_PATH is not retried on a 5xx: the vault may already have created the
-	// records before failing, so a retry would create duplicates (as in the Java SDK).
-	UPLOAD_FILES_PATH = "/v2/files/upload"
-
-	// Per-attempt bounds, as the Java and Python SDKs' connectTimeout, readTimeout and
-	// writeTimeout (10s each by default). They apply to API calls and signed-URL uploads.
-	DEFAULT_CONNECT_TIMEOUT_SECONDS = 10
-	DEFAULT_READ_TIMEOUT_SECONDS    = 10
-	DEFAULT_WRITE_TIMEOUT_SECONDS   = 10
-	KEEP_ALIVE_SECONDS              = 30
 )
 
 // DEFAULT_UPLOAD_CONTENT_TYPE is the Content-Type of an uploaded file whose type isn't known.
 const DEFAULT_UPLOAD_CONTENT_TYPE = "application/octet-stream"
 
 // UploadContentTypes maps a lowercase file extension to the Content-Type of an uploaded file.
-// It is the Java SDK's list, so a file gets the same type in both SDKs and on every OS (Go's
+// It is the SDK's own list, so a file gets the same type on every OS (Go's
 // mime table depends on the system's). Other extensions fall back to Go's table, then to
 // DEFAULT_UPLOAD_CONTENT_TYPE.
 var UploadContentTypes = map[string]string{

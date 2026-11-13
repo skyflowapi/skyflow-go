@@ -10,9 +10,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
-	"sync/atomic"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -32,7 +29,7 @@ var _ = Describe("URL, metadata and shared services", func() {
 		Entry("prod", fvcommon.PROD, "https://cluster.skyvault.skyflowapis.com"),
 	)
 
-	It("describes the SDK and runtime in the metadata header, with the v2, Java and Python keys", func() {
+	It("describes the SDK and runtime in the metadata header, with the shared Skyflow SDK keys", func() {
 		var metadata map[string]string
 		Expect(json.Unmarshal([]byte(CreateSDKMetadata()), &metadata)).To(Succeed())
 		Expect(metadata).To(HaveLen(4))
@@ -45,9 +42,10 @@ var _ = Describe("URL, metadata and shared services", func() {
 	It("shares one authenticator and one config validator", func() {
 		Expect(Auth()).ToNot(BeNil())
 		Expect(Auth()).To(BeIdenticalTo(Auth()))
+		Expect(Profile().Auth).To(BeIdenticalTo(Auth())) // the vault plumbing reuses the authenticator
 		Expect(Auth().IsExpired("")).To(BeTrue())
 
-		// The Java SDK's messages, raw (no "Message: " prefix), like every flowvault error.
+		// The messages are raw (no "Message: " prefix), like every flowvault error.
 		Expect(ConfigValidator().ValidateUpdateVaultConfig(fvcommon.VaultConfig{}).GetMessage()).
 			To(Equal(fvconsts.SDK_PREFIX + " Initialization failed. Invalid vault ID. Vault ID must not be empty."))
 		Expect(ConfigValidator().ValidateUpdateVaultConfig(fvcommon.VaultConfig{VaultId: "v"})).To(BeNil())
@@ -71,94 +69,12 @@ var _ = Describe("URL, metadata and shared services", func() {
 	})
 })
 
-var _ = Describe("Retries for requests that aren't safe to replay", func() {
-	It("doesn't retry uploadFiles on a 5xx, but does on 408 and 429, and retries other calls", func() {
-		upload, _ := http.NewRequest(http.MethodPost, "https://v.example.com/v2/files/upload", nil)
-		remove, _ := http.NewRequest(http.MethodPost, "https://v.example.com/v2/files/delete", nil)
-		other, _ := http.NewRequest(http.MethodPost, "https://v.example.com/v2/records/getTokens", nil)
-		Expect(ShouldRetryRequest(upload, http.StatusInternalServerError)).To(BeFalse())
-		Expect(ShouldRetryRequest(upload, http.StatusServiceUnavailable)).To(BeFalse())
-		Expect(ShouldRetryRequest(upload, http.StatusTooManyRequests)).To(BeTrue())
-		Expect(ShouldRetryRequest(upload, http.StatusRequestTimeout)).To(BeTrue())
-		Expect(ShouldRetryRequest(remove, http.StatusServiceUnavailable)).To(BeTrue())
-		Expect(ShouldRetryRequest(other, http.StatusServiceUnavailable)).To(BeTrue())
-		Expect(ShouldRetryRequest(nil, http.StatusServiceUnavailable)).To(BeTrue())
-		Expect(ShouldRetryRequest(&http.Request{}, http.StatusServiceUnavailable)).To(BeTrue())
-	})
-})
-
-var _ = Describe("HTTP config and retries, edge cases", func() {
-	It("falls back to the client's retries and returns zero when no duration is set", func() {
+// The retry transport itself is tested in common/vaultclient.
+var _ = Describe("HTTP config, edge cases", func() {
+	It("falls back to the client's retries", func() {
 		clientRetries := 4
 		resolved := ResolveHttpConfig(fvcommon.HttpConfig{}, fvcommon.HttpConfig{MaxRetries: &clientRetries})
 		Expect(resolved.MaxRetries).To(Equal(4))
-		Expect(firstDuration()).To(BeZero())
-		Expect(firstDuration(0, -time.Second)).To(BeZero())
-	})
-
-	It("caps the delay at max and skips jitter when it rounds to zero", func() {
-		delay := backoff(1, 10*time.Second, time.Second)
-		Expect(delay).To(BeNumerically(">=", 800*time.Millisecond))
-		Expect(delay).To(BeNumerically("<=", 1200*time.Millisecond))
-		Expect(backoff(3, 0, 0)).To(BeZero())
-		Expect(backoff(1, time.Nanosecond, time.Nanosecond)).To(Equal(time.Nanosecond))
-	})
-
-	newRetryServer := func(calls *int32) *httptest.Server {
-		return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			atomic.AddInt32(calls, 1)
-			_, _ = io.Copy(io.Discard, r.Body)
-			w.WriteHeader(http.StatusServiceUnavailable)
-		}))
-	}
-
-	It("doesn't retry a body it can't send again", func() {
-		var calls int32
-		server := newRetryServer(&calls)
-		defer server.Close()
-		transport := &retryTransport{base: http.DefaultTransport, config: ResolvedHttpConfig{MaxRetries: 3}, sleep: func(time.Duration) {}}
-
-		// A body that isn't a bytes/strings reader gets no GetBody.
-		req, _ := http.NewRequest(http.MethodPost, server.URL, io.NopCloser(strings.NewReader("payload")))
-		Expect(req.GetBody).To(BeNil())
-		resp, err := transport.RoundTrip(req)
-		Expect(err).To(BeNil())
-		_ = resp.Body.Close()
-		Expect(resp.StatusCode).To(Equal(http.StatusServiceUnavailable))
-		Expect(atomic.LoadInt32(&calls)).To(Equal(int32(1)))
-
-		// GetBody that fails stops the retries too.
-		req, _ = http.NewRequest(http.MethodPost, server.URL, strings.NewReader("payload"))
-		req.GetBody = func() (io.ReadCloser, error) { return nil, errors.New("no body") }
-		resp, err = transport.RoundTrip(req)
-		Expect(err).To(BeNil())
-		_ = resp.Body.Close()
-		Expect(atomic.LoadInt32(&calls)).To(Equal(int32(2)))
-	})
-
-	It("waits with a real timer and stops waiting when the request is cancelled", func() {
-		var calls int32
-		server := newRetryServer(&calls)
-		defer server.Close()
-
-		transport := &retryTransport{base: http.DefaultTransport, config: ResolvedHttpConfig{MaxRetries: 1, InitialRetryDelay: time.Millisecond, MaxRetryDelay: time.Millisecond}}
-		req, _ := http.NewRequest(http.MethodGet, server.URL, nil)
-		resp, err := transport.RoundTrip(req)
-		Expect(err).To(BeNil())
-		_ = resp.Body.Close()
-		Expect(atomic.LoadInt32(&calls)).To(Equal(int32(2)))
-
-		ctx, cancel := context.WithCancel(context.Background())
-		transport.config = ResolvedHttpConfig{MaxRetries: 1, InitialRetryDelay: time.Hour, MaxRetryDelay: time.Hour}
-		req, _ = http.NewRequestWithContext(ctx, http.MethodGet, server.URL, nil)
-		done := make(chan error, 1)
-		go func() {
-			_, err := transport.RoundTrip(req)
-			done <- err
-		}()
-		Eventually(func() int32 { return atomic.LoadInt32(&calls) }).Should(Equal(int32(3)))
-		cancel()
-		Eventually(done).Should(Receive(MatchError(context.Canceled)))
 	})
 })
 
@@ -224,7 +140,7 @@ var _ = Describe("Parsing, edge cases", func() {
 
 	})
 
-	It("keeps a column whose token list is empty, as the Java and Python SDKs do", func() {
+	It("keeps a column whose token list is empty", func() {
 		tokens := ParseTokens(map[string]interface{}{"email": []interface{}{}, "ssn": []interface{}{nil}, "gone": nil})
 		Expect(tokens).To(HaveLen(2))
 		Expect(tokens).To(HaveKeyWithValue("email", []fvcommon.Token{}))

@@ -9,8 +9,7 @@ const (
 	EMPTY_VAULT_ID                  string = internal.SDK_PREFIX + " Initialization failed. Invalid vault ID. Vault ID must not be empty."
 )
 
-// Request validation messages, worded as in the Java SDK (flowvault ErrorMessage and common
-// BaseErrorMessage). Messages containing %s / %d are formatted with fmt.Sprintf.
+// Request validation messages. Messages containing %s / %d are formatted with fmt.Sprintf.
 const (
 	// Insert / update
 	EMPTY_RECORDS              string = internal.SDK_PREFIX + " Validation error. 'records' can't be empty. Specify records."
@@ -23,6 +22,12 @@ const (
 	EMPTY_DATA                 string = internal.SDK_PREFIX + " Validation error. 'data' can't be empty. Specify data."
 	EMPTY_KEY_IN_DATA          string = internal.SDK_PREFIX + " Validation error. Invalid key in data in records. Specify a valid key."
 	MISSING_SKYFLOW_ID         string = internal.SDK_PREFIX + " Validation error. 'skyflowId' can't be empty in the record. Specify a valid skyflow ID."
+	// A data value can't be nil or blank, and Tokens, when set, can't be
+	// empty or hold a blank column name or value.
+	EMPTY_VALUE_IN_DATA   string = internal.SDK_PREFIX + " Validation error. Invalid value in values. Specify a valid value."
+	EMPTY_RECORD_TOKENS   string = internal.SDK_PREFIX + " Validation error. The 'tokens' field is empty. Specify tokens for one or more fields."
+	EMPTY_KEY_IN_TOKENS   string = internal.SDK_PREFIX + " Validation error. Invalid key tokens. Specify a valid key."
+	EMPTY_VALUE_IN_TOKENS string = internal.SDK_PREFIX + " Validation error. Invalid value in tokens. Specify a valid value."
 
 	// Get / delete
 	GET_MODE_CONFLICT                     string = internal.SDK_PREFIX + " Validation error. Both single-table lookup fields ('table', 'ids', 'fields', 'uniqueValues', 'columnRedactions') and 'records' can't be specified. Either specify single-table fields or 'records'."
@@ -73,8 +78,7 @@ const (
 	EMPTY_DELETE_FILES_SKYFLOW_ID  string = internal.SDK_PREFIX + " Validation error. 'skyflowId' in DeleteFilesRequestRecord is empty. Specify a valid skyflow ID, or use 'uniqueValues' instead."
 	DELETE_FILES_TARGET            string = internal.SDK_PREFIX + " Validation error. DeleteFilesRequestRecord must set exactly one of 'skyflowId' or 'uniqueValues'. Specify one of them."
 
-	// Credentials, as in the Java SDK (BaseErrorMessage). The type names in INVALID_CONTEXT_TYPE
-	// are Go's.
+	// Credentials. The type names in INVALID_CONTEXT_TYPE are Go's.
 	EMPTY_CREDENTIAL_FILE_PATH string = internal.SDK_PREFIX + " Initialization failed. Invalid credentials. Credentials file path must not be empty."
 	EMPTY_CREDENTIALS_STRING   string = internal.SDK_PREFIX + " Initialization failed. Invalid credentials. Credentials string must not be empty."
 	EMPTY_TOKEN_CREDENTIAL     string = internal.SDK_PREFIX + " Initialization failed. Invalid credentials. Token must not be empty."
@@ -92,6 +96,5 @@ const (
 	MULTIPLE_VAULT_CONFIGS       string = internal.SDK_PREFIX + " Validation error. Multiple vault configurations found. Specify a vaultId."
 	INVALID_HEADER_KEY           string = internal.SDK_PREFIX + " Validation error. %s: header key %q is not supported. Use x-skyflow-account-id, x-skyflow-account-name or x-request-id."
 	EMPTY_HEADER_VALUE           string = internal.SDK_PREFIX + " Validation error. %s: header %q must have a value."
-	REQUEST_INTERCEPTOR_FAILED   string = internal.SDK_PREFIX + " Request interceptor threw an exception. The request was not sent."
-	UNPARSEABLE_SUCCESS_RESPONSE string = internal.SDK_PREFIX + " The vault returned a response that isn't valid JSON. Response body: %s"
+	UNPARSEABLE_SUCCESS_RESPONSE string = internal.SDK_PREFIX + " The vault returned a response that isn't valid JSON."
 )

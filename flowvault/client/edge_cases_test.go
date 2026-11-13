@@ -31,7 +31,7 @@ var _ = Describe("Skyflow client, edge cases", func() {
 		Expect(*client.GetLoglevel()).To(Equal(fvlogger.WARN))
 	})
 
-	It("sets and returns the log level with SetLogLevel and GetLogLevel, as in Java and Python", func() {
+	It("sets and returns the log level with SetLogLevel and GetLogLevel", func() {
 		DeferCleanup(fvlogger.SetLogLevel, fvlogger.ERROR)
 		var logs bytes.Buffer
 		fvlogger.SetOutput(&logs)
@@ -44,7 +44,7 @@ var _ = Describe("Skyflow client, edge cases", func() {
 		Expect(*client.GetLoglevel()).To(Equal(fvlogger.DEBUG))
 	})
 
-	It("uses the first vault added as the default vault, as vault() does in Java and Python", func() {
+	It("uses the first vault added as the default vault", func() {
 		client := newTestClient(WithVaults(fvcommon.VaultConfig{VaultId: "second", ClusterId: "c2"}))
 		Expect(client.AddVaultConfig(fvcommon.VaultConfig{VaultId: "third", ClusterId: "c3"})).To(BeNil())
 		first, err := client.Vault(testVaultID)
@@ -131,9 +131,9 @@ var _ = Describe("Skyflow client, edge cases", func() {
 			BaseVaultUrl:      "https://vault.example.com",
 			InitialRetryDelay: 100 * time.Millisecond,
 			MaxRetryDelay:     time.Second,
-			ConnectTimeout:    2 * time.Second,
-			ReadTimeout:       3 * time.Second,
-			WriteTimeout:      4 * time.Second,
+			ConnectTimeout:    3 * time.Second,
+			ReadTimeout:       4 * time.Second,
+			WriteTimeout:      5 * time.Second,
 		})).To(BeNil())
 		roles[0] = "changed"
 
@@ -144,8 +144,9 @@ var _ = Describe("Skyflow client, edge cases", func() {
 		Expect(config.BaseVaultUrl).To(Equal("https://vault.example.com"))
 		Expect(config.InitialRetryDelay).To(Equal(100 * time.Millisecond))
 		Expect(config.MaxRetryDelay).To(Equal(time.Second))
-		Expect([]time.Duration{config.ConnectTimeout, config.ReadTimeout, config.WriteTimeout}).
-			To(Equal([]time.Duration{2 * time.Second, 3 * time.Second, 4 * time.Second}))
+		Expect(config.ConnectTimeout).To(Equal(3 * time.Second))
+		Expect(config.ReadTimeout).To(Equal(4 * time.Second))
+		Expect(config.WriteTimeout).To(Equal(5 * time.Second))
 		Expect(config.ClusterId).To(Equal("cluster"))
 	})
 

@@ -20,5 +20,5 @@ type UpdateResponse struct {
 }
 
 type UpdateOptions struct {
-	Interceptor Interceptor
+	CustomHeaders map[CustomHeaderKey]string
 }

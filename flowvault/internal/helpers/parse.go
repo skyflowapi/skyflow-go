@@ -12,7 +12,7 @@ import (
 const statusKey = "status"
 
 // ParseTokens accepts a column value that is a token string, a token object or a list of either.
-// As in the Java and Python SDKs, a column whose value is null is left out, while one whose list
+// A column whose value is null is left out, while one whose list
 // is empty is kept with an empty (non-nil) list.
 func ParseTokens(raw map[string]interface{}) map[string][]fvcommon.Token {
 	if raw == nil {

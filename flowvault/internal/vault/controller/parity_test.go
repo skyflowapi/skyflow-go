@@ -12,8 +12,8 @@ import (
 	fverrors "github.com/skyflowapi/skyflow-go/flowvault/utils/error"
 )
 
-// Behaviour aligned with the released Java (flowvault/v1.4.0) and Python (flowvault/v1.1.0) SDKs.
-var _ = Describe("VaultController, Java and Python parity", func() {
+// Behaviour of failed calls, update types and API errors.
+var _ = Describe("VaultController, record and error handling", func() {
 	var (
 		fake *fakeFlowService
 		v    *VaultController
@@ -93,7 +93,7 @@ var _ = Describe("VaultController, Java and Python parity", func() {
 			Expect(records[3].Error).To(Equal(fvconsts.UNKNOWN_RECORD_ERROR))
 		}
 
-		It("reports every record of a failed insert, update or get as failed, as the Java SDK does", func() {
+		It("reports every record of a failed insert, update or get as failed", func() {
 			fake.respond("/v2/records/insert", http.StatusBadRequest, failedRecords)
 			inserted, err := v.Insert(ctx, fvcommon.InsertRequest{TableName: "t", Records: []fvcommon.InsertRequestRecord{
 				{Data: map[string]interface{}{"email": "x"}},
@@ -137,7 +137,7 @@ var _ = Describe("VaultController, Java and Python parity", func() {
 		})
 	})
 
-	It("sends UpdateType in upper case, whatever case it was given in, as the Java SDK does", func() {
+	It("sends UpdateType in upper case, whatever case it was given in", func() {
 		_, err := v.Insert(ctx, fvcommon.InsertRequest{TableName: "t",
 			Upsert:  &fvcommon.UpsertOptions{UniqueColumns: []string{"email"}, UpdateType: "replace"},
 			Records: []fvcommon.InsertRequestRecord{{Data: map[string]interface{}{"email": "a"}}},
@@ -160,7 +160,7 @@ var _ = Describe("VaultController, Java and Python parity", func() {
 		Expect(err.GetMessage()).To(ContainSubstring("bad query"))
 	})
 
-	It("returns API errors as the Java SDK does: raw message, int codes and the server's own body", func() {
+	It("returns API errors with the raw message, int codes and the server's own body", func() {
 		fake.respond("/v2/query", http.StatusForbidden, `{"error":{"http_code":403,"grpc_code":7,"http_status":"Forbidden","message":"denied"},"trace":"t-1"}`)
 		_, err := v.Query(ctx, fvcommon.QueryRequest{Query: "SELECT 1"}, fvcommon.QueryOptions{})
 		Expect(err.GetMessage()).To(Equal("denied"))

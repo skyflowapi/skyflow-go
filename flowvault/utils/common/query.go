@@ -22,5 +22,5 @@ type QueryResponse struct {
 }
 
 type QueryOptions struct {
-	Interceptor Interceptor
+	CustomHeaders map[CustomHeaderKey]string
 }

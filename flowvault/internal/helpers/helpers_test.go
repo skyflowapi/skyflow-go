@@ -4,13 +4,12 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	"github.com/skyflowapi/skyflow-go/common/vaultclient"
 	"io"
-	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -44,51 +43,22 @@ var _ = Describe("HTTP config", func() {
 		)
 		Expect(resolved).To(Equal(ResolvedHttpConfig{
 			Timeout:           5 * time.Second,
-			MaxRetries:        2,
-			InitialRetryDelay: 500 * time.Millisecond,
-			MaxRetryDelay:     time.Second,
 			ConnectTimeout:    10 * time.Second,
 			ReadTimeout:       10 * time.Second,
 			WriteTimeout:      10 * time.Second,
+			MaxRetries:        2,
+			InitialRetryDelay: 500 * time.Millisecond,
+			MaxRetryDelay:     time.Second,
 		}))
 
 		defaults := ResolveHttpConfig(fvcommon.HttpConfig{}, fvcommon.HttpConfig{})
 		Expect(defaults.Timeout).To(Equal(60 * time.Second))
+		// Per-attempt timeouts default to 10s.
+		Expect(defaults.ConnectTimeout).To(Equal(10 * time.Second))
+		Expect(defaults.ReadTimeout).To(Equal(10 * time.Second))
+		Expect(defaults.WriteTimeout).To(Equal(10 * time.Second))
 		Expect(defaults.MaxRetries).To(Equal(0))
 		Expect(defaults.MaxRetryDelay).To(Equal(2000 * time.Millisecond))
-	})
-
-	It("keeps backoff within the jittered bounds", func() {
-		for attempt := 1; attempt <= 5; attempt++ {
-			delay := backoff(attempt, 500*time.Millisecond, 2*time.Second)
-			Expect(delay).To(BeNumerically("<=", 2400*time.Millisecond))
-			Expect(delay).To(BeNumerically(">=", 400*time.Millisecond))
-		}
-	})
-
-	It("retries retryable statuses up to MaxRetries and resends the body", func() {
-		var calls int32
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			body, _ := io.ReadAll(r.Body)
-			Expect(string(body)).To(Equal("payload"))
-			if atomic.AddInt32(&calls, 1) < 3 {
-				w.WriteHeader(http.StatusServiceUnavailable)
-				return
-			}
-			w.WriteHeader(http.StatusOK)
-		}))
-		defer server.Close()
-
-		transport := &retryTransport{
-			base:   http.DefaultTransport,
-			config: ResolvedHttpConfig{MaxRetries: 3, InitialRetryDelay: time.Millisecond, MaxRetryDelay: time.Millisecond},
-			sleep:  func(time.Duration) {},
-		}
-		req, _ := http.NewRequest(http.MethodPost, server.URL, strings.NewReader("payload"))
-		resp, err := transport.RoundTrip(req)
-		Expect(err).To(BeNil())
-		Expect(resp.StatusCode).To(Equal(http.StatusOK))
-		Expect(atomic.LoadInt32(&calls)).To(Equal(int32(3)))
 	})
 
 	It("does not retry when retries are off", func() {
@@ -106,7 +76,7 @@ var _ = Describe("HTTP config", func() {
 })
 
 var _ = Describe("Files", func() {
-	It("picks the upload Content-Type as the Java SDK does", func() {
+	It("picks the upload Content-Type from the SDK's own list, then Go's", func() {
 		Expect(UploadContentType("Report.DOCX")).To(Equal("application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
 		Expect(UploadContentType("page.html")).To(Equal("text/html"))
 		Expect(UploadContentType("site.css")).To(HavePrefix("text/css"))
@@ -140,7 +110,7 @@ var _ = Describe("Files", func() {
 	})
 
 	It("rejects an unreadable path, a directory, a closed file and invalid base64", func() {
-		// The messages are the Java SDK's; the reason is kept as the error's cause.
+		// The reason is kept as the error's cause.
 		_, err := ResolveFile(fvcommon.UploadFilesRequestColumn{Column: "c", FilePath: "/does/not/exist"})
 		Expect(err.GetMessage()).To(ContainSubstring(fverrors.INVALID_FILE_PATH))
 		Expect(errors.Is(err, os.ErrNotExist)).To(BeTrue())
@@ -153,7 +123,7 @@ var _ = Describe("Files", func() {
 		Expect(err.GetMessage()).To(ContainSubstring(fverrors.INVALID_FILE_OBJECT))
 		_, err = ResolveFile(fvcommon.UploadFilesRequestColumn{Column: "c", Base64: "%%%", FileName: "a.txt"})
 		Expect(err.GetMessage()).To(ContainSubstring(fverrors.INVALID_BASE64))
-		// Strict base64, as in the Java and Python SDKs: Go's decoder would skip line breaks.
+		// Strict base64: Go's decoder would skip line breaks.
 		for _, content := range []string{"cGRm\ncGRm", "cGRm\r\n", "cGRm cGRm"} {
 			_, err = ResolveFile(fvcommon.UploadFilesRequestColumn{Column: "c", Base64: content, FileName: "a.txt"})
 			Expect(err).ToNot(BeNil(), content)
@@ -226,8 +196,8 @@ var _ = Describe("Files", func() {
 		Expect(length).To(Equal(int64(14)))
 		Expect(body).To(Equal("header:content"))
 
-		// A FileObject is uploaded whole, from its start, whatever its offset (as in the Java
-		// and Python SDKs), and its offset is left where it was.
+		// A FileObject is uploaded whole, from its start, whatever its offset, and its
+		// offset is left where it was.
 		handle, _ := os.Open(path)
 		defer handle.Close()
 		_, _ = handle.Seek(7, io.SeekStart)
@@ -251,96 +221,13 @@ var _ = Describe("Files", func() {
 		Expect(length).To(Equal(int64(0)))
 	})
 
-	It("uploads with no retries and no overall timeout, but the per-attempt timeouts", func() {
-		defaults := ResolveHttpConfig(fvcommon.HttpConfig{}, fvcommon.HttpConfig{})
-		Expect(defaults.ConnectTimeout).To(Equal(10 * time.Second))
-		Expect(defaults.ReadTimeout).To(Equal(10 * time.Second))
-		Expect(defaults.WriteTimeout).To(Equal(10 * time.Second))
-		client := UploadHTTPClient(defaults)
+	It("uploads with the vault's per-attempt timeouts, but no retries and no overall timeout", func() {
+		api := NewHTTPClient(ResolveHttpConfig(fvcommon.HttpConfig{ReadTimeout: 7 * time.Second}, fvcommon.HttpConfig{}))
+		client := vaultclient.SignedURLClient(api)
 		Expect(client.Timeout).To(BeZero())
 		transport, ok := client.Transport.(*http.Transport)
-		Expect(ok).To(BeTrue())
-		Expect(transport.TLSHandshakeTimeout).To(Equal(10 * time.Second))
-		Expect(transport.ResponseHeaderTimeout).To(Equal(10 * time.Second))
-		// Calls with the same timeouts share one connection pool, API calls included.
-		Expect(UploadHTTPClient(defaults).Transport).To(BeIdenticalTo(transport))
-		Expect(NewHTTPClient(defaults).Transport.(*retryTransport).base).To(BeIdenticalTo(transport))
-	})
-
-	It("takes the per-attempt timeouts from the vault, then the client, then the default", func() {
-		resolved := ResolveHttpConfig(
-			fvcommon.HttpConfig{ConnectTimeout: time.Second},
-			fvcommon.HttpConfig{ConnectTimeout: 2 * time.Second, ReadTimeout: 3 * time.Second, WriteTimeout: 4 * time.Second},
-		)
-		Expect(resolved.ConnectTimeout).To(Equal(time.Second))
-		Expect(resolved.ReadTimeout).To(Equal(3 * time.Second))
-		Expect(resolved.WriteTimeout).To(Equal(4 * time.Second))
-		transport := transportFor(resolved)
-		Expect(transport.TLSHandshakeTimeout).To(Equal(time.Second))
-		Expect(transport.ResponseHeaderTimeout).To(Equal(3 * time.Second))
-		Expect(transport).ToNot(BeIdenticalTo(transportFor(ResolveHttpConfig(fvcommon.HttpConfig{}, fvcommon.HttpConfig{}))))
-	})
-
-	It("fails an attempt whose response doesn't start within ReadTimeout", func() {
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			time.Sleep(300 * time.Millisecond)
-			w.WriteHeader(http.StatusOK)
-		}))
-		defer server.Close()
-		client := NewHTTPClient(ResolvedHttpConfig{Timeout: 5 * time.Second, ConnectTimeout: time.Second, ReadTimeout: 50 * time.Millisecond, WriteTimeout: time.Second})
-		resp, err := client.Get(server.URL)
-		if resp != nil {
-			_ = resp.Body.Close()
-		}
-		Expect(err).To(MatchError(ContainSubstring("timeout awaiting response headers")))
-	})
-
-	It("fails a write that makes no progress within WriteTimeout", func() {
-		listener, err := net.Listen("tcp", "127.0.0.1:0")
-		Expect(err).To(BeNil())
-		defer listener.Close()
-		go func() {
-			// Accept but never read, so the client's writes stall once the buffers fill.
-			conn, acceptErr := listener.Accept()
-			if acceptErr == nil {
-				defer conn.Close()
-				time.Sleep(3 * time.Second)
-			}
-		}()
-		client := UploadHTTPClient(ResolvedHttpConfig{ConnectTimeout: time.Second, ReadTimeout: 5 * time.Second, WriteTimeout: 100 * time.Millisecond})
-		endless := io.LimitReader(zeroReader{}, 1<<34)
-		req, err := http.NewRequest(http.MethodPut, "http://"+listener.Addr().String()+"/upload", endless)
-		Expect(err).To(BeNil())
-		start := time.Now()
-		resp, err := client.Do(req)
-		if resp != nil {
-			_ = resp.Body.Close()
-		}
-		Expect(err).ToNot(BeNil())
-		var netErr net.Error
-		Expect(errors.As(err, &netErr) && netErr.Timeout()).To(BeTrue(), err.Error())
-		Expect(time.Since(start)).To(BeNumerically("<", 2*time.Second))
-	})
-
-	It("fails a write on a connection whose deadline can't be set", func() {
-		conn, peer := net.Pipe()
-		_ = peer.Close()
-		_ = conn.Close()
-		n, err := (&writeDeadlineConn{Conn: conn, timeout: time.Second}).Write([]byte("x"))
-		Expect(n).To(BeZero())
-		Expect(err).ToNot(BeNil())
-	})
-
-	It("passes a write through when WriteTimeout is not set", func() {
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			_, _ = io.Copy(io.Discard, r.Body)
-			w.WriteHeader(http.StatusOK)
-		}))
-		defer server.Close()
-		resp, err := UploadHTTPClient(ResolvedHttpConfig{}).Post(server.URL, "text/plain", strings.NewReader("hello"))
-		Expect(err).To(BeNil())
-		_ = resp.Body.Close()
-		Expect(resp.StatusCode).To(Equal(http.StatusOK))
+		Expect(ok).To(BeTrue()) // the bare transport: no retry wrapper
+		Expect(transport.ResponseHeaderTimeout).To(Equal(7 * time.Second))
 	})
 
 	It("runs exactly limit tasks at once", func() {

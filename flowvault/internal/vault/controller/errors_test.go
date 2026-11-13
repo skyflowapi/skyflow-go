@@ -162,7 +162,7 @@ var _ = Describe("VaultController error paths", func() {
 
 var _ = Describe("Response conversion", func() {
 	It("returns an empty body and header for a nil response", func() {
-		body, header, err := result[api.InsertResponse](context.Background(), nil, nil, nil)
+		body, header, err := result[api.InsertResponse](context.Background(), nil, nil, nil, "")
 		Expect(err).To(BeNil())
 		Expect(body).To(Equal(&api.InsertResponse{}))
 		Expect(header).To(Equal(http.Header{}))
@@ -171,12 +171,12 @@ var _ = Describe("Response conversion", func() {
 	It("uses an empty header when an API error has none", func() {
 		hasRecords := func(b *api.InsertResponse) bool { return len(b.Records) > 0 }
 
-		body, header, err := result[api.InsertResponse](context.Background(), nil, core.NewAPIError(http.StatusBadRequest, nil, errors.New(`{"records":[{"httpCode":400}]}`)), hasRecords)
+		body, header, err := result[api.InsertResponse](context.Background(), nil, core.NewAPIError(http.StatusBadRequest, nil, errors.New(`{"records":[{"httpCode":400}]}`)), hasRecords, "")
 		Expect(err).To(BeNil())
 		Expect(body.Records).To(HaveLen(1))
 		Expect(header).To(Equal(http.Header{}))
 
-		_, _, err = result[api.InsertResponse](context.Background(), nil, core.NewAPIError(http.StatusBadRequest, nil, errors.New(`{"records":[]}`)), hasRecords)
+		_, _, err = result[api.InsertResponse](context.Background(), nil, core.NewAPIError(http.StatusBadRequest, nil, errors.New(`{"records":[]}`)), hasRecords, "")
 		Expect(err).ToNot(BeNil())
 		Expect(err.GetHttpCode()).To(Equal("400"))
 		Expect(err.GetRequestId()).To(BeEmpty())
@@ -248,7 +248,7 @@ var _ = Describe("Response conversion", func() {
 		Expect(tokens[1].RequestId).To(Equal("req-9"))
 		Expect(tokens[2].Error).To(Equal(fvconsts.UNKNOWN_RECORD_ERROR))
 		Expect(tokens[2].HttpCode).To(Equal(404))
-		// As in the Java SDK, "message" and the http_code / statusCode spellings are read too.
+		// "message" and the http_code / statusCode spellings are read too.
 		Expect(tokens[3].Error).To(Equal("not found"))
 		Expect(tokens[3].HttpCode).To(Equal(404))
 		Expect(tokens[4].Error).To(BeEmpty())
@@ -266,7 +266,7 @@ var _ = Describe("Response conversion", func() {
 		Expect(files[0].HttpCode).To(Equal(500))
 	})
 
-	It("fills in a record's missing httpCode in a successful call, as in Java: 500 with an error, else 200", func() {
+	It("fills in a record's missing httpCode in a successful call: 500 with an error, else 200", func() {
 		header := http.Header{}
 		failed := "boom"
 		records := toRecordResults([]*api.RecordResponseObject{{}, {Error: &failed}, {HTTPCode: 207}}, header)

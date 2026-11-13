@@ -28,16 +28,16 @@ func NewRawClient(options *core.RequestOptions) *RawClient {
 	}
 }
 
-func (r *RawClient) AuthenticationServiceGetAuthToken(
+func (r *RawClient) GetBearerToken(
 	ctx context.Context,
-	request *generated.V1GetAuthTokenRequest,
+	request *generated.GetAuthTokenRequest,
 	opts ...option.RequestOption,
-) (*core.Response[*generated.V1GetAuthTokenResponse], error) {
+) (*core.Response[*generated.GetAuthTokenResponse], error) {
 	options := core.NewRequestOptions(opts...)
 	baseURL := internal.ResolveBaseURL(
 		options.BaseURL,
 		r.baseURL,
-		"https://manage.skyflowapis.com",
+		"https://%7B%7Bvault_url%7D%7D",
 	)
 	endpointURL := baseURL + "/v1/auth/sa/oauth/token"
 	headers := internal.MergeHeaders(
@@ -61,8 +61,13 @@ func (r *RawClient) AuthenticationServiceGetAuthToken(
 				APIError: apiError,
 			}
 		},
+		500: func(apiError *core.APIError) error {
+			return &generated.InternalServerError{
+				APIError: apiError,
+			}
+		},
 	}
-	var response *generated.V1GetAuthTokenResponse
+	var response *generated.GetAuthTokenResponse
 	raw, err := r.caller.Call(
 		ctx,
 		&internal.CallParams{
@@ -81,7 +86,7 @@ func (r *RawClient) AuthenticationServiceGetAuthToken(
 	if err != nil {
 		return nil, err
 	}
-	return &core.Response[*generated.V1GetAuthTokenResponse]{
+	return &core.Response[*generated.GetAuthTokenResponse]{
 		StatusCode: raw.StatusCode,
 		Header:     raw.Header,
 		Body:       response,

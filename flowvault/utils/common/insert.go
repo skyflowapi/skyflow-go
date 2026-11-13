@@ -24,8 +24,8 @@ type InsertResponseRecord struct {
 	SkyflowId string                 `json:"skyflowId"`
 	Tokens    map[string][]Token     `json:"tokens"`
 	Data      map[string]interface{} `json:"data"`
-	// HashedData is the vault's hashedData for the record, passed through as returned
-	// (as in the Java SDK): column name to that column's hashes.
+	// HashedData is the vault's hashedData for the record, passed through as returned:
+	// column name to that column's hashes.
 	HashedData map[string]interface{} `json:"hashedData"`
 	HttpCode   int                    `json:"httpCode"`
 	Error      string                 `json:"error"`
@@ -37,5 +37,5 @@ type InsertResponse struct {
 }
 
 type InsertOptions struct {
-	Interceptor Interceptor
+	CustomHeaders map[CustomHeaderKey]string
 }

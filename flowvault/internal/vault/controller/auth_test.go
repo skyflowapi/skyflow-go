@@ -142,19 +142,6 @@ var _ = Describe("GenerateToken", func() {
 })
 
 var _ = Describe("Bearer token handling", func() {
-	It("stops waiting for the token lock when the context ends", func() {
-		config := fakeVaultConfig()
-		v := NewVaultController(config, ClientSettings{})
-		v.tokenSlot() <- struct{}{} // another call is generating a token
-		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
-		defer cancel()
-		_, err := v.SetupRequest(ctx, "GET", nil)
-		Expect(err).ToNot(BeNil())
-		Expect(errors.Is(err, context.DeadlineExceeded)).To(BeTrue())
-		Expect(err.GetMessage()).To(ContainSubstring(fverrors.BEARER_TOKEN_CANCELLED))
-		Expect(err.GetHttpCode()).To(Equal(string(fverrors.REQUEST_CANCELLED)))
-		Expect(err.GetHttpStatusCode()).To(Equal("Client Closed Request"))
-	})
 
 	It("fails a call whose context already ended, every time, without generating a token", func() {
 		auth := newFakeAuthServer()
@@ -173,15 +160,6 @@ var _ = Describe("Bearer token handling", func() {
 		_, err := NewVaultController(fvcommon.VaultConfig{VaultId: "v", ClusterId: "c"}, ClientSettings{}).SetupRequest(ctx, "GET", nil)
 		Expect(err).ToNot(BeNil())
 		Expect(err.GetMessage()).To(ContainSubstring(fverrors.NIL_CONTEXT))
-	})
-
-	It("works on a BaseController not built by NewVaultController", func() {
-		auth := newFakeAuthServer()
-		b := &BaseController{config: fakeVaultConfig()}
-		setup, err := b.SetupRequest(context.Background(), "GET", nil)
-		Expect(err).To(BeNil())
-		Expect(setup.AuthToken).ToNot(BeEmpty())
-		Expect(atomic.LoadInt32(&auth.calls)).To(Equal(int32(1)))
 	})
 
 	It("stops waiting for a token being generated and still caches it", func() {
@@ -206,17 +184,6 @@ var _ = Describe("Bearer token handling", func() {
 		setup, err := v.SetupRequest(context.Background(), "GET", nil)
 		Expect(err).To(BeNil())
 		Expect(setup.AuthToken).ToNot(BeEmpty())
-		Expect(atomic.LoadInt32(&auth.calls)).To(Equal(int32(1)))
-	})
-
-	It("replaces a cached token that is about to expire", func() {
-		v := NewVaultController(fakeVaultConfig(), ClientSettings{})
-		auth := newFakeAuthServer()
-		expiring := unsignedJWT(time.Now().Add(time.Minute)) // inside the refresh margin
-		v.token = expiring
-		setup, err := v.SetupRequest(context.Background(), "GET", nil)
-		Expect(err).To(BeNil())
-		Expect(setup.AuthToken).ToNot(Equal(expiring))
 		Expect(atomic.LoadInt32(&auth.calls)).To(Equal(int32(1)))
 	})
 
@@ -281,9 +248,9 @@ var _ = Describe("SetupRequest, edge cases", func() {
 		Expect(setup.BaseURL).To(Equal("https://legacy.example.com"))
 	})
 
-	It("rejects an unsupported interceptor header before authenticating", func() {
+	It("rejects an unsupported custom header before authenticating", func() {
 		_, err := NewVaultController(fvcommon.VaultConfig{VaultId: "v", ClusterId: "c"}, ClientSettings{}).
-			SetupRequest(context.Background(), "GET", func(rc *fvcommon.RequestContext) { rc.AddHeader("x-other", "v") })
+			SetupRequest(context.Background(), "GET", map[fvcommon.CustomHeaderKey]string{"x-other": "v"})
 		Expect(err.GetMessage()).To(ContainSubstring("is not supported"))
 	})
 

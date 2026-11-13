@@ -28,7 +28,7 @@ func ValidateInsert(req fvcommon.InsertRequest) *fverrors.SkyflowError {
 	}
 	tableAtRequest := !blank(req.TableName)
 	for _, record := range req.Records {
-		if err := validateData(record.Data); err != nil {
+		if err := validateData(record.Data, record.Tokens); err != nil {
 			return err
 		}
 		tableAtRecord := !blank(record.TableName)
@@ -66,7 +66,7 @@ func validateUpsert(upsert *fvcommon.UpsertOptions) *fverrors.SkyflowError {
 	return validateUpdateType(upsert.UpdateType)
 }
 
-// validateUpdateType accepts UPDATE or REPLACE in any letter case, as the Java SDK does.
+// validateUpdateType accepts UPDATE or REPLACE in any letter case.
 func validateUpdateType(updateType fvcommon.UpdateType) *fverrors.SkyflowError {
 	switch fvcommon.UpdateType(strings.ToUpper(string(updateType))) {
 	case "", fvcommon.UpdateTypeUpdate, fvcommon.UpdateTypeReplace:
@@ -75,16 +75,44 @@ func validateUpdateType(updateType fvcommon.UpdateType) *fverrors.SkyflowError {
 	return invalid(fverrors.INVALID_UPDATE_TYPE)
 }
 
-func validateData(data map[string]interface{}) *fverrors.SkyflowError {
+// validateData checks a record's data and tokens. No column name or
+// value may be empty (nil or blank), and Tokens, when set, must not be empty.
+func validateData(data, tokens map[string]interface{}) *fverrors.SkyflowError {
 	if len(data) == 0 {
 		return invalid(fverrors.EMPTY_DATA)
 	}
-	for key := range data {
+	for key, value := range data {
 		if blank(key) {
 			return invalid(fverrors.EMPTY_KEY_IN_DATA)
 		}
+		if emptyValue(value) {
+			return invalid(fverrors.EMPTY_VALUE_IN_DATA)
+		}
+	}
+	if tokens == nil {
+		return nil
+	}
+	if len(tokens) == 0 {
+		return invalid(fverrors.EMPTY_RECORD_TOKENS)
+	}
+	for key, value := range tokens {
+		if blank(key) {
+			return invalid(fverrors.EMPTY_KEY_IN_TOKENS)
+		}
+		if emptyValue(value) {
+			return invalid(fverrors.EMPTY_VALUE_IN_TOKENS)
+		}
 	}
 	return nil
+}
+
+// emptyValue reports whether a data or token value is nil or a blank string.
+func emptyValue(value interface{}) bool {
+	if value == nil {
+		return true
+	}
+	text, isString := value.(string)
+	return isString && blank(text)
 }
 
 func ValidateUpdate(req fvcommon.UpdateRequest) *fverrors.SkyflowError {
@@ -99,7 +127,7 @@ func ValidateUpdate(req fvcommon.UpdateRequest) *fverrors.SkyflowError {
 		if blank(record.SkyflowId) {
 			return invalid(fverrors.MISSING_SKYFLOW_ID)
 		}
-		if err := validateData(record.Data); err != nil {
+		if err := validateData(record.Data, record.Tokens); err != nil {
 			return err
 		}
 		tableAtRecord := !blank(record.TableName)
@@ -117,7 +145,7 @@ func ValidateGet(req fvcommon.GetRequest) *fverrors.SkyflowError {
 	if (req.Limit != nil && *req.Limit < 0) || (req.Offset != nil && *req.Offset < 0) {
 		return invalid(fverrors.NEGATIVE_LIMIT_OFFSET)
 	}
-	// As in the Java SDK, an empty Records slice counts as unset: the request is then a
+	// An empty Records slice counts as unset: the request is then a
 	// single-table get. Limit and Offset aren't sent with Records, so setting them is refused
 	// rather than silently ignored.
 	if len(req.Records) > 0 {
@@ -142,7 +170,7 @@ func validateGetTarget(table string, ids []string, uniqueValues []map[string]int
 	if err := validateTableTarget(table, ids, uniqueValues); err != nil {
 		return err
 	}
-	// As in the Java SDK, a blank column name is refused. An empty Columns slice is the same
+	// A blank column name is refused. An empty Columns slice is the same
 	// as an unset one: every column is returned.
 	for _, column := range columns {
 		if blank(column) {
@@ -238,8 +266,8 @@ func ValidateQuery(req fvcommon.QueryRequest) *fverrors.SkyflowError {
 	return nil
 }
 
-// presentButBlank reports a value that was set but holds only whitespace. As in the Java SDK,
-// such a SkyflowId is an error rather than being taken as "not set".
+// presentButBlank reports a value that was set but holds only whitespace.
+// Such a SkyflowId is an error rather than being taken as "not set".
 func presentButBlank(value string) bool {
 	return value != "" && blank(value)
 }
@@ -327,27 +355,17 @@ func ValidateDeleteFiles(req fvcommon.DeleteFilesRequest) *fverrors.SkyflowError
 
 // ValidateCustomHeaders checks that only supported header keys are set, each with a value.
 func ValidateCustomHeaders(headers map[fvcommon.CustomHeaderKey]string, tag string) *fverrors.SkyflowError {
-	for key, value := range headers {
-		switch key {
-		case fvcommon.SkyflowAccountId, fvcommon.SkyflowAccountName, fvcommon.RequestIdHeader:
-		default:
-			return invalid(fverrors.INVALID_HEADER_KEY, tag, string(key))
-		}
-		if blank(value) {
-			return invalid(fverrors.EMPTY_HEADER_VALUE, tag, string(key))
-		}
-	}
-	return nil
+	return fvhelpers.Profile().ValidateCustomHeaders(headers, tag)
 }
 
 var (
-	// apiKeyPattern is the Java and Python SDKs' API key format.
+	// apiKeyPattern is the API key format.
 	apiKeyPattern = regexp.MustCompile(`^sky-[a-zA-Z0-9]{5}-[a-fA-F0-9]{32}$`)
-	// contextKeyPattern is the Java SDK's rule for a key in a context map.
+	// contextKeyPattern is the rule for a key in a context map.
 	contextKeyPattern = regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
 )
 
-// ValidateCredentials checks credentials as the Java SDK does, when they are added: exactly
+// ValidateCredentials checks credentials when they are added: exactly
 // one source, which must not be blank; an API key in the sky-xxxxx-<32 hex> format; roles; and
 // a Context that is a non-blank string or a non-empty map with valid keys. The checks shared
 // with the v2 SDK (one source, roles) come from the common validator; the stricter ones are

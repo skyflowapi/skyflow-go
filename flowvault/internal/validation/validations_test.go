@@ -35,6 +35,15 @@ var _ = Describe("ValidateInsert", func() {
 		Entry("no records", fvcommon.InsertRequest{TableName: "t"}, fverrors.EMPTY_RECORDS),
 		Entry("empty data", fvcommon.InsertRequest{TableName: "t", Records: []fvcommon.InsertRequestRecord{{}}}, fverrors.EMPTY_DATA),
 		Entry("empty column name", fvcommon.InsertRequest{TableName: "t", Records: []fvcommon.InsertRequestRecord{{Data: map[string]interface{}{" ": 1}}}}, fverrors.EMPTY_KEY_IN_DATA),
+		// No nil or blank value, and Tokens, when set, non-empty with
+		// non-blank names and values. Non-string values such as 0 and false are fine.
+		Entry("nil value", fvcommon.InsertRequest{TableName: "t", Records: []fvcommon.InsertRequestRecord{{Data: map[string]interface{}{"name": nil}}}}, fverrors.EMPTY_VALUE_IN_DATA),
+		Entry("blank value", fvcommon.InsertRequest{TableName: "t", Records: []fvcommon.InsertRequestRecord{{Data: map[string]interface{}{"name": "  "}}}}, fverrors.EMPTY_VALUE_IN_DATA),
+		Entry("zero and false values", fvcommon.InsertRequest{TableName: "t", Records: []fvcommon.InsertRequestRecord{{Data: map[string]interface{}{"n": 0, "b": false}}}}, ""),
+		Entry("empty tokens", fvcommon.InsertRequest{TableName: "t", Records: []fvcommon.InsertRequestRecord{{Data: data, Tokens: map[string]interface{}{}}}}, fverrors.EMPTY_RECORD_TOKENS),
+		Entry("blank token column", fvcommon.InsertRequest{TableName: "t", Records: []fvcommon.InsertRequestRecord{{Data: data, Tokens: map[string]interface{}{"": "tok"}}}}, fverrors.EMPTY_KEY_IN_TOKENS),
+		Entry("blank token value", fvcommon.InsertRequest{TableName: "t", Records: []fvcommon.InsertRequestRecord{{Data: data, Tokens: map[string]interface{}{"name": ""}}}}, fverrors.EMPTY_VALUE_IN_TOKENS),
+		Entry("valid tokens", fvcommon.InsertRequest{TableName: "t", Records: []fvcommon.InsertRequestRecord{{Data: data, Tokens: map[string]interface{}{"name": "tok"}}}}, ""),
 		Entry("table in both places", fvcommon.InsertRequest{TableName: "t", Records: []fvcommon.InsertRequestRecord{{Data: data, TableName: "t"}}}, fverrors.TABLE_IN_BOTH_PLACES),
 		Entry("table missing on a record", fvcommon.InsertRequest{Records: []fvcommon.InsertRequestRecord{{Data: data, TableName: "t"}, {Data: data}}}, fverrors.TABLE_MISSING),
 		Entry("record upsert with request table", fvcommon.InsertRequest{TableName: "t", Records: []fvcommon.InsertRequestRecord{{Data: data, Upsert: &fvcommon.UpsertOptions{UniqueColumns: []string{"a"}}}}}, fverrors.RECORD_UPSERT_NOT_ALLOWED),
@@ -113,7 +122,7 @@ var _ = Describe("Other validators", func() {
 		expectError(ValidateUploadFiles(column(fvcommon.UploadFilesRequestColumn{Column: "c", FilePath: "a", Base64: "b"})), fverrors.MULTIPLE_FILE_SOURCES)
 		expectError(ValidateUploadFiles(column(fvcommon.UploadFilesRequestColumn{Column: "c", Base64: "b"})), fverrors.BASE64_NEEDS_FILE_NAME)
 		expectError(ValidateUploadFiles(column(fvcommon.UploadFilesRequestColumn{Column: "c", Base64: "b", FileName: "a.txt"})), "")
-		// A SkyflowId that is set but blank is an error, as in the Java SDK, not a new record.
+		// A SkyflowId that is set but blank is an error, not a new record.
 		expectError(ValidateUploadFiles(fvcommon.UploadFilesRequest{Records: []fvcommon.UploadFilesRequestRecord{{TableName: "t", SkyflowId: " ",
 			Columns: []fvcommon.UploadFilesRequestColumn{{Column: "c", Base64: "b", FileName: "a.txt"}}}}}), fverrors.EMPTY_UPLOAD_FILES_SKYFLOW_ID)
 		file := fvcommon.UploadFilesRequestColumn{Column: "c", Base64: "b", FileName: "a.txt"}
@@ -129,13 +138,13 @@ var _ = Describe("Other validators", func() {
 		expectError(ValidateDeleteFiles(record(fvcommon.DeleteFilesRequestRecord{TableName: "t", Columns: []string{"c"}, SkyflowId: "id", UniqueValues: []map[string]interface{}{data}})), fverrors.DELETE_FILES_TARGET)
 		expectError(ValidateDeleteFiles(record(fvcommon.DeleteFilesRequestRecord{TableName: "t", Columns: []string{""}, SkyflowId: "id"})), fverrors.EMPTY_DELETE_FILES_COLUMN_NAME)
 		expectError(ValidateDeleteFiles(record(fvcommon.DeleteFilesRequestRecord{TableName: "t", Columns: []string{"c", "d", "c"}, SkyflowId: "id"})), fverrors.DUPLICATE_DELETE_FILES_COLUMN)
-		// No record limit, as in the Java and Python SDKs: the vault enforces its own.
+		// No record limit: the vault enforces its own.
 		many := make([]fvcommon.DeleteFilesRequestRecord, 20001)
 		for i := range many {
 			many[i] = fvcommon.DeleteFilesRequestRecord{TableName: "t", Columns: []string{"c"}, SkyflowId: "id"}
 		}
 		expectError(ValidateDeleteFiles(fvcommon.DeleteFilesRequest{Records: many}), "")
-		// A SkyflowId that is set but blank is an error, not "unset", as in the Java SDK.
+		// A SkyflowId that is set but blank is an error, not "unset".
 		expectError(ValidateDeleteFiles(record(fvcommon.DeleteFilesRequestRecord{TableName: "t", Columns: []string{"c"}, SkyflowId: "  "})), fverrors.EMPTY_DELETE_FILES_SKYFLOW_ID)
 		expectError(ValidateDeleteFiles(record(fvcommon.DeleteFilesRequestRecord{TableName: "t", Columns: []string{"c"}, SkyflowId: " ",
 			UniqueValues: []map[string]interface{}{data}})), fverrors.EMPTY_DELETE_FILES_SKYFLOW_ID)
@@ -149,12 +158,21 @@ var _ = Describe("Other validators", func() {
 	})
 })
 
+var _ = Describe("Update data checks", func() {
+	It("checks update data values and tokens", func() {
+		err := ValidateUpdate(fvcommon.UpdateRequest{TableName: "t", Records: []fvcommon.UpdateRequestRecord{{SkyflowId: "id", Data: map[string]interface{}{"a": nil}}}})
+		Expect(err.GetMessage()).To(Equal(fverrors.EMPTY_VALUE_IN_DATA))
+		err = ValidateUpdate(fvcommon.UpdateRequest{TableName: "t", Records: []fvcommon.UpdateRequestRecord{{SkyflowId: "id", Data: map[string]interface{}{"a": 1}, Tokens: map[string]interface{}{}}}})
+		Expect(err.GetMessage()).To(Equal(fverrors.EMPTY_RECORD_TOKENS))
+	})
+})
+
 func intPtr(v int) *int { return &v }
 
 var _ = Describe("ValidateCredentials", func() {
 	const apiKey = "sky-ab1cd-0123456789abcdef0123456789abcdef"
 
-	DescribeTable("as the Java SDK checks them",
+	DescribeTable("checks the source, API key, roles and context",
 		func(credentials fvcommon.Credentials, message string) {
 			expectError(ValidateCredentials(credentials), message)
 		},

@@ -15,16 +15,16 @@ import (
 )
 
 /**
- * This example sends custom headers with one call, using the Interceptor option.
+ * This example sends custom headers with one call, using the CustomHeaders option.
  *
- * Every operation's options take an Interceptor. It runs just before the request is sent and
- * can add headers with rc.AddHeader. The supported keys are common.SkyflowAccountId,
- * common.SkyflowAccountName and common.RequestIdHeader.
+ * Every operation's options take CustomHeaders, a map of the headers to send with that call.
+ * The supported keys are common.SkyflowAccountId, common.SkyflowAccountName and
+ * common.RequestIdHeader.
  *
  * Steps:
  * 1. Set up credentials and the vault config.
  * 2. Configure the Skyflow client.
- * 3. Insert a record with an interceptor that adds a request ID header.
+ * 3. Insert a record with a request ID header.
  * 4. Handle the response and errors.
  */
 func main() {
@@ -48,18 +48,16 @@ func main() {
 		return
 	}
 
-	// Step 3: Insert a record with an interceptor that adds a request ID header
+	// Step 3: Insert a record with a request ID header
 	request := common.InsertRequest{
 		TableName: "<TABLE_NAME>",
 		Upsert:    &common.UpsertOptions{UniqueColumns: []string{"<UPSERT_COLUMN_NAME>"}},
 		Records:   []common.InsertRequestRecord{{Data: map[string]interface{}{"<YOUR_COLUMN_NAME>": "<YOUR_VALUE>"}}},
 	}
+	requestID := makeRequestID()
+	fmt.Println("request id =>", requestID)
 	options := common.InsertOptions{
-		Interceptor: func(rc *common.RequestContext) {
-			requestID := makeRequestID()
-			fmt.Println("request id =>", requestID, "for", rc.Operation)
-			rc.AddHeader(common.RequestIdHeader, requestID)
-		},
+		CustomHeaders: map[common.CustomHeaderKey]string{common.RequestIdHeader: requestID},
 	}
 	response, err := vault.Insert(context.Background(), request, options)
 

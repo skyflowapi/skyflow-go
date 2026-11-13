@@ -39,7 +39,7 @@ var _ = Describe("Logger", func() {
 	})
 
 	Context("LogLevel.String", func() {
-		It("returns the level's name, as the Java and Python SDKs print it", func() {
+		It("returns the level's name", func() {
 			Expect(ERROR.String()).To(Equal("ERROR"))
 			Expect(INFO.String()).To(Equal("INFO"))
 			Expect(DEBUG.String()).To(Equal("DEBUG"))

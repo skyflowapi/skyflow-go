@@ -26,22 +26,14 @@ var _ = Describe("Credentials", func() {
 	})
 })
 
-var _ = Describe("RequestContext", func() {
-	It("has no headers until one is added", func() {
-		var rc RequestContext
-		Expect(rc.Headers()).To(BeEmpty())
-	})
-
-	It("adds headers, keeping the last value per key, and returns a copy", func() {
-		rc := &RequestContext{Operation: "QUERY"}
-		rc.AddHeader(RequestIdHeader, "first")
-		rc.AddHeader(RequestIdHeader, "second")
-		rc.AddHeader(SkyflowAccountId, "acc")
-
-		headers := rc.Headers()
-		Expect(headers).To(Equal(map[CustomHeaderKey]string{RequestIdHeader: "second", SkyflowAccountId: "acc"}))
-		headers[SkyflowAccountName] = "changed"
-		Expect(rc.Headers()).ToNot(HaveKey(SkyflowAccountName))
+var _ = Describe("Ptr", func() {
+	It("returns a pointer to its own copy of the value", func() {
+		value := 2
+		pointer := Ptr(value)
+		value = 3
+		Expect(*pointer).To(Equal(2))
+		Expect(*Ptr(true)).To(BeTrue())
+		Expect(*Ptr(float32(0.5))).To(Equal(float32(0.5)))
 	})
 })
 

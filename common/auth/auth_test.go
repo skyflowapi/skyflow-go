@@ -623,6 +623,7 @@ var _ = Describe("Auth Service", func() {
 				},
 				Entry("no access token", `{"tokenType":"Bearer"}`),
 				Entry("no token type", `{"accessToken":"at"}`),
+				Entry("a null body", `null`),
 			)
 		})
 	})
