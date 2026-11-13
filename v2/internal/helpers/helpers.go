@@ -367,7 +367,7 @@ func ParseCredentialsFile(credentialsFilePath string) (map[string]interface{}, *
 
 // Generate and Sign Tokens
 func GetSignedDataTokens(credKeys map[string]interface{}, options common.SignedDataTokensOptions) ([]common.SignedDataTokensResponse, *skyflowError.SkyflowError) {
-	return authSvc.GetSignedDataTokens(credKeys, options)
+	return authSvc.GetSignedDataTokens(credKeys, CommonSignedDataTokensOptions(options))
 }
 
 func GetCredentialParams(credKeys map[string]interface{}) (string, string, string, *skyflowError.SkyflowError) {
@@ -375,7 +375,7 @@ func GetCredentialParams(credKeys map[string]interface{}) (string, string, strin
 }
 
 func GenerateSignedDataTokensHelper(clientId, keyId string, pvtKey *rsa.PrivateKey, options common.SignedDataTokensOptions, tokenUri string) ([]common.SignedDataTokensResponse, *skyflowError.SkyflowError) {
-	return authSvc.GenerateSignedDataTokensHelper(clientId, keyId, pvtKey, options, tokenUri)
+	return authSvc.GenerateSignedDataTokensHelper(clientId, keyId, pvtKey, CommonSignedDataTokensOptions(options), tokenUri)
 }
 
 func GetPrivateKey(credKeys map[string]interface{}) (*rsa.PrivateKey, *skyflowError.SkyflowError) {
@@ -388,7 +388,7 @@ func ParsePrivateKey(pemKey string) (*rsa.PrivateKey, *skyflowError.SkyflowError
 
 // GenerateBearerTokenHelper  helper functions
 func GenerateBearerTokenHelper(credKeys map[string]interface{}, options common.BearerTokenOptions) (*internal.V1GetAuthTokenResponse, *skyflowError.SkyflowError) {
-	res, err := authSvc.GenerateBearerTokenHelper(credKeys, options)
+	res, err := authSvc.GenerateBearerTokenHelper(credKeys, CommonBearerTokenOptions(options))
 	if err != nil {
 		return nil, err
 	}
@@ -414,7 +414,7 @@ func ValidateAndResolveCtx(ctx interface{}) (interface{}, *skyflowError.SkyflowE
 }
 
 func GetSignedBearerUserToken(clientId, keyId, tokenUri string, pvtKey *rsa.PrivateKey, options common.BearerTokenOptions) (string, *skyflowError.SkyflowError) {
-	return authSvc.GetSignedBearerUserToken(clientId, keyId, tokenUri, pvtKey, options)
+	return authSvc.GetSignedBearerUserToken(clientId, keyId, tokenUri, pvtKey, CommonBearerTokenOptions(options))
 }
 
 func GetPrivateKeyFromPem(pemKey string) (*rsa.PrivateKey, *skyflowError.SkyflowError) {

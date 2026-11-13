@@ -5,6 +5,7 @@ import (
 
 	cfg "github.com/skyflowapi/skyflow-go/common/config"
 	sa "github.com/skyflowapi/skyflow-go/common/serviceaccount"
+	"github.com/skyflowapi/skyflow-go/v2/utils/logger"
 )
 
 // Platform-level configuration types are defined once in
@@ -19,15 +20,31 @@ const (
 	DEV     Env = cfg.DEV
 )
 
-// Service-account types are defined once in skyflow-go/common/serviceaccount
-// and shared by every SDK in this repository. Aliases keep them the same
-// types under v2's import path.
+// Service-account response types are defined once in skyflow-go/common/serviceaccount
+// and shared by every SDK in this repository. Aliases keep them the same types under
+// v2's import path.
 type TokenResponse = sa.TokenResponse
-type BearerTokenOptions = sa.BearerTokenOptions
-
-type SignedDataTokensOptions = sa.SignedDataTokensOptions
 
 type SignedDataTokensResponse = sa.SignedDataTokensResponse
+
+// BearerTokenOptions are v2's own type rather than the shared one: they keep the
+// deprecated RoleIDs field and the LogLevel field of v2.1.0 for existing users. The SDK
+// converts them to the shared options before generating a token.
+type BearerTokenOptions struct {
+	Ctx     interface{}
+	RoleIds []string
+	// Deprecated: Use RoleIds instead.
+	RoleIDs  []string
+	LogLevel logger.LogLevel
+}
+
+// SignedDataTokensOptions are v2's own type, keeping the LogLevel field of v2.1.0.
+type SignedDataTokensOptions struct {
+	DataTokens []string
+	TimeToLive int
+	Ctx        interface{}
+	LogLevel   logger.LogLevel
+}
 
 // VaultConfig identifies a vault and how to reach and authenticate to it. It has no timeout or
 // retry settings: calls use the SDK's defaults.

@@ -12,22 +12,22 @@ import (
 
 // GenerateBearerToken Generate Bearer Token
 func GenerateBearerToken(credentialsFilePath string, options common.BearerTokenOptions) (*common.TokenResponse, *skyflowError.SkyflowError) {
-	return helpers.Auth().GenerateBearerToken(credentialsFilePath, options)
+	return helpers.Auth().GenerateBearerToken(credentialsFilePath, helpers.CommonBearerTokenOptions(options))
 }
 
 // GenerateBearerTokenFromCreds Generate Bearer Token from Credentials String
 func GenerateBearerTokenFromCreds(credentials string, options common.BearerTokenOptions) (*common.TokenResponse, *skyflowError.SkyflowError) {
-	return helpers.Auth().GenerateBearerTokenFromCreds(credentials, options)
+	return helpers.Auth().GenerateBearerTokenFromCreds(credentials, helpers.CommonBearerTokenOptions(options))
 }
 
 // GenerateSignedDataTokens Generate Signed Data Tokens
 func GenerateSignedDataTokens(credentialsFilePath string, options common.SignedDataTokensOptions) ([]common.SignedDataTokensResponse, *skyflowError.SkyflowError) {
-	return helpers.Auth().GenerateSignedDataTokens(credentialsFilePath, options)
+	return helpers.Auth().GenerateSignedDataTokens(credentialsFilePath, helpers.CommonSignedDataTokensOptions(options))
 }
 
 // GenerateSignedDataTokensFromCreds Generate Signed Data Tokens from Credentials String
 func GenerateSignedDataTokensFromCreds(credentials string, options common.SignedDataTokensOptions) ([]common.SignedDataTokensResponse, *skyflowError.SkyflowError) {
-	return helpers.Auth().GenerateSignedDataTokensFromCreds(credentials, options)
+	return helpers.Auth().GenerateSignedDataTokensFromCreds(credentials, helpers.CommonSignedDataTokensOptions(options))
 }
 
 // IsExpired reports whether the bearer token's exp claim is in the past.
