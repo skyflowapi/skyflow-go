@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Public API compatibility check (the Go counterpart of japicmp in skyflow-java).
+# Public API compatibility check.
 #
 # Compares the public API of each module at a base commit with the working tree, using
 # golang.org/x/exp/cmd/apidiff at the version pinned in scripts/apidiff/go.mod. Every

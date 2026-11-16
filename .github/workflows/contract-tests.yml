@@ -1,6 +1,6 @@
 name: Contract Tests
 
-# Public API compatibility check (the Go counterpart of the japicmp check in skyflow-java).
+# Public API compatibility check.
 # scripts/apidiff/apidiff.sh compares the public API of each module at the PR's base
 # commit with the PR, using golang.org/x/exp/cmd/apidiff pinned in scripts/apidiff/go.mod.
 # An incompatible change fails the job unless an SDK code owner adds the
@@ -25,8 +25,8 @@ concurrency:
 
 jobs:
   api-compatibility:
-    # One job per module, so the PR's checks list shows which module broke, as in
-    # skyflow-java ("Contract Tests (<module>)"). A module that isn't on the target
+    # One job per module, so the PR's checks list shows which module broke
+    # ("Contract Tests (<module>)"). A module that isn't on the target
     # branch passes as skipped, so the same list works on main and the release branches.
     name: Contract Tests (${{ matrix.module }})
     runs-on: ubuntu-latest
