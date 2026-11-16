@@ -22,6 +22,8 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/skyflowapi/skyflow-go/common v0.0.0-20261113104325-040b9792e13d h1:Tz6v6A0M2MT8tOLr13jko1Cq7JslvMbpCoSO0LSEHBk=
 github.com/skyflowapi/skyflow-go/common v0.0.0-20261113104325-040b9792e13d/go.mod h1:I6xXP+DO77cf3u2b9rLY+eg+njGoNtxhWzhCp9O+YWs=
+github.com/skyflowapi/skyflow-go/flowvault v1.0.0 h1:1UuSLHaKnLRoltwP1WamBfQVjyFrtN3GYsDPikmg1E4=
+github.com/skyflowapi/skyflow-go/flowvault v1.0.0/go.mod h1:4aE7phIzV8JO/Y4w8aMZv8VMHFWoN3BfKInDDt4gue0=
 github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcUk=
 github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
 go.yaml.in/yaml/v3 v3.0.5 h1:N6y/pJk8buWs9NY5ERU2HSMfm+IuD/OtfdAnq6kESPw=
