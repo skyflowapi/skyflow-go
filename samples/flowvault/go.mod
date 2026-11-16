@@ -1,0 +1,11 @@
+module github.com/skyflowapi/skyflow-go/samples/flowvault
+
+go 1.25.0
+
+require github.com/skyflowapi/skyflow-go/flowvault v1.0.0
+
+require (
+	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
+	github.com/google/uuid v1.6.0 // indirect
+	github.com/skyflowapi/skyflow-go/common v0.0.0-20261113104325-040b9792e13d // indirect
+)

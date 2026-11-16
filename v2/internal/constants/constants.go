@@ -11,7 +11,7 @@ const (
 	GRANT_TYPE             = "urn:ietf:params:oauth:grant-type:jwt-bearer"
 	SDK_LOG_PREFIX         = "[ " + SDK_PREFIX + " ] "
 	SDK_NAME               = "Skyflow Go SDK "
-	SDK_VERSION            = "v2.1.0"
+	SDK_VERSION            = "v2.2.0"
 	SDK_PREFIX             = SDK_NAME + SDK_VERSION
 	ERROR_FROM_CLIENT      = "error-from-client"
 	REQUEST_KEY            = "X-Request-Id"
@@ -56,10 +56,6 @@ const (
 	DETECT_STATUS_IN_PROGRESS = "IN_PROGRESS"
 	DETECT_STATUS_SUCCESS     = "SUCCESS"
 	DETECT_STATUS_FAILED      = "FAILED"
-
-	// HTTP schemes and protocols
-	HTTPS_PROTOCOL = "https"
-	HTTP_PROTOCOL  = "http"
 
 	// PEM key type
 	PRIVATE_KEY_PEM_TYPE = "PRIVATE KEY"
@@ -157,9 +153,6 @@ const (
 	// Request validation
 	REQUEST_INVOKE_CONNECTION = "InvokeConnectionRequest"
 	REQUEST_ENTITY_ONLY = "entity_only"
-	REQUEST_DEIDENTIFY_TEXT = "DeidentifyTextRequest"
-	REQUEST_REIDENTIFY_TEXT = "ReidentifyTextRequest"
-	REQUEST_GET_DETECT_RUN = "GetDetectRunRequest"
 	REQUEST_TOKENIZE = "Tokenize"
 	
 	// JSON keys for request/response bodies

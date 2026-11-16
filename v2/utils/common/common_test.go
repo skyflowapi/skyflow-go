@@ -39,3 +39,14 @@ var _ = Describe("RequestMethod", func() {
 		})
 	})
 })
+
+var _ = Describe("Ptr", func() {
+	It("returns a pointer to its own copy of the value", func() {
+		value := 2
+		pointer := common.Ptr(value)
+		value = 3
+		Expect(*pointer).To(Equal(2))
+		Expect(*common.Ptr(true)).To(BeTrue())
+		Expect(*common.Ptr(float32(0.5))).To(Equal(float32(0.5)))
+	})
+})

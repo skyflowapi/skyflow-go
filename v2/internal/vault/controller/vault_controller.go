@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"os"
 
+	"github.com/skyflowapi/skyflow-go/common/vaultclient"
 	constants "github.com/skyflowapi/skyflow-go/v2/internal/constants"
 	vaultapis "github.com/skyflowapi/skyflow-go/v2/internal/generated"
 	"github.com/skyflowapi/skyflow-go/v2/internal/generated/client"
@@ -155,8 +155,9 @@ func setVaultCredentials(config *common.VaultConfig, builderCreds *common.Creden
 		// here if builder credentials are available
 		if builderCreds != nil && !isCredentialsEmpty(*builderCreds) {
 			creds = *builderCreds
-		} else if envCreds := os.Getenv(constants.SKYFLOW_CREDENTIALS_ENV); envCreds != "" {
-			creds.CredentialsString = os.Getenv(constants.SKYFLOW_CREDENTIALS_ENV)
+		} else if envCreds := vaultclient.EnvCredentials(); envCreds != "" {
+			// SKYFLOW_CREDENTIALS from the environment, else from ./.env.
+			creds.CredentialsString = envCreds
 		} else {
 			return nil, skyflowError.NewSkyflowError(skyflowError.ErrorCodesEnum(skyflowError.INVALID_INPUT_CODE), skyflowError.EMPTY_CREDENTIALS)
 		}
@@ -244,9 +245,9 @@ func (v *VaultController) Insert(ctx context.Context, request common.InsertReque
 						formattedRecord[constants.RESPONSE_KEY_REQUEST_ID] = header.Get(constants.REQUEST_KEY)
 						formattedRecord[constants.RESPONSE_KEY_HTTP_CODE] = skyflowError.INVALID_INPUT_CODE
 						errors = append(errors, formattedRecord)
-			 	}
+					}
+				}
 			}
-		}
 		}
 		logger.Warn(logs.DEPRECATED_RESPONSE_KEY_SKYFLOW_ID)
 		logger.Warn(logs.DEPRECATED_FIELD_REQUEST_INDEX)
