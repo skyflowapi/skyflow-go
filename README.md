@@ -1,5 +1,5 @@
 # Description
-> **This is the current, recommended version of the Skyflow SDK.** V2.1.0 brings flexible auth, multi-vault support, native data types, and rich error diagnostics.
+> **This is the current, recommended version of the Skyflow SDK.** V2.2.0 brings flexible auth, multi-vault support, native data types, rich error diagnostics, and the Detect APIs for de-identifying and re-identifying strings and files.
 >
 > :warning: **skyflow-go v1 reached End of Life on October 31, 2026 and is no longer supported.** It will not receive any further security patches, bug fixes, or updates. Please upgrade to the latest skyflow-go v2 [![Latest skyflow-go v2 release](https://img.shields.io/github/v/release/skyflowapi/skyflow-go?filter=v2.*&sort=semver&label=latest)](https://github.com/skyflowapi/skyflow-go/releases?q=tag%3Av2&expanded=false) using the **[Migration Guide](./docs/migrate_to_v2.md)**.
 
@@ -2904,7 +2904,7 @@ func main(){
 	if err != nil {
 		fmt.Println("Error detokenizing data:", err)
 		// Retry detokenization if the error is due to unauthorized access (HTTP 401)
-		if err.GetCode() == "401" {
+		if err.GetHttpCode() == "401" {
 			fmt.Println("Unauthorized access. Retrying...")
 			err2 := DetokenizeData(skyflowClient, "<VAULT_ID>")
 			if err2 != nil {
@@ -3016,14 +3016,16 @@ All SDK methods return `*skyflowError.SkyflowError` as the error type. Check for
 
 | Method | Return type | Description |
 |--------|-------------|-------------|
-| `GetMessage()` | `string` | Human-readable error message. |
-| `GetHttpStatusCode()` | `string` | HTTP status code (e.g. `"400"`, `"401"`). Preferred over `GetCode()`. |
-| `GetHttpCode()` | `string` | Alias for `GetHttpStatusCode()`. |
-| `GetCode()` | `string` | Error code. Deprecated — use `GetHttpStatusCode()` instead. |
-| `GetRequestId()` | `string` | Request ID for tracing and support. |
+| `GetMessage()` | `string` | Human-readable error message, prefixed with `Message: `. |
+| `GetHttpCode()` | `string` | HTTP status code, for example `"400"`, `"401"`, `"500"`. `"499"` when the call's context was cancelled or its deadline passed. `"0"` (with an empty `GetHttpStatusCode()`) when no usable HTTP response came back. Use this for comparisons. |
+| `GetHttpCodeInt()` | `int` | `GetHttpCode()` as a number; `0` when there is no HTTP code. |
+| `GetHttpStatusCode()` | `string` | HTTP status text, not the numeric code: the `http_status` from a Skyflow JSON error body (for example `"PERMISSION_DENIED"`), otherwise the response status line (for example `"401 Unauthorized"`). `"Bad Request"` for validation errors raised before any network call. Empty when `GetHttpCode()` is `"0"`. |
+| `GetCode()` | `string` | Deprecated — use `GetHttpCode()`. Returns the code prefixed with `Code: `, for example `"Code: 401"`, so it can't be compared to a bare status code. |
+| `GetRequestId()` | `string` | Request ID for tracing and support. Empty when there was no server response. |
 | `GetGrpcCode()` | `string` | gRPC status code when applicable. |
+| `GetGrpcCodeInt()` | `int` | `GetGrpcCode()` as a number; `0` when the server sent none. |
 | `GetDetails()` | `[]interface{}` | Structured error details array from the API response. |
-| `GetResponseBody()` | `map[string]interface{}` | Raw response body from the API. |
+| `GetResponseBody()` | `map[string]interface{}` | Decoded JSON error body of an API error; `nil` for validation, network and non-JSON errors. |
 
 ```go
 import (
@@ -3033,6 +3035,7 @@ import (
 
 res, err := service.Insert(ctx, insertRequest)
 if err != nil {
+    fmt.Println("HTTP code:", err.GetHttpCode())
     fmt.Println("HTTP status:", err.GetHttpStatusCode())
     fmt.Println("message:", err.GetMessage())
     fmt.Println("request ID:", err.GetRequestId())
