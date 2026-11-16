@@ -115,9 +115,10 @@ jobs:
           go vet ./...
           go test $(go list ./... | grep -v -e "internal/generated")
 
-      # The samples replace flowvault with ../../flowvault, so they are the compile-time
-      # check of the public API. Each file is its own package main, so `go build ./...`
-      # fails on duplicate mains: vet (type-check) them one at a time.
+      # The workspace builds the samples against this commit's flowvault instead of the
+      # published version their go.mod requires, so they are the compile-time check of
+      # the public API. Each file is its own package main, so `go build ./...` fails on
+      # duplicate mains: vet (type-check) them one at a time.
       - name: Vet each sample
         working-directory: samples/flowvault
         run: |

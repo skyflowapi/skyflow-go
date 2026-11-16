@@ -875,18 +875,21 @@ All SDK operations return `*SkyflowError` instead of Go's built-in `error`. It i
 |--------|-------------|-------------|
 | `Error() string` | `string` | Implements the `error` interface; returns the error message. |
 | `GetMessage() string` | `string` | Human-readable error message. |
-| `GetHttpStatusCode() string` | `string` | HTTP status code. Preferred over `GetCode()`. |
-| `GetHttpCode() string` | `string` | HTTP status code string. |
-| `GetCode() string` | `string` | _(deprecated)_ Use `GetHttpStatusCode()`. |
-| `GetRequestId() string` | `string` | Server request ID — include in support escalations. |
+| `GetHttpCode() string` | `string` | HTTP status code, for example `"400"`, `"401"`. `"499"` when the context was cancelled or its deadline passed; `"0"` when no usable HTTP response came back. Use this for comparisons. |
+| `GetHttpCodeInt() int` | `int` | `GetHttpCode()` as a number; `0` when there is no HTTP code. |
+| `GetHttpStatusCode() string` | `string` | HTTP status text, not the numeric code: the `http_status` from a Skyflow JSON error body (for example `"PERMISSION_DENIED"`), otherwise the response status line (for example `"401 Unauthorized"`). `"Bad Request"` for validation errors. Empty when `GetHttpCode()` is `"0"`. |
+| `GetCode() string` | `string` | _(deprecated)_ Use `GetHttpCode()`. Returns `"Code: <http code>"`. |
+| `GetRequestId() string` | `string` | Server request ID — include in support escalations. Empty when there was no server response. |
 | `GetGrpcCode() string` | `string` | gRPC status code (where applicable). |
+| `GetGrpcCodeInt() int` | `int` | `GetGrpcCode()` as a number; `0` when the server sent none. |
 | `GetDetails() []interface{}` | `[]interface{}` | Structured error detail objects. |
-| `GetResponseBody() map[string]interface{}` | `map[string]interface{}` | Raw response body as a map. |
+| `GetResponseBody() map[string]interface{}` | `map[string]interface{}` | Decoded JSON error body of an API error; `nil` for validation, network and non-JSON errors. |
 
 ```go
 resp, skyflowErr := vault.Insert(ctx, insertRequest, insertOptions)
 if skyflowErr != nil {
     fmt.Println("Error message:   ", skyflowErr.GetMessage())
+    fmt.Println("HTTP code:       ", skyflowErr.GetHttpCode())
     fmt.Println("HTTP status:     ", skyflowErr.GetHttpStatusCode())
     fmt.Println("Request ID:      ", skyflowErr.GetRequestId())
     fmt.Println("Details:         ", skyflowErr.GetDetails())
