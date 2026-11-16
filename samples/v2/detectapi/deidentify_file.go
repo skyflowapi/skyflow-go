@@ -54,7 +54,7 @@ func main() {
 	submitted, err := service.DeidentifyFile(context.Background(), common.DeidentifyFileRequest{
 		DataSource:      common.DeidentifySourceTypeSkyflowID, // or DeidentifySourceTypePresignedURL / DeidentifySourceTypeBase64
 		Value:           "<SKYFLOW_ID>",
-		DataFormat:      common.FileDataFormatPDF,
+		DataFormat:      common.DeidentifyFileDataFormatPDF,
 		ConfigurationId: "<CONFIGURATION_ID>",
 	}, common.DeidentifyFileOptions{})
 	if err != nil {

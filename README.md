@@ -6,6 +6,9 @@
 
 The Skyflow Go SDK is designed to help with integrating Skyflow into a go backend.
 
+> [!NOTE]
+> This README covers SkyVault vaults (module `github.com/skyflowapi/skyflow-go/v2`). For FlowVault vaults, use the FlowVault SDK (module `github.com/skyflowapi/skyflow-go/flowvault`): see the **[FlowVault README](./flowvault/README.md)**.
+
 [![CI](https://img.shields.io/static/v1?label=CI&message=passing&color=green?style=plastic&logo=github)](https://github.com/skyflowapi/skyflow-go/actions)
 [![GitHub release](https://img.shields.io/github/v/release/skyflowapi/skyflow-go?filter=v2.*&sort=semver)](https://github.com/skyflowapi/skyflow-go/releases?q=tag%3Av2&expanded=false)
 [![License](https://img.shields.io/github/license/skyflowapi/skyflow-go)](https://github.com/skyflowapi/skyflow-go/blob/main/LICENSE)
@@ -1915,7 +1918,7 @@ Sample response:
 }
 ```
 
-`Value` is set only when the configuration's `ReturnEntities` is `ReturnEntitiesTypeAll`.
+`Value` is set only when the configuration's `ReturnEntities` is `ReturnEntitiesTypeAll`. `Location` is a `*common.EntityLocation`: nil when the server sends no location.
 
 > [!TIP]
 > See the full example in the samples directory: [deidentify_string.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v2/detectapi/deidentify_string.go)
@@ -1929,14 +1932,14 @@ Sample response:
 | `FileObject` | An open `*os.File`, sent the same way. The caller closes it. |
 | `DataSource` + `Value` | `DeidentifySourceTypeBase64`, `DeidentifySourceTypeSkyflowID` or `DeidentifySourceTypePresignedURL`. |
 
-Before calling the API, the SDK checks that exactly one is set, that a `Value` has a `DataSource` and isn't blank, and that a local file exists. It sends `DataSource` as given; the server rejects one the vault doesn't accept.
+Before calling the API, the SDK checks that exactly one is set, that a `Value` has a `DataSource` and isn't blank, and that a local file exists and is a regular file. A local file is checked before the `Poll` options, and one that exists but can't be read fails with "Failed to encode the file". It sends `DataSource` as given; the server rejects one the vault doesn't accept.
 
 `ConfigurationId` and `Configuration` work as for [Deidentify String](#deidentify-string).
 
 > [!WARNING]
 > **`DeidentifyFile` doesn't wait for the result by default.** It returns as soon as the file is submitted, with only `RunId` set: `Status` is empty and there is no `Output`. Get the result later with [GetRun](#get-run), or set `Poll` to wait for the run. The earlier `DeidentifyFile` always waited, so ported code can run without an error and still get no `Output`. Check `Status` before reading it.
 
-Outputs are written to disk only when the input is a local file (`FilePath` or `FileObject`), the polled run reached `SUCCESS` and its outputs are base64. They are named `processed-<name>.<ext>`, `processed-entities-<name>.json` and `processed-object-entities-<name>.json`. `OutputDirectory` requires `Poll`, is created if missing and defaults to the current directory (an empty or blank value means the current directory). Presigned-URL outputs are not fetched: read them from `Output`.
+Outputs are written to disk only when the input is a local file (`FilePath` or `FileObject`), the polled run reached `SUCCESS` and its outputs are base64. They are named `processed-<name>.<ext>`, `processed-entities-<name>.json` and `processed-object-entities-<name>.json`, where `<name>` is the input's name without its extension (a dotfile such as `.env` keeps its whole name). A file that can't be written fails the call with "Failed to write the processed output to <path>." and code `"0"`; the underlying error is `Unwrap()`. `OutputDirectory` requires `Poll`, is created if missing and defaults to the current directory (an empty or blank value means the current directory). Presigned-URL outputs are not fetched: read them from `Output`.
 
 `DeidentificationTypeVaultToken` is supported only for `txt`, `csv`, `json`, `jsonl`, `xml`, `docx`, `xlsx` and `pptx` files.
 
@@ -1945,7 +1948,7 @@ Outputs are written to disk only when the input is a local file (`FilePath` or `
 submitted, err := service.DeidentifyFile(ctx, common.DeidentifyFileRequest{
 	DataSource:      common.DeidentifySourceTypeSkyflowID,
 	Value:           "<SKYFLOW_ID>",
-	DataFormat:      common.FileDataFormatPDF, // optional
+	DataFormat:      common.DeidentifyFileDataFormatPDF, // optional
 	ConfigurationId: "<CONFIGURATION_ID>",
 }, common.DeidentifyFileOptions{})
 fmt.Println(submitted.RunId)
@@ -2086,7 +2089,7 @@ Sample response:
 > See the full example in the samples directory: [reidentify_string.go](https://github.com/skyflowapi/skyflow-go/blob/main/samples/v2/detectapi/reidentify_string.go)
 
 ### Reidentify File
-`ReidentifyFile` is synchronous: there is no run to poll. `DataSource` and `Value` are required: `ReidentifySourceTypeBase64` with base64 content, or `ReidentifySourceTypePresignedURL` with a URL (a Skyflow ID is not accepted). There is no `FilePath` / `FileObject`: encode a local file into `Value`. `DataFormat` is optional and limited to `txt`, `csv`, `json`, `jsonl`, `xml`, `docx`, `xlsx` and `pptx`. `RedactionLevel` works as in [Reidentify String](#reidentify-string). The response's `OutputType` is a `ReidentifySourceType`, or nil for a value the SDK doesn't know.
+`ReidentifyFile` is synchronous: there is no run to poll. `DataSource` and `Value` are required: `ReidentifySourceTypeBase64` with base64 content, or `ReidentifySourceTypePresignedURL` with a URL (a Skyflow ID is not accepted). There is no `FilePath` / `FileObject`: encode a local file into `Value`. `DataFormat` is optional: a `ReidentifyFileDataFormat*` constant (`CSV`, `DOCX`, `JSON`, `JSONL`, `PPTX`, `TXT`, `XLSX`, `XML`), the formats re-identification works with. Each output is a `common.ReidentifyFileOutput`, whose `ProcessedFileExtension` is the same type: empty for any other format. `RedactionLevel` works as in [Reidentify String](#reidentify-string). The response's `OutputType` is a `ReidentifySourceType`, or nil for a value the SDK doesn't know.
 
 The SDK writes nothing to disk: the re-identified output is in `response.Output` for you to handle.
 
@@ -2205,7 +2208,7 @@ An inline `DetectConfiguration` (the `Configuration` field) has these parts. Opt
 | `Document.Pdf` | `ProcessingMode` (`PdfProcessingModeOCR`, `PdfProcessingModeTextLayer`, `PdfProcessingModeNone`), `Density`, `MaxResolution`. |
 | `Image` | `OutputProcessedImage *bool`, `OutputOcrText *bool`, `MaskingMethod` (`MaskingMethodBlur`, `MaskingMethodBlackbox`, `MaskingMethodNone`). |
 
-The supported file formats are the `FileDataFormat*` constants: `pdf`, `txt`, `csv`, `json`, `jsonl`, `xml`, `doc`, `docx`, `xls`, `xlsx`, `ppt`, `pptx`, `jpg`, `jpeg`, `png`, `bmp`, `gif`, `tif`, `tiff`, `dcm`, `mp3`, `wav` and `zip`.
+The supported file formats are the `DeidentifyFileDataFormat*` constants: `pdf`, `txt`, `csv`, `json`, `jsonl`, `xml`, `doc`, `docx`, `xls`, `xlsx`, `ppt`, `pptx`, `jpg`, `jpeg`, `png`, `bmp`, `gif`, `tif`, `tiff`, `dcm`, `mp3`, `wav` and `zip`.
 
 ### Detect request headers
 Client-level headers set with `WithCustomHeaders` are sent with every Detect call. To add a header to a single call, set `Interceptor` in its options:
@@ -3062,6 +3065,10 @@ These come back from the server as a `*SkyflowError`. `GetMessage()` has the ser
 | A missing role, or re-identifying vault tokens without permission to detokenize. Detect needs the Detect Invoker, Detect Manager or Vault Owner role; re-identification also needs a policy granting the Detokenization action on the destination table and columns, unless the caller is a Vault Owner. | `403` | Grant the role or policy. |
 
 The SDK rejects some mistakes itself, before any request, with a `400` `*SkyflowError` and no request ID. Examples: no file source in `DeidentifyFile`, `OutputDirectory` without `Poll`, and a `Poll` limit out of range.
+
+Errors without a server response also have no request ID. `GetHttpCode()` is `"0"` (with an empty `GetHttpStatusCode()`) when no usable HTTP response came back: a network failure, a call that ran past its timeout, or a response body that couldn't be read. It is also `"0"` when there was no HTTP exchange at all, for example a local file that exists but can't be read ("Failed to encode the file…") or an output file that can't be written. It is `"499"` only when the caller's context was cancelled or its deadline passed. `Unwrap()` returns the underlying error in these cases, so `errors.Is` / `errors.As` work. A missing local file is reported before the `Poll` options are checked.
+
+For an API error, `GetHttpCode()` is always the response's HTTP status. When the body isn't a Skyflow JSON error, the message is, in order: an `error` string in the body, a top-level `message`, the body itself (only its first 512 bytes are kept), or `"Error with status code <N>"` for an empty body. An `error-from-client` response header is added to `GetDetails()` as `errorFromClient`.
 
 ### Bearer token expiration edge cases
 

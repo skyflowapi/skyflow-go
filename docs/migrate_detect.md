@@ -145,7 +145,7 @@ A vault token needs a `Destination`: the `"<TABLE_NAME>.<COLUMN_NAME>"` it is st
 | `Entities []EntityInfo` | `Entities []DetectedEntity` |
 | `EntityInfo.Entity` | `DetectedEntity.EntityType` (a string, so it can carry custom-type labels) |
 | `EntityInfo.Scores` | `DetectedEntity.EntityScores` |
-| `EntityInfo.TextIndex.Start` / `.End` | `DetectedEntity.Location.StartIndex` / `.EndIndex` |
+| `EntityInfo.TextIndex.Start` / `.End` | `DetectedEntity.Location.StartIndex` / `.EndIndex`. `Location` is a `*EntityLocation`, nil when the server sends no location, so check it before reading the indexes. |
 | `EntityInfo.ProcessedIndex.Start` / `.End` | `DetectedEntity.Location.StartIndexProcessed` / `.EndIndexProcessed` |
 | `EntityInfo.Token`, `EntityInfo.Value` | `Token`, `Value`. `Value` is set only with `ReturnEntities: common.ReturnEntitiesTypeAll`. |
 | `Errors` | Removed: failures come back as the `*SkyflowError`. |
@@ -343,7 +343,7 @@ Every options struct of the new Detect methods (`DeidentifyStringOptions`, `Deid
 
 ## New methods
 
-- **`ReidentifyFile`** re-identifies a file synchronously, sent as base64 or a presigned URL. The output comes back in the response, and the SDK writes nothing to disk. See [Reidentify File](../README.md#reidentify-file).
+- **`ReidentifyFile`** re-identifies a file synchronously, sent as base64 or a presigned URL. `DataFormat` takes a `ReidentifyFileDataFormat*` constant and each output is a `ReidentifyFileOutput`. The output comes back in the response, and the SDK writes nothing to disk. See [Reidentify File](../README.md#reidentify-file).
 - **`CheckGuardrails`** screens text for toxicity and denied topics. See [Check Guardrails](../README.md#check-guardrails).
 
 ## Migration checklist

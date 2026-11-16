@@ -36,6 +36,8 @@ type (
 	ReidentifyFileSource       = cdetect.ReidentifyFileSource
 	ReidentifySourceType       = cdetect.SkyReidentifySourceType
 	DeidentifyFileDataFormat   = cdetect.DeidentifyFileDataFormat
+	ReidentifyFileDataFormat   = cdetect.ReidentifyFileDataFormat
+	ReidentifyFileOutput       = cdetect.ReidentifyFileOutput
 	DetectRunStatus            = cdetect.DetectRunStatus
 	ProcessedFileType          = cdetect.ProcessedFileType
 	ObjectEntityType           = cdetect.ObjectEntityType
@@ -184,6 +186,14 @@ const (
 	DeidentifyFileDataFormatJSONL                             = cdetect.DeidentifyFileDataFormatJSONL
 	DeidentifyFileDataFormatZIP                               = cdetect.DeidentifyFileDataFormatZIP
 	DeidentifyFileDataFormatGIF                               = cdetect.DeidentifyFileDataFormatGIF
+	ReidentifyFileDataFormatCSV                               = cdetect.ReidentifyFileDataFormatCSV
+	ReidentifyFileDataFormatDOCX                              = cdetect.ReidentifyFileDataFormatDOCX
+	ReidentifyFileDataFormatJSON                              = cdetect.ReidentifyFileDataFormatJSON
+	ReidentifyFileDataFormatJSONL                             = cdetect.ReidentifyFileDataFormatJSONL
+	ReidentifyFileDataFormatPPTX                              = cdetect.ReidentifyFileDataFormatPPTX
+	ReidentifyFileDataFormatTXT                               = cdetect.ReidentifyFileDataFormatTXT
+	ReidentifyFileDataFormatXLSX                              = cdetect.ReidentifyFileDataFormatXLSX
+	ReidentifyFileDataFormatXML                               = cdetect.ReidentifyFileDataFormatXML
 	DetectRunStatusUnknown                                    = cdetect.DetectRunStatusUnknown
 	DetectRunStatusFailed                                     = cdetect.DetectRunStatusFailed
 	DetectRunStatusSuccess                                    = cdetect.DetectRunStatusSuccess
