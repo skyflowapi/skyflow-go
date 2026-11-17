@@ -52,7 +52,7 @@ type VaultConfig struct {
 	VaultId   string
 	ClusterId string
 	// BaseVaultUrl is the full vault URL, used instead of the one built from ClusterId and Env.
-	// It must use https; plain http is accepted only for localhost and loopback addresses.
+	// It must use https.
 	BaseVaultUrl string
 	// Deprecated: Use BaseVaultUrl instead.
 	BaseVaultURL string

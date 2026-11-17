@@ -733,11 +733,17 @@ var _ = Describe("ConnectionController", func() {
 	Describe("Invoke tests", func() {
 		ctx := context.TODO()
 		Context("when making a valid request", func() {
+			var defaultTransport http.RoundTripper
+			// Connection URLs must use https, so the test uses a TLS server. The connection
+			// invoke uses http.DefaultTransport, which is swapped for one that trusts the
+			// test certificate during the test.
 			BeforeEach(func() {
-				mockServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				mockServer = httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusOK)
 					_, _ = w.Write([]byte(`{"key": "value"}`))
 				}))
+				defaultTransport = http.DefaultTransport
+				http.DefaultTransport = mockServer.Client().Transport
 				client, _ = NewSkyflow(WithConnections(ConnectionConfig{
 					ConnectionId:  "failed",
 					ConnectionUrl: mockServer.URL,
@@ -748,6 +754,7 @@ var _ = Describe("ConnectionController", func() {
 			})
 
 			AfterEach(func() {
+				http.DefaultTransport = defaultTransport
 				mockServer.Close()
 			})
 

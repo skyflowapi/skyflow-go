@@ -522,16 +522,33 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 				Expect(err).ToNot(BeNil())
 				Expect(err.GetMessage()).To(ContainSubstring(errors.INSECURE_VAULT_URL))
 			})
-			It("should accept plain http for localhost", func() {
-				config := common.VaultConfig{
-					VaultId:      "id",
-					ClusterId:    "cid",
-					Env:          common.PROD,
-					Credentials:  validCredentials,
-					BaseVaultUrl: "http://localhost:8080",
-				}
-				err := ValidateVaultConfig(config)
-				Expect(err).To(BeNil())
+			DescribeTable("should reject plain http for localhost and loopback addresses",
+				func(vaultUrl string) {
+					config := common.VaultConfig{
+						VaultId:      "id",
+						ClusterId:    "cid",
+						Env:          common.PROD,
+						Credentials:  validCredentials,
+						BaseVaultUrl: vaultUrl,
+					}
+					err := ValidateVaultConfig(config)
+					Expect(err).ToNot(BeNil())
+					Expect(err.GetMessage()).To(ContainSubstring(errors.INSECURE_VAULT_URL))
+					err = ValidateUpdateVaultConfig(common.VaultConfig{VaultId: "id", BaseVaultUrl: vaultUrl})
+					Expect(err).ToNot(BeNil())
+					Expect(err.GetMessage()).To(ContainSubstring(errors.INSECURE_VAULT_URL))
+				},
+				Entry("localhost", "http://localhost:8080"),
+				Entry("IPv4 loopback", "http://127.0.0.1:9000"),
+				Entry("IPv6 loopback", "http://[::1]:8080"),
+			)
+			It("should reject plain http set through the deprecated BaseVaultURL", func() {
+				err := ValidateVaultConfig(common.VaultConfig{VaultId: "id", Credentials: validCredentials, BaseVaultURL: "http://example.com"}) //nolint:staticcheck // the deprecated field is still honoured
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetMessage()).To(ContainSubstring(errors.INSECURE_VAULT_URL))
+			})
+			It("should return nil when only ClusterId is set for an update", func() {
+				Expect(ValidateUpdateVaultConfig(common.VaultConfig{VaultId: "id", ClusterId: "cid"})).To(BeNil())
 			})
 			It("should return true for valid https URL", func() {
 				validURL := "https://example.com"
@@ -622,7 +639,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 					Entry("no host", "https://"),
 				)
 
-				DescribeTable("should return an error if ConnectionUrl uses plain http for a host that is not loopback",
+				DescribeTable("should return an error if ConnectionUrl uses plain http",
 					func(connectionUrl string) {
 						err := ValidateConnectionConfig(common.ConnectionConfig{ConnectionId: "valid-id", ConnectionUrl: connectionUrl})
 						Expect(err).To(HaveOccurred())
@@ -631,6 +648,9 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 					},
 					Entry("host name", "http://valid.url"),
 					Entry("non-loopback IP", "http://10.0.0.1:8080"),
+					Entry("localhost", "http://localhost:8080/path"),
+					Entry("IPv4 loopback", "http://127.0.0.1:8080"),
+					Entry("IPv6 loopback", "http://[::1]:8080"),
 				)
 			})
 
@@ -646,14 +666,6 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 					Expect(err).To(BeNil())
 				})
 
-				DescribeTable("should return nil for a plain http ConnectionUrl on a loopback host",
-					func(connectionUrl string) {
-						Expect(ValidateConnectionConfig(common.ConnectionConfig{ConnectionId: "valid-id", ConnectionUrl: connectionUrl})).To(BeNil())
-					},
-					Entry("localhost", "http://localhost:8080/path"),
-					Entry("IPv4 loopback", "http://127.0.0.1:8080"),
-					Entry("IPv6 loopback", "http://[::1]:8080"),
-				)
 			})
 		})
 		Describe("ValidateUpdateConnectionConfig", func() {
@@ -681,13 +693,15 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 				err := ValidateUpdateConnectionConfig(config)
 				Expect(err).To(BeNil())
 			})
-			It("should return an error when ConnectionUrl uses plain http for a host that is not loopback", func() {
+			It("should return an error when ConnectionUrl uses plain http", func() {
 				err := ValidateUpdateConnectionConfig(common.ConnectionConfig{ConnectionId: "valid-id", ConnectionUrl: "http://valid.url"})
 				Expect(err).To(HaveOccurred())
 				Expect(err.GetMessage()).To(ContainSubstring(errors.INSECURE_CONNECTION_URL))
 			})
-			It("should return nil when ConnectionUrl uses plain http on localhost", func() {
-				Expect(ValidateUpdateConnectionConfig(common.ConnectionConfig{ConnectionId: "valid-id", ConnectionUrl: "http://localhost:8080"})).To(BeNil())
+			It("should return an error when ConnectionUrl uses plain http on localhost", func() {
+				err := ValidateUpdateConnectionConfig(common.ConnectionConfig{ConnectionId: "valid-id", ConnectionUrl: "http://localhost:8080"})
+				Expect(err).To(HaveOccurred())
+				Expect(err.GetMessage()).To(ContainSubstring(errors.INSECURE_CONNECTION_URL))
 			})
 		})
 		Describe("ValidateCredentials", func() {
