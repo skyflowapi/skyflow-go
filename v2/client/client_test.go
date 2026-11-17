@@ -194,7 +194,7 @@ var _ = Describe("Skyflow Client", func() {
 			}
 			connectionConfig = common.ConnectionConfig{
 				ConnectionId:  "conn1",
-				ConnectionUrl: "http://url",
+				ConnectionUrl: "https://url",
 			}
 		})
 
@@ -249,7 +249,7 @@ var _ = Describe("Skyflow Client", func() {
 			}
 			connectionConfig = common.ConnectionConfig{
 				ConnectionId:  "conn1",
-				ConnectionUrl: "http://url",
+				ConnectionUrl: "https://url",
 			}
 			client.AddVaultConfig(vaultConfig)
 			client.AddConnectionConfig(connectionConfig)
@@ -293,7 +293,7 @@ var _ = Describe("Skyflow Client", func() {
 			}
 			updatedConnectionConfig = common.ConnectionConfig{
 				ConnectionId:  "conn1",
-				ConnectionUrl: "http://url",
+				ConnectionUrl: "https://url",
 			}
 			client.AddVaultConfig(updatedVaultConfig)
 			client.AddConnectionConfig(updatedConnectionConfig)
@@ -385,7 +385,7 @@ var _ = Describe("Skyflow Client", func() {
 
 		It("should successfully update a connection configuration", func() {
 			_ = client.AddConnectionConfig(updatedConnectionConfig)
-			updatedConnectionConfig.ConnectionUrl = "http://conn-updated"
+			updatedConnectionConfig.ConnectionUrl = "https://conn-updated"
 			err := client.UpdateConnectionConfig(updatedConnectionConfig)
 			Expect(err).Should(BeNil())
 			conn, err := client.GetConnectionConfig(updatedConnectionConfig.ConnectionId)
@@ -494,11 +494,11 @@ var _ = Describe("Skyflow Client", func() {
 			client1, err := NewSkyflow(
 				WithConnections(common.ConnectionConfig{
 					ConnectionId:  "conn1",
-					ConnectionUrl: "http://url",
+					ConnectionUrl: "https://url",
 				}),
 				WithConnections(common.ConnectionConfig{
 					ConnectionId:  "conn1",
-					ConnectionUrl: "http://url",
+					ConnectionUrl: "https://url",
 				}),
 			)
 			Expect(client1).Should(BeNil())
@@ -509,7 +509,7 @@ var _ = Describe("Skyflow Client", func() {
 			client1, err := NewSkyflow(
 				WithConnections(common.ConnectionConfig{
 					ConnectionId:  "conn1",
-					ConnectionUrl: "http://url",
+					ConnectionUrl: "https://url",
 				}),
 				WithConnections(common.ConnectionConfig{
 					ConnectionId: "conn1",

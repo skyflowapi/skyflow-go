@@ -3,6 +3,7 @@ package validation
 import (
 	"encoding/base64"
 	"fmt"
+	"net"
 	"net/url"
 	"os"
 	"strings"
@@ -155,11 +156,11 @@ func validateTokenForStrict(tokens map[string]interface{}, values map[string]int
 	return nil
 }
 
-// validateVaultConfig function
 // configValidator is the shared implementation (skyflow-go/common/config) of the
-// vault-config and credential checks, configured with v2's SDK prefix.
-// The validator accepts a plain http vault URL for any host, as v2 always has.
-var configValidator = cfg.NewValidator(constants.SDK_PREFIX, constants.SDK_LOG_PREFIX, cfg.WithInsecureVaultUrl())
+// vault-config and credential checks, configured with v2's SDK prefix. Bearer tokens
+// and sensitive data travel on the vault URL, so it must use https; plain http is
+// accepted only for loopback hosts (local development and tests).
+var configValidator = cfg.NewValidator(constants.SDK_PREFIX, constants.SDK_LOG_PREFIX)
 
 func ValidateVaultConfig(vaultConfig common.VaultConfig) *skyflowError.SkyflowError {
 	warnDeprecatedBaseVaultURL(vaultConfig)
@@ -188,16 +189,7 @@ func ValidateConnectionConfig(config common.ConnectionConfig) *skyflowError.Skyf
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_CONNECTION_URL)
 	}
 
-	// Parse the URL
-	_, err := url.Parse(config.ConnectionUrl)
-	if err != nil {
-		logger.Error(logs.INVALID_CONNECTION_URL)
-		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_CONNECTION_URL)
-	}
-	//if parsedURL.Scheme != "https" {
-	//	return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_CONNECTION_URL)
-	//}
-	return nil
+	return validateConnectionUrl(config.ConnectionUrl)
 }
 func ValidateUpdateConnectionConfig(config common.ConnectionConfig) *skyflowError.SkyflowError {
 	if config.ConnectionId == "" {
@@ -206,13 +198,34 @@ func ValidateUpdateConnectionConfig(config common.ConnectionConfig) *skyflowErro
 	}
 
 	if config.ConnectionUrl != "" {
-		_, err := url.Parse(config.ConnectionUrl)
-		if err != nil {
-			logger.Error(logs.INVALID_CONNECTION_URL)
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_CONNECTION_URL)
-		}
+		return validateConnectionUrl(config.ConnectionUrl)
 	}
 	return nil
+}
+
+// validateConnectionUrl checks that the connection URL is well formed and uses https.
+// The bearer token is attached to every connection request, so plain http is allowed
+// only for loopback hosts (local development and tests).
+func validateConnectionUrl(raw string) *skyflowError.SkyflowError {
+	u, err := url.Parse(raw)
+	if err != nil || (u.Scheme != constants.HTTP_PROTOCOL && u.Scheme != constants.HTTPS_PROTOCOL) || u.Host == "" {
+		logger.Error(logs.INVALID_CONNECTION_URL)
+		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_CONNECTION_URL)
+	}
+	if u.Scheme == constants.HTTP_PROTOCOL && !isLoopbackHost(u.Hostname()) {
+		logger.Error(logs.CONNECTION_URL_IS_INSECURE)
+		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INSECURE_CONNECTION_URL)
+	}
+	return nil
+}
+
+// isLoopbackHost reports whether host is localhost or a loopback IP address.
+func isLoopbackHost(host string) bool {
+	if strings.EqualFold(host, constants.LOCALHOST) {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
 }
 
 // ValidateCredentials validates the credentials object

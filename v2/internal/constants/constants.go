@@ -4,6 +4,9 @@ package internal
 const (
 	SDK_METRICS_HEADER_KEY = "sky-metadata"
 	SECURE_PROTOCOL        = "https://"
+	HTTP_PROTOCOL          = "http"
+	HTTPS_PROTOCOL         = "https"
+	LOCALHOST              = "localhost"
 	DEV_DOMAIN             = ".vault.skyflowapis.dev"
 	STAGE_DOMAIN           = ".vault.skyflowapis.tech"
 	SANDBOX_DOMAIN         = ".vault.skyflowapis-preview.com"

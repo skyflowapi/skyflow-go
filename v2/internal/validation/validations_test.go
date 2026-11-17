@@ -507,7 +507,7 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 				Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_VAULT_URL))
 
 			})
-			It("should accept plain http for any host", func() {
+			It("should reject plain http for a host that is not loopback", func() {
 				config := common.VaultConfig{
 					VaultId:      "id",
 					ClusterId:    "cid",
@@ -515,8 +515,12 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 					Credentials:  validCredentials,
 					BaseVaultUrl: "http://example.com",
 				}
-				Expect(ValidateVaultConfig(config)).To(BeNil())
-				Expect(ValidateUpdateVaultConfig(common.VaultConfig{VaultId: "id", BaseVaultUrl: "http://example.com"})).To(BeNil())
+				err := ValidateVaultConfig(config)
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetMessage()).To(ContainSubstring(errors.INSECURE_VAULT_URL))
+				err = ValidateUpdateVaultConfig(common.VaultConfig{VaultId: "id", BaseVaultUrl: "http://example.com"})
+				Expect(err).ToNot(BeNil())
+				Expect(err.GetMessage()).To(ContainSubstring(errors.INSECURE_VAULT_URL))
 			})
 			It("should accept plain http for localhost", func() {
 				config := common.VaultConfig{
@@ -605,6 +609,29 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 					Expect(err.GetMessage()).To(ContainSubstring(errors.EMPTY_CONNECTION_URL))
 				})
 
+				DescribeTable("should return an error if ConnectionUrl is not a valid http(s) URL",
+					func(connectionUrl string) {
+						err := ValidateConnectionConfig(common.ConnectionConfig{ConnectionId: "valid-id", ConnectionUrl: connectionUrl})
+						Expect(err).To(HaveOccurred())
+						Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+						Expect(err.GetMessage()).To(ContainSubstring(errors.INVALID_CONNECTION_URL))
+					},
+					Entry("unparsable", "https://host\x00.example.com"),
+					Entry("unsupported scheme", "ftp://valid.url"),
+					Entry("no scheme", "valid.url"),
+					Entry("no host", "https://"),
+				)
+
+				DescribeTable("should return an error if ConnectionUrl uses plain http for a host that is not loopback",
+					func(connectionUrl string) {
+						err := ValidateConnectionConfig(common.ConnectionConfig{ConnectionId: "valid-id", ConnectionUrl: connectionUrl})
+						Expect(err).To(HaveOccurred())
+						Expect(err.GetCode()).To(ContainSubstring(string(errors.INVALID_INPUT_CODE)))
+						Expect(err.GetMessage()).To(ContainSubstring(errors.INSECURE_CONNECTION_URL))
+					},
+					Entry("host name", "http://valid.url"),
+					Entry("non-loopback IP", "http://10.0.0.1:8080"),
+				)
 			})
 
 			Context("Valid common.ConnectionConfig", func() {
@@ -618,6 +645,15 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 					err := ValidateConnectionConfig(config)
 					Expect(err).To(BeNil())
 				})
+
+				DescribeTable("should return nil for a plain http ConnectionUrl on a loopback host",
+					func(connectionUrl string) {
+						Expect(ValidateConnectionConfig(common.ConnectionConfig{ConnectionId: "valid-id", ConnectionUrl: connectionUrl})).To(BeNil())
+					},
+					Entry("localhost", "http://localhost:8080/path"),
+					Entry("IPv4 loopback", "http://127.0.0.1:8080"),
+					Entry("IPv6 loopback", "http://[::1]:8080"),
+				)
 			})
 		})
 		Describe("ValidateUpdateConnectionConfig", func() {
@@ -644,6 +680,14 @@ var _ = Describe("ValidateTokensForInsertRequest", func() {
 				}
 				err := ValidateUpdateConnectionConfig(config)
 				Expect(err).To(BeNil())
+			})
+			It("should return an error when ConnectionUrl uses plain http for a host that is not loopback", func() {
+				err := ValidateUpdateConnectionConfig(common.ConnectionConfig{ConnectionId: "valid-id", ConnectionUrl: "http://valid.url"})
+				Expect(err).To(HaveOccurred())
+				Expect(err.GetMessage()).To(ContainSubstring(errors.INSECURE_CONNECTION_URL))
+			})
+			It("should return nil when ConnectionUrl uses plain http on localhost", func() {
+				Expect(ValidateUpdateConnectionConfig(common.ConnectionConfig{ConnectionId: "valid-id", ConnectionUrl: "http://localhost:8080"})).To(BeNil())
 			})
 		})
 		Describe("ValidateCredentials", func() {
