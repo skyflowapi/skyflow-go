@@ -78,20 +78,10 @@ var _ = Describe("Validator", func() {
 				Expect(v.ValidateVaultConfig(VaultConfig{VaultId: "v", VaultUrl: u})).To(BeNil())
 			},
 			Entry("https", "https://example.vault.skyflowapis.com"),
-			Entry("http localhost with port and path", "http://localhost:8080/v1"),
-			Entry("http LOCALHOST", "http://LOCALHOST"),
-			Entry("http IPv4 loopback", "http://127.0.0.1:9000"),
-			Entry("http IPv6 loopback", "http://[::1]:9000"),
+			Entry("https localhost with port and path", "https://localhost:8080/v1"),
 		)
 
-		It("should accept plain http for any host with WithInsecureVaultUrl, but still not a malformed URL", func() {
-			lenient := NewValidator(testSDKPrefix, testLogPrefix, WithInsecureVaultUrl())
-			Expect(lenient.ValidateVaultConfig(VaultConfig{VaultId: "v", VaultUrl: "http://10.0.0.5"})).To(BeNil())
-			Expect(lenient.ValidateUpdateVaultConfig(VaultConfig{VaultId: "v", VaultUrl: "http://vault.example.com"})).To(BeNil())
-			expectInvalid(lenient.ValidateVaultConfig(VaultConfig{VaultId: "v", VaultUrl: "ftp://vault.example.com"}), errInvalidVaultUrl)
-		})
-
-		DescribeTable("should reject plain http for a non-loopback host",
+		DescribeTable("should reject plain http for every host",
 			func(u string) {
 				expectInvalid(v.ValidateVaultConfig(VaultConfig{VaultId: "v", VaultUrl: u}), errInsecureVaultUrl)
 				Expect(logBuf.String()).To(ContainSubstring(logVaultUrlIsInsecure))
@@ -99,6 +89,26 @@ var _ = Describe("Validator", func() {
 			Entry("public host", "http://example.vault.skyflowapis.com"),
 			Entry("private IP", "http://10.0.0.5"),
 			Entry("localhost lookalike", "http://localhost.example.com"),
+			Entry("localhost with port and path", "http://localhost:8080/v1"),
+			Entry("LOCALHOST", "http://LOCALHOST"),
+			Entry("IPv4 loopback", "http://127.0.0.1:9000"),
+			Entry("IPv6 loopback", "http://[::1]:9000"),
+		)
+
+		DescribeTable("CheckSecureUrl",
+			func(u string, want UrlStatus) {
+				Expect(CheckSecureUrl(u)).To(Equal(want))
+			},
+			Entry("https", "https://vault.example.com/v1", UrlSecure),
+			Entry("HTTPS scheme in upper case", "HTTPS://vault.example.com", UrlSecure),
+			Entry("http", "http://vault.example.com", UrlInsecure),
+			Entry("http localhost", "http://localhost:8080", UrlInsecure),
+			Entry("userinfo hiding the host", "http://localhost@evil.example.com", UrlInsecure),
+			Entry("unparseable", "://bad", UrlMalformed),
+			Entry("unsupported scheme", "ftp://vault.example.com", UrlMalformed),
+			Entry("no scheme", "vault.example.com", UrlMalformed),
+			Entry("missing host", "https://", UrlMalformed),
+			Entry("empty", "", UrlMalformed),
 		)
 
 		DescribeTable("should reject an invalid VaultUrl",
@@ -169,7 +179,7 @@ var _ = Describe("Validator", func() {
 
 		It("should reject an update to a plain http vault URL", func() {
 			expectInvalid(v.ValidateUpdateVaultConfig(VaultConfig{VaultId: "v", VaultUrl: "http://vault.example.com"}), errInsecureVaultUrl)
-			Expect(v.ValidateUpdateVaultConfig(VaultConfig{VaultId: "v", VaultUrl: "http://127.0.0.1:8080"})).To(BeNil())
+			expectInvalid(v.ValidateUpdateVaultConfig(VaultConfig{VaultId: "v", VaultUrl: "http://127.0.0.1:8080"}), errInsecureVaultUrl)
 		})
 
 	})
