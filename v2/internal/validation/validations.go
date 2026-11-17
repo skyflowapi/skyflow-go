@@ -3,7 +3,6 @@ package validation
 import (
 	"encoding/base64"
 	"fmt"
-	"net/url"
 	"os"
 	"strings"
 
@@ -156,40 +155,18 @@ func validateTokenForStrict(tokens map[string]interface{}, values map[string]int
 }
 
 // configValidator is the shared implementation (skyflow-go/common/config) of the
-// vault-config and credential checks, configured with v2's SDK prefix. It checks that a
-// vault URL is a well-formed http(s) URL; requireSecureVaultUrl then rejects plain http,
-// because bearer tokens and sensitive data travel on the vault URL.
-var configValidator = cfg.NewValidator(constants.SDK_PREFIX, constants.SDK_LOG_PREFIX, cfg.WithInsecureVaultUrl())
+// vault-config and credential checks, configured with v2's SDK prefix. It requires an
+// https vault URL.
+var configValidator = cfg.NewValidator(constants.SDK_PREFIX, constants.SDK_LOG_PREFIX)
 
 func ValidateVaultConfig(vaultConfig common.VaultConfig) *skyflowError.SkyflowError {
 	warnDeprecatedBaseVaultURL(vaultConfig)
-	shared := helpers.CommonVaultConfig(vaultConfig)
-	if err := configValidator.ValidateVaultConfig(shared); err != nil {
-		return err
-	}
-	return requireSecureVaultUrl(shared.VaultUrl)
+	return configValidator.ValidateVaultConfig(helpers.CommonVaultConfig(vaultConfig))
 }
 
 func ValidateUpdateVaultConfig(vaultConfig common.VaultConfig) *skyflowError.SkyflowError {
 	warnDeprecatedBaseVaultURL(vaultConfig)
-	shared := helpers.CommonVaultConfig(vaultConfig)
-	if err := configValidator.ValidateUpdateVaultConfig(shared); err != nil {
-		return err
-	}
-	return requireSecureVaultUrl(shared.VaultUrl)
-}
-
-// requireSecureVaultUrl rejects a vault URL that uses plain http, for any host.
-// An empty URL is allowed: the vault URL is then built from the cluster ID.
-func requireSecureVaultUrl(raw string) *skyflowError.SkyflowError {
-	if raw == "" {
-		return nil
-	}
-	if u, err := url.Parse(raw); err == nil && u.Scheme == constants.HTTPS_PROTOCOL {
-		return nil
-	}
-	logger.Error(logs.VAULT_URL_IS_INSECURE)
-	return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INSECURE_VAULT_URL)
+	return configValidator.ValidateUpdateVaultConfig(helpers.CommonVaultConfig(vaultConfig))
 }
 
 // warnDeprecatedBaseVaultURL warns when the config sets the deprecated BaseVaultURL.
@@ -223,16 +200,14 @@ func ValidateUpdateConnectionConfig(config common.ConnectionConfig) *skyflowErro
 	return nil
 }
 
-// validateConnectionUrl checks that the connection URL is well formed and uses https.
-// The bearer token is attached to every connection request, so plain http is rejected
-// for every host.
+// validateConnectionUrl checks that the connection URL is well formed and uses https,
+// with the same rule as the vault URL.
 func validateConnectionUrl(raw string) *skyflowError.SkyflowError {
-	u, err := url.Parse(raw)
-	if err != nil || (u.Scheme != constants.HTTP_PROTOCOL && u.Scheme != constants.HTTPS_PROTOCOL) || u.Host == "" {
+	switch cfg.CheckSecureUrl(raw) {
+	case cfg.UrlMalformed:
 		logger.Error(logs.INVALID_CONNECTION_URL)
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_CONNECTION_URL)
-	}
-	if u.Scheme == constants.HTTP_PROTOCOL {
+	case cfg.UrlInsecure:
 		logger.Error(logs.CONNECTION_URL_IS_INSECURE)
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INSECURE_CONNECTION_URL)
 	}

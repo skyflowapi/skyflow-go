@@ -40,7 +40,6 @@ const (
 	VAULT_CONFIG_DOES_NOT_EXIST = SDK_LOG_PREFIX + "Vault config with vault ID %s doesn't exist."
 	VAULT_ID_IS_REQUIRED        = SDK_LOG_PREFIX + "Invalid vault config. Vault ID is required."
 	VAULT_URL_IS_INVALID        = SDK_LOG_PREFIX + "Invalid vault config. Vault URL is not a valid URL."
-	VAULT_URL_IS_INSECURE       = SDK_LOG_PREFIX + "Invalid vault config. Vault URL must use https."
 	CLUSTER_ID_IS_REQUIRED      = SDK_LOG_PREFIX + "Invalid vault config. Cluster ID is required."
 
 	CONNECTION_CONFIG_EXISTS         = SDK_LOG_PREFIX + "Connection config with connection ID %s already exists."

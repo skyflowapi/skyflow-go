@@ -24,7 +24,7 @@ var _ = Describe("Detect service", func() {
 	It("calls the vault URL with the vault's credentials and follows config updates", func() {
 		var path, auth string
 		var body map[string]interface{}
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			path, auth = r.URL.Path, r.Header.Get("Authorization")
 			_ = json.NewDecoder(r.Body).Decode(&body)
 			w.Header().Set("Content-Type", "application/json")
@@ -48,7 +48,7 @@ var _ = Describe("Detect service", func() {
 
 	It("routes every Detect operation to its endpoint", func() {
 		var paths []string
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			paths = append(paths, r.URL.Path)
 			w.Header().Set("Content-Type", "application/json")
 			switch r.URL.Path {
@@ -91,7 +91,7 @@ var _ = Describe("Detect service", func() {
 	})
 
 	It("uses the FlowVault source type, without SKYFLOW_ID", func() {
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			if r.URL.Path == "/v2/detect/runs/sky" {
 				_, _ = w.Write([]byte(`{"status":"SUCCESS","outputType":"SKYFLOW_ID"}`))
@@ -122,7 +122,7 @@ var _ = Describe("Detect service", func() {
 	It("polls a local file's run and writes its outputs", func() {
 		output := base64.StdEncoding.EncodeToString([]byte("redacted"))
 		var sent map[string]interface{}
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			if r.URL.Path == "/v2/detect/deidentify/file" {
 				_ = json.NewDecoder(r.Body).Decode(&sent)
