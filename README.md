@@ -1,5 +1,5 @@
 # Description
-> **This is the current, recommended version of the Skyflow SDK.** V2.2.0 brings flexible auth, multi-vault support, native data types, rich error diagnostics, and the Detect APIs for de-identifying and re-identifying strings and files.
+> **This is the current, recommended version of the Skyflow SDK.** V2.2.1 brings flexible auth, multi-vault support, native data types, rich error diagnostics, and the Detect APIs for de-identifying and re-identifying strings and files.
 >
 > :warning: **skyflow-go v1 reached End of Life on October 31, 2026 and is no longer supported.** It will not receive any further security patches, bug fixes, or updates. Please upgrade to the latest skyflow-go v2 [![Latest skyflow-go v2 release](https://img.shields.io/github/v/release/skyflowapi/skyflow-go?filter=v2.*&sort=semver&label=latest)](https://github.com/skyflowapi/skyflow-go/releases?q=tag%3Av2&expanded=false) using the **[Migration Guide](./docs/migrate_to_v2.md)**.
 
