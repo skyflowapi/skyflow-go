@@ -1,6 +1,6 @@
 module github.com/skyflowapi/skyflow-go/samples/v2
 
-go 1.25.0
+go 1.26.11
 
 require github.com/skyflowapi/skyflow-go/v2 v2.2.0
 
