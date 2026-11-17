@@ -102,7 +102,7 @@ The Skyflow Go SDK is designed to help with integrating Skyflow into a go backen
 
 ## Install
 ### Requirements
-- go 1.22.0 and above
+- go 1.26.11 and above
 
 ### Configuration
 

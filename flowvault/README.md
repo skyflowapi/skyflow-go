@@ -73,7 +73,7 @@ The `flowvault` module is the Skyflow Go SDK for **FlowVault** vaults. It shares
 
 ## Requirements
 
-- Go 1.25 and above
+- Go 1.26.11 and above
 
 ## Configuration
 
