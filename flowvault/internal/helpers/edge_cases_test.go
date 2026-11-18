@@ -51,8 +51,8 @@ var _ = Describe("URL, metadata and shared services", func() {
 		Expect(ConfigValidator().ValidateUpdateVaultConfig(fvcommon.VaultConfig{VaultId: "v"})).To(BeNil())
 		Expect(ConfigValidator().ValidateVaultConfig(fvcommon.VaultConfig{VaultId: "v"}).GetMessage()).
 			To(Equal(fvconsts.SDK_PREFIX + " Initialization failed. Specify either 'clusterId' or 'vaultURL'."))
-		// Plain http is rejected for hosts other than localhost.
-		for _, url := range []string{"http://vault.example.com", "ftp://vault.example.com"} {
+		// Plain http is rejected for every host, localhost included.
+		for _, url := range []string{"http://vault.example.com", "http://localhost:8080", "http://127.0.0.1:9000", "ftp://vault.example.com"} {
 			err := ConfigValidator().ValidateUpdateVaultConfig(fvcommon.VaultConfig{VaultId: "v", VaultUrl: url})
 			Expect(err.GetMessage()).To(Equal(fvconsts.SDK_PREFIX + " Initialization failed. Vault URL must start with 'https://'."))
 		}

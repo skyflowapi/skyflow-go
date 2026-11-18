@@ -484,6 +484,37 @@ func TestReadTimeoutBoundsTheWaitForTheResponse(t *testing.T) {
 	}
 }
 
+// roundTripFunc is an http.RoundTripper that is not an *http.Transport.
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
+func TestTimeoutTransportCopiesDefaultTransport(t *testing.T) {
+	original := http.DefaultTransport
+	defer func() { http.DefaultTransport = original }()
+
+	// Settings the application gives http.DefaultTransport, such as TLS roots, carry over.
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	defer server.Close()
+	http.DefaultTransport = server.Client().Transport
+	transport := newTransport(transportKey{read: time.Second})
+	if transport.TLSClientConfig == nil || transport.TLSClientConfig.RootCAs == nil {
+		t.Fatal("the TLS settings of http.DefaultTransport should be copied")
+	}
+	resp, err := (&http.Client{Transport: transport}).Get(server.URL)
+	if err != nil {
+		t.Fatalf("a TLS call trusted by http.DefaultTransport failed: %v", err)
+	}
+	_ = resp.Body.Close()
+
+	// A DefaultTransport that is not an *http.Transport leaves the standard settings.
+	http.DefaultTransport = roundTripFunc(func(*http.Request) (*http.Response, error) { return nil, errors.New("unused") })
+	fallback := newTransport(transportKey{read: time.Second})
+	if fallback.MaxIdleConns != defaultMaxIdleConns || fallback.TLSHandshakeTimeout != defaultTLSHandshakeTimeout || fallback.ResponseHeaderTimeout != time.Second {
+		t.Fatalf("fallback transport = %+v, want the standard settings", fallback)
+	}
+}
+
 func TestConnectTimeoutFailsTheDial(t *testing.T) {
 	transport := newTransport(transportKey{connect: time.Nanosecond})
 	if _, err := transport.DialContext(context.Background(), "tcp", "127.0.0.1:1"); err == nil {

@@ -7,7 +7,7 @@ const (
 	errInvalidVaultId                     = " Initialization failed. Invalid vault ID. Specify a valid vault ID."
 	errInvalidClusterId                   = " Initialization failed. Invalid cluster ID. Specify cluster ID."
 	errInvalidVaultUrl                    = " Initialization failed. Invalid vault URL. Specify a valid vault URL."
-	errInsecureVaultUrl                   = " Initialization failed. Insecure vault URL. Specify an https vault URL; http is allowed only for localhost."
+	errInsecureVaultUrl                   = " Initialization failed. Insecure vault URL. Specify an https vault URL."
 	errMultipleTokenGenerationMeansPassed = " Initialization failed. Invalid credentials. Specify only one from 'path', 'credentialsString', 'token' or 'apiKey'."
 	errNoTokenGenerationMeansPassed       = " Initialization failed. Invalid credentials. Specify any one from 'path', 'credentialsString', 'token' or 'apiKey'."
 	errInvalidApiKey                      = " Initialization failed. Invalid credentials. Specify valid api key."
@@ -19,7 +19,7 @@ const (
 const (
 	logVaultIdIsRequired                  = "Invalid vault config. Vault ID is required."
 	logVaultUrlIsInvalid                  = "Invalid vault config. Vault URL is not a valid URL."
-	logVaultUrlIsInsecure                 = "Invalid vault config. Vault URL must use https unless the host is localhost."
+	logVaultUrlIsInsecure                 = "Invalid vault config. Vault URL must use https."
 	logClusterIdIsRequired                = "Invalid vault config. Cluster ID is required."
 	logMultipleTokenGenerationMeansPassed = "Invalid credentials. Only one of 'path', 'credentialsString', 'token' or 'apiKey' is allowed."
 	logNoTokenGenerationMeansPassed       = "Invalid credentials. Any one of 'path', 'credentialsString', 'token' or 'apiKey' is required."

@@ -3,7 +3,6 @@ package validation
 import (
 	"encoding/base64"
 	"fmt"
-	"net/url"
 	"os"
 	"strings"
 
@@ -155,11 +154,10 @@ func validateTokenForStrict(tokens map[string]interface{}, values map[string]int
 	return nil
 }
 
-// validateVaultConfig function
 // configValidator is the shared implementation (skyflow-go/common/config) of the
-// vault-config and credential checks, configured with v2's SDK prefix.
-// The validator accepts a plain http vault URL for any host, as v2 always has.
-var configValidator = cfg.NewValidator(constants.SDK_PREFIX, constants.SDK_LOG_PREFIX, cfg.WithInsecureVaultUrl())
+// vault-config and credential checks, configured with v2's SDK prefix. It requires an
+// https vault URL.
+var configValidator = cfg.NewValidator(constants.SDK_PREFIX, constants.SDK_LOG_PREFIX)
 
 func ValidateVaultConfig(vaultConfig common.VaultConfig) *skyflowError.SkyflowError {
 	warnDeprecatedBaseVaultURL(vaultConfig)
@@ -188,16 +186,7 @@ func ValidateConnectionConfig(config common.ConnectionConfig) *skyflowError.Skyf
 		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.EMPTY_CONNECTION_URL)
 	}
 
-	// Parse the URL
-	_, err := url.Parse(config.ConnectionUrl)
-	if err != nil {
-		logger.Error(logs.INVALID_CONNECTION_URL)
-		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_CONNECTION_URL)
-	}
-	//if parsedURL.Scheme != "https" {
-	//	return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_CONNECTION_URL)
-	//}
-	return nil
+	return validateConnectionUrl(config.ConnectionUrl)
 }
 func ValidateUpdateConnectionConfig(config common.ConnectionConfig) *skyflowError.SkyflowError {
 	if config.ConnectionId == "" {
@@ -206,11 +195,21 @@ func ValidateUpdateConnectionConfig(config common.ConnectionConfig) *skyflowErro
 	}
 
 	if config.ConnectionUrl != "" {
-		_, err := url.Parse(config.ConnectionUrl)
-		if err != nil {
-			logger.Error(logs.INVALID_CONNECTION_URL)
-			return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_CONNECTION_URL)
-		}
+		return validateConnectionUrl(config.ConnectionUrl)
+	}
+	return nil
+}
+
+// validateConnectionUrl checks that the connection URL is well formed and uses https,
+// with the same rule as the vault URL.
+func validateConnectionUrl(raw string) *skyflowError.SkyflowError {
+	switch cfg.CheckSecureUrl(raw) {
+	case cfg.UrlMalformed:
+		logger.Error(logs.INVALID_CONNECTION_URL)
+		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INVALID_CONNECTION_URL)
+	case cfg.UrlInsecure:
+		logger.Error(logs.CONNECTION_URL_IS_INSECURE)
+		return skyflowError.NewSkyflowError(skyflowError.INVALID_INPUT_CODE, skyflowError.INSECURE_CONNECTION_URL)
 	}
 	return nil
 }
