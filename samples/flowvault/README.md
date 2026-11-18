@@ -4,7 +4,7 @@ Runnable examples for the Skyflow FlowVault Go SDK (`github.com/skyflowapi/skyfl
 
 ## Prerequisites
 
-- Go 1.25+
+- Go 1.26.11+
 - A Skyflow account. If you don't have one, register on the [Try Skyflow](https://skyflow.com/try-skyflow) page.
 - A FlowVault vault and Skyflow credentials: a service-account `credentials.json`, an API key, or a bearer token.
 

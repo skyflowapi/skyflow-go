@@ -20,8 +20,8 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/skyflowapi/skyflow-go/common v0.0.0-20261113104325-040b9792e13d h1:Tz6v6A0M2MT8tOLr13jko1Cq7JslvMbpCoSO0LSEHBk=
 github.com/skyflowapi/skyflow-go/common v0.0.0-20261113104325-040b9792e13d/go.mod h1:I6xXP+DO77cf3u2b9rLY+eg+njGoNtxhWzhCp9O+YWs=
-github.com/skyflowapi/skyflow-go/v2 v2.1.1-0.20261116055007-d0c9bf253f9d h1:KaolrkLwVDNMoKd3NLfF9LURi6V6KyuJQHlno4DwREo=
-github.com/skyflowapi/skyflow-go/v2 v2.1.1-0.20261116055007-d0c9bf253f9d/go.mod h1:QeaMETlwY7E3ZLZp3ul4JrH5HNSud/IaMUzozqHbUFI=
+github.com/skyflowapi/skyflow-go/v2 v2.2.0 h1:JRP5wqo8D5OHYdhTVga5TqkvB38Un6lvPixIQjj/wLI=
+github.com/skyflowapi/skyflow-go/v2 v2.2.0/go.mod h1:QeaMETlwY7E3ZLZp3ul4JrH5HNSud/IaMUzozqHbUFI=
 github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcUk=
 github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
 go.uber.org/automaxprocs v1.6.0 h1:O3y2/QNTOdbF+e/dpXNNW7Rx2hZ4sTIPyybbxyNqTUs=

@@ -38,7 +38,7 @@ This go SDK is designed to help developers easily implement Skyflow into their g
 ## Installation
 
 ### Requirements
-- go 1.18 and above
+- go 1.26.11 and above
 
 ### Configuration
 
