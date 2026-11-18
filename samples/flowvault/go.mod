@@ -1,6 +1,6 @@
 module github.com/skyflowapi/skyflow-go/samples/flowvault
 
-go 1.25.0
+go 1.26.11
 
 require github.com/skyflowapi/skyflow-go/flowvault v1.0.0
 

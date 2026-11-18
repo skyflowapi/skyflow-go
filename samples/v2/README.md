@@ -4,7 +4,7 @@ Runnable examples for the Skyflow Go SDK (`github.com/skyflowapi/skyflow-go/v2`)
 
 ## Prerequisites
 
-- Go 1.25+
+- Go 1.26.11+
 - A Skyflow account. If you don't have one, register on the [Try Skyflow](https://skyflow.com/try-skyflow) page.
 - A SkyVault vault and Skyflow credentials: a service-account `credentials.json`, an API key, or a bearer token.
 
