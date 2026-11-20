@@ -22,6 +22,26 @@ func TestClient(t *testing.T) {
 	RunSpecs(t, "Flowvault Client Suite")
 }
 
+// Vault URLs must use https, so the tests that call a local server use TLS servers.
+// Every httptest TLS server shares one test certificate, and the SDK's transports copy
+// http.DefaultTransport when they are first built, so the suite makes it trust that
+// certificate before any call.
+var (
+	certServer       *httptest.Server
+	defaultTransport http.RoundTripper
+)
+
+var _ = BeforeSuite(func() {
+	certServer = httptest.NewTLSServer(http.NotFoundHandler())
+	defaultTransport = http.DefaultTransport
+	http.DefaultTransport = certServer.Client().Transport
+})
+
+var _ = AfterSuite(func() {
+	http.DefaultTransport = defaultTransport
+	certServer.Close()
+})
+
 const testVaultID = "vault123"
 
 var testApiKey = testutil.Resource("client_api_key.txt")
@@ -162,7 +182,7 @@ var _ = Describe("Skyflow client", func() {
 	})
 
 	It("can be changed while calls are running", func() {
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			_, _ = w.Write([]byte(`{}`))
 		}))
@@ -235,7 +255,7 @@ var _ = Describe("VaultService", func() {
 
 	It("sends valid requests to the vault", func() {
 		var paths []string
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			paths = append(paths, r.URL.Path)
 			w.Header().Set("Content-Type", "application/json")
 			_, _ = w.Write([]byte(`{}`))

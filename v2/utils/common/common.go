@@ -49,8 +49,10 @@ type SignedDataTokensOptions struct {
 // VaultConfig identifies a vault and how to reach and authenticate to it. It has no timeout or
 // retry settings: calls use the SDK's defaults.
 type VaultConfig struct {
-	VaultId      string
-	ClusterId    string
+	VaultId   string
+	ClusterId string
+	// BaseVaultUrl is the full vault URL, used instead of the one built from ClusterId and Env.
+	// It must use https.
 	BaseVaultUrl string
 	// Deprecated: Use BaseVaultUrl instead.
 	BaseVaultURL string

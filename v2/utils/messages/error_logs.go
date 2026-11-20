@@ -49,6 +49,7 @@ const (
 	CONNECTION_URL_IS_REQUIRED = SDK_LOG_PREFIX + "Invalid connection config. Connection URL is required."
 
 	INVALID_CONNECTION_URL                 = SDK_LOG_PREFIX + "Invalid connection config. Connection URL is not a valid URL."
+	CONNECTION_URL_IS_INSECURE             = SDK_LOG_PREFIX + "Invalid connection config. Connection URL must use https."
 	MULTIPLE_TOKEN_GENERATION_MEANS_PASSED = SDK_LOG_PREFIX + "Invalid credentials. Only one of 'path', 'credentialsString', 'token' or 'apiKey' is allowed."
 	NO_TOKEN_GENERATION_MEANS_PASSED       = SDK_LOG_PREFIX + "Invalid credentials. Any one of 'path', 'credentialsString', 'token' or 'apiKey' is required."
 	EMPTY_CREDENTIALS_PATH                 = SDK_LOG_PREFIX + "Invalid credentials. Credentials path can not be empty."

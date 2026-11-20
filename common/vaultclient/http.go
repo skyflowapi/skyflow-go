@@ -15,8 +15,8 @@ import (
 // retryJitterFactor spreads each retry delay by +/-20%.
 const retryJitterFactor = 0.2
 
-// Connection pool settings of the transports built for per-attempt timeouts; the same as
-// http.DefaultTransport's.
+// Connection pool settings of the transports built for per-attempt timeouts when
+// http.DefaultTransport is not an *http.Transport; the same as the standard library's.
 const (
 	defaultMaxIdleConns        = 100
 	defaultIdleConnTimeout     = 90 * time.Second
@@ -142,15 +142,8 @@ func transportFor(resolved ResolvedHttpConfig) http.RoundTripper {
 // connect bounds dialing, read bounds the wait for the response headers once the request
 // is written, and write bounds each write to the connection.
 func newTransport(key transportKey) *http.Transport {
-	transport := &http.Transport{
-		Proxy:                 http.ProxyFromEnvironment,
-		ForceAttemptHTTP2:     true,
-		MaxIdleConns:          defaultMaxIdleConns,
-		IdleConnTimeout:       defaultIdleConnTimeout,
-		TLSHandshakeTimeout:   defaultTLSHandshakeTimeout,
-		ExpectContinueTimeout: time.Second,
-		ResponseHeaderTimeout: key.read,
-	}
+	transport := baseTransport()
+	transport.ResponseHeaderTimeout = key.read
 	dialer := &net.Dialer{Timeout: key.connect, KeepAlive: defaultKeepAlive}
 	transport.DialContext = func(ctx context.Context, network, address string) (net.Conn, error) {
 		conn, err := dialer.DialContext(ctx, network, address)
@@ -160,6 +153,23 @@ func newTransport(key transportKey) *http.Transport {
 		return &writeDeadlineConn{Conn: conn, timeout: key.write}, nil
 	}
 	return transport
+}
+
+// baseTransport copies http.DefaultTransport, so the proxy and TLS settings an application
+// gives it (a corporate proxy, extra root certificates) also apply to the timeout
+// transports. If it was replaced by another RoundTripper, it is the standard default.
+func baseTransport() *http.Transport {
+	if transport, ok := http.DefaultTransport.(*http.Transport); ok {
+		return transport.Clone()
+	}
+	return &http.Transport{
+		Proxy:                 http.ProxyFromEnvironment,
+		ForceAttemptHTTP2:     true,
+		MaxIdleConns:          defaultMaxIdleConns,
+		IdleConnTimeout:       defaultIdleConnTimeout,
+		TLSHandshakeTimeout:   defaultTLSHandshakeTimeout,
+		ExpectContinueTimeout: time.Second,
+	}
 }
 
 // writeDeadlineConn bounds each Write. Reads are left alone, so idle pooled connections

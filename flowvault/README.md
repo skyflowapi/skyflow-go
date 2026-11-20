@@ -362,7 +362,7 @@ vault, err := skyflowClient.Vault("<VAULT_ID>")
 | `ClusterId` | `string` | required unless `VaultUrl` is set | The cluster part of the vault URL: `https://{clusterId}.vault.skyflowapis.com`. |
 | `Env` | `common.Env` | optional | `common.DEV`, `common.STAGE`, `common.SANDBOX` or `common.PROD`. The zero value is `PROD`. |
 | `Credentials` | `common.Credentials` | optional | Credentials for this vault. Falls back to client-wide credentials, then `SKYFLOW_CREDENTIALS`. |
-| `VaultUrl` | `string` | optional | Full vault URL, used instead of the one built from `ClusterId` and `Env`. Must use `https` (`http` is accepted only for localhost and loopback addresses). |
+| `VaultUrl` | `string` | optional | Full vault URL, used instead of the one built from `ClusterId` and `Env`. Must use `https`. |
 | `Timeout` | `time.Duration` | optional | Overall call timeout, retries included. |
 | `ConnectTimeout` | `time.Duration` | optional | Per-attempt connection timeout. |
 | `ReadTimeout` | `time.Duration` | optional | Per-attempt wait for the server to start responding. |

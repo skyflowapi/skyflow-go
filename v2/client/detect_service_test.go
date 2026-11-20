@@ -18,15 +18,19 @@ var _ = Describe("Detect", func() {
 	const vaultId = "detect-vault"
 	const apiKey = "sky-abcde-1234567890abcdef1234567890abcdef"
 	var (
-		server *httptest.Server
-		path   string
-		header http.Header
-		body   map[string]interface{}
+		server           *httptest.Server
+		defaultTransport http.RoundTripper
+		path             string
+		header           http.Header
+		body             map[string]interface{}
 	)
 
+	// Vault URLs must use https, so the tests use TLS servers. Every httptest TLS server
+	// shares one test certificate, and the Detect client uses http.DefaultTransport, so
+	// that transport is swapped for one that trusts the certificate during each test.
 	BeforeEach(func() {
 		path = ""
-		server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		server = httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			path, header = r.URL.Path, r.Header.Clone()
 			body = nil
 			_ = json.NewDecoder(r.Body).Decode(&body)
@@ -34,7 +38,14 @@ var _ = Describe("Detect", func() {
 			_, _ = w.Write([]byte(`{"processedText":"My name is John Doe."}`))
 		}))
 	})
-	AfterEach(func() { server.Close() })
+	BeforeEach(func() {
+		defaultTransport = http.DefaultTransport
+		http.DefaultTransport = server.Client().Transport
+	})
+	AfterEach(func() {
+		http.DefaultTransport = defaultTransport
+		server.Close()
+	})
 
 	newClient := func(opts ...Option) *Skyflow {
 		options := append([]Option{
@@ -115,7 +126,7 @@ var _ = Describe("Detect", func() {
 	// The vault config has no HTTP settings: Detect retries with the SDK's defaults (2 retries).
 	It("uses the base vault URL of UpdateVaultConfig and the default retries", func() {
 		var calls int
-		updated := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		updated := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			calls++
 			if calls == 1 {
 				w.WriteHeader(http.StatusServiceUnavailable) // retried by default
