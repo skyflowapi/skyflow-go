@@ -1,6 +1,6 @@
 # Authentication credentials options
 
-> **Note:** Only one type of credential can be used at a time. If multiple credentials are provided, the last one added takes precedence.
+> **Note:** A single `Credentials` struct accepts only one credential type. Passing more than one in the same struct is a validation error. When credentials are set at more than one level, vault-level credentials take precedence over client-level (common) credentials. Client-level credentials take precedence over the `SKYFLOW_CREDENTIALS` environment variable.
 
 1. **API keys**
 
@@ -19,7 +19,7 @@
 
    ```go
    credentials := common.Credentials{
-    Token: "<YOUR_BEARER_TOKEN>"
+    Token: "<YOUR_BEARER_TOKEN>",
     }
    ```
 
@@ -30,7 +30,7 @@
 
    ```go
    credentials := common.Credentials{
-    Path: "<YOUR_CREDENTIALS_FILE_PATH>"
+    Path: "<YOUR_CREDENTIALS_FILE_PATH>",
     }
    ```
 

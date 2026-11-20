@@ -214,8 +214,8 @@ if serviceError != nil {
     "InsertedFields": [
           {
                "card_number": "5484-7829-1702-9110",
-               "request_index": "0",
-               "skyflow_id": "9fac9201-7b8a-4446-93f8-5244e1213bd1",
+               "RequestIndex": "0",
+               "SkyflowId": "9fac9201-7b8a-4446-93f8-5244e1213bd1",
                "cardholder_name": "b2308e2a-c1f5-469b-97b7-1f193159399b"
           }
      ],
@@ -288,4 +288,4 @@ Response maps now use `SkyflowId` (PascalCase). The legacy keys are still presen
 
 ---
 
-For the full list of changes see [CHANGELOG.md](../CHANGELOG.md).
+For the full list of changes see [GitHub Releases](https://github.com/skyflowapi/skyflow-go/releases).
